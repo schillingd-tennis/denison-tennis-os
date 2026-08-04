@@ -1,6 +1,9 @@
 "use client";
 
+import { LogOut } from "lucide-react";
 import { usePathname } from "next/navigation";
+
+import { logout } from "@/app/login/actions";
 
 import { getPageTitle } from "./nav-items";
 
@@ -71,6 +74,16 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-denison-red text-sm font-semibold text-surface">
           DS
         </div>
+        <form action={logout}>
+          <button
+            type="submit"
+            aria-label="Sign out"
+            title="Sign out"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control text-text-secondary hover:bg-app-background hover:text-text-primary"
+          >
+            <LogOut className="h-4 w-4" strokeWidth={1.75} />
+          </button>
+        </form>
       </div>
     </header>
   );

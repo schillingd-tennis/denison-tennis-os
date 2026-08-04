@@ -26,9 +26,10 @@ hand-picked red.
 | `--color-border` | `#E5E7EB` | `border-border` | Dividers, outlines |
 | `--color-text-primary` | `#111827` | `text-text-primary` | Primary body/heading text |
 | `--color-text-secondary` | `#6B7280` | `text-text-secondary` | Muted/secondary text (descriptions, subtext, inactive nav labels) |
-| `--color-success` | `#16A34A` | `bg-success`, `text-success` | Reserved for future positive/success states |
+| `--color-success` | `#16A34A` | `bg-success`, `text-success` | Positive/success states (e.g. the "Call" quick action on team cards) |
 | `--color-warning` | `#F59E0B` | `bg-warning`, `text-warning` | Reserved for future warning states |
 | `--color-danger` | `#DC2626` | `bg-danger`, `text-danger` | Reserved for future destructive/error states |
+| `--color-info` | `#2563EB` | `bg-info`, `text-info` | Informational accent, restrained (e.g. the "Text" quick action on team cards) |
 
 ## Shell sizing
 

@@ -1,18 +1,24 @@
 "use client";
 
 import { Pencil } from "lucide-react";
+import type { ReactNode } from "react";
 
-import type { FormMode } from "./types";
+import type { FormMode, SaveStatus } from "./types";
 
 export default function EditorToolbar({
   mode,
   isDirty,
+  saveStatus,
+  saveError,
   onEdit,
   onCancel,
   onSave,
 }: {
   mode: FormMode;
   isDirty: boolean;
+  /** Save lifecycle (BP-017 Phase 1); defaults to "idle" for callers that don't persist. */
+  saveStatus?: SaveStatus;
+  saveError?: string;
   onEdit: () => void;
   onCancel: () => void;
   onSave: () => void;
@@ -30,9 +36,24 @@ export default function EditorToolbar({
     );
   }
 
+  const isSaving = saveStatus === "saving";
+
+  let statusMessage: ReactNode = null;
+  if (saveStatus === "error") {
+    statusMessage = (
+      <span className="text-xs font-medium text-denison-red">{saveError ?? "Save failed. Please try again."}</span>
+    );
+  } else if (isSaving) {
+    statusMessage = <span className="text-xs text-text-secondary">Saving…</span>;
+  } else if (saveStatus === "saved") {
+    statusMessage = <span className="text-xs font-medium text-green-600">Saved</span>;
+  } else if (isDirty) {
+    statusMessage = <span className="text-xs text-text-secondary">You have unsaved changes.</span>;
+  }
+
   return (
     <div className="flex items-center gap-3">
-      {isDirty ? <span className="text-xs text-text-secondary">You have unsaved changes.</span> : null}
+      {statusMessage}
       <div className="flex items-center gap-2">
         <button
           type="button"
@@ -44,10 +65,10 @@ export default function EditorToolbar({
         <button
           type="button"
           onClick={onSave}
-          disabled={!isDirty}
+          disabled={!isDirty || isSaving}
           className="flex h-10 items-center justify-center rounded-control bg-denison-red px-4 text-sm font-medium text-surface transition-opacity duration-150 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          Save
+          {isSaving ? "Saving…" : "Save"}
         </button>
       </div>
     </div>

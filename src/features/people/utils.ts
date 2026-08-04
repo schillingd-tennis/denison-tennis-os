@@ -46,6 +46,15 @@ export function getStatusTone(status: PersonStatus): "denison" | "neutral" {
   return status === "current" ? "denison" : "neutral";
 }
 
+/**
+ * Maps a person's status to a card accent-bar tone. Kept separate from
+ * `getStatusTone` (badge coloring) so future card types can extend the
+ * mapping — e.g. a Recruit or Coach status — without touching the badge.
+ */
+export function getStatusAccentTone(status: PersonStatus): "denison" | "neutral" {
+  return status === "current" ? "denison" : "neutral";
+}
+
 export function getPlayerStatusLabel(playerStatus?: PlayerStatus): string {
   switch (playerStatus) {
     case "active":

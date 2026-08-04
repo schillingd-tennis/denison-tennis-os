@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useCallback } from "react";
 import {
   ArrowLeft,
   FileText,
@@ -30,6 +31,7 @@ import {
   useFormContext,
 } from "@/components/editor";
 
+import { updatePersonAction } from "@/features/people/actions";
 import type { FamilyContact } from "@/features/people/family";
 import type { Person } from "@/features/people/types";
 import { validatePerson } from "@/features/people/validation";
@@ -104,8 +106,21 @@ export default function PlayerWorkspace({
   person: Person;
   familyContacts: FamilyContact[];
 }) {
+  const personId = person.id;
+
+  const handleSave = useCallback(
+    async (patch: Partial<Person>): Promise<Person> => {
+      const result = await updatePersonAction(personId, patch);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result.person;
+    },
+    [personId],
+  );
+
   return (
-    <FormProvider value={person} validate={validatePerson}>
+    <FormProvider value={person} validate={validatePerson} onSave={handleSave}>
       <PlayerWorkspaceContent familyContacts={familyContacts} />
     </FormProvider>
   );
@@ -113,8 +128,19 @@ export default function PlayerWorkspace({
 
 function PlayerWorkspaceContent({ familyContacts }: { familyContacts: FamilyContact[] }) {
   const router = useRouter();
-  const { mode, draft, updateDraft, errors, setFieldError, isDirty, enterEdit, cancelEdit, save } =
-    useFormContext<Person>();
+  const {
+    mode,
+    draft,
+    updateDraft,
+    errors,
+    setFieldError,
+    isDirty,
+    saveStatus,
+    saveError,
+    enterEdit,
+    cancelEdit,
+    save,
+  } = useFormContext<Person>();
 
   const fullName = getFullDisplayName(draft);
   const hometown = getHometown(draft);
@@ -209,7 +235,15 @@ function PlayerWorkspaceContent({ familyContacts }: { familyContacts: FamilyCont
           Back to Team
         </Link>
 
-        <EditorToolbar mode={mode} isDirty={isDirty} onEdit={enterEdit} onCancel={cancelEdit} onSave={save} />
+        <EditorToolbar
+          mode={mode}
+          isDirty={isDirty}
+          saveStatus={saveStatus}
+          saveError={saveError}
+          onEdit={enterEdit}
+          onCancel={cancelEdit}
+          onSave={save}
+        />
       </div>
 
       {/* Header */}

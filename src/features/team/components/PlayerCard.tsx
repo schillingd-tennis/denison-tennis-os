@@ -1,25 +1,37 @@
 import Link from "next/link";
-import { ArrowRight, Mail, Phone } from "lucide-react";
+import { Mail, MessageSquare, Phone } from "lucide-react";
 
 import type { Person } from "@/features/people/types";
 import {
   getDisplayFirstName,
   getHometown,
   getInitials,
+  getPlayerStatusLabel,
+  getStatusAccentTone,
   getStatusLabel,
   getStatusTone,
 } from "@/features/people/utils";
 
-import ContactAction from "@/components/ContactAction";
+import CardAccentBar from "@/components/CardAccentBar";
 import PlayerAvatar from "@/components/PlayerAvatar";
+import QuickActionButton from "@/components/QuickActionButton";
 import StatusBadge from "@/components/StatusBadge";
+
+/** Formats a rating value for the compact ratings row, or a muted dash if unset. */
+function formatRating(value: number | undefined): string {
+  return value !== undefined ? value.toFixed(1) : "—";
+}
 
 export default function PlayerCard({ person }: { person: Person }) {
   const hometown = getHometown(person);
   const email = person.denisonEmail ?? person.personalEmail;
+  const playerStatusLabel =
+    person.status === "current" ? getPlayerStatusLabel(person.playerStatus) : undefined;
 
   return (
-    <div className="group relative flex h-full flex-col gap-5 rounded-card border border-border bg-surface p-6 transition-colors duration-150 hover:border-text-secondary/30">
+    <div className="group relative flex h-full cursor-pointer flex-col gap-4 overflow-hidden rounded-card border border-border bg-surface py-6 pr-6 pl-7 transition-all duration-200 hover:border-text-secondary/30 hover:shadow-md">
+      <CardAccentBar tone={getStatusAccentTone(person.status)} />
+
       <Link
         href={`/team/${person.id}`}
         className="absolute inset-0 rounded-card"
@@ -43,32 +55,55 @@ export default function PlayerCard({ person }: { person: Person }) {
 
       <div className="flex flex-col gap-1 text-sm text-text-secondary">
         {hometown ? <p>{hometown}</p> : null}
-        {person.major ? <p>{person.major}</p> : null}
-        {person.utr !== undefined ? (
-          <p className="text-text-primary">UTR {person.utr.toFixed(1)}</p>
+        {person.major ? <p className="truncate">{person.major}</p> : null}
+        {playerStatusLabel && playerStatusLabel !== "—" ? <p>{playerStatusLabel}</p> : null}
+        {!hometown && !person.major && !playerStatusLabel ? (
+          <p className="text-text-secondary/60">No additional details yet</p>
         ) : null}
       </div>
 
-      <div className="mt-auto flex items-center justify-between pt-1">
-        <div className="relative z-10 flex items-center gap-1">
-          <ContactAction
-            variant="icon"
-            href={person.cellPhone ? `tel:${person.cellPhone}` : undefined}
-            icon={Phone}
-            label="Call"
-          />
-          <ContactAction
-            variant="icon"
-            href={email ? `mailto:${email}` : undefined}
-            icon={Mail}
-            label="Email"
-          />
+      <div className="grid grid-cols-3 gap-2 rounded-control bg-app-background px-3 py-2 text-center">
+        <div>
+          <p className="text-[10px] font-medium tracking-wide text-text-secondary uppercase">UTR</p>
+          <p
+            className={`text-sm font-medium ${person.utr !== undefined ? "text-text-primary" : "text-text-secondary/50"}`}
+          >
+            {formatRating(person.utr)}
+          </p>
         </div>
+        <div>
+          <p className="text-[10px] font-medium tracking-wide text-text-secondary uppercase">WTN</p>
+          <p
+            className={`text-sm font-medium ${person.wtn !== undefined ? "text-text-primary" : "text-text-secondary/50"}`}
+          >
+            {formatRating(person.wtn)}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] font-medium tracking-wide text-text-secondary uppercase">TRN</p>
+          <p className="text-sm font-medium text-text-secondary/50">—</p>
+        </div>
+      </div>
 
-        <span className="relative z-10 inline-flex items-center gap-1 text-sm text-text-secondary transition-colors duration-150 group-hover:text-denison-red">
-          Open Workspace
-          <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.75} />
-        </span>
+      <div className="relative z-10 mt-auto flex items-center justify-end gap-2 pt-1">
+        <QuickActionButton
+          href={person.cellPhone ? `tel:${person.cellPhone}` : undefined}
+          icon={Phone}
+          label="Call"
+          tone="success"
+        />
+        <QuickActionButton
+          href={person.cellPhone ? `sms:${person.cellPhone}` : undefined}
+          icon={MessageSquare}
+          label="Text"
+          tone="info"
+        />
+        <QuickActionButton
+          href={email ? `mailto:${email}` : undefined}
+          icon={Mail}
+          label="Email"
+          tone="denison"
+        />
       </div>
     </div>
   );

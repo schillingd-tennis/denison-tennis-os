@@ -96,6 +96,73 @@ export function rowToPerson(row: ProductionPersonRow): Person {
   };
 }
 
+/**
+ * Maps `Person` keys to their `production_people` column names. Excludes
+ * `id`, `createdAt`, and `updatedAt` — the id never changes on update, and
+ * both timestamps are server-managed (see the `updated_at` trigger in
+ * `supabase/migrations/0001_create_production_people.sql`).
+ */
+const WRITABLE_FIELD_MAP: Partial<Record<keyof Person, string>> = {
+  status: "status",
+  firstName: "first_name",
+  middleName: "middle_name",
+  lastName: "last_name",
+  preferredName: "preferred_name",
+  dateOfBirth: "date_of_birth",
+  photoUrl: "photo_url",
+
+  cellPhone: "cell_phone",
+  personalEmail: "personal_email",
+  denisonEmail: "denison_email",
+  preferredContactMethod: "preferred_contact_method",
+
+  addressLine1: "address_line1",
+  addressLine2: "address_line2",
+  city: "city",
+  state: "state",
+  zipCode: "zip_code",
+  country: "country",
+
+  classYear: "class_year",
+  major: "major",
+  minor: "minor",
+  denisonId: "denison_id",
+  dorm: "dorm",
+  roomNumber: "room_number",
+
+  utr: "utr",
+  wtn: "wtn",
+  dominantHand: "dominant_hand",
+  heightInches: "height_inches",
+  weightLbs: "weight_lbs",
+  playerStatus: "player_status",
+
+  relationships: "relationships",
+
+  notes: "notes",
+};
+
+/**
+ * Maps a *partial* `Person` (e.g. a diff of only the fields a user changed)
+ * into the corresponding partial `production_people` row for an UPDATE
+ * (BP-017 Phase 1). Only keys present on `patch` are included, so this
+ * naturally produces a "update only the modified fields" payload — callers
+ * don't need to build the partial-update logic themselves.
+ */
+export function personPatchToRow(patch: Partial<Person>): Record<string, unknown> {
+  const row: Record<string, unknown> = {};
+
+  for (const key of Object.keys(patch) as (keyof Person)[]) {
+    const rowKey = WRITABLE_FIELD_MAP[key];
+    if (!rowKey) continue;
+
+    const value = patch[key];
+    row[rowKey] = key === "relationships" ? value ?? [] : value ?? null;
+  }
+
+  return row;
+}
+
 /** Maps a `Person` into a `production_people` row for inserts/upserts. */
 export function personToRow(person: Person): Record<string, unknown> {
   return {

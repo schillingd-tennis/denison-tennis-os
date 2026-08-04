@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import Header from "./Header";
@@ -7,6 +8,13 @@ import Sidebar from "./Sidebar";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const pathname = usePathname();
+
+  // /login renders its own centered, chrome-free layout (BP-016 Phase 1) —
+  // it must stay reachable and legible before a session exists.
+  if (pathname === "/login") {
+    return <>{children}</>;
+  }
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-app-background">
