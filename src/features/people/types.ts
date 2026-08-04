@@ -13,6 +13,18 @@ export type DominantHand = "right" | "left";
 export type PlayerStatus = "active" | "injured" | "inactive" | "graduated";
 export type ContactMethod = "phone" | "text" | "email";
 
+/**
+ * How another record relates to this person (e.g. a parent). Populated
+ * starting with a later blueprint (parent import) — every player imported
+ * in BP-012 has this initialized to an empty array as a placeholder.
+ */
+export type RelationshipType = "parent" | "guardian" | "sibling" | "coach" | "other";
+
+export type PersonRelationship = {
+  personId: string;
+  relationship: RelationshipType;
+};
+
 export type Person = {
   // System
   id: string;
@@ -22,6 +34,7 @@ export type Person = {
   // Identity
   status: PersonStatus;
   firstName: string;
+  middleName?: string;
   lastName: string;
   preferredName?: string;
   dateOfBirth?: string;
@@ -56,4 +69,7 @@ export type Person = {
   heightInches?: number;
   weightLbs?: number;
   playerStatus?: PlayerStatus;
+
+  // Relationships
+  relationships: PersonRelationship[];
 };

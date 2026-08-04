@@ -10,12 +10,12 @@ Source of truth in code: `src/features/people/types.ts` (shape) and
 
 ## The Person object
 
-A `Person` is organized into six groups of fields:
+A `Person` is organized into seven groups of fields:
 
 ### System
 | Field | Type | Notes |
 |---|---|---|
-| `id` | `string` | Stable identifier. Used for routing (`/team/[id]`) — never derive a route or lookup from a name. |
+| `id` | `string` | Stable identifier, derived from name (e.g. `player-kael-shah`). Used for routing (`/team/[id]`) — never derive a route or lookup from a row number or an external source id. |
 | `createdAt` | `string` (ISO date) | When the record was created. |
 | `updatedAt` | `string` (ISO date) | When the record was last modified. |
 
@@ -24,6 +24,7 @@ A `Person` is organized into six groups of fields:
 |---|---|---|
 | `status` | `"current" \| "alumni"` | Whether this person is on the current roster or an alum. See "status vs. playerStatus" below. |
 | `firstName` | `string` | Legal/given first name. |
+| `middleName` | `string?` | Legal middle name, if on file. |
 | `lastName` | `string` | Legal last name. |
 | `preferredName` | `string?` | What the person goes by day-to-day, if different from `firstName`. |
 | `dateOfBirth` | `string?` | ISO date. |
@@ -66,6 +67,11 @@ A `Person` is organized into six groups of fields:
 | `heightInches` | `number?` | Total height in inches; formatted as feet/inches for display (e.g. `73` → `6'1"`). |
 | `weightLbs` | `number?` | Weight in pounds. |
 | `playerStatus` | `"active" \| "injured" \| "inactive" \| "graduated"` (optional) | See below. |
+
+### Relationships
+| Field | Type | Notes |
+|---|---|---|
+| `relationships` | `PersonRelationship[]` | How other records relate to this person (e.g. a parent). Always present — `[]` until a later blueprint populates it. This is distinct from `FamilyContact` (see below), which remains the model for a player's parent/guardian contacts today. |
 
 ## Why `firstName` and `lastName` are separate fields
 
@@ -115,12 +121,19 @@ conceptually the same idea as `Person` — a real individual related to the
 player — and is displayed exclusively in that player's Workspace, never in
 the Team Directory.
 
-## Temporary data source
+## Data source
 
-`src/features/people/data.ts` is a local, in-memory array used for this
-sprint only. It exists so the Team module has real, working data to build
-against. It is designed to be swapped for a real database (e.g. a `people`
-table) without changing the `Person` shape or how consuming components read
-it — call sites depend on the exported `people` array and the helper
-functions in `src/features/people/utils.ts`, not on the fact that the data
-happens to live in a TypeScript file today.
+`src/features/people/data.ts` is a local, in-memory array. It is designed
+to be swapped for a real database (e.g. a `people` table) without changing
+the `Person` shape or how consuming components read it — call sites depend
+on the exported `people` array and the helper functions in
+`src/features/people/utils.ts`, not on the fact that the data happens to
+live in a TypeScript file today.
+
+As of BP-012, this file holds the production Denison roster and is
+**generated**, not hand-written: running `npm run import:players`
+(`scripts/import-players.ts`) reads `private-imports/Players.csv`,
+validates and normalizes every row, and regenerates it. Do not hand-edit
+`data.ts` — re-run the import instead, or edits will be overwritten. See
+`docs/DECISIONS.md` (BP-012) for the mapping and validation rules the
+import applies.

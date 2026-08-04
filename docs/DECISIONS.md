@@ -55,3 +55,38 @@ update this file explicitly rather than silently drifting from it.
   create or update records in that source.
 - See `docs/ARCHITECTURE.md` for the full technical architecture this is
   drawn from.
+
+## BP-012 — Production People Import
+
+- `src/features/people/data.ts` is no longer hand-written sample data — it
+  is a generated file, produced by `npm run import:players`
+  (`scripts/import-players.ts`) from `private-imports/Players.csv`. Do not
+  hand-edit it; re-run the import instead.
+- This blueprint imports **players only**. Rows with `Class = Coach` are
+  excluded from the People data entirely (they are out of scope, not
+  errors) and are listed in the import report's `skipped` section. Parents
+  and coaches get their own import in a later blueprint.
+- Stable `id`s are derived from name (e.g. `player-kael-shah`), never from
+  CSV row position or the Airtable record id in the `Player ID` column —
+  consistent with the BP-011 rule that external IDs never become domain
+  identity. The Airtable record id is not persisted on `Person` at all
+  today; it is treated as an unmapped column.
+- `Person` gained two additions to support this import: `middleName`
+  (Identity) and `relationships: PersonRelationship[]` (a new
+  "Relationships" group). Every imported player gets `relationships: []`
+  today — a forward-looking placeholder that a later blueprint (parent
+  import) will populate. This does not replace `FamilyContact`; see
+  `docs/DATA_MODEL.md`.
+- The source export has no columns for `utr`, `wtn`, `dominantHand`,
+  `heightInches`, `weightLbs`, `dorm`, or `roomNumber` — those fields are
+  simply left blank on every imported player until a data source for them
+  exists. The Team module already renders their absence gracefully.
+- Class standing (Freshman/Sophomore/Junior/Senior) is converted to a
+  graduation-year `classYear` using a single "current senior class year"
+  constant in `scripts/import/normalize.ts` — bump it by one at the start
+  of each academic year. Alumni rows (`Class = Archive`) have no reliable
+  way to derive `classYear` from this export and are left blank.
+- Every import run regenerates a JSON report at
+  `private-imports/import-report.json` (gitignored, since it echoes real
+  player data) covering counts, skipped rows, duplicate Denison IDs/emails,
+  unknown columns, and missing-value counts per field.
