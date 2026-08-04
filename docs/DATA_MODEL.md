@@ -73,6 +73,11 @@ A `Person` is organized into seven groups of fields:
 |---|---|---|
 | `relationships` | `PersonRelationship[]` | How other records relate to this person (e.g. a parent). Always present — `[]` until a later blueprint populates it. This is distinct from `FamilyContact` (see below), which remains the model for a player's parent/guardian contacts today. |
 
+### Notes
+| Field | Type | Notes |
+|---|---|---|
+| `notes` | `string?` | Free-text operational notes. Added in BP-013 (Universal Person Editor); edited via the large notes area in the Person Workspace. |
+
 ## Why `firstName` and `lastName` are separate fields
 
 Storing a single `fullName` string makes sorting, searching, initials

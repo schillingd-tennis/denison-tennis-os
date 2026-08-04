@@ -72,4 +72,8 @@ export type Person = {
 
   // Relationships
   relationships: PersonRelationship[];
+
+  // Notes
+  /** Free-text operational notes. Edited via the Universal Person Editor (BP-013). */
+  notes?: string;
 };
