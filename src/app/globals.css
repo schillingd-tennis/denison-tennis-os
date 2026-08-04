@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+/*
+ * Denison Tennis OS — Design System Tokens (BP-004)
+ *
+ * This is the single source of truth for shell colors, radii, and shell
+ * sizing. Do not hard-code colors elsewhere — reference these tokens (via
+ * the generated Tailwind utilities below, or var(...) for non-color
+ * tokens) instead. See docs/DESIGN_SYSTEM.md for the full reference.
+ */
+@theme {
+  --color-denison-red: #c8102e;
+  --color-sidebar: #0b0b0c;
+  --color-sidebar-hover: #171717;
+  --color-app-background: #f7f8fa;
+  --color-surface: #ffffff;
+  --color-border: #e5e7eb;
+  --color-text-primary: #111827;
+  --color-text-secondary: #6b7280;
+  --color-success: #16a34a;
+  --color-warning: #f59e0b;
+  --color-danger: #dc2626;
+
+  --radius-card: 12px;
+  --radius-control: 10px;
+}
+
+/* Aliased from next/font variables — kept in a separate `inline` theme
+   block per Tailwind v4 guidance for values that reference other vars. */
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+:root {
+  --sidebar-width: 260px;
+  --header-height: 88px;
+}
+
+body {
+  background: var(--color-app-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
