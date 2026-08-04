@@ -6,8 +6,8 @@ import { primaryNavItems, settingsNavItem } from "./nav-items";
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="flex h-full w-[var(--sidebar-width)] flex-col bg-sidebar">
-      <div className="flex shrink-0 items-center gap-3 px-6 pt-8 pb-6">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control bg-denison-red text-base font-bold text-surface">
+      <div className="flex shrink-0 items-center gap-3 px-6 pt-9 pb-7">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control bg-denison-red text-base font-semibold text-surface">
           D
         </div>
         <div>
@@ -24,7 +24,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         <Navigation items={primaryNavItems} onNavigate={onNavigate} />
       </nav>
 
-      <div className="shrink-0 border-t border-border/10 px-4 py-4">
+      <div className="shrink-0 border-t border-border/10 px-4 py-5">
         <Navigation items={[settingsNavItem]} onNavigate={onNavigate} />
       </div>
     </div>

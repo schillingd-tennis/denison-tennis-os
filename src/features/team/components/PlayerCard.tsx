@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Mail, Phone } from "lucide-react";
+import { ArrowRight, Mail, Phone } from "lucide-react";
 
 import type { Person } from "@/features/people/types";
 import {
@@ -10,6 +10,7 @@ import {
   getStatusTone,
 } from "@/features/people/utils";
 
+import ContactAction from "@/components/ContactAction";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import StatusBadge from "@/components/StatusBadge";
 
@@ -18,7 +19,7 @@ export default function PlayerCard({ person }: { person: Person }) {
   const email = person.denisonEmail ?? person.personalEmail;
 
   return (
-    <div className="group relative flex h-full flex-col gap-4 rounded-card border border-border bg-surface p-5 transition-shadow hover:shadow-sm">
+    <div className="group relative flex h-full flex-col gap-5 rounded-card border border-border bg-surface p-6 transition-colors duration-150 hover:border-text-secondary/30">
       <Link
         href={`/team/${person.id}`}
         className="absolute inset-0 rounded-card"
@@ -26,14 +27,14 @@ export default function PlayerCard({ person }: { person: Person }) {
       />
 
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <PlayerAvatar photoUrl={person.photoUrl} initials={getInitials(person)} size={44} />
+        <div className="flex items-center gap-3.5">
+          <PlayerAvatar photoUrl={person.photoUrl} initials={getInitials(person)} size={48} />
           <div className="min-w-0">
-            <p className="truncate font-semibold text-text-primary">
+            <p className="truncate text-base font-semibold text-text-primary">
               {getDisplayFirstName(person)} {person.lastName}
             </p>
             {person.classYear ? (
-              <p className="text-sm text-text-secondary">Class of {person.classYear}</p>
+              <p className="mt-0.5 text-xs text-text-secondary">Class of {person.classYear}</p>
             ) : null}
           </div>
         </div>
@@ -44,34 +45,29 @@ export default function PlayerCard({ person }: { person: Person }) {
         {hometown ? <p>{hometown}</p> : null}
         {person.major ? <p>{person.major}</p> : null}
         {person.utr !== undefined ? (
-          <p className="font-medium text-text-primary">UTR {person.utr.toFixed(1)}</p>
+          <p className="text-text-primary">UTR {person.utr.toFixed(1)}</p>
         ) : null}
       </div>
 
-      <div className="mt-auto flex items-center justify-between pt-2">
+      <div className="mt-auto flex items-center justify-between pt-1">
         <div className="relative z-10 flex items-center gap-1">
-          {person.cellPhone ? (
-            <a
-              href={`tel:${person.cellPhone}`}
-              aria-label="Call"
-              className="flex h-8 w-8 items-center justify-center rounded-control text-text-secondary hover:bg-app-background hover:text-denison-red"
-            >
-              <Phone className="h-4 w-4" strokeWidth={1.75} />
-            </a>
-          ) : null}
-          {email ? (
-            <a
-              href={`mailto:${email}`}
-              aria-label="Email"
-              className="flex h-8 w-8 items-center justify-center rounded-control text-text-secondary hover:bg-app-background hover:text-denison-red"
-            >
-              <Mail className="h-4 w-4" strokeWidth={1.75} />
-            </a>
-          ) : null}
+          <ContactAction
+            variant="icon"
+            href={person.cellPhone ? `tel:${person.cellPhone}` : undefined}
+            icon={Phone}
+            label="Call"
+          />
+          <ContactAction
+            variant="icon"
+            href={email ? `mailto:${email}` : undefined}
+            icon={Mail}
+            label="Email"
+          />
         </div>
 
-        <span className="relative z-10 text-sm font-medium text-denison-red group-hover:underline">
-          Open Workspace →
+        <span className="relative z-10 inline-flex items-center gap-1 text-sm text-text-secondary transition-colors duration-150 group-hover:text-denison-red">
+          Open Workspace
+          <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.75} />
         </span>
       </div>
     </div>

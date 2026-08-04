@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { people } from "@/features/people/data";
+import { familyContacts, getFamilyContactsForPerson } from "@/features/people/family";
 import { getPersonById } from "@/features/people/utils";
 import PlayerWorkspace from "@/features/team/components/PlayerWorkspace";
 
@@ -16,5 +17,7 @@ export default async function PlayerWorkspacePage(props: PageProps<"/team/[id]">
     notFound();
   }
 
-  return <PlayerWorkspace person={person} />;
+  const contacts = getFamilyContactsForPerson(familyContacts, person.id);
+
+  return <PlayerWorkspace person={person} familyContacts={contacts} />;
 }

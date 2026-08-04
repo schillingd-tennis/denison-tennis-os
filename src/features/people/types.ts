@@ -11,6 +11,7 @@
 export type PersonStatus = "current" | "alumni";
 export type DominantHand = "right" | "left";
 export type PlayerStatus = "active" | "injured" | "inactive" | "graduated";
+export type ContactMethod = "phone" | "text" | "email";
 
 export type Person = {
   // System
@@ -30,6 +31,7 @@ export type Person = {
   cellPhone?: string;
   personalEmail?: string;
   denisonEmail?: string;
+  preferredContactMethod?: ContactMethod;
 
   // Permanent Address
   addressLine1?: string;
@@ -51,5 +53,7 @@ export type Person = {
   utr?: number;
   wtn?: number;
   dominantHand?: DominantHand;
+  heightInches?: number;
+  weightLbs?: number;
   playerStatus?: PlayerStatus;
 };

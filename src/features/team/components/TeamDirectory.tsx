@@ -25,7 +25,7 @@ export default function TeamDirectory({ people }: { people: Person[] }) {
   );
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-10">
       <PageHeader
         title="Team"
         subtitle="Current players and alumni"
@@ -35,7 +35,7 @@ export default function TeamDirectory({ people }: { people: Person[] }) {
             type="button"
             disabled
             aria-disabled="true"
-            className="cursor-not-allowed rounded-control border border-border bg-app-background px-4 py-2.5 text-sm font-medium text-text-secondary"
+            className="flex h-10 cursor-not-allowed items-center rounded-control border border-border bg-app-background px-4 text-sm font-medium text-text-secondary"
           >
             Add Player · Coming Soon
           </button>
@@ -60,7 +60,7 @@ export default function TeamDirectory({ people }: { people: Person[] }) {
           description="Try a different search term or filter."
         />
       ) : view === "cards" ? (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((person) => (
             <PlayerCard key={person.id} person={person} />
           ))}

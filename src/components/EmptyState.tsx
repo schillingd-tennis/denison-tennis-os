@@ -6,10 +6,10 @@ export default function EmptyState({
   description?: string;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-card border border-dashed border-border px-6 py-16 text-center">
+    <div className="flex flex-col items-center justify-center rounded-card border border-dashed border-border px-6 py-20 text-center">
       <p className="text-base font-medium text-text-primary">{title}</p>
       {description ? (
-        <p className="mt-2 max-w-sm text-sm text-text-secondary">{description}</p>
+        <p className="mt-2.5 max-w-sm text-sm text-text-secondary">{description}</p>
       ) : null}
     </div>
   );

@@ -22,7 +22,7 @@ export default function SearchInput({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-control border border-border bg-surface py-2.5 pr-3 pl-9 text-sm text-text-primary placeholder:text-text-secondary focus:border-denison-red focus:ring-1 focus:ring-denison-red focus:outline-none"
+        className="h-10 w-full rounded-control border border-border bg-surface pr-3 pl-9 text-sm text-text-primary transition-colors duration-150 placeholder:text-text-secondary focus:border-denison-red focus:ring-1 focus:ring-denison-red focus:outline-none"
       />
     </div>
   );

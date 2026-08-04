@@ -19,7 +19,7 @@ export default function StatusFilterControl({
     <div
       role="group"
       aria-label="Filter by status"
-      className="inline-flex items-center gap-1 rounded-control border border-border bg-surface p-1"
+      className="inline-flex h-10 items-center gap-1 rounded-control border border-border bg-surface p-1"
     >
       {options.map((option) => (
         <button
@@ -27,7 +27,7 @@ export default function StatusFilterControl({
           type="button"
           onClick={() => onChange(option.value)}
           aria-pressed={value === option.value}
-          className={`rounded-control px-3 py-1.5 text-sm font-medium transition-colors ${
+          className={`flex h-8 items-center rounded-control px-3.5 text-sm font-medium transition-colors duration-150 ${
             value === option.value
               ? "bg-denison-red text-surface"
               : "text-text-secondary hover:text-text-primary"

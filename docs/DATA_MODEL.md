@@ -35,6 +35,7 @@ A `Person` is organized into six groups of fields:
 | `cellPhone` | `string?` |
 | `personalEmail` | `string?` |
 | `denisonEmail` | `string?` |
+| `preferredContactMethod` | `"phone" \| "text" \| "email"` (optional) |
 
 ### Permanent Address
 | Field | Type |
@@ -62,6 +63,8 @@ A `Person` is organized into six groups of fields:
 | `utr` | `number?` | Universal Tennis Rating. |
 | `wtn` | `number?` | World Tennis Number. |
 | `dominantHand` | `"right" \| "left"` (optional) | |
+| `heightInches` | `number?` | Total height in inches; formatted as feet/inches for display (e.g. `73` → `6'1"`). |
+| `weightLbs` | `number?` | Weight in pounds. |
 | `playerStatus` | `"active" \| "injured" \| "inactive" \| "graduated"` (optional) | See below. |
 
 ## Why `firstName` and `lastName` are separate fields
@@ -100,6 +103,17 @@ subset of fields for scannability, while the Workspace renders the fuller
 picture. Future modules (Recruiting, Operations, etc.) should reference this
 same `Person` record and `id` rather than creating parallel "player" records
 of their own.
+
+## Family Contacts
+
+A parent or guardian is modeled as a `FamilyContact` (`src/features/people/family.ts`)
+— a related person, linked to a player via `personId`. It intentionally uses a
+lighter shape than `Person` (name, relationship, contact details, and
+`isPrimaryContact` / `isEmergencyContact` flags) rather than the full `Person`
+schema, since a guardian doesn't have Denison or tennis information. It is
+conceptually the same idea as `Person` — a real individual related to the
+player — and is displayed exclusively in that player's Workspace, never in
+the Team Directory.
 
 ## Temporary data source
 

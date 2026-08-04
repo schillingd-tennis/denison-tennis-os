@@ -15,13 +15,13 @@ export default function ViewToggle({
     <div
       role="group"
       aria-label="Change view"
-      className="inline-flex items-center gap-1 rounded-control border border-border bg-surface p-1"
+      className="inline-flex h-10 items-center gap-1 rounded-control border border-border bg-surface p-1"
     >
       <button
         type="button"
         onClick={() => onChange("cards")}
         aria-pressed={value === "cards"}
-        className={`flex items-center gap-1.5 rounded-control px-3 py-1.5 text-sm font-medium transition-colors ${
+        className={`flex h-8 items-center gap-1.5 rounded-control px-3 text-sm font-medium transition-colors duration-150 ${
           value === "cards"
             ? "bg-denison-red text-surface"
             : "text-text-secondary hover:text-text-primary"
@@ -34,7 +34,7 @@ export default function ViewToggle({
         type="button"
         onClick={() => onChange("list")}
         aria-pressed={value === "list"}
-        className={`flex items-center gap-1.5 rounded-control px-3 py-1.5 text-sm font-medium transition-colors ${
+        className={`flex h-8 items-center gap-1.5 rounded-control px-3 text-sm font-medium transition-colors duration-150 ${
           value === "list"
             ? "bg-denison-red text-surface"
             : "text-text-secondary hover:text-text-primary"

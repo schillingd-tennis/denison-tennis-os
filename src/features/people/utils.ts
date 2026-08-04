@@ -1,4 +1,4 @@
-import type { Person, PersonStatus, PlayerStatus } from "./types";
+import type { ContactMethod, Person, PersonStatus, PlayerStatus } from "./types";
 
 export function getDisplayFirstName(person: Person): string {
   return person.preferredName?.trim() || person.firstName;
@@ -6,6 +6,14 @@ export function getDisplayFirstName(person: Person): string {
 
 export function getDisplayName(person: Person): string {
   return `${getDisplayFirstName(person)} ${person.lastName}`;
+}
+
+/** Full legal name, with a preferred name (if different) shown in quotes. */
+export function getFullDisplayName(person: Person): string {
+  if (person.preferredName && person.preferredName !== person.firstName) {
+    return `${person.firstName} "${person.preferredName}" ${person.lastName}`;
+  }
+  return `${person.firstName} ${person.lastName}`;
 }
 
 export function getInitials(person: Person): string {
@@ -63,6 +71,31 @@ export function getPlayerStatusTone(
       return "warning";
     default:
       return "neutral";
+  }
+}
+
+export function formatHeight(heightInches?: number): string | undefined {
+  if (!heightInches) return undefined;
+  const feet = Math.floor(heightInches / 12);
+  const inches = heightInches % 12;
+  return `${feet}'${inches}"`;
+}
+
+export function formatWeight(weightLbs?: number): string | undefined {
+  if (!weightLbs) return undefined;
+  return `${weightLbs} lbs`;
+}
+
+export function getPreferredContactLabel(method?: ContactMethod): string | undefined {
+  switch (method) {
+    case "phone":
+      return "Phone";
+    case "text":
+      return "Text";
+    case "email":
+      return "Email";
+    default:
+      return undefined;
   }
 }
 

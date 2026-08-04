@@ -19,8 +19,8 @@ hand-picked red.
 | Token | Value | Tailwind utility (examples) | Usage |
 |---|---|---|---|
 | `--color-denison-red` | `#C8102E` | `bg-denison-red`, `text-denison-red` | Brand accent, active nav item, avatar, "TENNIS" wordmark |
-| `--color-sidebar` | `#0B0B0C` | `bg-sidebar` | Sidebar background |
-| `--color-sidebar-hover` | `#171717` | `bg-sidebar-hover` | Sidebar item hover state |
+| `--color-sidebar` | `#16161A` | `bg-sidebar` | Sidebar background (softened off-black, BP-008) |
+| `--color-sidebar-hover` | `#232328` | `bg-sidebar-hover` | Sidebar item hover state |
 | `--color-app-background` | `#F7F8FA` | `bg-app-background` | Outer app canvas background |
 | `--color-surface` | `#FFFFFF` | `bg-surface`, `text-surface` | Header bar, and any white foreground text/fill (e.g. on the sidebar or accent color) |
 | `--color-border` | `#E5E7EB` | `border-border` | Dividers, outlines |
