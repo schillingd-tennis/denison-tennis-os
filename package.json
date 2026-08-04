@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "import:players": "tsx scripts/import-players.ts",
-    "verify:supabase": "tsx scripts/verify-supabase-connection.ts"
+    "verify:supabase": "tsx scripts/verify-supabase-connection.ts",
+    "db:generate-seed": "tsx scripts/generate-supabase-seed.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.0",
