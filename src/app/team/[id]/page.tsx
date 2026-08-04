@@ -1,17 +1,16 @@
 import { notFound } from "next/navigation";
 
-import { people } from "@/features/people/data";
 import { familyContacts, getFamilyContactsForPerson } from "@/features/people/family";
-import { getPersonById } from "@/features/people/utils";
+import { getPersonById } from "@/features/people/repository";
 import PlayerWorkspace from "@/features/team/components/PlayerWorkspace";
 
-export function generateStaticParams() {
-  return people.map((person) => ({ id: person.id }));
-}
+// The roster now lives in Supabase (BP-015) — always render with the
+// current table contents rather than a build-time snapshot.
+export const dynamic = "force-dynamic";
 
 export default async function PlayerWorkspacePage(props: PageProps<"/team/[id]">) {
   const { id } = await props.params;
-  const person = getPersonById(people, id);
+  const person = await getPersonById(id);
 
   if (!person) {
     notFound();

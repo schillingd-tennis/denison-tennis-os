@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   FileText,
@@ -11,8 +14,25 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import {
+  confirmDiscardIfDirty,
+  EditableField,
+  EditableSection,
+  EditorToolbar,
+  FormProvider,
+  isRequired,
+  isValidEmail,
+  isValidPhone,
+  isValidUtr,
+  isValidWtn,
+  toOptionalNumber,
+  toOptionalString,
+  useFormContext,
+} from "@/components/editor";
+
 import type { FamilyContact } from "@/features/people/family";
 import type { Person } from "@/features/people/types";
+import { validatePerson } from "@/features/people/validation";
 import {
   formatHeight,
   formatWeight,
@@ -47,6 +67,36 @@ const comingLaterModules: { label: string; icon: LucideIcon }[] = [
   { label: "Documents", icon: FileText },
 ];
 
+const statusOptions = [
+  { value: "current", label: "Current" },
+  { value: "alumni", label: "Alumni" },
+];
+
+const playerStatusOptions = [
+  { value: "active", label: "Active" },
+  { value: "injured", label: "Injured" },
+  { value: "inactive", label: "Inactive" },
+  { value: "graduated", label: "Graduated" },
+];
+
+const dominantHandOptions = [
+  { value: "right", label: "Right" },
+  { value: "left", label: "Left" },
+];
+
+const preferredContactOptions = [
+  { value: "phone", label: "Phone" },
+  { value: "text", label: "Text" },
+  { value: "email", label: "Email" },
+];
+
+/**
+ * The Player Workspace, running on the Universal Person Editor (BP-013).
+ * Everything below `FormProvider` renders from `draft` — in view mode
+ * `draft` always equals the saved `Person`, so the page looks exactly as
+ * it did before edit mode existed; entering edit mode simply swaps each
+ * field's display for an inline input in place.
+ */
 export default function PlayerWorkspace({
   person,
   familyContacts,
@@ -54,62 +104,164 @@ export default function PlayerWorkspace({
   person: Person;
   familyContacts: FamilyContact[];
 }) {
-  const fullName = getFullDisplayName(person);
-  const hometown = getHometown(person);
-  const address = getPermanentAddress(person);
+  return (
+    <FormProvider value={person} validate={validatePerson}>
+      <PlayerWorkspaceContent familyContacts={familyContacts} />
+    </FormProvider>
+  );
+}
 
-  const tel = person.cellPhone ? `tel:${person.cellPhone}` : undefined;
-  const sms = person.cellPhone ? `sms:${person.cellPhone}` : undefined;
-  const email = person.denisonEmail ?? person.personalEmail;
+function PlayerWorkspaceContent({ familyContacts }: { familyContacts: FamilyContact[] }) {
+  const router = useRouter();
+  const { mode, draft, updateDraft, errors, setFieldError, isDirty, enterEdit, cancelEdit, save } =
+    useFormContext<Person>();
+
+  const fullName = getFullDisplayName(draft);
+  const hometown = getHometown(draft);
+  const address = getPermanentAddress(draft);
+
+  const tel = draft.cellPhone ? `tel:${draft.cellPhone}` : undefined;
+  const sms = draft.cellPhone ? `sms:${draft.cellPhone}` : undefined;
+  const email = draft.denisonEmail ?? draft.personalEmail;
   const mailto = email ? `mailto:${email}` : undefined;
 
   const hasContactInfo = Boolean(
-    person.cellPhone || person.personalEmail || person.denisonEmail || person.preferredContactMethod,
+    draft.cellPhone || draft.personalEmail || draft.denisonEmail || draft.preferredContactMethod,
   );
-  const hasCasualDenisonInfo = Boolean(person.classYear || person.major || person.minor);
-  const hasAdminDenisonInfo = Boolean(person.denisonId || person.dorm || person.roomNumber);
+  const hasDenisonInfo = Boolean(
+    draft.classYear || draft.major || draft.minor || draft.denisonId || draft.dorm || draft.roomNumber,
+  );
   const hasTennisInfo = Boolean(
-    person.utr !== undefined ||
-      person.wtn !== undefined ||
-      person.dominantHand ||
-      person.heightInches ||
-      person.weightLbs ||
-      person.playerStatus,
+    draft.utr !== undefined ||
+      draft.wtn !== undefined ||
+      draft.dominantHand ||
+      draft.heightInches ||
+      draft.weightLbs ||
+      draft.playerStatus,
   );
+
+  function handleBackClick(event: React.MouseEvent<HTMLAnchorElement>) {
+    if (!isDirty) return;
+    event.preventDefault();
+    if (confirmDiscardIfDirty(isDirty)) {
+      router.push("/team");
+    }
+  }
+
+  function handleStatusChange(raw: string) {
+    updateDraft({ status: raw as Person["status"] });
+    setFieldError("status", isRequired(raw));
+  }
+
+  function handlePlayerStatusChange(raw: string) {
+    updateDraft({ playerStatus: (raw || undefined) as Person["playerStatus"] });
+  }
+
+  function handleFirstNameChange(raw: string) {
+    updateDraft({ firstName: raw });
+    setFieldError("firstName", isRequired(raw));
+  }
+
+  function handleLastNameChange(raw: string) {
+    updateDraft({ lastName: raw });
+    setFieldError("lastName", isRequired(raw));
+  }
+
+  function handlePersonalEmailChange(raw: string) {
+    const value = toOptionalString(raw);
+    updateDraft({ personalEmail: value });
+    setFieldError("personalEmail", isValidEmail(value));
+  }
+
+  function handleDenisonEmailChange(raw: string) {
+    const value = toOptionalString(raw);
+    updateDraft({ denisonEmail: value });
+    setFieldError("denisonEmail", isValidEmail(value));
+  }
+
+  function handlePhoneChange(raw: string) {
+    const value = toOptionalString(raw);
+    updateDraft({ cellPhone: value });
+    setFieldError("cellPhone", isValidPhone(value));
+  }
+
+  function handleUtrChange(raw: string) {
+    const value = toOptionalNumber(raw);
+    updateDraft({ utr: value });
+    setFieldError("utr", isValidUtr(value));
+  }
+
+  function handleWtnChange(raw: string) {
+    const value = toOptionalNumber(raw);
+    updateDraft({ wtn: value });
+    setFieldError("wtn", isValidWtn(value));
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
-      <Link
-        href="/team"
-        className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-text-secondary transition-colors duration-150 hover:text-text-primary"
-      >
-        <ArrowLeft className="h-4 w-4" strokeWidth={1.75} />
-        Back to Team
-      </Link>
+      <div className="flex items-center justify-between gap-4">
+        <Link
+          href="/team"
+          onClick={handleBackClick}
+          className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-text-secondary transition-colors duration-150 hover:text-text-primary"
+        >
+          <ArrowLeft className="h-4 w-4" strokeWidth={1.75} />
+          Back to Team
+        </Link>
+
+        <EditorToolbar mode={mode} isDirty={isDirty} onEdit={enterEdit} onCancel={cancelEdit} onSave={save} />
+      </div>
 
       {/* Header */}
       <div className="rounded-card border border-border bg-surface p-8">
         <div className="flex flex-col gap-7 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-5">
-            <PlayerAvatar photoUrl={person.photoUrl} initials={getInitials(person)} size={80} />
+            <PlayerAvatar photoUrl={draft.photoUrl} initials={getInitials(draft)} size={80} />
             <div className="flex flex-col gap-2.5">
               <div className="flex flex-wrap items-center gap-2.5">
                 <h1 className="text-3xl font-semibold tracking-tight text-text-primary">{fullName}</h1>
-                <StatusBadge label={getStatusLabel(person.status)} tone={getStatusTone(person.status)} />
-                {person.playerStatus ? (
+                {mode === "edit" ? (
+                  <select
+                    value={draft.status}
+                    onChange={(event) => handleStatusChange(event.target.value)}
+                    className="rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-text-primary focus:border-denison-red focus:outline-none"
+                  >
+                    {statusOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <StatusBadge label={getStatusLabel(draft.status)} tone={getStatusTone(draft.status)} />
+                )}
+                {mode === "edit" ? (
+                  <select
+                    value={draft.playerStatus ?? ""}
+                    onChange={(event) => handlePlayerStatusChange(event.target.value)}
+                    className="rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-text-primary focus:border-denison-red focus:outline-none"
+                  >
+                    <option value="">Player Status —</option>
+                    {playerStatusOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                ) : draft.playerStatus ? (
                   <StatusBadge
-                    label={getPlayerStatusLabel(person.playerStatus)}
-                    tone={getPlayerStatusTone(person.playerStatus)}
+                    label={getPlayerStatusLabel(draft.playerStatus)}
+                    tone={getPlayerStatusTone(draft.playerStatus)}
                   />
                 ) : null}
               </div>
               <p className="text-sm text-text-secondary">
                 {[
-                  person.classYear ? `Class of ${person.classYear}` : null,
-                  person.major,
+                  draft.classYear ? `Class of ${draft.classYear}` : null,
+                  draft.major,
                   hometown,
-                  person.utr !== undefined ? `UTR ${person.utr.toFixed(1)}` : null,
-                  person.wtn !== undefined ? `WTN ${person.wtn.toFixed(1)}` : null,
+                  draft.utr !== undefined ? `UTR ${draft.utr.toFixed(1)}` : null,
+                  draft.wtn !== undefined ? `WTN ${draft.wtn.toFixed(1)}` : null,
                 ]
                   .filter(Boolean)
                   .join(" · ")}
@@ -127,134 +279,234 @@ export default function PlayerWorkspace({
 
       {/* At-a-glance summary */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <SummaryStat label="UTR" value={person.utr !== undefined ? person.utr.toFixed(1) : undefined} />
-        <SummaryStat label="WTN" value={person.wtn !== undefined ? person.wtn.toFixed(1) : undefined} />
-        <SummaryStat
-          label="Class Year"
-          value={person.classYear ? String(person.classYear) : undefined}
-        />
-        <SummaryStat label="Major" value={person.major} />
-        <SummaryStat label="Dorm" value={person.dorm} />
+        <SummaryStat label="UTR" value={draft.utr !== undefined ? draft.utr.toFixed(1) : undefined} />
+        <SummaryStat label="WTN" value={draft.wtn !== undefined ? draft.wtn.toFixed(1) : undefined} />
+        <SummaryStat label="Class Year" value={draft.classYear ? String(draft.classYear) : undefined} />
+        <SummaryStat label="Major" value={draft.major} />
+        <SummaryStat label="Dorm" value={draft.dorm} />
         <SummaryStat
           label="Player Status"
-          value={person.playerStatus ? getPlayerStatusLabel(person.playerStatus) : undefined}
+          value={draft.playerStatus ? getPlayerStatusLabel(draft.playerStatus) : undefined}
         />
       </div>
 
       {/* Overview */}
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="flex flex-col gap-8 lg:col-span-2">
-          <WorkspaceSection title="Contact Information">
-            {hasContactInfo ? (
-              <dl className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
-                <InformationField
-                  label="Cell Phone"
-                  value={person.cellPhone}
-                  action={
-                    person.cellPhone ? (
-                      <span className="flex items-center gap-1">
-                        <ContactAction variant="icon" href={tel} icon={Phone} label="Call" />
-                        <ContactAction variant="icon" href={sms} icon={MessageSquare} label="Text" />
-                      </span>
-                    ) : undefined
-                  }
-                />
-                <InformationField
-                  label="Personal Email"
-                  value={person.personalEmail}
-                  action={
-                    person.personalEmail ? (
-                      <ContactAction
-                        variant="icon"
-                        href={`mailto:${person.personalEmail}`}
-                        icon={Mail}
-                        label="Email"
-                      />
-                    ) : undefined
-                  }
-                />
-                <InformationField
-                  label="Denison Email"
-                  value={person.denisonEmail}
-                  action={
-                    person.denisonEmail ? (
-                      <ContactAction
-                        variant="icon"
-                        href={`mailto:${person.denisonEmail}`}
-                        icon={Mail}
-                        label="Email"
-                      />
-                    ) : undefined
-                  }
-                />
-                <InformationField
-                  label="Preferred Contact"
-                  value={getPreferredContactLabel(person.preferredContactMethod)}
-                />
-              </dl>
-            ) : (
-              <p className="text-sm text-text-secondary">No contact information on file.</p>
-            )}
-          </WorkspaceSection>
+          <EditableSection title="Personal" mode={mode}>
+            <EditableField
+              label="First Name"
+              value={draft.firstName}
+              onChange={handleFirstNameChange}
+              mode={mode}
+              required
+              error={errors.firstName}
+            />
+            <EditableField
+              label="Middle Name"
+              value={draft.middleName}
+              onChange={(raw) => updateDraft({ middleName: toOptionalString(raw) })}
+              mode={mode}
+            />
+            <EditableField
+              label="Last Name"
+              value={draft.lastName}
+              onChange={handleLastNameChange}
+              mode={mode}
+              required
+              error={errors.lastName}
+            />
+            <EditableField
+              label="Preferred Name"
+              value={draft.preferredName}
+              onChange={(raw) => updateDraft({ preferredName: toOptionalString(raw) })}
+              mode={mode}
+            />
+            <EditableField
+              label="Date of Birth"
+              value={draft.dateOfBirth}
+              onChange={(raw) => updateDraft({ dateOfBirth: toOptionalString(raw) })}
+              mode={mode}
+              type="date"
+            />
+          </EditableSection>
 
-          <WorkspaceSection title="Denison Information">
-            {hasCasualDenisonInfo || hasAdminDenisonInfo ? (
-              <div className="flex flex-col gap-5">
-                {hasCasualDenisonInfo ? (
-                  <dl className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
-                    <InformationField
-                      label="Class Year"
-                      value={person.classYear ? String(person.classYear) : undefined}
-                    />
-                    <InformationField label="Major" value={person.major} />
-                    <InformationField label="Minor" value={person.minor} />
-                  </dl>
-                ) : null}
-                {hasAdminDenisonInfo ? (
-                  <dl
-                    className={`grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2 ${
-                      hasCasualDenisonInfo ? "border-t border-border pt-5" : ""
-                    }`}
-                  >
-                    <InformationField label="Denison ID" value={person.denisonId} />
-                    <InformationField label="Dorm" value={person.dorm} />
-                    <InformationField label="Room Number" value={person.roomNumber} />
-                  </dl>
-                ) : null}
-              </div>
-            ) : (
-              <p className="text-sm text-text-secondary">No Denison information on file.</p>
-            )}
-          </WorkspaceSection>
+          <EditableSection title="Contact Information" mode={mode} isEmpty={!hasContactInfo}>
+            <EditableField
+              label="Cell Phone"
+              value={draft.cellPhone}
+              onChange={handlePhoneChange}
+              mode={mode}
+              type="tel"
+              error={errors.cellPhone}
+            />
+            <EditableField
+              label="Personal Email"
+              value={draft.personalEmail}
+              onChange={handlePersonalEmailChange}
+              mode={mode}
+              type="email"
+              error={errors.personalEmail}
+            />
+            <EditableField
+              label="Denison Email"
+              value={draft.denisonEmail}
+              onChange={handleDenisonEmailChange}
+              mode={mode}
+              type="email"
+              error={errors.denisonEmail}
+            />
+            <EditableField
+              label="Preferred Contact"
+              value={draft.preferredContactMethod}
+              onChange={(raw) => updateDraft({ preferredContactMethod: (raw || undefined) as Person["preferredContactMethod"] })}
+              mode={mode}
+              type="select"
+              options={preferredContactOptions}
+              formatDisplay={(value) => getPreferredContactLabel(value as Person["preferredContactMethod"])}
+            />
+          </EditableSection>
 
-          <WorkspaceSection title="Tennis Information">
-            {hasTennisInfo ? (
-              <dl className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
-                <InformationField label="UTR" value={person.utr?.toFixed(1)} />
-                <InformationField label="WTN" value={person.wtn?.toFixed(1)} />
-                <InformationField
-                  label="Dominant Hand"
-                  value={person.dominantHand ? capitalize(person.dominantHand) : undefined}
-                />
-                <InformationField label="Height" value={formatHeight(person.heightInches)} />
-                <InformationField label="Weight" value={formatWeight(person.weightLbs)} />
-                <InformationField
-                  label="Player Status"
-                  value={person.playerStatus ? getPlayerStatusLabel(person.playerStatus) : undefined}
-                />
-              </dl>
-            ) : (
-              <p className="text-sm text-text-secondary">No tennis information on file.</p>
-            )}
-          </WorkspaceSection>
+          <EditableSection title="Denison Information" mode={mode} isEmpty={!hasDenisonInfo}>
+            <EditableField
+              label="Class Year"
+              value={draft.classYear}
+              onChange={(raw) => updateDraft({ classYear: toOptionalNumber(raw) })}
+              mode={mode}
+              type="number"
+            />
+            <EditableField
+              label="Major"
+              value={draft.major}
+              onChange={(raw) => updateDraft({ major: toOptionalString(raw) })}
+              mode={mode}
+            />
+            <EditableField
+              label="Minor"
+              value={draft.minor}
+              onChange={(raw) => updateDraft({ minor: toOptionalString(raw) })}
+              mode={mode}
+            />
+            <InformationField label="Denison ID" value={draft.denisonId} />
+            <EditableField
+              label="Dorm"
+              value={draft.dorm}
+              onChange={(raw) => updateDraft({ dorm: toOptionalString(raw) })}
+              mode={mode}
+            />
+            <EditableField
+              label="Room"
+              value={draft.roomNumber}
+              onChange={(raw) => updateDraft({ roomNumber: toOptionalString(raw) })}
+              mode={mode}
+            />
+          </EditableSection>
 
-          <WorkspaceSection title="Permanent Address">
-            {address ? (
-              <p className="text-sm text-text-primary">{address}</p>
+          <EditableSection title="Tennis Information" mode={mode} isEmpty={!hasTennisInfo}>
+            <EditableField
+              label="UTR"
+              value={draft.utr}
+              onChange={handleUtrChange}
+              mode={mode}
+              type="number"
+              step={0.1}
+              error={errors.utr}
+              formatDisplay={(value) => (typeof value === "number" ? value.toFixed(1) : undefined)}
+            />
+            <EditableField
+              label="WTN"
+              value={draft.wtn}
+              onChange={handleWtnChange}
+              mode={mode}
+              type="number"
+              step={0.1}
+              error={errors.wtn}
+              formatDisplay={(value) => (typeof value === "number" ? value.toFixed(1) : undefined)}
+            />
+            <EditableField
+              label="Dominant Hand"
+              value={draft.dominantHand}
+              onChange={(raw) => updateDraft({ dominantHand: (raw || undefined) as Person["dominantHand"] })}
+              mode={mode}
+              type="select"
+              options={dominantHandOptions}
+              formatDisplay={(value) => (value ? capitalize(String(value)) : undefined)}
+            />
+            <EditableField
+              label="Height (inches)"
+              value={draft.heightInches}
+              onChange={(raw) => updateDraft({ heightInches: toOptionalNumber(raw) })}
+              mode={mode}
+              type="number"
+              formatDisplay={(value) => formatHeight(typeof value === "number" ? value : undefined)}
+            />
+            <EditableField
+              label="Weight (lbs)"
+              value={draft.weightLbs}
+              onChange={(raw) => updateDraft({ weightLbs: toOptionalNumber(raw) })}
+              mode={mode}
+              type="number"
+              formatDisplay={(value) => formatWeight(typeof value === "number" ? value : undefined)}
+            />
+            <InformationField
+              label="Player Status"
+              value={draft.playerStatus ? getPlayerStatusLabel(draft.playerStatus) : undefined}
+            />
+          </EditableSection>
+
+          <EditableSection title="Address" mode={mode}>
+            {mode === "view" ? (
+              <p className="text-sm text-text-primary sm:col-span-2">
+                {address ?? <span className="text-text-secondary">No permanent address on file.</span>}
+              </p>
             ) : (
-              <p className="text-sm text-text-secondary">No permanent address on file.</p>
+              <>
+                <EditableField
+                  label="Street"
+                  value={draft.addressLine1}
+                  onChange={(raw) => updateDraft({ addressLine1: toOptionalString(raw) })}
+                  mode={mode}
+                  className="sm:col-span-2"
+                />
+                <EditableField
+                  label="City"
+                  value={draft.city}
+                  onChange={(raw) => updateDraft({ city: toOptionalString(raw) })}
+                  mode={mode}
+                />
+                <EditableField
+                  label="State"
+                  value={draft.state}
+                  onChange={(raw) => updateDraft({ state: toOptionalString(raw) })}
+                  mode={mode}
+                />
+                <EditableField
+                  label="Zip"
+                  value={draft.zipCode}
+                  onChange={(raw) => updateDraft({ zipCode: toOptionalString(raw) })}
+                  mode={mode}
+                />
+                <EditableField
+                  label="Country"
+                  value={draft.country}
+                  onChange={(raw) => updateDraft({ country: toOptionalString(raw) })}
+                  mode={mode}
+                />
+              </>
             )}
-          </WorkspaceSection>
+          </EditableSection>
+
+          <EditableSection title="Notes" mode={mode} isEmpty={!draft.notes} emptyLabel="No notes on file.">
+            <EditableField
+              label="Notes"
+              value={draft.notes}
+              onChange={(raw) => updateDraft({ notes: toOptionalString(raw) })}
+              mode={mode}
+              type="textarea"
+              placeholder="Add notes about this person…"
+              className="sm:col-span-2"
+            />
+          </EditableSection>
         </div>
 
         <div className="flex flex-col gap-8">

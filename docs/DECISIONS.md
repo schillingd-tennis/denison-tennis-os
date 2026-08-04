@@ -55,3 +55,83 @@ update this file explicitly rather than silently drifting from it.
   create or update records in that source.
 - See `docs/ARCHITECTURE.md` for the full technical architecture this is
   drawn from.
+
+## BP-012 — Production People Import
+
+- `src/features/people/data.ts` is no longer hand-written sample data — it
+  is a generated file, produced by `npm run import:players`
+  (`scripts/import-players.ts`) from `private-imports/Players.csv`. Do not
+  hand-edit it; re-run the import instead.
+- This blueprint imports **players only**. Rows with `Class = Coach` are
+  excluded from the People data entirely (they are out of scope, not
+  errors) and are listed in the import report's `skipped` section. Parents
+  and coaches get their own import in a later blueprint.
+- Stable `id`s are derived from name (e.g. `player-kael-shah`), never from
+  CSV row position or the Airtable record id in the `Player ID` column —
+  consistent with the BP-011 rule that external IDs never become domain
+  identity. The Airtable record id is not persisted on `Person` at all
+  today; it is treated as an unmapped column.
+- `Person` gained two additions to support this import: `middleName`
+  (Identity) and `relationships: PersonRelationship[]` (a new
+  "Relationships" group). Every imported player gets `relationships: []`
+  today — a forward-looking placeholder that a later blueprint (parent
+  import) will populate. This does not replace `FamilyContact`; see
+  `docs/DATA_MODEL.md`.
+- The source export has no columns for `utr`, `wtn`, `dominantHand`,
+  `heightInches`, `weightLbs`, `dorm`, or `roomNumber` — those fields are
+  simply left blank on every imported player until a data source for them
+  exists. The Team module already renders their absence gracefully.
+- Class standing (Freshman/Sophomore/Junior/Senior) is converted to a
+  graduation-year `classYear` using a single "current senior class year"
+  constant in `scripts/import/normalize.ts` — bump it by one at the start
+  of each academic year. Alumni rows (`Class = Archive`) have no reliable
+  way to derive `classYear` from this export and are left blank.
+- Every import run regenerates a JSON report at
+  `private-imports/import-report.json` (gitignored, since it echoes real
+  player data) covering counts, skipped rows, duplicate Denison IDs/emails,
+  unknown columns, and missing-value counts per field.
+
+## BP-013 — Universal Person Editor
+
+- There is exactly **one** editor for `Person`, in `src/components/editor/`
+  — not a separate one per role. It knows nothing about "Player" vs
+  "Recruit" vs "Coach"; any future workspace edits a `Person` (or another
+  record shape) by wiring the same primitives (`FormProvider`,
+  `EditableField`, `EditableSection`, `EditorToolbar`,
+  `ValidationMessage`, `DirtyTracker`) to its own fields and its own
+  validator, the way `PlayerWorkspace` does today.
+- The primitives are deliberately generic — `EditableField` takes an
+  explicit `value`/`onChange`/`mode`, not a `Person` field key — so they
+  carry no assumption about which record type they're editing.
+  Record-specific rules (required fields, format checks) live one layer up
+  (e.g. `src/features/people/validation.ts`), composed from the generic
+  validators in `src/components/editor/validators.ts`.
+- Editing is **local-state only** — `FormProvider` holds `original`/`draft`
+  in React state; `save()` commits `draft` into `original` and calls an
+  optional `onSave` callback. There is no persistence layer yet (no
+  writes to `data.ts`, no API, no database) — that is explicitly out of
+  scope until a later blueprint. A page refresh always reverts to the
+  last-generated `data.ts`.
+- View mode must look like the read-only workspace did before this
+  blueprint. Two sections were added rather than restructuring existing
+  ones, since no existing surface showed these fields at all: **Personal**
+  (first/middle/last/preferred name, date of birth) and **Notes** (a new
+  optional `Person.notes` field). "Permanent Address" was renamed
+  **Address** and gained itemized inputs in edit mode, while view mode
+  keeps the single combined address line it already had.
+- `status` and `playerStatus` are edited inline in the header (the badge
+  becomes a `<select>` in edit mode) rather than as additional rows in the
+  Denison/Tennis sections — avoids showing the same value twice on the
+  page while still satisfying the "Status" field requirement.
+- `denisonId` (Denison Information) is intentionally **not** editable —
+  it's a system identifier, not a field a coach edits by hand — and is
+  rendered with the existing read-only `InformationField`, unchanged.
+- Parents (`FamilyContact`) remain read-only cards; editing family
+  relationships is out of scope for this blueprint.
+- The "leave with unsaved changes" guard covers two cases: the native
+  `beforeunload` event (refresh/close/typed URL — wired automatically by
+  `FormProvider` via `DirtyTracker`), and the in-page "Back to Team" link
+  (intercepted and confirmed via `confirmDiscardIfDirty`). It does not
+  intercept arbitrary in-app `<Link>` navigation app-wide (e.g. sidebar
+  nav) — a general App Router navigation guard is a separate concern from
+  "build the editing framework" and can be added later if needed.
