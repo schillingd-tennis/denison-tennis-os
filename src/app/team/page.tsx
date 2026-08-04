@@ -1,10 +1,6 @@
-import PagePlaceholder from "@/components/PagePlaceholder";
+import { people } from "@/features/people/data";
+import TeamDirectory from "@/features/team/components/TeamDirectory";
 
 export default function TeamPage() {
-  return (
-    <PagePlaceholder
-      title="Team"
-      description="Manage the roster, lineups, and player information."
-    />
-  );
+  return <TeamDirectory people={people} />;
 }
