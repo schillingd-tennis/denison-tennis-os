@@ -17,7 +17,8 @@ import StatusFilterControl from "./StatusFilterControl";
 export default function TeamDirectory({ people }: { people: Person[] }) {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<StatusFilter>("current");
-  const [view, setView] = useState<ViewMode>("cards");
+  // List is the primary Team surface for spreadsheet-style inline editing (BP-019A).
+  const [view, setView] = useState<ViewMode>("list");
 
   const filtered = useMemo(
     () => filterPeople(people, { status, query }),

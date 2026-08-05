@@ -30,6 +30,7 @@ import {
   toOptionalString,
   useFormContext,
 } from "@/components/editor";
+import { formatPhoneDisplay, normalizeEmail, normalizePhone } from "@/components/inline-edit";
 
 import { updatePersonAction } from "@/features/people/actions";
 import type { FamilyContact } from "@/features/people/family";
@@ -110,7 +111,20 @@ export default function PlayerWorkspace({
 
   const handleSave = useCallback(
     async (patch: Partial<Person>): Promise<Person> => {
-      const result = await updatePersonAction(personId, patch);
+      // Smart formatting (BP-019) — normalize contact fields before persist
+      // so Workspace saves match Team List / future module inline edits.
+      const normalized: Partial<Person> = { ...patch };
+      if ("cellPhone" in normalized) {
+        normalized.cellPhone = normalizePhone(normalized.cellPhone);
+      }
+      if ("personalEmail" in normalized) {
+        normalized.personalEmail = normalizeEmail(normalized.personalEmail);
+      }
+      if ("denisonEmail" in normalized) {
+        normalized.denisonEmail = normalizeEmail(normalized.denisonEmail);
+      }
+
+      const result = await updatePersonAction(personId, normalized);
       if (!result.success) {
         throw new Error(result.error);
       }
@@ -373,6 +387,9 @@ function PlayerWorkspaceContent({ familyContacts }: { familyContacts: FamilyCont
               mode={mode}
               type="tel"
               error={errors.cellPhone}
+              formatDisplay={(value) =>
+                formatPhoneDisplay(typeof value === "string" ? value : undefined)
+              }
             />
             <EditableField
               label="Personal Email"
