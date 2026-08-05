@@ -1,0 +1,21 @@
+---
+description: Global data formatting standards (BP-027)
+globs: src/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Data Formatting
+
+Use `@/lib/formatting` for all rendered values. Do not call `toFixed`, ad-hoc date strings, or local empty glyphs in components.
+
+| Kind | Helper | Example |
+|---|---|---|
+| UTR | `formatUtr` | `11.63` |
+| WTN | `formatWtn` | `10.05` |
+| Percent | `formatPercent` | `78.4%` |
+| GPA | `formatGpa` | `3.57` |
+| Date | `formatDate` | `Aug 5, 2026` |
+| Time | `formatTime` | `3:30 PM` |
+| Empty / text | `formatDisplay` / `EMPTY_VALUE` | `—` |
+
+Presentation only — keep raw values for sort, filter, search, and persistence.

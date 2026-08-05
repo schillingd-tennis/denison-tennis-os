@@ -4,7 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 
 import { publishFoundSet } from "@/components/found-set";
 import type { Person } from "@/features/people/types";
-import { filterPeople, type RoleFilter } from "@/features/people/utils";
+import {
+  filterPeople,
+  normalizeActivePeopleFilters,
+  readStoredActivePeopleFilters,
+  writeStoredActivePeopleFilters,
+} from "@/features/people/filters";
 import {
   TEAM_FOUND_SET_COLUMNS,
   TEAM_FOUND_SET_FILENAME_BASE,
@@ -14,6 +19,7 @@ import {
 import EmptyState from "@/components/EmptyState";
 import PageHeader from "@/components/PageHeader";
 import SearchInput from "@/components/SearchInput";
+import { Toolbar } from "@/components/toolbar";
 import ViewToggle, { type ViewMode } from "@/components/ViewToggle";
 
 import PersonCard from "./PersonCard";
@@ -26,23 +32,34 @@ import RoleFilterControl from "./RoleFilterControl";
  */
 export default function PeopleDirectory({ people }: { people: Person[] }) {
   const [query, setQuery] = useState("");
-  const [role, setRole] = useState<RoleFilter>("players");
+  const [activeFilterIds, setActiveFilterIds] = useState<string[]>(() =>
+    readStoredActivePeopleFilters(),
+  );
   const [view, setView] = useState<ViewMode>("list");
 
+  // Facets first, then search — Cards and List share `filtered`.
   const filtered = useMemo(
-    () => filterPeople(people, { role, query }),
-    [people, role, query],
+    () => filterPeople(people, { activeFilterIds, query }),
+    [people, activeFilterIds, query],
   );
 
   useEffect(() => {
-    if (view !== "cards") return;
+    writeStoredActivePeopleFilters(activeFilterIds);
+  }, [activeFilterIds]);
+
+  // Keep found-set in sync for every facet combination (Cards + List share `filtered`).
+  useEffect(() => {
     publishFoundSet({
       moduleKey: TEAM_FOUND_SET_MODULE_KEY,
       filenameBase: TEAM_FOUND_SET_FILENAME_BASE,
       rows: filtered,
       columns: TEAM_FOUND_SET_COLUMNS,
     });
-  }, [view, filtered]);
+  }, [filtered]);
+
+  function handleFilterChange(next: string[]) {
+    setActiveFilterIds(normalizeActivePeopleFilters(next));
+  }
 
   return (
     <div className="flex flex-col gap-7">
@@ -52,19 +69,19 @@ export default function PeopleDirectory({ people }: { people: Person[] }) {
         meta={`${filtered.length} ${filtered.length === 1 ? "person" : "people"}`}
       />
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0 flex-1 sm:max-w-md">
+      <Toolbar
+        primary={
           <SearchInput
             value={query}
             onChange={setQuery}
             placeholder="Search by name, title, hometown, or major"
           />
-        </div>
-        <div className="flex flex-wrap items-center gap-2.5">
-          <RoleFilterControl value={role} onChange={setRole} />
-          <ViewToggle value={view} onChange={setView} />
-        </div>
-      </div>
+        }
+        secondary={
+          <RoleFilterControl value={activeFilterIds} onChange={handleFilterChange} />
+        }
+        tertiary={<ViewToggle value={view} onChange={setView} />}
+      />
 
       {filtered.length === 0 ? (
         <EmptyState

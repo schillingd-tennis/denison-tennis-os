@@ -21,8 +21,11 @@ export function validatePerson(person: Person): FieldErrors {
   const lastNameError = isRequired(person.lastName);
   if (lastNameError) errors.lastName = lastNameError;
 
-  const statusError = isRequired(person.status);
+  const statusError = isRequired(person.statusId);
   if (statusError) errors.status = statusError;
+
+  const roleError = isRequired(person.roleId);
+  if (roleError) errors.role = roleError;
 
   const personalEmailError = isValidEmail(person.personalEmail);
   if (personalEmailError) errors.personalEmail = personalEmailError;

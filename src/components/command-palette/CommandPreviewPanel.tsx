@@ -13,9 +13,10 @@ import type {
   PersonPreviewData,
   RecruitPreviewData,
 } from "@/components/command-palette/types";
+import { EMPTY_VALUE, formatUtr, formatWtn } from "@/lib/formatting";
 
 function PreviewRow({ label, value }: { label: string; value?: string | number | null }) {
-  if (value === undefined || value === null || value === "") return null;
+  if (value === undefined || value === null || value === "" || value === EMPTY_VALUE) return null;
   return (
     <div className="flex items-baseline justify-between gap-3 py-1">
       <dt className="shrink-0 text-xs text-text-secondary">{label}</dt>
@@ -24,10 +25,6 @@ function PreviewRow({ label, value }: { label: string; value?: string | number |
       </dd>
     </div>
   );
-}
-
-function formatRating(value: number | undefined): string | undefined {
-  return value !== undefined ? value.toFixed(1) : undefined;
 }
 
 function PersonPreview({ data }: { data: PersonPreviewData }) {
@@ -49,8 +46,8 @@ function PersonPreview({ data }: { data: PersonPreviewData }) {
         />
         <PreviewRow label="Class" value={data.classYear} />
         <PreviewRow label="D#" value={data.denisonIdDisplay} />
-        <PreviewRow label="UTR" value={formatRating(data.utr)} />
-        <PreviewRow label="WTN" value={formatRating(data.wtn)} />
+        <PreviewRow label="UTR" value={formatUtr(data.utr)} />
+        <PreviewRow label="WTN" value={formatWtn(data.wtn)} />
         <PreviewRow label="Hometown" value={data.hometown} />
         <PreviewRow label="Email" value={data.email} />
         <PreviewRow label="Phone" value={data.phone} />

@@ -35,40 +35,28 @@ store through repositories — never through provider APIs directly.
 
 ## 2. Phase Model
 
-### Phase 1 — Current (Bootstrap)
+### Current — System of Record (BP-026B)
 
-- Airtable CSV export bootstraps People into Denison Tennis OS.
-- The app stores additional application-specific data (notes, UTR/WTN when
-  entered in-app, workspace edits, etc.).
-- Supabase `production_people` is the runtime store.
-- Import → seed sync updates **provider-synced** columns only
-  (see BP-022E / `DATA_OWNERSHIP.md`).
+- Supabase `production_people` is the permanent system of record for People.
+- Airtable CSV is an **import source only** (bootstrap / occasional refresh).
+- Runtime edits in Tennis OS are authoritative for all Person fields.
+- Normal import/seed **fills missing values only** — never overwrites existing
+  Supabase data.
+- Overwriting provider-import columns requires an explicit
+  **Force Refresh From Provider** operation.
+- Evaluations, tags, notes, relationships, and ratings live in (or will live
+  in) Supabase; they are never owned by Airtable.
 
-### Phase 2 — Hybrid
+### Target — Airtable removed
 
-- Both Denison Tennis OS and external tools may contain overlapping facts.
-- Imports **synchronize** provider-owned fields into the app.
-- The application **owns** operational data: evaluations, communication
-  history, tasks, timeline, documents, relationships beyond import links,
-  tags, analytics, practice/performance data.
-- Coaches may still use Airtable/Coda for some workflows; the app must not
-  treat those tools as authoritative for history or app-owned fields.
-
-### Phase 3 — Target (System of Record)
-
-- Denison Tennis OS is the complete system of record for People and program
-  operations.
-- External tools become optional adapters (or are removed).
-- New People and lifecycle transitions are created primarily in the app
-  (or via controlled sync from remaining providers).
-- Historical notes, evaluations, messages, and tasks never depended on
-  Airtable remaining online.
+- Import adapter deleted; Person / Team / repositories unchanged.
+- Optional future providers (UTR, TRN, NCAA) are adapters that fill or
+  force-refresh only their documented columns.
 
 ```
-Phase 1                Phase 2                 Phase 3
-────────               ────────                ────────
-Airtable bootstrap  →  Hybrid sync          →  App is SoR
-App adds ops data      App owns ops data       Providers optional
+Bootstrap import  →  Supabase SoR (edits win)  →  Airtable optional/removed
+                     Fill-nulls on seed
+                     Force Refresh = explicit
 ```
 
 ---
@@ -112,61 +100,57 @@ Full tables: [`DATA_OWNERSHIP.md`](./DATA_OWNERSHIP.md).
 
 | Category | Meaning |
 |---|---|
-| **Imported / provider-synced** | Updated by an external sync adapter when that sync runs |
-| **Application-owned** | Created/edited in Denison Tennis OS; sync must not overwrite |
-| **Editable** | Users may change in the app (may still be provider-synced until Phase 3) |
-| **Computed** | Derived at read time; not stored as authoritative input |
+| **System of record** | Supabase; UI edits are authoritative |
+| **Provider-import** | May fill NULLs; Force Refresh may hard-replace |
+| **App-authoritative** | Fill NULLs only; never Force Refresh from import |
+| **Computed** | Derived at read time |
 
-**External providers (examples):** Airtable, TRN, UTR, Google, NCAA, Coda.
+**Import sources (examples):** Airtable CSV (current), future UTR/TRN/NCAA adapters.
 
-**Application owns (examples):** evaluations, notes, communication history,
-tasks, timeline events, documents/attachments, relationships (app-managed),
-tags, program status transitions made in-app, custom fields, analytics,
-practice data, performance data.
+**Always SoR (examples):** hometown, role, class, status, D#, contact, UTR,
+WTN, notes, evaluations, tags, relationships, communication history, tasks.
 
-Code mirror for current People sync columns:
-[`scripts/fieldOwnership.ts`](../scripts/fieldOwnership.ts).
+Code: [`scripts/fieldOwnership.ts`](../scripts/fieldOwnership.ts).
 
 ---
 
-## 5. Synchronization Philosophy
+## 5. Import Philosophy
 
-Imports **synchronize**. They do **not** replace application history.
+Imports **populate gaps**. They do **not** own live data.
 
-### Always preserve
+### Always preserve on normal seed
 
-- Notes
-- Evaluations
-- Communication logs
-- Tasks
-- Attachments / documents
-- Relationships managed in-app
-- Manual edits to application-owned fields
-- Historical timeline information
+- Every existing non-NULL value in Supabase
+- Notes, evaluations, tags, relationships
+- UTR / WTN and other app-authoritative columns
+- Manual edits to hometown, role, status, class, contact, D#
 
-### Sync may update
-
-Only fields explicitly owned by that provider for that sync job
-(documented in `DATA_OWNERSHIP.md`).
-
-### Sync must never
-
-- Delete or null out application-owned columns on conflict
-- Recreate People tables as a side effect of routine import
-- Fall back to a full database wipe when a sync fails
-- Treat “re-run seed” as equivalent to “reset the world”
-
-### Conflict rule (People today)
+### Normal seed (`npm run db:seed`)
 
 ```
-INSERT new Person from provider snapshot
+INSERT new Person from import snapshot
 ON CONFLICT (id) DO UPDATE
-  SET <provider-synced columns only>
--- application-owned columns omitted from UPDATE
+  SET col = coalesce(production_people.col, excluded.col)
+-- existing values always win
 ```
+
+### Force Refresh From Provider (`npm run db:seed:force-refresh`)
+
+```
+ON CONFLICT (id) DO UPDATE
+  SET <provider-import columns> = excluded.<column>
+-- app-authoritative columns omitted
+```
+
+### Import must never
+
+- Silently overwrite existing Supabase values on routine seed
+- Blank-wipe UTR / WTN / notes via Force Refresh
+- Fall back to `db:reset` when import/seed fails
+- Treat “re-run seed” as “reset the world”
 
 A full `db:reset` remains an **intentional destructive** developer action,
-not a sync mechanism.
+not an import mechanism.
 
 ---
 

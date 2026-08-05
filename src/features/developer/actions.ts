@@ -103,12 +103,23 @@ export async function resetLocalDatabaseAction(): Promise<DeveloperActionResult>
 }
 
 /**
- * Re-apply seed.sql without dropping the database.
- * Updates provider-synced columns only; preserves UTR / WTN / notes / etc.
+ * Re-apply seed.sql without dropping the database (BP-026B).
+ * Fills missing (NULL) values only — never overwrites existing Supabase data.
  * Never falls back to db reset.
  */
 export async function rerunSeedAction(): Promise<DeveloperActionResult> {
   const blocked = assertLocalDev();
   if (blocked) return blocked;
   return runNpmScript("db:seed");
+}
+
+/**
+ * Force Refresh From Provider — hard-replaces provider-import columns from
+ * the import snapshot. App-authoritative fields (UTR, WTN, notes, …) are
+ * never overwritten. Explicit opt-in only (BP-026B).
+ */
+export async function forceRefreshFromProviderAction(): Promise<DeveloperActionResult> {
+  const blocked = assertLocalDev();
+  if (blocked) return blocked;
+  return runNpmScript("db:seed:force-refresh");
 }

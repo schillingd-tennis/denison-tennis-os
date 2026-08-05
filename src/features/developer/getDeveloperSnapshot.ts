@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 
+import { ROLE_KEYS, STATUS_KEYS } from "@/features/lookups/seed";
 import { listPeople } from "@/features/people/repository";
 import { hasRole } from "@/features/people/utils";
 
@@ -135,10 +136,12 @@ async function probeConnection(): Promise<{
     const people = await listPeople();
     const counts: PeopleRoleCounts = {
       total: people.length,
-      players: people.filter((p) => hasRole(p, "player") && p.status === "current").length,
-      coaches: people.filter((p) => hasRole(p, "coach")).length,
-      alumni: people.filter((p) => hasRole(p, "alumni") || p.status === "alumni").length,
-      staff: people.filter((p) => hasRole(p, "staff")).length,
+      players: people.filter(
+        (p) => hasRole(p, ROLE_KEYS.player) && p.status.key === STATUS_KEYS.current,
+      ).length,
+      coaches: people.filter((p) => hasRole(p, ROLE_KEYS.coach)).length,
+      alumni: people.filter((p) => hasRole(p, ROLE_KEYS.alumni)).length,
+      staff: people.filter((p) => hasRole(p, ROLE_KEYS.staff)).length,
       recruits: null,
     };
     return { status: "connected", people: counts };

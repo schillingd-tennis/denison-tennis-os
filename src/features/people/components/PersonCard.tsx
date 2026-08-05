@@ -1,94 +1,65 @@
 import Link from "next/link";
 import { Mail, MessageSquare, Phone } from "lucide-react";
 
-import { formatPhoneDisplay, phoneHrefDigits } from "@/components/inline-edit";
+import { phoneHrefDigits } from "@/components/inline-edit";
 import { typeClass, typeRole } from "@/components/typography";
 import type { Person } from "@/features/people/types";
 import {
-  formatDenisonIdDisplay,
   getDisplayFirstName,
   getHometown,
   getInitials,
-  getPlayerStatusLabel,
-  getStatusAccentTone,
-  getStatusLabel,
+  getPersonRoleDisplay,
   isCoachDirectoryPerson,
 } from "@/features/people/utils";
-import { getPersonStatusIndicator } from "@/features/people/statusIndicator";
+import { EMPTY_VALUE, formatDisplay, formatUtr, formatWtn } from "@/lib/formatting";
 
-import CardAccentBar from "@/components/CardAccentBar";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import QuickActionButton from "@/components/QuickActionButton";
-import StatusDot from "@/components/StatusDot";
 
-import PersonRoleBadge from "./PersonRoleBadge";
-import PersonStatusLabel from "./PersonStatusLabel";
-
-function formatRating(value: number | undefined): string {
-  return value !== undefined ? value.toFixed(1) : "—";
-}
-
+/**
+ * Team directory card (BP-025F / BP-027).
+ * Directory facts only — administrative contact text lives in Workspace;
+ * Call / Text / Email actions remain available here.
+ */
 export default function PersonCard({ person }: { person: Person }) {
   const hometown = getHometown(person);
   const email = person.denisonEmail ?? person.personalEmail;
   const phoneDigits = phoneHrefDigits(person.cellPhone);
-  const phoneDisplay = formatPhoneDisplay(person.cellPhone);
   const coachDirectory = isCoachDirectoryPerson(person);
-  const playerStatusLabel =
-    !coachDirectory && person.status === "current"
-      ? getPlayerStatusLabel(person.playerStatus)
+  const roleDisplay = getPersonRoleDisplay(person);
+  const classLabel =
+    !coachDirectory && person.classYear !== undefined
+      ? `Class of ${person.classYear}`
       : undefined;
-  const statusIndicator = getPersonStatusIndicator(person);
-  const showDenisonId = !coachDirectory || Boolean(person.denisonId?.trim());
   const hasContact = Boolean(phoneDigits || email);
+  const hasDetails = Boolean(hometown || classLabel);
+  const utrDisplay = formatUtr(person.utr);
+  const wtnDisplay = formatWtn(person.wtn);
 
   return (
-    <div className="group relative flex h-full cursor-pointer flex-col gap-3.5 overflow-hidden rounded-card border border-border bg-surface px-5 py-5 pl-6 transition-all duration-200 hover:border-text-secondary/25 hover:shadow-sm">
-      <CardAccentBar tone={getStatusAccentTone(person.status)} />
-
+    <div className="group relative flex h-full cursor-pointer flex-col gap-3.5 overflow-hidden rounded-card border border-border bg-surface px-5 py-5 transition-all duration-200 hover:border-text-secondary/25 hover:shadow-sm">
       <Link
         href={`/team/${person.id}`}
         className="absolute inset-0 rounded-card"
         aria-label={`Open workspace for ${getDisplayFirstName(person)} ${person.lastName}`}
       />
 
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <StatusDot tone={statusIndicator.tone} label={statusIndicator.label} />
-          <PlayerAvatar photoUrl={person.photoUrl} initials={getInitials(person)} size={44} />
-          <div className="min-w-0">
-            <p className={typeRole.personName}>
-              {getDisplayFirstName(person)} {person.lastName}
-            </p>
-            <PersonRoleBadge person={person} className="mt-1" />
-            {showDenisonId ? (
-              <p className={typeClass("metadataSm", "mt-1 truncate tabular-nums")}>
-                {formatDenisonIdDisplay(person.denisonId)}
-              </p>
-            ) : null}
-          </div>
+      <div className="flex min-w-0 items-center gap-2.5">
+        <PlayerAvatar photoUrl={person.photoUrl} initials={getInitials(person)} size={44} />
+        <div className="min-w-0">
+          <p className={typeRole.personName}>
+            {getDisplayFirstName(person)} {person.lastName}
+          </p>
+          <p className={typeClass("metadataSm", "mt-0.5 truncate")}>
+            {formatDisplay(roleDisplay)}
+          </p>
         </div>
-        <PersonStatusLabel
-          tone={person.status === "alumni" ? "alumni" : "active"}
-          label={getStatusLabel(person.status)}
-        />
       </div>
 
       <div className={`flex flex-col gap-0.5 ${typeRole.metadata}`}>
         {hometown ? <p className="truncate">{hometown}</p> : null}
-        {coachDirectory ? (
-          <>
-            {phoneDisplay ? <p className="tabular-nums">{phoneDisplay}</p> : null}
-            {email ? <p className="truncate">{email}</p> : null}
-          </>
-        ) : (
-          <>
-            {person.major ? <p className="truncate">{person.major}</p> : null}
-            {playerStatusLabel && playerStatusLabel !== "—" ? <p>{playerStatusLabel}</p> : null}
-          </>
-        )}
-        {!hometown &&
-        !(coachDirectory ? phoneDisplay || email : person.major || playerStatusLabel) ? (
+        {classLabel ? <p>{classLabel}</p> : null}
+        {!hasDetails ? (
           <p className={typeRole.metadataEmpty}>No additional details yet</p>
         ) : null}
       </div>
@@ -99,20 +70,20 @@ export default function PersonCard({ person }: { person: Person }) {
             <p className={typeRole.sectionLabel}>UTR</p>
             <p
               className={`text-sm font-medium tabular-nums ${
-                person.utr !== undefined ? "text-text-primary" : typeRole.metadataEmpty
+                utrDisplay !== EMPTY_VALUE ? "text-text-primary" : typeRole.metadataEmpty
               }`}
             >
-              {formatRating(person.utr)}
+              {utrDisplay}
             </p>
           </div>
           <div>
             <p className={typeRole.sectionLabel}>WTN</p>
             <p
               className={`text-sm font-medium tabular-nums ${
-                person.wtn !== undefined ? "text-text-primary" : typeRole.metadataEmpty
+                wtnDisplay !== EMPTY_VALUE ? "text-text-primary" : typeRole.metadataEmpty
               }`}
             >
-              {formatRating(person.wtn)}
+              {wtnDisplay}
             </p>
           </div>
         </div>

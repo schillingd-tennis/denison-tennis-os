@@ -1,19 +1,29 @@
 /**
  * Boundary mapping between the `production_people` Supabase table and the
- * internal `Person` domain object (BP-015 / BP-021). Per `docs/ARCHITECTURE.md`,
- * this is the one place allowed to know the table's column names — nothing
- * outside `src/features/people/repository.ts` and `scripts/generate-supabase-seed.ts`
- * should import this module.
+ * internal `Person` domain object (BP-015 / BP-021 / BP-025A).
  */
-import type { Person, PersonRelationship, PersonRole } from "./types";
+import { ROLE_SEED, STATUS_SEED, roleSeedByKey, statusSeedByKey } from "@/features/lookups/seed";
+import type { LookupRef } from "@/features/lookups/types";
 
-/** Shape of a row as returned by `select("*")` on `production_people`. */
+import type { Person, PersonRelationship } from "./types";
+
+type NestedLookup = {
+  id: string;
+  key: string;
+  label: string;
+  sort_order?: number;
+  active?: boolean;
+};
+
+/** Shape of a row as returned by `select` on `production_people` (with joins). */
 export type ProductionPersonRow = {
   id: string;
   created_at: string;
   updated_at: string;
-  status: string;
-  roles: string[] | null;
+  role_id: string;
+  status_id: string;
+  role?: NestedLookup | NestedLookup[] | null;
+  status?: NestedLookup | NestedLookup[] | null;
   title: string | null;
   first_name: string;
   middle_name: string | null;
@@ -51,34 +61,40 @@ function undefinedIfNull<T>(value: T | null): T | undefined {
   return value === null ? undefined : value;
 }
 
-const KNOWN_ROLES = new Set<PersonRole>([
-  "player",
-  "coach",
-  "alumni",
-  "staff",
-  "recruit",
-]);
-
-/** Infer roles when a row predates the BP-021 column or still has an empty array. */
-function rolesFromRow(row: ProductionPersonRow): PersonRole[] {
-  if (row.roles && row.roles.length > 0) {
-    const known = row.roles.filter((role): role is PersonRole =>
-      KNOWN_ROLES.has(role as PersonRole),
-    );
-    if (known.length > 0) return known;
-  }
-  return row.status === "alumni" ? ["alumni"] : ["player"];
+function asLookup(value: NestedLookup | NestedLookup[] | null | undefined): NestedLookup | null {
+  if (!value) return null;
+  return Array.isArray(value) ? (value[0] ?? null) : value;
 }
 
-/** Maps a `production_people` row into the `Person` shape the app already uses. */
+function lookupRefFromNested(
+  nested: NestedLookup | null,
+  fallbackId: string,
+  seed: readonly { id: string; key: string; label: string }[],
+): LookupRef {
+  if (nested) {
+    return { id: nested.id, key: nested.key, label: nested.label };
+  }
+  const fromSeed = seed.find((entry) => entry.id === fallbackId);
+  if (fromSeed) {
+    return { id: fromSeed.id, key: fromSeed.key, label: fromSeed.label };
+  }
+  return { id: fallbackId, key: "unknown", label: "Unknown" };
+}
+
+/** Maps a `production_people` row into the `Person` shape. */
 export function rowToPerson(row: ProductionPersonRow): Person {
+  const role = lookupRefFromNested(asLookup(row.role), row.role_id, ROLE_SEED);
+  const status = lookupRefFromNested(asLookup(row.status), row.status_id, STATUS_SEED);
+
   return {
     id: row.id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
 
-    status: row.status as Person["status"],
-    roles: rolesFromRow(row),
+    roleId: row.role_id,
+    statusId: row.status_id,
+    role,
+    status,
     title: undefinedIfNull(row.title),
     firstName: row.first_name,
     middleName: undefinedIfNull(row.middle_name),
@@ -119,15 +135,9 @@ export function rowToPerson(row: ProductionPersonRow): Person {
   };
 }
 
-/**
- * Maps `Person` keys to their `production_people` column names. Excludes
- * `id`, `createdAt`, and `updatedAt` — the id never changes on update, and
- * both timestamps are server-managed (see the `updated_at` trigger in
- * `supabase/migrations/0001_create_production_people.sql`).
- */
 const WRITABLE_FIELD_MAP: Partial<Record<keyof Person, string>> = {
-  status: "status",
-  roles: "roles",
+  roleId: "role_id",
+  statusId: "status_id",
   title: "title",
   firstName: "first_name",
   middleName: "middle_name",
@@ -167,13 +177,6 @@ const WRITABLE_FIELD_MAP: Partial<Record<keyof Person, string>> = {
   notes: "notes",
 };
 
-/**
- * Maps a *partial* `Person` (e.g. a diff of only the fields a user changed)
- * into the corresponding partial `production_people` row for an UPDATE
- * (BP-017 Phase 1). Only keys present on `patch` are included, so this
- * naturally produces a "update only the modified fields" payload — callers
- * don't need to build the partial-update logic themselves.
- */
 export function personPatchToRow(patch: Partial<Person>): Record<string, unknown> {
   const row: Record<string, unknown> = {};
 
@@ -183,8 +186,6 @@ export function personPatchToRow(patch: Partial<Person>): Record<string, unknown
 
     const value = patch[key];
     if (key === "relationships") {
-      row[rowKey] = value ?? [];
-    } else if (key === "roles") {
       row[rowKey] = value ?? [];
     } else {
       row[rowKey] = value ?? null;
@@ -201,8 +202,8 @@ export function personToRow(person: Person): Record<string, unknown> {
     created_at: person.createdAt,
     updated_at: person.updatedAt,
 
-    status: person.status,
-    roles: person.roles,
+    role_id: person.roleId,
+    status_id: person.statusId,
     title: person.title ?? null,
     first_name: person.firstName,
     middle_name: person.middleName ?? null,
@@ -240,5 +241,22 @@ export function personToRow(person: Person): Record<string, unknown> {
     relationships: person.relationships,
 
     notes: person.notes ?? null,
+  };
+}
+
+/** Build Person role/status refs from seed keys (for data.ts / import). */
+export function personLookupsFromKeys(roleKey: string, statusKey: string): {
+  roleId: string;
+  statusId: string;
+  role: LookupRef;
+  status: LookupRef;
+} {
+  const role = roleSeedByKey(roleKey);
+  const status = statusSeedByKey(statusKey);
+  return {
+    roleId: role.id,
+    statusId: status.id,
+    role: { id: role.id, key: role.key, label: role.label },
+    status: { id: status.id, key: status.key, label: status.label },
   };
 }

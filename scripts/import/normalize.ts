@@ -1,4 +1,10 @@
-import type { PersonRole, PersonStatus, PlayerStatus } from "../../src/features/people/types";
+import {
+  ROLE_KEYS,
+  STATUS_KEYS,
+  type RoleKey,
+  type StatusKey,
+} from "../../src/features/lookups/seed";
+import type { PlayerStatus } from "../../src/features/people/types";
 
 const US_STATE_CODES = new Set([
   "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
@@ -47,9 +53,9 @@ export function classYearFromClass(classValue: string): number | undefined {
 }
 
 export type PersonClassification = {
-  status: PersonStatus;
+  statusKey: StatusKey;
+  roleKey: RoleKey;
   playerStatus?: PlayerStatus;
-  roles: PersonRole[];
   /** Display title when Airtable provides one (Title column or non-standing Class). */
   title?: string;
   /** True when this row is a non-player program role (coach/staff/etc.). */
@@ -58,8 +64,8 @@ export type PersonClassification = {
 };
 
 /**
- * Maps Airtable Class + Status (+ optional Title) onto Person status, roles,
- * and title. Coaches/staff get roles from Class — never from status alone.
+ * Maps Airtable Class + Status (+ optional Title) onto lookup keys (BP-025A).
+ * Coaches/staff get role from Class — status stays independent.
  */
 export function classifyPersonRow(
   classValue: string,
@@ -72,9 +78,9 @@ export function classifyPersonRow(
 
   if (cls === "archive") {
     return {
-      status: "alumni",
+      statusKey: STATUS_KEYS.former,
+      roleKey: ROLE_KEYS.alumni,
       playerStatus: "graduated",
-      roles: ["alumni"],
       title: explicitTitle,
       isProgramRoleRow: false,
     };
@@ -82,11 +88,11 @@ export function classifyPersonRow(
 
   // Coaches — Class may be "Coach", "Head Coach", "Assistant Coach", etc.
   if (cls === "coach" || cls.includes("coach")) {
-    const isAlumni = st === "alumni";
+    const isFormer = st === "alumni" || st === "former";
     return {
-      status: isAlumni ? "alumni" : "current",
-      playerStatus: isAlumni ? "graduated" : undefined,
-      roles: isAlumni ? ["alumni", "coach"] : ["coach"],
+      statusKey: isFormer ? STATUS_KEYS.former : STATUS_KEYS.current,
+      roleKey: ROLE_KEYS.coach,
+      playerStatus: isFormer ? "graduated" : undefined,
       title: explicitTitle ?? titleCaseLabel(classValue || "Coach"),
       isProgramRoleRow: true,
       warning:
@@ -105,19 +111,19 @@ export function classifyPersonRow(
     cls.includes("volunteer")
   ) {
     return {
-      status: "current",
+      statusKey: STATUS_KEYS.current,
+      roleKey: ROLE_KEYS.staff,
       playerStatus: undefined,
-      roles: ["staff"],
       title: explicitTitle ?? titleCaseLabel(classValue || "Staff"),
       isProgramRoleRow: true,
     };
   }
 
-  if (st === "alumni") {
+  if (st === "alumni" || st === "former") {
     return {
-      status: "alumni",
+      statusKey: STATUS_KEYS.former,
+      roleKey: ROLE_KEYS.alumni,
       playerStatus: "graduated",
-      roles: ["alumni"],
       title: explicitTitle,
       isProgramRoleRow: false,
     };
@@ -125,9 +131,9 @@ export function classifyPersonRow(
 
   if (st === "other") {
     return {
-      status: "current",
+      statusKey: STATUS_KEYS.current,
+      roleKey: ROLE_KEYS.player,
       playerStatus: "inactive",
-      roles: ["player"],
       title: explicitTitle,
       isProgramRoleRow: false,
       warning: `Status "Other" mapped to playerStatus "inactive" — verify manually.`,
@@ -136,9 +142,9 @@ export function classifyPersonRow(
 
   if (st === "") {
     return {
-      status: "current",
+      statusKey: STATUS_KEYS.current,
+      roleKey: ROLE_KEYS.player,
       playerStatus: "active",
-      roles: ["player"],
       title: explicitTitle,
       isProgramRoleRow: false,
       warning: `Status column was blank — defaulted to status "current" / playerStatus "active".`,
@@ -147,9 +153,9 @@ export function classifyPersonRow(
 
   if (st === "current" || PLAYER_STANDINGS.has(cls)) {
     return {
-      status: "current",
+      statusKey: STATUS_KEYS.current,
+      roleKey: ROLE_KEYS.player,
       playerStatus: "active",
-      roles: ["player"],
       title: explicitTitle,
       isProgramRoleRow: false,
       warning:
@@ -160,9 +166,9 @@ export function classifyPersonRow(
   }
 
   return {
-    status: "current",
+    statusKey: STATUS_KEYS.current,
+    roleKey: ROLE_KEYS.player,
     playerStatus: "active",
-    roles: ["player"],
     title: explicitTitle ?? (classValue.trim() ? titleCaseLabel(classValue) : undefined),
     isProgramRoleRow: false,
     warning: `Unrecognized Class/Status ("${classValue}" / "${statusValue}") — defaulted to player; verify manually.`,
@@ -173,11 +179,13 @@ export function classifyPersonRow(
 export function mapStatusAndPlayerStatus(
   classValue: string,
   statusValue: string,
-): { status: PersonStatus; playerStatus: PlayerStatus; warning?: string } {
+): { statusKey: StatusKey; playerStatus: PlayerStatus; warning?: string } {
   const mapped = classifyPersonRow(classValue, statusValue);
   return {
-    status: mapped.status,
-    playerStatus: mapped.playerStatus ?? (mapped.status === "alumni" ? "graduated" : "active"),
+    statusKey: mapped.statusKey,
+    playerStatus:
+      mapped.playerStatus ??
+      (mapped.statusKey === STATUS_KEYS.former ? "graduated" : "active"),
     warning: mapped.warning,
   };
 }

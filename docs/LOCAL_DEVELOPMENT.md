@@ -78,7 +78,8 @@ npm run db:reset   # DESTRUCTIVE — destroys all local People data
 
 | Script | Behavior |
 |---|---|
-| `npm run db:seed` | Applies `supabase/seed.sql` to the **running** local DB. Upserts **provider-synced** columns only (current sync source: Airtable CSV). **Preserves** UTR, WTN, notes, and other app-owned fields. Does **not** drop the database. |
+| `npm run db:seed` | Applies `supabase/seed.sql` to the **running** local DB. **Fill missing (NULL) values only** — never overwrites existing Supabase data. Does **not** drop the database. |
+| `npm run db:seed:force-refresh` | Applies `supabase/seed-force-refresh.sql`. **Hard-replaces provider-import columns** (names, role, status, hometown, contact, class, D#, …). Does **not** touch UTR / WTN / notes / relationships. Explicit opt-in only. |
 
 ### Destructive
 
@@ -119,7 +120,8 @@ refreshed **without** losing UTR/WTN/notes:
 ```bash
 npm run import:players
 npm run db:generate-seed
-npm run db:seed           # preserving upsert — NOT db:reset
+npm run db:seed                  # fill missing only — NOT db:reset
+npm run db:seed:force-refresh    # explicit provider overwrite (rare)
 ```
 
 ## Local authentication
@@ -328,14 +330,14 @@ Confirm:
 - [ ] `roles` and `title` columns exist on `production_people`
 - [ ] `person-david-schilling` and `person-andy-mackler` exist
 - [ ] `/team` loads; Coaches filter shows David + Andy
-- [ ] Manual UTR edit survives `npm run db:seed` and `db:stop` / `db:start`
+- [ ] Manual UTR / hometown / role edits survive `npm run db:seed` and `db:stop` / `db:start`
 - [ ] No pending migrations (`migration list` local = remote after push)
 
 ## Troubleshooting
 
 | Symptom | Fix |
 |---|---|
-| Manual UTR/WTN/notes disappeared | You likely ran `db:reset`, or an old full-overwrite seed. Confirm you are on BP-022E seed (provider-synced conflict updates only). Avoid reset for day-to-day work. |
+| Manual edits disappeared | You likely ran `db:reset`, or `db:seed:force-refresh`. Normal `db:seed` fills NULLs only (BP-026B). Avoid reset for day-to-day work. |
 | Edits “vanish” after refresh but DB still has them | `.env.local` may point at **hosted** Supabase — run `db:env` and fix. |
 | `docker: command not found` | Install/start Docker Desktop; ensure `docker` is on `PATH` |
 | `db:start` hangs / unhealthy | Restart Docker Desktop; `npm run db:stop` then `db:start` |

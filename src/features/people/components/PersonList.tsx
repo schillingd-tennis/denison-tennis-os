@@ -5,12 +5,19 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { ClipboardList, Download, Mail, MessageSquare, Phone } from "lucide-react";
 
-import type { ColumnDef, SortState } from "@/components/data-table/types";
-import { useSortableData } from "@/components/data-table/useSortableData";
+import DirectoryTable from "@/components/data-table/DirectoryTable";
 import SortableColumnHeader from "@/components/data-table/SortableColumnHeader";
 import {
-  isValidEmail,
-  isValidPhone,
+  STICKY_ACTIONS_COLUMN_WIDTH_CLASS,
+  stickyColumnRowClass,
+  stickyLeadingTdClass,
+  stickyLeadingThClass,
+  stickyTrailingTdClass,
+  stickyTrailingThClass,
+} from "@/components/data-table/stickyColumns";
+import type { ColumnDef, SortState } from "@/components/data-table/types";
+import { useSortableData } from "@/components/data-table/useSortableData";
+import {
   isValidUtr,
   isValidWtn,
   toOptionalNumber,
@@ -21,10 +28,7 @@ import {
   publishFoundSet,
 } from "@/components/found-set";
 import {
-  formatPhoneDisplay,
   InlineEditCell,
-  normalizeEmail,
-  normalizePhone,
   phoneHrefDigits,
   SaveIndicator,
   useSaveIndicator,
@@ -33,47 +37,44 @@ import {
 import { StickyProductivityActionBar } from "@/components/productivity";
 
 import { updatePersonAction } from "@/features/people/actions";
-import type { Person } from "@/features/people/types";
 import {
-  formatDenisonIdDisplay,
-  getDisplayFirstName,
-  getDisplayName,
-  getHometown,
-  getInitials,
-  getStatusLabel,
-  isCoachDirectoryPerson,
-} from "@/features/people/utils";
+  TEAM_DIRECTORY_EMPTY,
+  TEAM_DIRECTORY_META,
+  TEAM_DIRECTORY_NAME,
+  directoryCellValue,
+} from "@/features/people/directoryHierarchy";
 import {
   TEAM_FOUND_SET_COLUMNS,
   TEAM_FOUND_SET_FILENAME_BASE,
   TEAM_FOUND_SET_MODULE_KEY,
 } from "@/features/people/foundSet";
-import { getPersonStatusIndicator } from "@/features/people/statusIndicator";
+import type { Person } from "@/features/people/types";
+import {
+  getDisplayFirstName,
+  getDisplayName,
+  getHometown,
+  getInitials,
+  getPersonRoleDisplay,
+  isCoachDirectoryPerson,
+} from "@/features/people/utils";
+import { formatUtr, formatWtn } from "@/lib/formatting";
 
 import PlayerAvatar from "@/components/PlayerAvatar";
 import QuickActionButton from "@/components/QuickActionButton";
-import StatusDot from "@/components/StatusDot";
 import { typeClass, typeRole } from "@/components/typography";
-
-import PersonRoleBadge from "./PersonRoleBadge";
-import PersonStatusLabel from "./PersonStatusLabel";
 
 type PersonColumnKey =
   | "name"
-  | "denisonId"
-  | "phone"
-  | "email"
+  | "role"
   | "hometown"
   | "classYear"
   | "utr"
   | "wtn";
 
-/** Fields that support double-click inline editing in the Team List (BP-019A). */
-type EditableField = Exclude<PersonColumnKey, "name" | "denisonId">;
+/** Fields that support double-click inline editing in the Team List (BP-019A / BP-025F). */
+type EditableField = Exclude<PersonColumnKey, "name" | "role">;
 
 const EDITABLE_FIELDS: EditableField[] = [
-  "phone",
-  "email",
   "hometown",
   "classYear",
   "utr",
@@ -88,9 +89,7 @@ const TEAM_LIST_SORT_STORAGE_KEY = "denison-tennis-os:team-list-sort";
 
 const PERSON_COLUMN_KEYS: readonly PersonColumnKey[] = [
   "name",
-  "denisonId",
-  "phone",
-  "email",
+  "role",
   "hometown",
   "classYear",
   "utr",
@@ -143,8 +142,8 @@ function writeStoredTeamListSort(sort: SortState<PersonColumnKey>) {
 }
 
 /**
- * Column definitions for the Team List view — sorting via the Universal
- * DataTable engine, inline editing via `InlineEditCell` (BP-019A / BP-020).
+ * Column definitions for the Team List view — directory facts only (BP-025F).
+ * Administrative fields (D#, phone, email) live in Person Workspace.
  */
 const columns: ColumnDef<Person, PersonColumnKey>[] = [
   {
@@ -157,27 +156,11 @@ const columns: ColumnDef<Person, PersonColumnKey>[] = [
     defaultSort: "asc",
   },
   {
-    id: "denisonId",
-    title: "D#",
+    id: "role",
+    title: "Role",
     sortable: true,
     sortType: "text",
-    accessor: (person) => person.denisonId,
-    defaultSort: "asc",
-  },
-  {
-    id: "phone",
-    title: "Phone",
-    sortable: true,
-    sortType: "text",
-    accessor: (person) => person.cellPhone,
-    defaultSort: "asc",
-  },
-  {
-    id: "email",
-    title: "Email",
-    sortable: true,
-    sortType: "text",
-    accessor: (person) => person.personalEmail ?? person.denisonEmail,
+    accessor: (person) => getPersonRoleDisplay(person),
     defaultSort: "asc",
   },
   {
@@ -217,40 +200,35 @@ const columns: ColumnDef<Person, PersonColumnKey>[] = [
   },
 ];
 
-/** Parse a free-text "City, ST" hometown back into Person address fields. */
+/**
+ * Parse free-text "City, ST" into a patch.
+ * Omit keys that were not provided so `personPatchToRow` cannot NULL them
+ * accidentally (BP-026B). Empty input explicitly clears both fields.
+ */
 function parseHometown(raw: string): { city?: string; state?: string } {
   const trimmed = raw.trim();
   if (!trimmed) return { city: undefined, state: undefined };
   const comma = trimmed.lastIndexOf(",");
   if (comma === -1) {
-    return { city: trimmed, state: undefined };
+    return { city: trimmed };
   }
   const city = trimmed.slice(0, comma).trim();
   const state = trimmed.slice(comma + 1).trim();
-  return {
-    city: city || undefined,
-    state: state || undefined,
-  };
+  const patch: { city?: string; state?: string } = {};
+  if (city) patch.city = city;
+  else patch.city = undefined;
+  if (state) patch.state = state;
+  else patch.state = undefined;
+  return patch;
 }
 
 function valuesEqual(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
-/** Which email field the list column edits — personal if set, otherwise Denison. */
-function emailFieldKey(person: Person): "personalEmail" | "denisonEmail" {
-  if (person.personalEmail !== undefined) return "personalEmail";
-  if (person.denisonEmail !== undefined) return "denisonEmail";
-  return "personalEmail";
-}
-
-function emailForList(person: Person): string | undefined {
-  return person.personalEmail ?? person.denisonEmail;
-}
-
 function contactHrefs(person: Person) {
   const digits = phoneHrefDigits(person.cellPhone);
-  const email = emailForList(person);
+  const email = person.personalEmail ?? person.denisonEmail;
   return {
     tel: digits ? `tel:${digits}` : undefined,
     sms: digits ? `sms:${digits}` : undefined,
@@ -376,25 +354,11 @@ export default function PersonList({ people }: { people: Person[] }) {
 
   const buildPatch = useCallback(
     (
-      person: Person,
+      _person: Person,
       field: EditableField,
       raw: string,
     ): { patch: Partial<Person>; error?: string } => {
       switch (field) {
-        case "phone": {
-          const value = normalizePhone(raw);
-          const error = isValidPhone(value);
-          return error ? { patch: {}, error } : { patch: { cellPhone: value } };
-        }
-        case "email": {
-          const value = normalizeEmail(raw);
-          const error = isValidEmail(value);
-          if (error) return { patch: {}, error };
-          // Write back to whichever email the column is currently showing so an
-          // unchanged Enter on a Denison-only row doesn't invent a personalEmail.
-          const key = emailFieldKey(person);
-          return { patch: { [key]: value } };
-        }
         case "hometown": {
           return { patch: parseHometown(raw) };
         }
@@ -511,7 +475,7 @@ export default function PersonList({ people }: { people: Person[] }) {
     cancelPendingRowClick();
   }
 
-  const cellPad = "px-3.5 py-2 align-middle";
+  const cellPad = "px-3.5 py-2 align-middle overflow-hidden";
 
   return (
     <div className="flex flex-col gap-2">
@@ -549,278 +513,239 @@ export default function PersonList({ people }: { people: Person[] }) {
         }
       />
 
-      <div className="relative overflow-hidden rounded-card border border-border bg-surface">
-        <div className="hidden overflow-x-auto md:block">
-          <table
-            className="w-full min-w-[980px] table-fixed text-left text-sm"
-            role="grid"
-            aria-label="Team list"
-          >
-            <colgroup>
-              <col className="w-[18%]" />
-              <col className="w-[10%]" />
-              <col className="w-[12%]" />
-              <col className="w-[15%]" />
-              <col className="w-[13%]" />
-              <col className="w-[6%]" />
-              <col className="w-[6%]" />
-              <col className="w-[6%]" />
-              <col className="w-[14%]" />
-            </colgroup>
-            <thead>
-              <tr className={`border-b border-border bg-app-background/60 ${typeRole.tableHeader}`}>
-                {columns.map((column) => (
-                  <SortableColumnHeader
-                    key={column.id}
-                    label={column.title}
-                    align={column.align}
-                    sortDirection={sort?.key === column.id ? sort.direction : null}
-                    onSort={() => toggleSort(column.id)}
-                  />
-                ))}
-                <th scope="col" className={`px-4 py-3 text-right ${typeRole.tableHeader}`}>
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedItems.map((person) => {
-                const displayName = getDisplayName(person);
-                const hometown = getHometown(person);
-                const phoneDisplay = formatPhoneDisplay(person.cellPhone);
-                const emailDisplay = emailForList(person);
-                const hrefs = contactHrefs(person);
-                const statusIndicator = getPersonStatusIndicator(person);
-                const coachDirectory = isCoachDirectoryPerson(person);
-                const showDenisonId = !coachDirectory || Boolean(person.denisonId?.trim());
-                const showPlayerMetrics = !coachDirectory;
+      <DirectoryTable mobile={
+          <ul className="divide-y divide-border/50">
+            {sortedItems.map((person) => {
+              const displayName = getDisplayName(person);
+              const roleDisplay = getPersonRoleDisplay(person);
+              const hometown = getHometown(person);
+              const coachDirectory = isCoachDirectoryPerson(person);
+              const detailLine = coachDirectory
+                ? [hometown].filter(Boolean).join(" · ")
+                : [person.classYear ? `Class of ${person.classYear}` : null, hometown]
+                    .filter(Boolean)
+                    .join(" · ");
 
-                return (
-                  <tr
-                    key={person.id}
-                    onClick={() => handleRowClick(person.id)}
-                    className="h-12 cursor-pointer border-b border-border/40 transition-colors duration-150 last:border-b-0 hover:bg-app-background"
+              return (
+                <li key={person.id}>
+                  <Link
+                    href={`/team/${person.id}`}
+                    className="flex items-center gap-3 px-4 py-4 transition-colors duration-150 active:bg-app-background"
                   >
-                    <td className={cellPad}>
-                      <div className="flex min-w-0 items-center gap-2.5">
-                        <StatusDot
-                          tone={statusIndicator.tone}
-                          label={statusIndicator.label}
-                        />
-                        <PlayerAvatar
-                          photoUrl={person.photoUrl}
-                          initials={getInitials(person)}
-                          size={32}
-                        />
-                        <div className="min-w-0">
-                          <span className={`block ${typeRole.personName}`}>{displayName}</span>
-                          <PersonRoleBadge person={person} compact className="mt-0.5" />
-                        </div>
-                      </div>
-                    </td>
-                    <td className={`${cellPad} tabular-nums ${typeRole.metadata}`}>
-                      {showDenisonId ? formatDenisonIdDisplay(person.denisonId) : (
-                        <span className={typeRole.metadataEmpty}>—</span>
-                      )}
-                    </td>
-                    <td className={cellPad}>
-                      <InlineEditCell
-                        label="Phone"
-                        value={person.cellPhone ?? ""}
-                        displayValue={phoneDisplay}
-                        type="tel"
-                        emphasis="metadata"
-                        className="tabular-nums"
-                        editing={isEditing(person.id, "phone")}
-                        error={isEditing(person.id, "phone") ? fieldError : undefined}
-                        onRequestEdit={() => startEdit(person.id, "phone")}
-                        onCancel={cancelEdit}
-                        onCommit={(raw, reason) => handleCommit(person.id, "phone", raw, reason)}
-                      />
-                    </td>
-                    <td className={cellPad}>
-                      <InlineEditCell
-                        label="Email"
-                        value={person[emailFieldKey(person)] ?? ""}
-                        displayValue={emailDisplay}
-                        type="email"
-                        emphasis="metadata"
-                        className="truncate"
-                        editing={isEditing(person.id, "email")}
-                        error={isEditing(person.id, "email") ? fieldError : undefined}
-                        onRequestEdit={() => startEdit(person.id, "email")}
-                        onCancel={cancelEdit}
-                        onCommit={(raw, reason) => handleCommit(person.id, "email", raw, reason)}
-                      />
-                    </td>
-                    <td className={cellPad}>
-                      <InlineEditCell
-                        label="Hometown"
-                        value={hometown ?? ""}
-                        displayValue={hometown}
-                        emphasis="metadata"
-                        className="truncate"
-                        editing={isEditing(person.id, "hometown")}
-                        error={isEditing(person.id, "hometown") ? fieldError : undefined}
-                        onRequestEdit={() => startEdit(person.id, "hometown")}
-                        onCancel={cancelEdit}
-                        onCommit={(raw, reason) => handleCommit(person.id, "hometown", raw, reason)}
-                      />
-                    </td>
-                    <td className={`${cellPad} text-right`}>
-                      {showPlayerMetrics ? (
-                        <InlineEditCell
-                          label="Class"
-                          value={person.classYear !== undefined ? String(person.classYear) : ""}
-                          displayValue={
-                            person.classYear !== undefined ? String(person.classYear) : undefined
-                          }
-                          type="number"
-                          align="right"
-                          emphasis="metadata"
-                          className="tabular-nums"
-                          editing={isEditing(person.id, "classYear")}
-                          error={isEditing(person.id, "classYear") ? fieldError : undefined}
-                          onRequestEdit={() => startEdit(person.id, "classYear")}
-                          onCancel={cancelEdit}
-                          onCommit={(raw, reason) =>
-                            handleCommit(person.id, "classYear", raw, reason)
-                          }
-                        />
+                    <PlayerAvatar
+                      photoUrl={person.photoUrl}
+                      initials={getInitials(person)}
+                      size={40}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className={TEAM_DIRECTORY_NAME}>{displayName}</p>
+                      <p className={`mt-0.5 ${TEAM_DIRECTORY_META}`}>
+                        {directoryCellValue(roleDisplay)}
+                      </p>
+                      {detailLine ? (
+                        <p className={`mt-1 ${TEAM_DIRECTORY_META}`}>{detailLine}</p>
                       ) : (
-                        <span className={typeRole.metadataEmpty}>—</span>
+                        <p className={`mt-1 ${TEAM_DIRECTORY_META}`}>{TEAM_DIRECTORY_EMPTY}</p>
                       )}
-                    </td>
-                    <td className={`${cellPad} text-right`}>
-                      {showPlayerMetrics ? (
-                        <InlineEditCell
-                          label="UTR"
-                          value={person.utr !== undefined ? String(person.utr) : ""}
-                          displayValue={person.utr !== undefined ? person.utr.toFixed(1) : undefined}
-                          type="number"
-                          step={0.1}
-                          align="right"
-                          emphasis="metadata"
-                          className="tabular-nums"
-                          editing={isEditing(person.id, "utr")}
-                          error={isEditing(person.id, "utr") ? fieldError : undefined}
-                          onRequestEdit={() => startEdit(person.id, "utr")}
-                          onCancel={cancelEdit}
-                          onCommit={(raw, reason) => handleCommit(person.id, "utr", raw, reason)}
-                        />
-                      ) : (
-                        <span className={typeRole.metadataEmpty}>—</span>
-                      )}
-                    </td>
-                    <td className={`${cellPad} text-right`}>
-                      {showPlayerMetrics ? (
-                        <InlineEditCell
-                          label="WTN"
-                          value={person.wtn !== undefined ? String(person.wtn) : ""}
-                          displayValue={person.wtn !== undefined ? person.wtn.toFixed(1) : undefined}
-                          type="number"
-                          step={0.1}
-                          align="right"
-                          emphasis="metadata"
-                          className="tabular-nums"
-                          editing={isEditing(person.id, "wtn")}
-                          error={isEditing(person.id, "wtn") ? fieldError : undefined}
-                          onRequestEdit={() => startEdit(person.id, "wtn")}
-                          onCancel={cancelEdit}
-                          onCommit={(raw, reason) => handleCommit(person.id, "wtn", raw, reason)}
-                        />
-                      ) : (
-                        <span className={typeRole.metadataEmpty}>—</span>
-                      )}
-                    </td>
-                    <td
-                      className={`${cellPad} text-right`}
-                      onClick={stopRowNavigation}
-                      onMouseDown={stopRowNavigation}
-                    >
-                      <div className="inline-flex w-full items-center justify-end gap-1">
-                        {hrefs.tel ? (
-                          <QuickActionButton
-                            href={hrefs.tel}
-                            icon={Phone}
-                            label="Call"
-                            tone="success"
-                          />
-                        ) : null}
-                        {hrefs.sms ? (
-                          <QuickActionButton
-                            href={hrefs.sms}
-                            icon={MessageSquare}
-                            label="Text"
-                            tone="denison"
-                          />
-                        ) : null}
-                        {hrefs.mailto ? (
-                          <QuickActionButton
-                            href={hrefs.mailto}
-                            icon={Mail}
-                            label="Email"
-                            tone="info"
-                          />
-                        ) : null}
-                        {!hrefs.tel && !hrefs.sms && !hrefs.mailto ? (
-                          <span className={`${typeRole.metadataSm} ${typeRole.metadataEmpty}`}>—</span>
-                        ) : null}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile: stacked records, navigation only (inline edit / quick actions are desktop) */}
-        <ul className="divide-y divide-border/50 md:hidden">
-          {sortedItems.map((person) => {
-            const displayName = getDisplayName(person);
-            const hometown = getHometown(person);
-            const coachDirectory = isCoachDirectoryPerson(person);
-            const statusIndicator = getPersonStatusIndicator(person);
-            const detailLine = coachDirectory
-              ? [hometown].filter(Boolean).join(" · ")
-              : [person.classYear ? `Class of ${person.classYear}` : null, hometown]
-                  .filter(Boolean)
-                  .join(" · ");
-
-            return (
-              <li key={person.id}>
-                <Link
-                  href={`/team/${person.id}`}
-                  className="flex items-center gap-3 px-4 py-4 transition-colors duration-150 active:bg-app-background"
-                >
-                  <StatusDot tone={statusIndicator.tone} label={statusIndicator.label} />
-                  <PlayerAvatar
-                    photoUrl={person.photoUrl}
-                    initials={getInitials(person)}
-                    size={40}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className={typeRole.personName}>{displayName}</p>
-                        <PersonRoleBadge person={person} compact className="mt-0.5" />
-                      </div>
-                      <PersonStatusLabel
-                        tone={person.status === "alumni" ? "alumni" : "active"}
-                        label={getStatusLabel(person.status)}
-                      />
                     </div>
-                    {detailLine ? (
-                      <p className={typeClass("metadataSm", "mt-1 truncate")}>{detailLine}</p>
-                    ) : null}
-                  </div>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        }
+      >
+        <table
+          className="w-full min-w-[56rem] table-fixed text-left text-sm"
+          role="grid"
+          aria-label="Team list"
+        >
+          <colgroup>
+            {/* Name flexes; middle cols content-sized; Actions fixed (BP-028A). */}
+            <col />
+            <col className="w-[8rem]" />
+            <col className="w-[12rem]" />
+            <col className="w-[5rem]" />
+            <col className="w-[5rem]" />
+            <col className="w-[5rem]" />
+            <col className={STICKY_ACTIONS_COLUMN_WIDTH_CLASS} />
+          </colgroup>
+          <thead>
+            <tr className={`border-b border-border bg-app-background/60 ${typeRole.tableHeader}`}>
+              {columns.map((column) => (
+                <SortableColumnHeader
+                  key={column.id}
+                  label={column.title}
+                  align={column.align}
+                  sortDirection={sort?.key === column.id ? sort.direction : null}
+                  onSort={() => toggleSort(column.id)}
+                  className={
+                    column.id === "name"
+                      ? `${stickyLeadingThClass} min-w-[14rem]`
+                      : "whitespace-nowrap"
+                  }
+                />
+              ))}
+              <th
+                scope="col"
+                className={`px-3.5 py-3 text-right ${typeRole.tableHeader} ${stickyTrailingThClass}`}
+              >
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedItems.map((person) => {
+              const displayName = getDisplayName(person);
+              const roleDisplay = directoryCellValue(getPersonRoleDisplay(person));
+              const hometown = getHometown(person);
+              const hrefs = contactHrefs(person);
+              const coachDirectory = isCoachDirectoryPerson(person);
+              const showPlayerMetrics = !coachDirectory;
+              const classDisplay = showPlayerMetrics
+                ? directoryCellValue(person.classYear)
+                : TEAM_DIRECTORY_EMPTY;
+              const utrDisplay = showPlayerMetrics ? formatUtr(person.utr) : TEAM_DIRECTORY_EMPTY;
+              const wtnDisplay = showPlayerMetrics ? formatWtn(person.wtn) : TEAM_DIRECTORY_EMPTY;
+
+              return (
+                <tr
+                  key={person.id}
+                  onClick={() => handleRowClick(person.id)}
+                  className={`${stickyColumnRowClass} h-12 cursor-pointer border-b border-border/40 transition-colors duration-150 last:border-b-0 hover:bg-app-background`}
+                >
+                  <td className={`${cellPad} ${stickyLeadingTdClass} min-w-[14rem]`}>
+                    <div className="flex h-8 min-w-0 items-center gap-2.5">
+                      <PlayerAvatar
+                        photoUrl={person.photoUrl}
+                        initials={getInitials(person)}
+                        size={32}
+                      />
+                      <span className={`min-w-0 ${TEAM_DIRECTORY_NAME}`}>{displayName}</span>
+                    </div>
+                  </td>
+                  <td className={`${cellPad} whitespace-nowrap`}>
+                    <span className={TEAM_DIRECTORY_META}>{roleDisplay}</span>
+                  </td>
+                  <td className={`${cellPad} whitespace-nowrap`}>
+                    <InlineEditCell
+                      label="Hometown"
+                      value={hometown ?? ""}
+                      displayValue={directoryCellValue(hometown)}
+                      emptyDisplay={TEAM_DIRECTORY_EMPTY}
+                      emphasis="directory"
+                      editing={isEditing(person.id, "hometown")}
+                      error={isEditing(person.id, "hometown") ? fieldError : undefined}
+                      onRequestEdit={() => startEdit(person.id, "hometown")}
+                      onCancel={cancelEdit}
+                      onCommit={(raw, reason) => handleCommit(person.id, "hometown", raw, reason)}
+                    />
+                  </td>
+                  <td className={`${cellPad} whitespace-nowrap text-right`}>
+                    {showPlayerMetrics ? (
+                      <InlineEditCell
+                        label="Class"
+                        value={person.classYear !== undefined ? String(person.classYear) : ""}
+                        displayValue={classDisplay}
+                        emptyDisplay={TEAM_DIRECTORY_EMPTY}
+                        type="number"
+                        align="right"
+                        emphasis="directory"
+                        editing={isEditing(person.id, "classYear")}
+                        error={isEditing(person.id, "classYear") ? fieldError : undefined}
+                        onRequestEdit={() => startEdit(person.id, "classYear")}
+                        onCancel={cancelEdit}
+                        onCommit={(raw, reason) =>
+                          handleCommit(person.id, "classYear", raw, reason)
+                        }
+                      />
+                    ) : (
+                      <span className={TEAM_DIRECTORY_META}>{TEAM_DIRECTORY_EMPTY}</span>
+                    )}
+                  </td>
+                  <td className={`${cellPad} whitespace-nowrap text-right`}>
+                    {showPlayerMetrics ? (
+                      <InlineEditCell
+                        label="UTR"
+                        value={person.utr !== undefined ? String(person.utr) : ""}
+                        displayValue={utrDisplay}
+                        emptyDisplay={TEAM_DIRECTORY_EMPTY}
+                        type="number"
+                        step={0.01}
+                        align="right"
+                        emphasis="directory"
+                        editing={isEditing(person.id, "utr")}
+                        error={isEditing(person.id, "utr") ? fieldError : undefined}
+                        onRequestEdit={() => startEdit(person.id, "utr")}
+                        onCancel={cancelEdit}
+                        onCommit={(raw, reason) => handleCommit(person.id, "utr", raw, reason)}
+                      />
+                    ) : (
+                      <span className={TEAM_DIRECTORY_META}>{TEAM_DIRECTORY_EMPTY}</span>
+                    )}
+                  </td>
+                  <td className={`${cellPad} whitespace-nowrap text-right`}>
+                    {showPlayerMetrics ? (
+                      <InlineEditCell
+                        label="WTN"
+                        value={person.wtn !== undefined ? String(person.wtn) : ""}
+                        displayValue={wtnDisplay}
+                        emptyDisplay={TEAM_DIRECTORY_EMPTY}
+                        type="number"
+                        step={0.01}
+                        align="right"
+                        emphasis="directory"
+                        editing={isEditing(person.id, "wtn")}
+                        error={isEditing(person.id, "wtn") ? fieldError : undefined}
+                        onRequestEdit={() => startEdit(person.id, "wtn")}
+                        onCancel={cancelEdit}
+                        onCommit={(raw, reason) => handleCommit(person.id, "wtn", raw, reason)}
+                      />
+                    ) : (
+                      <span className={TEAM_DIRECTORY_META}>{TEAM_DIRECTORY_EMPTY}</span>
+                    )}
+                  </td>
+                  <td
+                    className={`${cellPad} text-right ${stickyTrailingTdClass}`}
+                    onClick={stopRowNavigation}
+                    onMouseDown={stopRowNavigation}
+                  >
+                    <div className="inline-flex h-10 w-full shrink-0 items-center justify-end gap-1">
+                      {hrefs.tel ? (
+                        <QuickActionButton
+                          href={hrefs.tel}
+                          icon={Phone}
+                          label="Call"
+                          tone="success"
+                        />
+                      ) : null}
+                      {hrefs.sms ? (
+                        <QuickActionButton
+                          href={hrefs.sms}
+                          icon={MessageSquare}
+                          label="Text"
+                          tone="denison"
+                        />
+                      ) : null}
+                      {hrefs.mailto ? (
+                        <QuickActionButton
+                          href={hrefs.mailto}
+                          icon={Mail}
+                          label="Email"
+                          tone="info"
+                        />
+                      ) : null}
+                      {!hrefs.tel && !hrefs.sms && !hrefs.mailto ? (
+                        <span className={TEAM_DIRECTORY_META}>{TEAM_DIRECTORY_EMPTY}</span>
+                      ) : null}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </DirectoryTable>
     </div>
   );
 }

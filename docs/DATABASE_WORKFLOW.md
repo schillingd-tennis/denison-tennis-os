@@ -24,7 +24,8 @@ Local Development → Test → Commit → Push → Hosted Development Database
 |---|---|
 | `npm run db:start` / `db:stop` / `db:status` / `db:env` | **Safe** — no People data rewrite |
 | `npm run db:seed-auth` | **Safe** for People — only local auth user |
-| `npm run db:seed` | **Partial** — updates provider-synced columns; preserves UTR/WTN/notes |
+| `npm run db:seed` | **Safe** — fill missing values only; never overwrites existing data |
+| `npm run db:seed:force-refresh` | **Destructive for provider columns** — explicit overwrite from import snapshot |
 | `npm run db:generate-seed` / `import:players` | **Safe for DB** — files only until you seed/reset |
 | `npm run db:reset` | **DESTRUCTIVE** — destroys all local data |
 

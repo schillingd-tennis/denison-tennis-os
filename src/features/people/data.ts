@@ -16,10 +16,18 @@ export const people: Person[] = [
     id: "player-peter-berns",
     createdAt: "2026-07-22T16:29:00.000Z",
     updatedAt: "2026-07-22T16:29:00.000Z",
-    status: "current",
-    roles: [
-      "player"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000001",
+    statusId: "b1000000-0000-4000-8000-000000000001",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000001",
+      key: "player",
+      label: "Player",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000001",
+      key: "current",
+      label: "Current",
+    },
     firstName: "Peter",
     lastName: "Berns",
     classYear: 2030,
@@ -30,10 +38,18 @@ export const people: Person[] = [
     id: "player-aidan-borosko",
     createdAt: "2026-07-30T14:29:00.000Z",
     updatedAt: "2026-07-30T14:29:00.000Z",
-    status: "current",
-    roles: [
-      "player"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000001",
+    statusId: "b1000000-0000-4000-8000-000000000001",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000001",
+      key: "player",
+      label: "Player",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000001",
+      key: "current",
+      label: "Current",
+    },
     firstName: "Aidan",
     lastName: "Borosko",
     dateOfBirth: "2006-03-07",
@@ -51,10 +67,18 @@ export const people: Person[] = [
     id: "player-jp-boyle",
     createdAt: "2023-01-01T08:47:00.000Z",
     updatedAt: "2023-01-01T08:47:00.000Z",
-    status: "current",
-    roles: [
-      "player"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000001",
+    statusId: "b1000000-0000-4000-8000-000000000001",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000001",
+      key: "player",
+      label: "Player",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000001",
+      key: "current",
+      label: "Current",
+    },
     firstName: "JP",
     lastName: "Boyle",
     dateOfBirth: "2003-11-28",
@@ -69,10 +93,18 @@ export const people: Person[] = [
     id: "player-jack-bulger",
     createdAt: "2024-01-25T07:11:00.000Z",
     updatedAt: "2024-01-25T07:11:00.000Z",
-    status: "alumni",
-    roles: [
-      "alumni"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000004",
+    statusId: "b1000000-0000-4000-8000-000000000002",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000004",
+      key: "alumni",
+      label: "Alumni",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000002",
+      key: "former",
+      label: "Former",
+    },
     firstName: "Jack",
     lastName: "Bulger",
     dateOfBirth: "2001-07-23",
@@ -87,10 +119,18 @@ export const people: Person[] = [
     id: "player-andreas-chapides",
     createdAt: "2026-05-23T06:26:00.000Z",
     updatedAt: "2026-05-23T06:26:00.000Z",
-    status: "alumni",
-    roles: [
-      "alumni"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000004",
+    statusId: "b1000000-0000-4000-8000-000000000002",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000004",
+      key: "alumni",
+      label: "Alumni",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000002",
+      key: "former",
+      label: "Former",
+    },
     firstName: "Andreas",
     lastName: "Chapides",
     dateOfBirth: "2003-03-21",
@@ -108,10 +148,18 @@ export const people: Person[] = [
     id: "player-luke-colson",
     createdAt: "2026-07-22T16:28:00.000Z",
     updatedAt: "2026-07-22T16:28:00.000Z",
-    status: "current",
-    roles: [
-      "player"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000001",
+    statusId: "b1000000-0000-4000-8000-000000000001",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000001",
+      key: "player",
+      label: "Player",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000001",
+      key: "current",
+      label: "Current",
+    },
     firstName: "Luke",
     lastName: "Colson",
     classYear: 2030,
@@ -122,10 +170,18 @@ export const people: Person[] = [
     id: "player-mason-conlin",
     createdAt: "2026-07-22T10:00:00.000Z",
     updatedAt: "2026-07-22T10:00:00.000Z",
-    status: "current",
-    roles: [
-      "player"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000001",
+    statusId: "b1000000-0000-4000-8000-000000000001",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000001",
+      key: "player",
+      label: "Player",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000001",
+      key: "current",
+      label: "Current",
+    },
     firstName: "Mason",
     middleName: "Jonathon Mason (Mason is middle name)",
     lastName: "Conlin",
@@ -144,10 +200,18 @@ export const people: Person[] = [
     id: "player-blake-eason",
     createdAt: "2023-02-06T10:14:00.000Z",
     updatedAt: "2023-02-06T10:14:00.000Z",
-    status: "current",
-    roles: [
-      "player"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000001",
+    statusId: "b1000000-0000-4000-8000-000000000001",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000001",
+      key: "player",
+      label: "Player",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000001",
+      key: "current",
+      label: "Current",
+    },
     firstName: "Blake",
     lastName: "Eason",
     dateOfBirth: "2002-10-01",
@@ -163,10 +227,18 @@ export const people: Person[] = [
     id: "player-camden-french",
     createdAt: "2024-01-25T07:12:00.000Z",
     updatedAt: "2024-01-25T07:12:00.000Z",
-    status: "current",
-    roles: [
-      "player"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000001",
+    statusId: "b1000000-0000-4000-8000-000000000001",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000001",
+      key: "player",
+      label: "Player",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000001",
+      key: "current",
+      label: "Current",
+    },
     firstName: "Camden",
     lastName: "French",
     dateOfBirth: "2003-09-26",
@@ -181,10 +253,18 @@ export const people: Person[] = [
     id: "player-arya-ganapathy-kallambella",
     createdAt: "2026-07-23T09:39:00.000Z",
     updatedAt: "2026-07-23T09:39:00.000Z",
-    status: "current",
-    roles: [
-      "player"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000001",
+    statusId: "b1000000-0000-4000-8000-000000000001",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000001",
+      key: "player",
+      label: "Player",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000001",
+      key: "current",
+      label: "Current",
+    },
     firstName: "Arya",
     lastName: "Ganapathy Kallambella",
     dateOfBirth: "2007-01-21",
@@ -200,10 +280,18 @@ export const people: Person[] = [
     id: "player-daniel-garcia",
     createdAt: "2024-01-25T07:11:00.000Z",
     updatedAt: "2024-01-25T07:11:00.000Z",
-    status: "alumni",
-    roles: [
-      "alumni"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000004",
+    statusId: "b1000000-0000-4000-8000-000000000002",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000004",
+      key: "alumni",
+      label: "Alumni",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000002",
+      key: "former",
+      label: "Former",
+    },
     firstName: "Daniel",
     lastName: "Garcia",
     dateOfBirth: "2001-07-16",
@@ -219,10 +307,18 @@ export const people: Person[] = [
     id: "player-milan-gonela",
     createdAt: "2026-05-23T06:23:00.000Z",
     updatedAt: "2026-05-23T06:23:00.000Z",
-    status: "alumni",
-    roles: [
-      "alumni"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000004",
+    statusId: "b1000000-0000-4000-8000-000000000002",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000004",
+      key: "alumni",
+      label: "Alumni",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000002",
+      key: "former",
+      label: "Former",
+    },
     firstName: "Milan",
     lastName: "Gonela",
     dateOfBirth: "2001-10-26",
@@ -237,10 +333,18 @@ export const people: Person[] = [
     id: "player-colin-gramley",
     createdAt: "2025-07-16T14:24:00.000Z",
     updatedAt: "2025-07-16T14:24:00.000Z",
-    status: "alumni",
-    roles: [
-      "alumni"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000004",
+    statusId: "b1000000-0000-4000-8000-000000000002",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000004",
+      key: "alumni",
+      label: "Alumni",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000002",
+      key: "former",
+      label: "Former",
+    },
     firstName: "Colin",
     middleName: "Connor",
     lastName: "Gramley",
@@ -256,10 +360,18 @@ export const people: Person[] = [
     id: "player-ethan-green",
     createdAt: "2026-05-23T06:26:00.000Z",
     updatedAt: "2026-05-23T06:26:00.000Z",
-    status: "alumni",
-    roles: [
-      "alumni"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000004",
+    statusId: "b1000000-0000-4000-8000-000000000002",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000004",
+      key: "alumni",
+      label: "Alumni",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000002",
+      key: "former",
+      label: "Former",
+    },
     firstName: "Ethan",
     middleName: "Michael",
     lastName: "Green",
@@ -278,10 +390,18 @@ export const people: Person[] = [
     id: "player-marc-lennart-harms",
     createdAt: "2024-01-25T07:11:00.000Z",
     updatedAt: "2024-01-25T07:11:00.000Z",
-    status: "alumni",
-    roles: [
-      "alumni"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000004",
+    statusId: "b1000000-0000-4000-8000-000000000002",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000004",
+      key: "alumni",
+      label: "Alumni",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000002",
+      key: "former",
+      label: "Former",
+    },
     firstName: "Marc-Lennart",
     lastName: "Harms",
     dateOfBirth: "2000-03-21",
@@ -297,10 +417,18 @@ export const people: Person[] = [
     id: "player-wesley-huang",
     createdAt: "2026-07-22T17:59:00.000Z",
     updatedAt: "2026-07-22T17:59:00.000Z",
-    status: "current",
-    roles: [
-      "player"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000001",
+    statusId: "b1000000-0000-4000-8000-000000000001",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000001",
+      key: "player",
+      label: "Player",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000001",
+      key: "current",
+      label: "Current",
+    },
     firstName: "Wesley",
     lastName: "Huang",
     dateOfBirth: "2006-12-18",
@@ -318,10 +446,18 @@ export const people: Person[] = [
     id: "player-balraj-idnani",
     createdAt: "2026-07-22T07:19:00.000Z",
     updatedAt: "2026-07-22T07:19:00.000Z",
-    status: "current",
-    roles: [
-      "player"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000001",
+    statusId: "b1000000-0000-4000-8000-000000000001",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000001",
+      key: "player",
+      label: "Player",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000001",
+      key: "current",
+      label: "Current",
+    },
     firstName: "Balraj",
     lastName: "Idnani",
     dateOfBirth: "2006-07-20",
@@ -339,10 +475,18 @@ export const people: Person[] = [
     id: "player-ishwar-idnani",
     createdAt: "2026-07-22T08:57:00.000Z",
     updatedAt: "2026-07-22T08:57:00.000Z",
-    status: "current",
-    roles: [
-      "player"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000001",
+    statusId: "b1000000-0000-4000-8000-000000000001",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000001",
+      key: "player",
+      label: "Player",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000001",
+      key: "current",
+      label: "Current",
+    },
     firstName: "Ishwar",
     lastName: "Idnani",
     dateOfBirth: "2006-07-20",
@@ -360,10 +504,18 @@ export const people: Person[] = [
     id: "player-nadeem-jones",
     createdAt: "2024-07-14T09:20:00.000Z",
     updatedAt: "2024-07-14T09:20:00.000Z",
-    status: "alumni",
-    roles: [
-      "alumni"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000004",
+    statusId: "b1000000-0000-4000-8000-000000000002",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000004",
+      key: "alumni",
+      label: "Alumni",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000002",
+      key: "former",
+      label: "Former",
+    },
     firstName: "Nadeem",
     lastName: "Jones",
     dateOfBirth: "2002-08-08",
@@ -379,10 +531,18 @@ export const people: Person[] = [
     id: "player-aayush-kishore",
     createdAt: "2025-02-05T19:29:00.000Z",
     updatedAt: "2025-02-05T19:29:00.000Z",
-    status: "current",
-    roles: [
-      "player"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000001",
+    statusId: "b1000000-0000-4000-8000-000000000001",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000001",
+      key: "player",
+      label: "Player",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000001",
+      key: "current",
+      label: "Current",
+    },
     firstName: "Aayush",
     lastName: "Kishore",
     dateOfBirth: "2004-11-12",
@@ -397,10 +557,18 @@ export const people: Person[] = [
     id: "player-minato-koido",
     createdAt: "2026-07-22T16:38:00.000Z",
     updatedAt: "2026-07-22T16:38:00.000Z",
-    status: "current",
-    roles: [
-      "player"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000001",
+    statusId: "b1000000-0000-4000-8000-000000000001",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000001",
+      key: "player",
+      label: "Player",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000001",
+      key: "current",
+      label: "Current",
+    },
     firstName: "Minato",
     lastName: "Koido",
     classYear: 2030,
@@ -411,10 +579,18 @@ export const people: Person[] = [
     id: "player-chris-landauer",
     createdAt: "2025-09-03T12:47:00.000Z",
     updatedAt: "2025-09-03T12:47:00.000Z",
-    status: "current",
-    roles: [
-      "coach"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000002",
+    statusId: "b1000000-0000-4000-8000-000000000001",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000002",
+      key: "coach",
+      label: "Coach",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000001",
+      key: "current",
+      label: "Current",
+    },
     title: "Coach",
     firstName: "Chris",
     middleName: "Neal",
@@ -432,11 +608,18 @@ export const people: Person[] = [
     id: "person-andy-mackler",
     createdAt: "2026-01-08T06:43:00.000Z",
     updatedAt: "2026-07-22T20:10:00.000Z",
-    status: "alumni",
-    roles: [
-      "alumni",
-      "coach"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000002",
+    statusId: "b1000000-0000-4000-8000-000000000002",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000002",
+      key: "coach",
+      label: "Coach",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000002",
+      key: "former",
+      label: "Former",
+    },
     title: "Assistant Coach",
     firstName: "Andy",
     lastName: "Mackler",
@@ -456,10 +639,18 @@ export const people: Person[] = [
     id: "player-donald-macpherson",
     createdAt: "2025-08-10T07:50:00.000Z",
     updatedAt: "2025-08-10T07:50:00.000Z",
-    status: "current",
-    roles: [
-      "coach"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000002",
+    statusId: "b1000000-0000-4000-8000-000000000001",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000002",
+      key: "coach",
+      label: "Coach",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000001",
+      key: "current",
+      label: "Current",
+    },
     title: "Coach",
     firstName: "Donald",
     middleName: "Grant",
@@ -477,10 +668,18 @@ export const people: Person[] = [
     id: "player-jackson-mactaggart",
     createdAt: "2026-07-22T18:05:00.000Z",
     updatedAt: "2026-07-22T18:05:00.000Z",
-    status: "current",
-    roles: [
-      "player"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000001",
+    statusId: "b1000000-0000-4000-8000-000000000001",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000001",
+      key: "player",
+      label: "Player",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000001",
+      key: "current",
+      label: "Current",
+    },
     firstName: "Jackson",
     lastName: "MacTaggart",
     classYear: 2030,
@@ -491,10 +690,18 @@ export const people: Person[] = [
     id: "player-dimitrio-martinez",
     createdAt: "2024-01-25T07:11:00.000Z",
     updatedAt: "2024-01-25T07:11:00.000Z",
-    status: "alumni",
-    roles: [
-      "alumni"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000004",
+    statusId: "b1000000-0000-4000-8000-000000000002",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000004",
+      key: "alumni",
+      label: "Alumni",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000002",
+      key: "former",
+      label: "Former",
+    },
     firstName: "Dimitrio",
     lastName: "Martinez",
     dateOfBirth: "1982-10-04",
@@ -507,10 +714,18 @@ export const people: Person[] = [
     id: "player-nick-meyers",
     createdAt: "2026-07-22T16:54:00.000Z",
     updatedAt: "2026-07-22T16:54:00.000Z",
-    status: "current",
-    roles: [
-      "player"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000001",
+    statusId: "b1000000-0000-4000-8000-000000000001",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000001",
+      key: "player",
+      label: "Player",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000001",
+      key: "current",
+      label: "Current",
+    },
     firstName: "Nick",
     middleName: "Petar",
     lastName: "Meyers",
@@ -530,10 +745,18 @@ export const people: Person[] = [
     id: "player-nickawn-namdar",
     createdAt: "2026-05-23T06:26:00.000Z",
     updatedAt: "2026-05-23T06:26:00.000Z",
-    status: "alumni",
-    roles: [
-      "alumni"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000004",
+    statusId: "b1000000-0000-4000-8000-000000000002",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000004",
+      key: "alumni",
+      label: "Alumni",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000002",
+      key: "former",
+      label: "Former",
+    },
     firstName: "Nickawn",
     lastName: "Namdar",
     dateOfBirth: "2004-01-08",
@@ -548,10 +771,18 @@ export const people: Person[] = [
     id: "player-chika-nwaozuzu",
     createdAt: "2026-07-30T14:29:00.000Z",
     updatedAt: "2026-07-30T14:29:00.000Z",
-    status: "current",
-    roles: [
-      "player"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000001",
+    statusId: "b1000000-0000-4000-8000-000000000001",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000001",
+      key: "player",
+      label: "Player",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000001",
+      key: "current",
+      label: "Current",
+    },
     firstName: "Chika",
     middleName: "Janez Caleb",
     lastName: "Nwaozuzu",
@@ -571,10 +802,18 @@ export const people: Person[] = [
     id: "player-tomer-ozmo",
     createdAt: "2026-05-23T06:26:00.000Z",
     updatedAt: "2026-05-23T06:26:00.000Z",
-    status: "alumni",
-    roles: [
-      "alumni"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000004",
+    statusId: "b1000000-0000-4000-8000-000000000002",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000004",
+      key: "alumni",
+      label: "Alumni",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000002",
+      key: "former",
+      label: "Former",
+    },
     firstName: "Tomer",
     lastName: "Ozmo",
     dateOfBirth: "2001-06-28",
@@ -588,10 +827,18 @@ export const people: Person[] = [
     id: "player-kyle-patrick",
     createdAt: "2026-07-22T08:54:00.000Z",
     updatedAt: "2026-07-22T08:54:00.000Z",
-    status: "current",
-    roles: [
-      "player"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000001",
+    statusId: "b1000000-0000-4000-8000-000000000001",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000001",
+      key: "player",
+      label: "Player",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000001",
+      key: "current",
+      label: "Current",
+    },
     firstName: "Kyle",
     middleName: "Liam",
     lastName: "Patrick",
@@ -611,10 +858,18 @@ export const people: Person[] = [
     id: "player-ryan-patrick",
     createdAt: "2025-07-16T14:24:00.000Z",
     updatedAt: "2025-07-16T14:24:00.000Z",
-    status: "alumni",
-    roles: [
-      "alumni"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000004",
+    statusId: "b1000000-0000-4000-8000-000000000002",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000004",
+      key: "alumni",
+      label: "Alumni",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000002",
+      key: "former",
+      label: "Former",
+    },
     firstName: "Ryan",
     middleName: "Edward",
     lastName: "Patrick",
@@ -630,10 +885,18 @@ export const people: Person[] = [
     id: "player-jake-patterson",
     createdAt: "2026-05-23T06:26:00.000Z",
     updatedAt: "2026-05-23T06:26:00.000Z",
-    status: "alumni",
-    roles: [
-      "alumni"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000004",
+    statusId: "b1000000-0000-4000-8000-000000000002",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000004",
+      key: "alumni",
+      label: "Alumni",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000002",
+      key: "former",
+      label: "Former",
+    },
     firstName: "Jake",
     middleName: "Robert",
     lastName: "Patterson",
@@ -652,10 +915,18 @@ export const people: Person[] = [
     id: "player-anthony-payiavlas",
     createdAt: "2026-05-23T06:26:00.000Z",
     updatedAt: "2026-05-23T06:26:00.000Z",
-    status: "alumni",
-    roles: [
-      "alumni"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000004",
+    statusId: "b1000000-0000-4000-8000-000000000002",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000004",
+      key: "alumni",
+      label: "Alumni",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000002",
+      key: "former",
+      label: "Former",
+    },
     firstName: "Anthony",
     middleName: "John",
     lastName: "Payiavlas",
@@ -674,10 +945,18 @@ export const people: Person[] = [
     id: "player-zach-portnoy",
     createdAt: "2024-07-14T09:20:00.000Z",
     updatedAt: "2024-07-14T09:20:00.000Z",
-    status: "alumni",
-    roles: [
-      "alumni"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000004",
+    statusId: "b1000000-0000-4000-8000-000000000002",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000004",
+      key: "alumni",
+      label: "Alumni",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000002",
+      key: "former",
+      label: "Former",
+    },
     firstName: "Zach",
     lastName: "Portnoy",
     dateOfBirth: "2001-01-09",
@@ -692,10 +971,18 @@ export const people: Person[] = [
     id: "person-david-schilling",
     createdAt: "2026-07-22T07:11:00.000Z",
     updatedAt: "2026-07-22T07:11:00.000Z",
-    status: "current",
-    roles: [
-      "coach"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000002",
+    statusId: "b1000000-0000-4000-8000-000000000001",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000002",
+      key: "coach",
+      label: "Coach",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000001",
+      key: "current",
+      label: "Current",
+    },
     title: "Head Coach",
     firstName: "David",
     lastName: "Schilling",
@@ -712,10 +999,18 @@ export const people: Person[] = [
     id: "player-kael-shah",
     createdAt: "2026-05-23T06:26:00.000Z",
     updatedAt: "2026-05-23T06:26:00.000Z",
-    status: "alumni",
-    roles: [
-      "alumni"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000004",
+    statusId: "b1000000-0000-4000-8000-000000000002",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000004",
+      key: "alumni",
+      label: "Alumni",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000002",
+      key: "former",
+      label: "Former",
+    },
     firstName: "Kael",
     middleName: "Shalin",
     lastName: "Shah",
@@ -732,10 +1027,18 @@ export const people: Person[] = [
     id: "player-tom-suedmeyer",
     createdAt: "2026-07-22T14:36:00.000Z",
     updatedAt: "2026-07-22T14:36:00.000Z",
-    status: "current",
-    roles: [
-      "player"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000001",
+    statusId: "b1000000-0000-4000-8000-000000000001",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000001",
+      key: "player",
+      label: "Player",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000001",
+      key: "current",
+      label: "Current",
+    },
     firstName: "Tom",
     lastName: "Suedmeyer",
     dateOfBirth: "2005-09-04",
@@ -752,10 +1055,18 @@ export const people: Person[] = [
     id: "player-archie-turner",
     createdAt: "2025-07-16T14:24:00.000Z",
     updatedAt: "2025-07-16T14:24:00.000Z",
-    status: "alumni",
-    roles: [
-      "alumni"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000004",
+    statusId: "b1000000-0000-4000-8000-000000000002",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000004",
+      key: "alumni",
+      label: "Alumni",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000002",
+      key: "former",
+      label: "Former",
+    },
     firstName: "Archie",
     middleName: "Joseph",
     lastName: "Turner",
@@ -770,10 +1081,18 @@ export const people: Person[] = [
     id: "player-nick-williams",
     createdAt: "2026-01-08T06:44:00.000Z",
     updatedAt: "2026-01-08T06:44:00.000Z",
-    status: "current",
-    roles: [
-      "coach"
-    ],
+    roleId: "a1000000-0000-4000-8000-000000000002",
+    statusId: "b1000000-0000-4000-8000-000000000001",
+    role: {
+      id: "a1000000-0000-4000-8000-000000000002",
+      key: "coach",
+      label: "Coach",
+    },
+    status: {
+      id: "b1000000-0000-4000-8000-000000000001",
+      key: "current",
+      label: "Current",
+    },
     title: "Coach",
     firstName: "Nick",
     lastName: "Williams",

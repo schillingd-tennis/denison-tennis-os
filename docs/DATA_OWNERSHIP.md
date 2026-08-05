@@ -1,157 +1,103 @@
-# Data Ownership (BP-022E / BP-023A)
+# Data Ownership (BP-026B)
 
-Denison Tennis OS is the **system of record**. External systems are
-**synchronization sources** (providers), not permanent owners.
+Denison Tennis OS is the **permanent system of record**.
+
+External systems (currently Airtable CSV) are **import sources only**. They
+are not long-term owners of People data. Runtime edits inside Tennis OS are
+authoritative.
 
 Canonical architecture: [`SYSTEM_OF_RECORD.md`](./SYSTEM_OF_RECORD.md).  
-Code lists for People sync columns: [`scripts/fieldOwnership.ts`](../scripts/fieldOwnership.ts).
+Code lists: [`scripts/fieldOwnership.ts`](../scripts/fieldOwnership.ts).
 
 ---
 
-## Classification legend
+## Ownership model
 
 | Class | Meaning |
 |---|---|
-| **Imported** | Populated or refreshed by a provider sync when that sync runs |
-| **Editable** | May be changed in the Denison Tennis OS UI |
-| **Computed** | Derived at read/display time; not an authoritative stored input |
-| **Application-owned** | Sync must not overwrite on conflict; history lives in the app |
-
-A field can be both **Imported** and **Editable** during Phase 1–2: the app
-may edit it, but the next intentional provider sync may replace it with the
-provider snapshot. Prefer moving day-to-day edits to application-owned
-fields as Phase 3 approaches.
+| **System of record** | Stored in Supabase; UI edits win |
+| **Import fill** | Provider snapshot may set a value only when the live column is NULL |
+| **Force refresh** | Explicit opt-in; hard-replaces provider-import columns from the snapshot |
+| **App-authoritative** | Never force-refreshed from import (ratings, notes, relationships, …) |
+| **Computed** | Derived at read time |
 
 ---
 
-## External providers (examples)
+## Persistence rules (non-negotiable)
 
-| Provider | Typical contribution | Status today |
+1. **No user-entered value may disappear unless the user explicitly clears/deletes it** (or an operator runs Force Refresh / `db:reset` knowingly).
+2. **Normal import / `npm run db:seed`** → `coalesce(existing, excluded)` — fill missing only.
+3. **Force Refresh From Provider** / `npm run db:seed:force-refresh` → hard-replace **provider-import** columns only.
+4. **App-authoritative columns** (UTR, WTN, notes, relationships, …) are omitted from Force Refresh updates.
+5. Airtable (or any future adapter) can be removed without changing Person, Team, or repositories beyond deleting the adapter.
+
+---
+
+## Person fields — Supabase authoritative
+
+These persist entirely inside Supabase after first write / import fill:
+
+| Domain | DB / future store |
+|---|---|
+| Hometown | `city`, `state`, `country` |
+| Role | `role_id`, `title` |
+| Class | `class_year` |
+| Status | `status_id` |
+| D# | `denison_id` |
+| Phone / email | `cell_phone`, `personal_email`, `denison_email` |
+| UTR / WTN | `utr`, `wtn` |
+| Notes | `notes` |
+| Relationships | `relationships` (+ future edge tables) |
+| Evaluations | Future related tables keyed by `person_id` |
+| Tags | Future related tables keyed by `person_id` |
+
+### Provider-import columns (fill-nulls; force-refreshable)
+
+Listed in `PROVIDER_IMPORT_COLUMNS`:
+
+`role_id`, `status_id`, `title`, `first_name`, `middle_name`, `last_name`,
+`date_of_birth`, `cell_phone`, `personal_email`, `denison_email`,
+`city`, `state`, `country`, `class_year`, `major`, `minor`, `denison_id`
+
+### App-authoritative columns (never force-refreshed)
+
+Listed in `APP_AUTHORITATIVE_COLUMNS`:
+
+`utr`, `wtn`, `notes`, `dominant_hand`, `height_inches`, `weight_lbs`,
+`player_status`, `preferred_name`, `photo_url`, `preferred_contact_method`,
+`address_line1`, `address_line2`, `zip_code`, `dorm`, `room_number`,
+`relationships`, `created_at`
+
+---
+
+## Pipeline behavior
+
+| Pipeline | Touches DB? | Overwrites existing values? |
 |---|---|---|
-| **Airtable** | Roster identity, contact, class year, hometown, titles | Current People bootstrap / sync source (CSV → import → seed) |
-| **UTR** | Universal Tennis Rating | Planned sync; ratings may also be entered in-app |
-| **TRN** | Tournament / ranking feeds (as adopted) | Future provider |
-| **Google** | Calendar, Drive, contacts (as adopted) | Future provider |
-| **NCAA** | Eligibility / compliance feeds (as adopted) | Future provider |
-| **Coda** | Recruiting pipeline (historical) | Treat as provider if reconnected; not SoR |
-
-Providers update **only** fields documented as owned by that sync job.
+| `npm run import:players` | No — rewrites `data.ts` only | N/A |
+| `npm run db:generate-seed` | No — writes `seed.sql` + `seed-force-refresh.sql` | N/A |
+| `npm run db:seed` | Yes — upsert | **No** — fill NULLs only |
+| `npm run db:seed:force-refresh` | Yes — upsert | **Yes** — provider-import columns only |
+| `npm run db:reset` | Yes — **drops DB** | **Yes — everything destroyed** |
+| `npm run db:start` / refresh / git | No People rewrite | No |
 
 ---
 
-## Application-owned domains (always preserve)
+## Import adapters (Airtable → removable)
 
-These are never replaced by routine import/seed:
+```
+CSV / future API  →  scripts/import/*  →  data.ts  →  seed SQL  →  Supabase
+```
 
-| Domain | Notes |
-|---|---|
-| Evaluations | Coach assessments, visit notes, recruiting scores |
-| Notes | Free-text operational notes on Person |
-| Communication history | Messages, call logs, email threads stored in-app |
-| Tasks | Assignments, due work, action-required items |
-| Timeline | Chronological program events for a Person |
-| Documents / attachments | Files linked to Person or workflows |
-| Relationships | App-managed links (parents, mentors, …) beyond import stubs |
-| Tags | Labels / taxonomy applied in-app |
-| Status transitions made in-app | Lifecycle changes owned by workflows |
-| Custom fields | Future extensibility |
-| Analytics | Aggregates and derived insights |
-| Practice data | Session attendance, drills, plans |
-| Performance data | Match charts, training metrics owned by the app |
-
-If a future provider supplies a *rating* or *file*, document that specific
-field as Imported; do not let a full-row upsert wipe the domains above.
+- Adapter code must not be imported by UI or repositories.
+- Stable Person `id` values are application ids, not Airtable record ids.
+- When Airtable is retired: delete the adapter + CSV path; domain unchanged.
 
 ---
 
-## Person fields — ownership matrix (current)
+## Rules for new fields
 
-Runtime store: Supabase `production_people`.
-
-### Provider-synced today (Airtable CSV bootstrap)
-
-Updated by `npm run db:seed` / import→seed pipeline on conflict.
-**Imported** from current sync source. **Editable** in UI during hybrid
-phase (next intentional sync may overwrite).
-
-| Domain field | DB column | Imported | Editable | Computed | Application-owned |
-|---|---|---|---|---|---|
-| Status (current / alumni) | `status` | ✓ | ✓ | | |
-| Roles | `roles` | ✓ | ✓* | | |
-| Title | `title` | ✓ | ✓ | | |
-| First / middle / last name | `first_name`, `middle_name`, `last_name` | ✓ | ✓ | | |
-| Date of birth | `date_of_birth` | ✓ | ✓ | | |
-| Phone | `cell_phone` | ✓ | ✓ | | |
-| Emails | `personal_email`, `denison_email` | ✓ | ✓ | | |
-| Hometown | `city`, `state`, `country` | ✓ | ✓ | | |
-| Class year | `class_year` | ✓ | ✓ | | |
-| Major / minor | `major`, `minor` | ✓ | ✓ | | |
-| Denison ID | `denison_id` | ✓ | ✓ | | |
-| Sync stamp | `updated_at` | ✓† | | | |
-
-\* Role edits in-app should be carefully merged once write workflows mature.  
-† Set by sync/update pipelines; not a user-facing field.
-
-### Application-owned Person columns (sync must not overwrite)
-
-| Domain field | DB column | Imported | Editable | Computed | Application-owned |
-|---|---|---|---|---|---|
-| UTR | `utr` | ‡ | ✓ | | ✓ |
-| WTN | `wtn` | ‡ | ✓ | | ✓ |
-| Notes | `notes` | | ✓ | | ✓ |
-| Dominant hand | `dominant_hand` | | ✓ | | ✓ |
-| Height / weight | `height_inches`, `weight_lbs` | | ✓ | | ✓ |
-| Player status | `player_status` | | ✓ | | ✓ |
-| Preferred name | `preferred_name` | | ✓ | | ✓ |
-| Photo | `photo_url` | | ✓ | | ✓ |
-| Preferred contact | `preferred_contact_method` | | ✓ | | ✓ |
-| Street / ZIP | `address_line1`, `address_line2`, `zip_code` | | ✓ | | ✓ |
-| Dorm / room | `dorm`, `room_number` | | ✓ | | ✓ |
-| Relationships JSON | `relationships` | | ✓ | | ✓ |
-| Created at | `created_at` | | | | ✓ (immutable) |
-
-‡ May become **Imported** from UTR/TRN adapters later; until then, treat as
-application-owned. A UTR provider sync would update `utr` only — never notes.
-
-### Computed (examples)
-
-| Value | How |
-|---|---|
-| Display name | From `preferredName` / `firstName` + `lastName` |
-| Initials | From display name |
-| Age | From `dateOfBirth` + reference date |
-| Directory filters | From `roles` + `status` |
-| Hometown line | From `city` / `state` / `country` |
-
-Computed values are not written by import.
-
----
-
-## Pipeline behavior (People)
-
-| Pipeline | Touches DB? | Overwrites app-owned? | Overwrites provider-synced? |
-|---|---|---|---|
-| `npm run import:players` | No — rewrites `data.ts` only | N/A | N/A (file only) |
-| `npm run db:generate-seed` | No — rewrites `seed.sql` only | N/A | N/A (file only) |
-| `npm run db:seed` | Yes — upsert | **No** | Yes |
-| `npm run db:reset` | Yes — **drops DB** | **Yes (destroyed)** | Yes (reloaded) |
-| `npm run db:start` / `db:stop` | No data rewrite | No | No |
-| `npm run dev` / browser refresh / git | No | No | No |
-
-CSV fields with no provider column:
-`scripts/import/mapPlayer.ts` → `FIELDS_WITH_NO_SOURCE_COLUMN`. Those stay
-undefined in the file snapshot and must not clobber live DB values on re-seed.
-
----
-
-## Rules for new fields and modules
-
-1. Default new fields to **application-owned** unless a provider sync is
-   explicitly designed and documented here.
-2. Never add a full-row `ON CONFLICT DO UPDATE` that includes app-owned
-   columns.
-3. Prefer related tables keyed by `person_id` for history (notes threads,
-   evaluations, tasks) rather than stuffing JSON that sync might replace.
-4. When adding a provider, document: provider name, fields owned, sync
-   command, and preserve list.
-5. Assume Airtable may be removed; do not name domain types after Airtable.
+1. Default new fields to **app-authoritative** (fill-nulls on seed, never force-refresh).
+2. Add to `PROVIDER_IMPORT_COLUMNS` only when a provider truly supplies that column.
+3. Prefer related tables keyed by `person_id` for evaluations, tags, notes threads, tasks.
+4. Never add a full-row `ON CONFLICT DO UPDATE` that blank-wipes SoR data.

@@ -1,11 +1,14 @@
 /**
- * BP-022E — Apply `supabase/seed.sql` to the running local database.
+ * BP-022E / BP-026B — Apply People seed SQL to the running local database.
  *
- * Does NOT drop the database. Upserts provider-synced fields only
- * (see generated seed + fieldOwnership / SYSTEM_OF_RECORD). Application-owned
- * values persist.
+ * Default (`npm run db:seed`): fill missing values only — never overwrites
+ * existing Supabase fields.
  *
- * Usage: `npm run db:seed`
+ * Force (`npm run db:seed:force-refresh`): hard-replaces provider-import
+ * columns from the snapshot. App-authoritative fields (UTR, WTN, notes, …)
+ * remain untouched.
+ *
+ * Does NOT drop the database.
  */
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -14,6 +17,8 @@ import { resolve } from "node:path";
 import { loadEnvConfig } from "@next/env";
 
 loadEnvConfig(process.cwd());
+
+const FORCE_FLAG = "--force-refresh";
 
 function dockerPathEnv(): NodeJS.ProcessEnv {
   const home = process.env.HOME ?? "";
@@ -41,7 +46,9 @@ function assertLocalUrl(): void {
 function main(): void {
   assertLocalUrl();
 
-  const seedPath = resolve(process.cwd(), "supabase/seed.sql");
+  const forceRefresh = process.argv.includes(FORCE_FLAG);
+  const fileName = forceRefresh ? "seed-force-refresh.sql" : "seed.sql";
+  const seedPath = resolve(process.cwd(), "supabase", fileName);
   const sql = readFileSync(seedPath, "utf-8");
   const container = "supabase_db_denison-tennis-os";
 
@@ -57,13 +64,20 @@ function main(): void {
         cwd: process.cwd(),
       },
     );
-    console.log(
-      "Applied supabase/seed.sql to local database (provider-synced columns only on conflict).",
-    );
-    console.log("Application-owned fields (UTR, WTN, notes, …) were preserved.");
+    if (forceRefresh) {
+      console.log(
+        "Applied supabase/seed-force-refresh.sql (provider-import columns hard-replaced).",
+      );
+      console.log("App-authoritative fields (UTR, WTN, notes, …) were not overwritten.");
+    } else {
+      console.log(
+        "Applied supabase/seed.sql (fill missing values only — existing Supabase data preserved).",
+      );
+    }
   } catch {
-    console.error(`Failed to apply seed via docker exec on container "${container}".`);
+    console.error(`Failed to apply ${fileName} via docker exec on container "${container}".`);
     console.error("Is local Supabase running? Try: npm run db:start");
+    console.error("Regenerate seeds first if missing: npm run db:generate-seed");
     process.exit(1);
   }
 }

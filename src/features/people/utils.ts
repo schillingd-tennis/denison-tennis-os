@@ -1,6 +1,8 @@
 import type { RoleBadgeTone } from "@/components/RoleBadge";
+import { ROLE_KEYS, STATUS_KEYS } from "@/features/lookups/seed";
+import { EMPTY_VALUE } from "@/lib/formatting";
 
-import type { ContactMethod, Person, PersonRole, PersonStatus, PlayerStatus } from "./types";
+import type { ContactMethod, Person, PlayerStatus } from "./types";
 
 export function getDisplayFirstName(person: Person): string {
   return person.preferredName?.trim() || person.firstName;
@@ -51,21 +53,22 @@ export function getPermanentAddress(person: Person): string | undefined {
   return parts.length > 0 ? parts.join(", ") : undefined;
 }
 
-export function getStatusLabel(status: PersonStatus): string {
-  return status === "current" ? "Current" : "Alumni";
+/** Display label from the joined status lookup (BP-025A). */
+export function getStatusLabel(person: Person): string {
+  return person.status.label;
 }
 
-export function getStatusTone(status: PersonStatus): "denison" | "neutral" {
-  return status === "current" ? "denison" : "neutral";
+export function getStatusTone(person: Person): "denison" | "neutral" {
+  return person.status.key === STATUS_KEYS.current ? "denison" : "neutral";
 }
 
 /**
  * Maps a person's status to a card accent-bar tone. Kept separate from
  * `getStatusTone` (badge coloring) so future card types can extend the
- * mapping — e.g. a Recruit or Coach status — without touching the badge.
+ * mapping without touching the badge.
  */
-export function getStatusAccentTone(status: PersonStatus): "denison" | "neutral" {
-  return status === "current" ? "denison" : "neutral";
+export function getStatusAccentTone(person: Person): "denison" | "neutral" {
+  return person.status.key === STATUS_KEYS.current ? "denison" : "neutral";
 }
 
 export function getPlayerStatusLabel(playerStatus?: PlayerStatus): string {
@@ -79,7 +82,7 @@ export function getPlayerStatusLabel(playerStatus?: PlayerStatus): string {
     case "graduated":
       return "Graduated";
     default:
-      return "—";
+      return EMPTY_VALUE;
   }
 }
 
@@ -121,22 +124,22 @@ export function getPreferredContactLabel(method?: ContactMethod): string | undef
   }
 }
 
-export function hasRole(person: Person, role: PersonRole): boolean {
-  return person.roles.includes(role);
+/** True when the person's role lookup key matches (BP-025A — single role). */
+export function hasRole(person: Person, roleKey: string): boolean {
+  return person.role.key === roleKey;
 }
 
-/** True when the person holds the coach role (may also be alumni/player). */
+/** True when the person holds the coach role. */
 export function isCoach(person: Person): boolean {
-  return hasRole(person, "coach");
+  return hasRole(person, ROLE_KEYS.coach);
 }
 
 /**
- * Coach-oriented directory presentation: has coach role and is not a
- * current player. Alumni coaches (e.g. Andy Mackler) still use this path
- * so list/cards emphasize title + contact over player ratings.
+ * Coach-oriented directory presentation: role is Coach (or Staff).
+ * Status is never inferred from role.
  */
 export function isCoachDirectoryPerson(person: Person): boolean {
-  return hasRole(person, "coach") && !(hasRole(person, "player") && person.status === "current");
+  return hasRole(person, ROLE_KEYS.coach) || hasRole(person, ROLE_KEYS.staff);
 }
 
 export type PersonRoleBadgeInfo = {
@@ -145,34 +148,19 @@ export type PersonRoleBadgeInfo = {
   tone: RoleBadgeTone;
 };
 
-/** Roles that add identity information. `player` is silent (BP-022D). */
-const MEANINGFUL_ROLES: PersonRole[] = ["recruit", "coach", "staff", "alumni"];
-
-function canonicalRoleLabel(role: PersonRole): string | null {
-  switch (role) {
-    case "player":
-      return null;
-    case "coach":
-      return "Coach";
-    case "alumni":
-      return "Alumni";
-    case "staff":
-      return "Staff";
-    case "recruit":
-      return "Recruit";
-    default: {
-      const _exhaustive: never = role;
-      return _exhaustive;
-    }
-  }
+/**
+ * Team directory role text (BP-025B): job title when present, otherwise the
+ * role lookup label (including "Player"). Plain presentation — no badges.
+ */
+export function getPersonRoleDisplay(person: Person): string {
+  const titled = person.title?.trim();
+  if (titled) return titled;
+  return person.role.label;
 }
 
 /**
- * Quiet identity metadata for directory + workspace (BP-022D).
- *
- * Prefers `title` (Head Coach / Assistant Coach / Athletic Trainer), then
- * meaningful roles (Coach, Recruit, Alumni, Staff). Never surfaces "Player"
- * — the default roster identity is silent. Empty when nothing to add.
+ * Quiet identity metadata for workspace chrome (BP-022D / BP-025A).
+ * Prefers title, then non-player role labels. Status is never included.
  */
 export function getPersonRoleBadges(person: Person): PersonRoleBadgeInfo[] {
   const badges: PersonRoleBadgeInfo[] = [];
@@ -188,30 +176,19 @@ export function getPersonRoleBadges(person: Person): PersonRoleBadgeInfo[] {
 
   if (titled) {
     push(titled);
-  }
-
-  for (const role of MEANINGFUL_ROLES) {
-    if (!hasRole(person, role)) continue;
-    // Title already communicates coach identity.
-    if (role === "coach" && titled) continue;
-    const label = canonicalRoleLabel(role);
-    if (label) push(label);
-  }
-
-  if (person.status === "alumni") {
-    push("Alumni");
+  } else if (person.role.key !== ROLE_KEYS.player) {
+    push(person.role.label);
   }
 
   return badges.slice(0, 3);
 }
 
 /**
- * Primary role / title label (single string). Empty when identity is silent
- * (e.g. a Player with no additional roles). Prefer `getPersonRoleBadges`
- * when rendering UI.
+ * Primary role / title label (single string). Prefer `getPersonRoleDisplay`
+ * for Team directory Role column text.
  */
 export function getPersonRoleLabel(person: Person): string {
-  return getPersonRoleBadges(person)[0]?.label ?? "";
+  return getPersonRoleDisplay(person);
 }
 
 export function matchesSearch(person: Person, query: string): boolean {
@@ -231,41 +208,6 @@ export function matchesSearch(person: Person, query: string): boolean {
     .toLowerCase();
 
   return haystack.includes(q);
-}
-
-/** Team directory role filter (BP-021). Default UI selection is `players`. */
-export type RoleFilter = "all" | "players" | "coaches" | "alumni";
-
-/**
- * Default roles when importing/backfilling from program status alone.
- * Coaches and staff are assigned explicitly — never inferred from status.
- */
-export function defaultRolesForStatus(status: PersonStatus): PersonRole[] {
-  return status === "alumni" ? ["alumni"] : ["player"];
-}
-
-export function filterPeople(
-  people: Person[],
-  { role, query }: { role: RoleFilter; query: string },
-): Person[] {
-  return people
-    .filter((person) => {
-      switch (role) {
-        case "all":
-          return true;
-        case "players":
-          // Current player records — coach-only staff stay out of this filter.
-          return hasRole(person, "player") && person.status === "current";
-        case "coaches":
-          return hasRole(person, "coach");
-        case "alumni":
-          return hasRole(person, "alumni") || person.status === "alumni";
-        default:
-          return true;
-      }
-    })
-    .filter((person) => matchesSearch(person, query))
-    .sort((a, b) => a.lastName.localeCompare(b.lastName));
 }
 
 export function getPersonById(people: Person[], id: string): Person | undefined {

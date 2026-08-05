@@ -99,14 +99,16 @@ These answer three different questions and must not be overloaded:
   coach, alumni, staff, and/or recruit. Multi-valued (e.g. alumni + coach).
   Future `parent` / `donor` roles attach to the same Person.
 - **`status`** (`"current" | "alumni"`) — Coarse program lifecycle for the
-  record. Team filters for Players/Alumni combine this with roles; coaches
-  are selected by the `coach` role, not by inventing a status value.
+  record. The **Current** / **Alumni** directory filters combine this with
+  roles; coaches are selected by the `coach` role, not by inventing a status
+  value.
 - **`playerStatus`** (`"active" | "injured" | "inactive" | "graduated"`) —
   Tennis-specific standing for people who play (or played). Irrelevant for
   coach-only staff.
 
-Team directory filters (BP-021): **All | Players | Coaches | Alumni**
-(default **Players**).
+People directory filters (BP-024E): **All | Current | Coaches | Alumni**
+(default **Current**). See `PeopleFilter` / `matchesPeopleFilter` in
+`src/features/people/utils.ts`.
 
 A person's `status` and `playerStatus` can diverge (e.g. `status: "current"`
 with `playerStatus: "injured"`), which is expected.

@@ -1,3 +1,5 @@
+import { STATUS_KEYS } from "../../src/features/lookups/seed";
+import { personLookupsFromKeys } from "../../src/features/people/supabaseMapping";
 import type { Person } from "../../src/features/people/types";
 import {
   classYearFromClass,
@@ -90,7 +92,7 @@ export function mapRowToPerson(
   );
   if (classification.warning) warnings.push(classification.warning);
 
-  const { status, playerStatus, roles, isProgramRoleRow } = classification;
+  const { statusKey, roleKey, playerStatus, isProgramRoleRow } = classification;
   // Reserved coaching titles for known people when sync CSV has no Title yet.
   const title =
     knownTitle && (!classification.title || classification.title === "Coach")
@@ -98,9 +100,11 @@ export function mapRowToPerson(
       : classification.title;
 
   const classYear = classYearFromClass(row["Class"] ?? "");
-  if (classYear === undefined && status === "current" && !isProgramRoleRow) {
+  if (classYear === undefined && statusKey === STATUS_KEYS.current && !isProgramRoleRow) {
     warnings.push(`Could not determine classYear from Class value "${row["Class"]}".`);
   }
+
+  const lookups = personLookupsFromKeys(roleKey, statusKey);
 
   const dateOfBirth = parseUsDate(row["Date of Birth"] ?? "");
   if (!dateOfBirth && !isBlankValue(row["Date of Birth"])) {
@@ -149,8 +153,7 @@ export function mapRowToPerson(
     createdAt: timestamp,
     updatedAt: timestamp,
 
-    status,
-    roles,
+    ...lookups,
     title,
     firstName,
     middleName,

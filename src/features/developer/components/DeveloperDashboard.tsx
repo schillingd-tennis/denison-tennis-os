@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   ClipboardCopy,
   Database,
+  Download,
   ExternalLink,
   History,
   RefreshCw,
@@ -14,10 +15,12 @@ import {
 } from "lucide-react";
 
 import {
+  forceRefreshFromProviderAction,
   rerunSeedAction,
   resetLocalDatabaseAction,
 } from "@/features/developer/actions";
 import type { DeveloperSnapshot, ServiceStatus } from "@/features/developer/types";
+import { formatDisplay } from "@/lib/formatting";
 
 function statusDotClass(status: ServiceStatus | "connected" | "not_connected"): string {
   switch (status) {
@@ -47,11 +50,13 @@ function statusLabel(status: ServiceStatus | "connected" | "not_connected"): str
   }
 }
 
-function StatCell({ label, value }: { label: string; value: string | number }) {
+function StatCell({ label, value }: { label: string; value?: string | number | null }) {
   return (
     <div className="rounded-control border border-border bg-app-background px-4 py-3">
       <p className="text-[11px] font-medium tracking-wide text-text-secondary uppercase">{label}</p>
-      <p className="mt-1 text-xl font-semibold tabular-nums text-text-primary">{value}</p>
+      <p className="mt-1 text-xl font-semibold tabular-nums text-text-primary">
+        {formatDisplay(value)}
+      </p>
     </div>
   );
 }
@@ -137,7 +142,7 @@ export default function DeveloperDashboard({ snapshot }: { snapshot: DeveloperSn
       `Connection: ${statusLabel(snapshot.connectionStatus)}`,
       `Migration: ${snapshot.migrationVersion}`,
       `Seed: ${snapshot.seedVersion}`,
-      `People: ${snapshot.people.total} (players ${snapshot.people.players}, coaches ${snapshot.people.coaches}, alumni ${snapshot.people.alumni}, staff ${snapshot.people.staff})`,
+      `People: ${snapshot.people.total} (current ${snapshot.people.players}, coaches ${snapshot.people.coaches}, alumni ${snapshot.people.alumni}, staff ${snapshot.people.staff})`,
       `Docker: ${statusLabel(snapshot.dockerStatus)}`,
       `Local Supabase: ${statusLabel(snapshot.localSupabaseStatus)}`,
       `Collected: ${snapshot.collectedAt}`,
@@ -243,11 +248,11 @@ export default function DeveloperDashboard({ snapshot }: { snapshot: DeveloperSn
         <h2 className="text-sm font-semibold tracking-wide text-text-secondary uppercase">People</h2>
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           <StatCell label="Total" value={snapshot.people.total} />
-          <StatCell label="Players" value={snapshot.people.players} />
+          <StatCell label="Current" value={snapshot.people.players} />
           <StatCell label="Coaches" value={snapshot.people.coaches} />
           <StatCell label="Alumni" value={snapshot.people.alumni} />
           <StatCell label="Staff" value={snapshot.people.staff} />
-          <StatCell label="Recruits" value={snapshot.people.recruits ?? "—"} />
+          <StatCell label="Recruits" value={snapshot.people.recruits} />
         </div>
       </section>
 
@@ -279,12 +284,28 @@ export default function DeveloperDashboard({ snapshot }: { snapshot: DeveloperSn
             onClick={() => {
               if (
                 !window.confirm(
-                  "Re-apply seed.sql? Updates provider-synced fields (name, hometown, contact, class year, …). Preserves app-owned fields (UTR, WTN, notes, …). Does not drop the database.",
+                  "Re-apply seed.sql? Fills missing (NULL) values only. Existing Supabase data (hometown, role, contact, UTR, notes, …) is never overwritten. Does not drop the database.",
                 )
               ) {
                 return;
               }
               runAction(rerunSeedAction);
+            }}
+          />
+          <ActionButton
+            label="Force Refresh From Provider"
+            icon={Download}
+            tone="danger"
+            disabled={!snapshot.localActionsEnabled || pending}
+            onClick={() => {
+              if (
+                !window.confirm(
+                  "FORCE REFRESH: Overwrite provider-import fields (names, role, status, hometown, contact, class, D#, …) from the import snapshot? App-owned fields (UTR, WTN, notes, …) are preserved. This cannot be undone except by re-editing.",
+                )
+              ) {
+                return;
+              }
+              runAction(forceRefreshFromProviderAction);
             }}
           />
           <ActionButton

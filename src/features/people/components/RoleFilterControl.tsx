@@ -1,42 +1,40 @@
 "use client";
 
-import type { RoleFilter } from "@/features/people/utils";
+import { FilterChipGroup } from "@/components/toolbar";
+import {
+  getPeopleFilterVisualSelection,
+  getTeamPhase1FilterOptions,
+  resolvePeopleFilterSelection,
+  type PeopleToolbarFilterId,
+} from "@/features/people/filters";
 
-const options: { value: RoleFilter; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "players", label: "Players" },
-  { value: "coaches", label: "Coaches" },
-  { value: "alumni", label: "Alumni" },
-];
-
+/**
+ * Team faceted filter chips (BP-024G / BP-025D).
+ * Within a category → OR; across categories → AND.
+ * All clears every facet; clearing the last facet returns to All.
+ */
 export default function RoleFilterControl({
   value,
   onChange,
 }: {
-  value: RoleFilter;
-  onChange: (value: RoleFilter) => void;
+  /** Active facet ids; empty means All. */
+  value: readonly string[];
+  onChange: (activeIds: string[]) => void;
 }) {
+  const options = getTeamPhase1FilterOptions();
+  const visual = getPeopleFilterVisualSelection(value);
+
+  function handleSelect(next: PeopleToolbarFilterId) {
+    onChange(resolvePeopleFilterSelection(value, next));
+  }
+
   return (
-    <div
-      role="group"
-      aria-label="Filter by role"
-      className="inline-flex h-9 items-center gap-0.5 rounded-control border border-border bg-surface p-0.5"
-    >
-      {options.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          onClick={() => onChange(option.value)}
-          aria-pressed={value === option.value}
-          className={`flex h-7 items-center rounded-control px-3 text-xs font-medium transition-colors duration-150 ${
-            value === option.value
-              ? "bg-denison-red text-surface"
-              : "text-text-secondary hover:bg-app-background hover:text-text-primary"
-          }`}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
+    <FilterChipGroup
+      value={visual}
+      onSelect={handleSelect}
+      options={options}
+      ariaLabel="Filter people"
+      equalWidth
+    />
   );
 }

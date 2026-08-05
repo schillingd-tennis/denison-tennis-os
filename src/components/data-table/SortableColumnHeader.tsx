@@ -15,12 +15,15 @@ export default function SortableColumnHeader({
   align = "left",
   sortDirection,
   onSort,
+  className,
 }: {
   label: string;
   align?: "left" | "right";
   /** `null` when this column is not the active sort. */
   sortDirection: SortDirection | null;
   onSort: () => void;
+  /** Extra classes (e.g. sticky leading column from `stickyLeadingColumn`). */
+  className?: string;
 }) {
   const Icon = sortDirection === "asc" ? ArrowUp : sortDirection === "desc" ? ArrowDown : ChevronsUpDown;
   const isActive = sortDirection !== null;
@@ -29,7 +32,7 @@ export default function SortableColumnHeader({
     <th
       scope="col"
       aria-sort={ariaSortValue[sortDirection ?? "none"]}
-      className={`px-4 py-3 ${typeRole.tableHeader} ${align === "right" ? "text-right" : "text-left"}`}
+      className={`px-4 py-3 ${typeRole.tableHeader} ${align === "right" ? "text-right" : "text-left"}${className ? ` ${className}` : ""}`}
     >
       <button
         type="button"

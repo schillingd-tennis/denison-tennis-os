@@ -1,4 +1,6 @@
-import type { Person, PersonRole } from "../../src/features/people/types";
+import { pickRoleKeyFromLegacy, STATUS_KEYS } from "../../src/features/lookups/seed";
+import { personLookupsFromKeys } from "../../src/features/people/supabaseMapping";
+import type { Person } from "../../src/features/people/types";
 
 function nameKey(person: Person): string {
   return `${person.firstName.trim().toLowerCase()}\0${person.lastName.trim().toLowerCase()}`;
@@ -8,10 +10,6 @@ function preferDefined<T>(a: T | undefined, b: T | undefined): T | undefined {
   if (a !== undefined && a !== null && a !== "") return a;
   if (b !== undefined && b !== null && b !== "") return b;
   return a ?? b;
-}
-
-function uniqueRoles(roles: PersonRole[]): PersonRole[] {
-  return Array.from(new Set(roles)).sort();
 }
 
 /** Prefer reserved `person-*` ids, then unsuffixed ids over `*-2` collisions. */
@@ -55,23 +53,25 @@ function preferDateOfBirth(a?: string, b?: string): string | undefined {
 
 /**
  * Merges two Person rows for the same individual (e.g. Andy Mackler as
- * Archive alumni + Class=Coach). Unions roles and prefers populated fields.
+ * Archive alumni + Class=Coach). Collapses to a single role via priority;
+ * status is independent (former wins over current).
  */
 export function mergePersonRecords(a: Person, b: Person): Person {
-  const roles = uniqueRoles([...a.roles, ...b.roles]);
-  const status =
-    a.status === "alumni" || b.status === "alumni" || roles.includes("alumni")
-      ? "alumni"
-      : "current";
+  const roleKey = pickRoleKeyFromLegacy([a.role.key, b.role.key]);
+  const statusKey =
+    a.status.key === STATUS_KEYS.former || b.status.key === STATUS_KEYS.former
+      ? STATUS_KEYS.former
+      : STATUS_KEYS.current;
+  const lookups = personLookupsFromKeys(roleKey, statusKey);
 
   // Prefer the richer record as the base for scalar fields.
   const [primary, secondary] =
     countPopulated(a) >= countPopulated(b) ? [a, b] : [b, a];
 
   let playerStatus = preferDefined(primary.playerStatus, secondary.playerStatus);
-  if (status === "alumni") {
+  if (statusKey === STATUS_KEYS.former) {
     playerStatus = playerStatus ?? "graduated";
-  } else if (roles.includes("coach") && !roles.includes("player")) {
+  } else if (roleKey === "coach" || roleKey === "staff") {
     playerStatus = undefined;
   }
 
@@ -87,8 +87,7 @@ export function mergePersonRecords(a: Person, b: Person): Person {
     createdAt: a.createdAt <= b.createdAt ? a.createdAt : b.createdAt,
     updatedAt: a.updatedAt >= b.updatedAt ? a.updatedAt : b.updatedAt,
 
-    status,
-    roles,
+    ...lookups,
     title,
 
     firstName: primary.firstName,
@@ -136,7 +135,7 @@ export function mergePersonRecords(a: Person, b: Person): Person {
 
 /**
  * Collapses multiple Airtable rows for the same person (same first + last
- * name) into one Person with unioned roles. Idempotent for already-unique lists.
+ * name) into one Person. Idempotent for already-unique lists.
  */
 export function mergePeopleByName(people: Person[]): { people: Person[]; mergeCount: number } {
   const byName = new Map<string, Person>();
@@ -153,5 +152,5 @@ export function mergePeopleByName(people: Person[]): { people: Person[]; mergeCo
     mergeCount += 1;
   }
 
-  return { people: Array.from(byName.values()), mergeCount };
+  return { people: Array.from(byName.values()), mergeCount: mergeCount };
 }

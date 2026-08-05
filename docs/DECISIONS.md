@@ -145,9 +145,8 @@ update this file explicitly rather than silently drifting from it.
   `production_people.roles text[]` — not overloaded onto `status` or
   `player_status`.
 - Optional `title` holds coaching/job titles (e.g. Head Coach).
-- Team directory filters: All | Players | Coaches | Alumni (default
-  Players). Players = current + `player` role; Coaches = `coach` role;
-  Alumni = `alumni` role or `status = alumni`.
+- Team directory filters (superseded by BP-024E): All | Current | Coaches |
+  Alumni.
 - Coaches (and other program roles) import through the normal People sync
   pipeline — no hard-coded coach-only overlay module. Class values like
   `Coach`, `Head Coach`, or `Assistant Coach` map to the `coach` role.
@@ -258,8 +257,7 @@ update this file explicitly rather than silently drifting from it.
 - Root cause of disappearing local edits: `seed.sql` used
   `ON CONFLICT DO UPDATE` for **all** columns (including UTR/WTN/notes),
   and Developer “Re-run Seed” could fall back to a full `db reset`.
-- Seed conflict updates now touch **provider-synced columns only**
-  (`scripts/fieldOwnership.ts`, `docs/DATA_OWNERSHIP.md`).
+- Superseded for conflict semantics by BP-026B (fill-nulls + Force Refresh).
 - `npm run db:seed` applies seed without dropping the DB; never falls
   back to reset. `npm run db:reset` remains the only intentional full wipe.
 - `db:start` / `db:stop` / `dev` / git / browser refresh do not rewrite People.
@@ -267,13 +265,35 @@ update this file explicitly rather than silently drifting from it.
 ## BP-023A — System of Record Architecture
 
 - Denison Tennis OS is the long-term **system of record**. External tools
-  (Airtable, TRN, UTR, etc.) are data providers / synchronization sources.
-- Phase model: (1) Airtable bootstrap, (2) hybrid sync, (3) app is complete
-  SoR and Airtable may be removed — see `docs/SYSTEM_OF_RECORD.md`.
+  (Airtable, TRN, UTR, etc.) are import / sync adapters — not owners.
 - Person-first: one Person persists across Recruit → Player → Alumni → …
   without duplicate records.
-- Sync preserves application history; imports update only fields they own
-  (`docs/DATA_OWNERSHIP.md`).
+- See `docs/SYSTEM_OF_RECORD.md` / `docs/DATA_OWNERSHIP.md`.
+
+## BP-026B — Supabase System of Record Persistence
+
+- After initial import, People are owned by Supabase. Airtable is import-only.
+- Runtime edits are authoritative for hometown, role, class, status, D#,
+  contact, UTR, WTN, notes, relationships (and future evaluations/tags).
+- `npm run db:seed` uses `coalesce(existing, excluded)` — fill missing only.
+- `npm run db:seed:force-refresh` hard-replaces provider-import columns only;
+  app-authoritative columns (UTR, WTN, notes, …) are never force-refreshed.
+- List `parseHometown` must not NULL `state` when the user edits city-only.
+
+## BP-027 — Global Data Formatting Standards
+
+- Shared presentation helpers live in `src/lib/formatting`.
+- UTR/WTN/GPA → 2 decimals; percentages → 1 decimal + `%`; dates →
+  `Aug 5, 2026`; times → `3:30 PM`; empty → `—` (`EMPTY_VALUE`).
+- Components must not duplicate `toFixed` / ad-hoc date formatting.
+- Sorting, filtering, search, and persistence keep raw values.
+
+## BP-028A — Sticky Actions Column
+
+- OS data tables: sticky Name (left) + sticky Actions (right); middle scrolls.
+- Shared classes in `src/components/data-table/stickyColumns.ts`.
+- Actions column fixed width fits Call / Text / Email without clip/wrap/shrink.
+- Name flexes; Role / Hometown / Class / UTR / WTN stay content-sized.
 
 ## BP-024A — Typography System
 
@@ -293,3 +313,23 @@ update this file explicitly rather than silently drifting from it.
 - Also: favorites/recents `useSyncExternalStore` getSnapshots must return a
   stable array reference; re-parsing localStorage every call caused
   “Maximum update depth exceeded” and crashed the page on open.
+
+## BP-024D — Team Toolbar Refinement
+
+- Permanent toolbar language: search primary, filters secondary, view toggle
+  tertiary — via shared `Toolbar` + `SegmentedControl` (no Team-only chrome).
+- Segmented active state is a quiet raised surface (macOS-like), not Denison
+  red fill. Search is 44px with a softer border and lighter placeholder.
+- Behavior (search, filters, routing, data) unchanged — visual hierarchy only.
+
+## BP-024E — People Filter Semantics
+
+- Directory segments: **All | Current | Coaches | Alumni** (default Current).
+  Shared type `PeopleFilter` + `PEOPLE_FILTER_OPTIONS` / `matchesPeopleFilter`
+  in `src/features/people/utils.ts` for Team and future modules.
+- Current = `player` role + `status = current` (active roster).
+- Coaches = `coach` role. Alumni = `alumni` role or `status = alumni`.
+- All = every Person. Search behavior unchanged. No Staff / Recruiting filters.
+- Persisted in `localStorage` (`denison-tennis-os:people-filter`). Legacy
+  value `"players"` migrates to `"current"` on read so obsolete Players
+  never resurfaces after refresh or re-login.

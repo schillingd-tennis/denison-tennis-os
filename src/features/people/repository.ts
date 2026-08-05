@@ -1,11 +1,5 @@
 /**
- * People repository (BP-015; writes added in BP-017 Phase 1).
- *
- * The People domain's only sanctioned way to read and write `Person` records.
- * The Team nav surface (`/team`) consumes this repository. Per
- * `docs/ARCHITECTURE.md` §3D/§9, pages, components, and Server Actions call
- * this interface — they must not import Supabase clients or the
- * `production_people` table shape directly.
+ * People repository (BP-015; writes BP-017; lookups BP-025A).
  */
 import { supabase } from "@/lib/supabase";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -15,13 +9,20 @@ import { personPatchToRow, rowToPerson, type ProductionPersonRow } from "./supab
 
 const TABLE = "production_people";
 
+/** Join role/status lookups on every read. */
+const PERSON_SELECT = `
+  *,
+  role:roles!role_id ( id, key, label, sort_order, active ),
+  status:statuses!status_id ( id, key, label, sort_order, active )
+`;
+
 export class PeopleRepositoryError extends Error {}
 
-/** All people (current players and alumni), sorted by last name then first name. */
+/** All people in the People database, sorted by last name then first name. */
 export async function listPeople(): Promise<Person[]> {
   const { data, error } = await supabase
     .from(TABLE)
-    .select("*")
+    .select(PERSON_SELECT)
     .order("last_name", { ascending: true })
     .order("first_name", { ascending: true });
 
@@ -34,7 +35,11 @@ export async function listPeople(): Promise<Person[]> {
 
 /** A single person by id, or `null` if no such person exists. */
 export async function getPersonById(id: string): Promise<Person | null> {
-  const { data, error } = await supabase.from(TABLE).select("*").eq("id", id).maybeSingle();
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select(PERSON_SELECT)
+    .eq("id", id)
+    .maybeSingle();
 
   if (error) {
     throw new PeopleRepositoryError(`Failed to load person "${id}" from Supabase: ${error.message}`);
@@ -44,16 +49,7 @@ export async function getPersonById(id: string): Promise<Person | null> {
 }
 
 /**
- * Updates a single person, writing only the fields present on `patch`
- * (BP-017 Phase 1). Uses the cookie-backed, auth-aware server client (not
- * the anon `supabase` singleton above) because `production_people`'s
- * row-level security only grants UPDATE to the `authenticated` role — see
- * `supabase/migrations/0002_allow_authenticated_update_production_people.sql`.
- * Callers (Server Actions) must therefore invoke this from a request
- * context where the user's session cookie is available.
- *
- * Throws `PeopleRepositoryError` if the person doesn't exist or the update
- * is rejected (e.g. by RLS, a check constraint, or a network error).
+ * Updates a single person, writing only the fields present on `patch`.
  */
 export async function updatePerson(id: string, patch: Partial<Person>): Promise<Person> {
   const patchRow = personPatchToRow(patch);
@@ -67,7 +63,12 @@ export async function updatePerson(id: string, patch: Partial<Person>): Promise<
   }
 
   const client = await createSupabaseServerClient();
-  const { data, error } = await client.from(TABLE).update(patchRow).eq("id", id).select().maybeSingle();
+  const { data, error } = await client
+    .from(TABLE)
+    .update(patchRow)
+    .eq("id", id)
+    .select(PERSON_SELECT)
+    .maybeSingle();
 
   if (error) {
     throw new PeopleRepositoryError(`Failed to update person "${id}" in Supabase: ${error.message}`);

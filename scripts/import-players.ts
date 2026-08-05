@@ -9,13 +9,12 @@
  * Usage: `npm run import:players`
  *
  * Writes `data.ts` only — does NOT touch the live database. Apply with
- * `npm run db:generate-seed` then `npm run db:seed` (preserves app-owned
- * fields) or intentional `npm run db:reset` (full wipe). See BP-022E /
- * BP-023A, docs/DATA_OWNERSHIP.md, docs/SYSTEM_OF_RECORD.md.
+ * `npm run db:generate-seed` then `npm run db:seed` (fill missing only) or
+ * `npm run db:seed:force-refresh` (explicit provider overwrite). See BP-026B,
+ * docs/DATA_OWNERSHIP.md, docs/SYSTEM_OF_RECORD.md.
  *
- * Current synchronization source: Airtable CSV export. Provider-synced
- * roster identity/contact fields land in the file snapshot; application-
- * owned fields (UTR, WTN, notes, …) live in the database and survive sync.
+ * Airtable CSV is an **import source only**. After import, Supabase is the
+ * system of record; runtime edits are authoritative.
  */
 import { existsSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";

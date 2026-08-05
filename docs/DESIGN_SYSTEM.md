@@ -71,6 +71,19 @@ ad-hoc `text-*` / `font-*` combinations.
 
 Hierarchy: **name → field values → metadata → structural labels.**
 
+## Toolbar (BP-024D)
+
+Reusable shell in `src/components/toolbar/`:
+
+| Piece | Role |
+|---|---|
+| `Toolbar` | Layout: `primary` (search) → `secondary` (filters) → `tertiary` (view toggle) |
+| `SegmentedControl` | Native-feeling segments; active = subtle raised surface, not a bright fill |
+| `SearchInput` | Primary field — 44px height, soft border, quiet placeholder |
+
+Modules (Team, Recruiting, Operations, …) compose these slots. Do not invent
+Team-specific toolbar chrome.
+
 ## Rule for future work
 
 **Future features must use these shared design tokens rather than arbitrary

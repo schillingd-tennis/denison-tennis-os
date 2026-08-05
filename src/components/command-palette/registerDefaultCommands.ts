@@ -20,6 +20,7 @@ import { commandRegistry } from "@/components/command-palette/registry";
 import type { CommandContext, CommandDefinition } from "@/components/command-palette/types";
 import { primaryNavItems, settingsNavItem } from "@/components/nav-items";
 import {
+  forceRefreshFromProviderAction,
   rerunSeedAction,
   resetLocalDatabaseAction,
 } from "@/features/developer/actions";
@@ -42,7 +43,7 @@ function pageCommands(): CommandDefinition[] {
       label: isPeople ? "Go to People" : `Go to ${item.label}`,
       subtitle: item.href === "/" ? "Home" : item.href,
       keywords: isPeople
-        ? ["team", "people", "directory", "players", "coaches", "alumni"]
+        ? ["team", "people", "directory", "current", "coaches", "alumni"]
         : [item.label, item.href.replace(/^\//, "")],
       icon: item.icon,
       preview: {
@@ -204,25 +205,56 @@ function actionCommands(): CommandDefinition[] {
       id: "action:rerun-seed",
       objectType: "actions",
       label: "Re-run Seed",
-      subtitle: "Updates provider-synced fields — preserves UTR / WTN / notes",
+      subtitle: "Fill missing values only — never overwrites Supabase data",
       keywords: ["seed", "database", "supabase", "local"],
       icon: RefreshCw,
       enabled: developerToolsEnabled,
       preview: {
         kind: "action",
         explanation:
-          "Applies supabase/seed.sql without dropping the database. Updates provider-synced columns; preserves application-owned fields (UTR, WTN, notes, …). Never falls back to db reset.",
+          "Applies supabase/seed.sql without dropping the database. Fills NULL fields only. Existing Supabase values are never overwritten. Never falls back to db reset.",
       },
       perform: async ({ notify }) => {
         if (
           !window.confirm(
-            "Re-apply seed.sql? Updates provider-synced fields. Preserves UTR, WTN, notes, and other app-owned fields.",
+            "Re-apply seed.sql? Fills missing values only. Existing Supabase data is never overwritten.",
           )
         ) {
           return;
         }
         notify("Re-running seed…");
         const result = await rerunSeedAction();
+        if (result.success) {
+          commandRegistry.invalidateProviderCache();
+          notify(result.message);
+        } else {
+          notify(result.error);
+        }
+      },
+    },
+    {
+      id: "action:force-refresh-provider",
+      objectType: "actions",
+      label: "Force Refresh From Provider",
+      subtitle: "Overwrite provider-import fields from the import snapshot",
+      keywords: ["seed", "force", "refresh", "airtable", "import", "provider"],
+      icon: Download,
+      enabled: developerToolsEnabled,
+      preview: {
+        kind: "action",
+        explanation:
+          "Hard-replaces provider-import columns (names, role, status, hometown, contact, class, D#, …) from the import snapshot. UTR, WTN, notes, and other app-authoritative fields are not touched.",
+      },
+      perform: async ({ notify }) => {
+        if (
+          !window.confirm(
+            "FORCE REFRESH: Overwrite provider-import fields from the import snapshot? App-owned fields (UTR, WTN, notes, …) are preserved.",
+          )
+        ) {
+          return;
+        }
+        notify("Force refreshing from provider…");
+        const result = await forceRefreshFromProviderAction();
         if (result.success) {
           commandRegistry.invalidateProviderCache();
           notify(result.message);

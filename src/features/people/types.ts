@@ -1,27 +1,17 @@
 /**
  * The Person data model — the system-of-record identity for anyone tracked in
- * Denison Tennis OS (players, coaches, alumni, recruits, staff, …). Future
- * modules reference the same record rather than re-modeling people separately.
- * See docs/SYSTEM_OF_RECORD.md.
+ * Denison Tennis OS. Role and status are foreign keys into lookup tables
+ * (BP-025A). See docs/SYSTEM_OF_RECORD.md.
  *
  * Internal domain name: People. User-facing Team navigation still routes to
  * `/team` (BP-021).
  */
 
-export type PersonStatus = "current" | "alumni";
+import type { LookupRef } from "@/features/lookups/types";
+
 export type DominantHand = "right" | "left";
 export type PlayerStatus = "active" | "injured" | "inactive" | "graduated";
 export type ContactMethod = "phone" | "text" | "email";
-
-/**
- * What a Person *is* within the program. A person may hold more than one
- * role (e.g. alumni + coach) without duplicating the Person record.
- * Distinct from `status` / `playerStatus` (lifecycle / tennis standing).
- *
- * `recruit` is part of the core role vocabulary (BP-022A). Future roles
- * (`parent`, `donor`) attach to the same Person — never a parallel record.
- */
-export type PersonRole = "player" | "coach" | "alumni" | "staff" | "recruit";
 
 /**
  * How another record relates to this person (e.g. a parent). Populated
@@ -41,10 +31,13 @@ export type Person = {
   createdAt: string;
   updatedAt: string;
 
-  // Identity
-  status: PersonStatus;
-  /** Program roles; may contain more than one value. */
-  roles: PersonRole[];
+  // Identity — role/status are lookup FKs (BP-025A); never infer one from the other.
+  roleId: string;
+  statusId: string;
+  /** Joined role lookup (id/key/label). */
+  role: LookupRef;
+  /** Joined status lookup (id/key/label). */
+  status: LookupRef;
   /** Job / coaching title when applicable (e.g. "Head Coach"). */
   title?: string;
   firstName: string;

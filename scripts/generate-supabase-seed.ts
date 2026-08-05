@@ -1,16 +1,14 @@
 /**
- * BP-015 / BP-021 / BP-022E — Supabase Seed Generator.
+ * BP-015 / BP-022E / BP-026B — Supabase Seed Generator.
  *
- * Reads the current roster from `src/features/people/data.ts` and writes
- * `supabase/seed.sql`: `INSERT ... ON CONFLICT (id) DO UPDATE` that updates
- * **only provider-synced columns** (current sync source: Airtable CSV
- * bootstrap). Application-owned fields (UTR, WTN, notes, …) are preserved
- * on conflict — see `scripts/fieldOwnership.ts` / `docs/SYSTEM_OF_RECORD.md`.
+ * Reads `src/features/people/data.ts` and writes:
+ * - `supabase/seed.sql` — INSERT + ON CONFLICT **fill missing only**
+ * - `supabase/seed-force-refresh.sql` — INSERT + ON CONFLICT **force provider**
+ *
+ * System of record: Supabase. Import sources (Airtable CSV today) never
+ * overwrite existing values unless Force Refresh is applied explicitly.
  *
  * Usage: `npm run db:generate-seed`
- *
- * After BP-021, run migration `0003_people_roles_and_coaches.sql` before
- * (or with) this seed so `roles` / `title` columns exist.
  */
 import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -18,16 +16,22 @@ import { resolve } from "node:path";
 import { people } from "../src/features/people/data";
 import { personToRow } from "../src/features/people/supabaseMapping";
 
-import { EXTERNAL_SYNC_COLUMNS } from "./fieldOwnership";
+import {
+  APP_AUTHORITATIVE_COLUMNS,
+  PROVIDER_IMPORT_COLUMNS,
+  fillNullAssignment,
+  forceRefreshAssignment,
+} from "./fieldOwnership";
 
-const OUTPUT_PATH = resolve(process.cwd(), "supabase/seed.sql");
+const SEED_PATH = resolve(process.cwd(), "supabase/seed.sql");
+const FORCE_PATH = resolve(process.cwd(), "supabase/seed-force-refresh.sql");
 
 const COLUMNS = [
   "id",
   "created_at",
   "updated_at",
-  "status",
-  "roles",
+  "role_id",
+  "status_id",
   "title",
   "first_name",
   "middle_name",
@@ -61,19 +65,13 @@ const COLUMNS = [
   "notes",
 ] as const;
 
-function sqlLiteral(value: unknown, column?: string): string {
+function sqlLiteral(value: unknown): string {
   if (value === null || value === undefined) return "NULL";
   if (typeof value === "number") {
     if (!Number.isFinite(value)) return "NULL";
     return String(value);
   }
   if (Array.isArray(value)) {
-    // `roles` is Postgres text[]; relationship objects (and empty []) stay jsonb.
-    if (column === "roles") {
-      if (value.length === 0) return `'{}'::text[]`;
-      const items = value.map((item) => sqlLiteral(item)).join(", ");
-      return `ARRAY[${items}]::text[]`;
-    }
     const json = JSON.stringify(value).replace(/'/g, "''");
     return `'${json}'::jsonb`;
   }
@@ -85,37 +83,71 @@ function sqlLiteral(value: unknown, column?: string): string {
   return `'${text}'`;
 }
 
-/** Only provider-synced columns — never wipe app-owned values on re-seed. */
-function buildUpdateAssignments(): string {
-  return EXTERNAL_SYNC_COLUMNS.map((column) => `${column} = excluded.${column}`).join(",\n    ");
+/**
+ * Normal seed: provider + app-authoritative columns fill NULLs only.
+ * Never stamps `updated_at` from the snapshot (preserves edit times).
+ */
+function buildFillNullAssignments(): string {
+  const columns = [
+    ...PROVIDER_IMPORT_COLUMNS,
+    ...APP_AUTHORITATIVE_COLUMNS.filter((column) => column !== "created_at"),
+  ];
+  return columns.map(fillNullAssignment).join(",\n    ");
 }
 
-function main(): void {
-  const header = [
-    "-- BP-015 / BP-021 / BP-022E / BP-023A — Generated seed data for production_people.",
+/**
+ * Force refresh: hard-replace provider-import columns only.
+ * App-authoritative columns (UTR, WTN, notes, …) are omitted — Tennis OS wins.
+ */
+function buildForceRefreshAssignments(): string {
+  return [
+    ...PROVIDER_IMPORT_COLUMNS.map(forceRefreshAssignment),
+    "updated_at = excluded.updated_at",
+  ].join(",\n    ");
+}
+
+function buildHeader(mode: "fill-nulls" | "force-refresh"): string {
+  const generated = new Date().toISOString();
+  if (mode === "fill-nulls") {
+    return [
+      "-- BP-026B — Generated seed data for production_people (fill missing only).",
+      "--",
+      "-- GENERATED FILE — do not hand-edit. Produced by `npm run db:generate-seed`",
+      "-- from src/features/people/data.ts (import source adapter; currently Airtable CSV).",
+      "--",
+      `-- Generated: ${generated}`,
+      `-- Records: ${people.length}`,
+      "--",
+      "-- ON CONFLICT: coalesce(existing, excluded) for importable + app fields.",
+      "-- Existing Supabase values are never overwritten. Apply with: npm run db:seed",
+      "-- Force overwrite of provider columns: npm run db:seed:force-refresh",
+      "-- Full wipe only via: npm run db:reset",
+      "",
+    ].join("\n");
+  }
+
+  return [
+    "-- BP-026B — Force Refresh From Provider seed for production_people.",
     "--",
-    `-- GENERATED FILE — do not hand-edit. Produced by \`npm run db:generate-seed\``,
-    "-- (scripts/generate-supabase-seed.ts) from src/features/people/data.ts",
-    "-- (External People sync provider via npm run import:players — currently Airtable CSV).",
-    "-- Re-run the generator to regenerate after data.ts changes.",
+    "-- GENERATED FILE — do not hand-edit. Produced by `npm run db:generate-seed`",
     "--",
-    `-- Generated: ${new Date().toISOString()}`,
+    `-- Generated: ${generated}`,
     `-- Records: ${people.length}`,
     "--",
-    "-- Requires migrations through 0003_people_roles_and_coaches.sql for roles/title.",
-    "-- ON CONFLICT updates provider-synced columns only (BP-022E / BP-023A).",
-    "-- Application-owned fields (utr, wtn, notes, …) are preserved on re-seed.",
-    "-- Full wipe still happens only via `npm run db:reset` (drops the database).",
+    "-- ON CONFLICT: HARD-REPLACES provider-import columns (role, status, hometown,",
+    "-- contact, class, D#, names, …) from the import snapshot — including NULLs.",
+    "-- App-authoritative columns (utr, wtn, notes, relationships, …) are NOT touched.",
+    "-- Apply only via: npm run db:seed:force-refresh",
     "",
   ].join("\n");
+}
 
+function buildStatements(updateAssignments: string): string {
   const columnList = COLUMNS.join(", ");
-  const updateAssignments = buildUpdateAssignments();
-
-  const statements = people
+  return people
     .map((person) => {
       const row = personToRow(person);
-      const values = COLUMNS.map((column) => sqlLiteral(row[column], column)).join(", ");
+      const values = COLUMNS.map((column) => sqlLiteral(row[column])).join(", ");
       return [
         `insert into public.production_people (${columnList})`,
         `values (${values})`,
@@ -124,12 +156,21 @@ function main(): void {
       ].join("\n");
     })
     .join("\n\n");
+}
 
-  writeFileSync(OUTPUT_PATH, `${header}${statements}\n`, "utf-8");
+function main(): void {
+  const fillNull = buildFillNullAssignments();
+  const force = buildForceRefreshAssignments();
 
-  console.log(`Wrote ${people.length} upsert statements to supabase/seed.sql`);
+  writeFileSync(SEED_PATH, `${buildHeader("fill-nulls")}${buildStatements(fillNull)}\n`, "utf-8");
+  writeFileSync(FORCE_PATH, `${buildHeader("force-refresh")}${buildStatements(force)}\n`, "utf-8");
+
+  console.log(`Wrote ${people.length} upsert statements to supabase/seed.sql (fill missing only)`);
   console.log(
-    `ON CONFLICT updates ${EXTERNAL_SYNC_COLUMNS.length} provider-synced columns; app-owned fields preserved.`,
+    `Wrote ${people.length} upsert statements to supabase/seed-force-refresh.sql (force provider columns)`,
+  );
+  console.log(
+    `Provider-import columns: ${PROVIDER_IMPORT_COLUMNS.length}; app-authoritative protected on force: ${APP_AUTHORITATIVE_COLUMNS.length}`,
   );
 }
 

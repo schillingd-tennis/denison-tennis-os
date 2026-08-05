@@ -1,24 +1,30 @@
 /**
- * BP-022E / BP-023A — Field ownership for People sync.
+ * BP-026A / BP-026B — People field ownership (system of record).
  *
- * Denison Tennis OS is the system of record. External tools (currently the
- * Airtable CSV bootstrap) are synchronization sources. Seed & import may
- * update provider-synced columns only. Application-owned columns are never
- * overwritten by seed re-apply (`ON CONFLICT DO UPDATE` omits them).
+ * Denison Tennis OS (Supabase `production_people`) is the permanent system of
+ * record after the initial import. External tools (currently Airtable CSV)
+ * are **import sources only** — never long-term owners.
  *
- * A full `db:reset` still replaces the entire database — intentional and
- * destructive.
+ * Rules:
+ * 1. Runtime edits in Tennis OS are authoritative.
+ * 2. Normal import/seed fills NULL / missing values only (`coalesce(existing, excluded)`).
+ * 3. Overwriting an existing Supabase value requires an explicit
+ *    **Force Refresh From Provider** operation.
+ * 4. Application-authoritative columns are never force-refreshed from import
+ *    snapshots (ratings, notes, relationships, etc.).
  *
+ * Designed so Airtable can be removed without changing the domain model.
  * Keep in sync with `docs/DATA_OWNERSHIP.md` and `docs/SYSTEM_OF_RECORD.md`.
  */
 
 /**
- * Columns written/updated from the current external People sync provider
- * (Airtable CSV → data.ts → seed.sql). Not permanent architectural owners.
+ * Columns an import provider may supply.
+ * - Normal seed: fill only when the live row is NULL.
+ * - Force refresh: hard-replace from the provider snapshot (including NULL).
  */
-export const EXTERNAL_SYNC_COLUMNS = [
-  "status",
-  "roles",
+export const PROVIDER_IMPORT_COLUMNS = [
+  "role_id",
+  "status_id",
   "title",
   "first_name",
   "middle_name",
@@ -34,20 +40,14 @@ export const EXTERNAL_SYNC_COLUMNS = [
   "major",
   "minor",
   "denison_id",
-  "updated_at",
 ] as const;
 
 /**
- * @deprecated Use `EXTERNAL_SYNC_COLUMNS`. Alias kept for call-site clarity
- * during the Airtable bootstrap phase.
+ * Columns Tennis OS owns after first write. Import/seed may fill NULLs on
+ * insert/conflict, but Force Refresh must never overwrite them from a
+ * provider snapshot (CSV often has no column → would wipe to NULL).
  */
-export const AIRTABLE_OWNED_COLUMNS = EXTERNAL_SYNC_COLUMNS;
-
-/**
- * Columns the application owns. Seed INSERT may set initial values on a
- * fresh row; ON CONFLICT must never overwrite existing values.
- */
-export const APP_OWNED_COLUMNS = [
+export const APP_AUTHORITATIVE_COLUMNS = [
   "utr",
   "wtn",
   "notes",
@@ -67,7 +67,36 @@ export const APP_OWNED_COLUMNS = [
   "created_at",
 ] as const;
 
-export type ExternalSyncColumn = (typeof EXTERNAL_SYNC_COLUMNS)[number];
-/** @deprecated Use `ExternalSyncColumn`. */
-export type AirtableOwnedColumn = ExternalSyncColumn;
-export type AppOwnedColumn = (typeof APP_OWNED_COLUMNS)[number];
+/**
+ * @deprecated Use `PROVIDER_IMPORT_COLUMNS`. Alias kept for older call sites.
+ */
+export const EXTERNAL_SYNC_COLUMNS = PROVIDER_IMPORT_COLUMNS;
+
+/**
+ * @deprecated Use `PROVIDER_IMPORT_COLUMNS`.
+ */
+export const AIRTABLE_OWNED_COLUMNS = PROVIDER_IMPORT_COLUMNS;
+
+/**
+ * @deprecated Use `APP_AUTHORITATIVE_COLUMNS`.
+ */
+export const APP_OWNED_COLUMNS = APP_AUTHORITATIVE_COLUMNS;
+
+export type ProviderImportColumn = (typeof PROVIDER_IMPORT_COLUMNS)[number];
+/** @deprecated Use `ProviderImportColumn`. */
+export type ExternalSyncColumn = ProviderImportColumn;
+/** @deprecated Use `ProviderImportColumn`. */
+export type AirtableOwnedColumn = ProviderImportColumn;
+export type AppAuthoritativeColumn = (typeof APP_AUTHORITATIVE_COLUMNS)[number];
+/** @deprecated Use `AppAuthoritativeColumn`. */
+export type AppOwnedColumn = AppAuthoritativeColumn;
+
+/** Fill-missing-only assignment for a column on conflict. */
+export function fillNullAssignment(column: string): string {
+  return `${column} = coalesce(public.production_people.${column}, excluded.${column})`;
+}
+
+/** Hard replace from provider snapshot on conflict (Force Refresh). */
+export function forceRefreshAssignment(column: string): string {
+  return `${column} = excluded.${column}`;
+}

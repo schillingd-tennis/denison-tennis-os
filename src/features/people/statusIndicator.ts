@@ -1,4 +1,5 @@
 import type { StatusDotTone } from "@/components/StatusDot";
+import { ROLE_KEYS, STATUS_KEYS } from "@/features/lookups/seed";
 import type { Person } from "@/features/people/types";
 import {
   getPlayerStatusLabel,
@@ -13,12 +14,11 @@ export type PersonStatusIndicator = {
 
 /**
  * Resolves the compact People / Team status dot for a person.
- *
- * Current / Active → Denison red. Alumni → neutral gray.
+ * Status and role come from lookups — never inferred from each other.
  */
 export function getPersonStatusIndicator(person: Person): PersonStatusIndicator {
-  if (person.status === "alumni") {
-    return { tone: "alumni", label: getStatusLabel(person.status) };
+  if (person.status.key === STATUS_KEYS.former) {
+    return { tone: "alumni", label: getStatusLabel(person) };
   }
 
   switch (person.playerStatus) {
@@ -31,15 +31,15 @@ export function getPersonStatusIndicator(person: Person): PersonStatusIndicator 
     case "graduated":
       return { tone: "alumni", label: getPlayerStatusLabel("graduated") };
     default:
-      if (hasRole(person, "recruit")) {
-        return { tone: "recruit", label: "Recruit" };
+      if (hasRole(person, ROLE_KEYS.recruit)) {
+        return { tone: "recruit", label: person.role.label };
       }
-      if (hasRole(person, "coach") && !(hasRole(person, "player") && person.status === "current")) {
-        return { tone: "coach", label: person.title?.trim() || "Coach" };
+      if (hasRole(person, ROLE_KEYS.coach) || hasRole(person, ROLE_KEYS.staff)) {
+        return { tone: "coach", label: person.title?.trim() || person.role.label };
       }
-      if (person.status === "current") {
-        return { tone: "active", label: getStatusLabel("current") };
+      if (person.status.key === STATUS_KEYS.current) {
+        return { tone: "active", label: getStatusLabel(person) };
       }
-      return { tone: "muted", label: "Status unknown" };
+      return { tone: "muted", label: getStatusLabel(person) };
   }
 }

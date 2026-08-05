@@ -50,9 +50,11 @@ import {
 import { StickyProductivityActionBar } from "@/components/productivity";
 import EmptyState from "@/components/EmptyState";
 
+import { ROLE_KEYS, STATUS_KEYS } from "@/features/lookups/seed";
+import { useRoles, useStatuses } from "@/features/lookups/useLookups";
 import { updatePersonAction } from "@/features/people/actions";
 import type { FamilyContact } from "@/features/people/family";
-import type { Person, PersonStatus, PlayerStatus } from "@/features/people/types";
+import type { Person, PlayerStatus } from "@/features/people/types";
 import {
   formatDenisonIdDisplay,
   formatHeight,
@@ -69,6 +71,7 @@ import {
   isCoachDirectoryPerson,
 } from "@/features/people/utils";
 import { TEAM_FOUND_SET_MODULE_KEY } from "@/features/people/foundSet";
+import { EMPTY_VALUE, formatDate, formatDisplay, formatUtr, formatWtn } from "@/lib/formatting";
 
 import InformationField from "@/components/InformationField";
 import PlayerAvatar from "@/components/PlayerAvatar";
@@ -83,8 +86,8 @@ import PersonRoleBadge from "./PersonRoleBadge";
 import PersonStatusLabel from "./PersonStatusLabel";
 
 function favoriteObjectTypeForPerson(person: Person): SearchObjectType {
-  if (hasRole(person, "coach")) return "coaches";
-  if (hasRole(person, "staff")) return "staff";
+  if (hasRole(person, ROLE_KEYS.coach)) return "coaches";
+  if (hasRole(person, ROLE_KEYS.staff)) return "staff";
   return "people";
 }
 
@@ -114,11 +117,6 @@ const comingLaterModules: { label: string; icon: LucideIcon }[] = [
   { label: "Documents", icon: FileText },
 ];
 
-const statusOptions: InlineSelectOption[] = [
-  { value: "current", label: "Current" },
-  { value: "alumni", label: "Alumni" },
-];
-
 const playerStatusOptions: InlineSelectOption[] = [
   { value: "active", label: "Active" },
   { value: "injured", label: "Injured" },
@@ -143,6 +141,7 @@ const preferredContactOptions: InlineSelectOption[] = [
  */
 type EditableField =
   | "status"
+  | "role"
   | "playerStatus"
   | "firstName"
   | "middleName"
@@ -172,6 +171,7 @@ type EditableField =
 
 const EDITABLE_FIELDS: EditableField[] = [
   "status",
+  "role",
   "playerStatus",
   "firstName",
   "middleName",
@@ -239,11 +239,22 @@ export default function PersonWorkspace({
   const [fieldError, setFieldError] = useState<string | undefined>(undefined);
   const [copyFeedback, setCopyFeedback] = useState<string | undefined>(undefined);
   const { status: saveStatus, error: saveError, runSave } = useSaveIndicator();
+  const roles = useRoles();
+  const statuses = useStatuses();
 
   if (person !== trackedPerson) {
     setTrackedPerson(person);
     setRecord(person);
   }
+
+  const statusOptions: InlineSelectOption[] = statuses.map((status) => ({
+    value: status.id,
+    label: status.label,
+  }));
+  const roleOptions: InlineSelectOption[] = roles.map((role) => ({
+    value: role.id,
+    label: role.label,
+  }));
 
   const fullName = getFullDisplayName(record);
   const displayName = getDisplayName(record);
@@ -294,7 +305,25 @@ export default function PersonWorkspace({
       switch (field) {
         case "status": {
           if (!raw) return { patch: {}, error: "Status is required." };
-          return { patch: { status: raw as PersonStatus } };
+          const status = statuses.find((entry) => entry.id === raw);
+          if (!status) return { patch: {}, error: "Status is required." };
+          return {
+            patch: {
+              statusId: status.id,
+              status: { id: status.id, key: status.key, label: status.label },
+            },
+          };
+        }
+        case "role": {
+          if (!raw) return { patch: {}, error: "Role is required." };
+          const role = roles.find((entry) => entry.id === raw);
+          if (!role) return { patch: {}, error: "Role is required." };
+          return {
+            patch: {
+              roleId: role.id,
+              role: { id: role.id, key: role.key, label: role.label },
+            },
+          };
         }
         case "playerStatus": {
           return { patch: { playerStatus: (raw || undefined) as PlayerStatus | undefined } };
@@ -420,7 +449,7 @@ export default function PersonWorkspace({
         }
       }
     },
-    [],
+    [roles, statuses],
   );
 
   const handleCommit = useCallback(
@@ -433,9 +462,13 @@ export default function PersonWorkspace({
 
       setFieldError(undefined);
 
-      const unchanged = Object.entries(patch).every(([key, value]) =>
-        valuesEqual(record[key as keyof Person], value),
-      );
+      // Compare FK ids only — nested lookup refs are display joins.
+      const unchanged =
+        (patch.roleId === undefined || patch.roleId === record.roleId) &&
+        (patch.statusId === undefined || patch.statusId === record.statusId) &&
+        Object.entries(patch)
+          .filter(([key]) => key !== "role" && key !== "status" && key !== "roleId" && key !== "statusId")
+          .every(([key, value]) => valuesEqual(record[key as keyof Person], value));
 
       if (unchanged) {
         if (reason === "tab") moveEditing(field, "next");
@@ -594,12 +627,12 @@ export default function PersonWorkspace({
               <div className="flex flex-wrap items-center gap-2">
                 <InlineEditCell
                   label="Status"
-                  value={record.status}
-                  displayValue={getStatusLabel(record.status)}
+                  value={record.statusId}
+                  displayValue={getStatusLabel(record)}
                   renderDisplay={
                     <PersonStatusLabel
-                      tone={record.status === "alumni" ? "alumni" : "active"}
-                      label={getStatusLabel(record.status)}
+                      tone={record.status.key === STATUS_KEYS.former ? "alumni" : "active"}
+                      label={getStatusLabel(record)}
                     />
                   }
                   type="select"
@@ -609,6 +642,21 @@ export default function PersonWorkspace({
                   onRequestEdit={() => startEdit("status")}
                   onCancel={cancelEdit}
                   onCommit={(raw, reason) => handleCommit("status", raw, reason)}
+                />
+                <InlineEditCell
+                  label="Role"
+                  value={record.roleId}
+                  displayValue={record.role.label}
+                  renderDisplay={
+                    <span className="text-sm font-medium text-text-primary">{record.role.label}</span>
+                  }
+                  type="select"
+                  options={roleOptions}
+                  editing={isEditing("role")}
+                  error={isEditing("role") ? fieldError : undefined}
+                  onRequestEdit={() => startEdit("role")}
+                  onCancel={cancelEdit}
+                  onCommit={(raw, reason) => handleCommit("role", raw, reason)}
                 />
                 {!coachDirectory ? (
                   <InlineEditCell
@@ -638,18 +686,22 @@ export default function PersonWorkspace({
                 ) : null}
               </div>
               <p className={`${typeRole.metadata} leading-relaxed`}>
-                {(coachDirectory
-                  ? [hometown, phoneDisplay, email]
-                  : [
-                      record.classYear ? `Class of ${record.classYear}` : null,
-                      record.major,
-                      hometown,
-                      record.utr !== undefined ? `UTR ${record.utr.toFixed(1)}` : null,
-                      record.wtn !== undefined ? `WTN ${record.wtn.toFixed(1)}` : null,
-                    ]
-                )
-                  .filter(Boolean)
-                  .join(" · ")}
+                {(() => {
+                  const utrLine = formatUtr(record.utr);
+                  const wtnLine = formatWtn(record.wtn);
+                  return (coachDirectory
+                    ? [hometown, phoneDisplay, email]
+                    : [
+                        record.classYear ? `Class of ${record.classYear}` : null,
+                        record.major,
+                        hometown,
+                        utrLine !== EMPTY_VALUE ? `UTR ${utrLine}` : null,
+                        wtnLine !== EMPTY_VALUE ? `WTN ${wtnLine}` : null,
+                      ]
+                  )
+                    .filter(Boolean)
+                    .join(" · ");
+                })()}
               </p>
             </div>
           </div>
@@ -666,17 +718,11 @@ export default function PersonWorkspace({
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
-          <SummaryStat
-            label="UTR"
-            value={record.utr !== undefined ? record.utr.toFixed(1) : undefined}
-          />
-          <SummaryStat
-            label="WTN"
-            value={record.wtn !== undefined ? record.wtn.toFixed(1) : undefined}
-          />
+          <SummaryStat label="UTR" value={formatUtr(record.utr)} />
+          <SummaryStat label="WTN" value={formatWtn(record.wtn)} />
           <SummaryStat
             label="Class Year"
-            value={record.classYear ? String(record.classYear) : undefined}
+            value={formatDisplay(record.classYear)}
           />
           <SummaryStat label="Major" value={record.major} />
           <SummaryStat label="Dorm" value={record.dorm} />
@@ -747,7 +793,7 @@ export default function PersonWorkspace({
                   label="Date of Birth"
                   field="dateOfBirth"
                   value={record.dateOfBirth ?? ""}
-                  displayValue={record.dateOfBirth}
+                  displayValue={formatDate(record.dateOfBirth)}
                   type="date"
                   editing={isEditing("dateOfBirth")}
                   error={isEditing("dateOfBirth") ? fieldError : undefined}
@@ -936,9 +982,9 @@ export default function PersonWorkspace({
                   label="UTR"
                   field="utr"
                   value={record.utr !== undefined ? String(record.utr) : ""}
-                  displayValue={record.utr !== undefined ? record.utr.toFixed(1) : undefined}
+                  displayValue={formatUtr(record.utr)}
                   type="number"
-                  step={0.1}
+                  step={0.01}
                   editing={isEditing("utr")}
                   error={isEditing("utr") ? fieldError : undefined}
                   onRequestEdit={() => startEdit("utr")}
@@ -951,9 +997,9 @@ export default function PersonWorkspace({
                   label="WTN"
                   field="wtn"
                   value={record.wtn !== undefined ? String(record.wtn) : ""}
-                  displayValue={record.wtn !== undefined ? record.wtn.toFixed(1) : undefined}
+                  displayValue={formatWtn(record.wtn)}
                   type="number"
-                  step={0.1}
+                  step={0.01}
                   editing={isEditing("wtn")}
                   error={isEditing("wtn") ? fieldError : undefined}
                   onRequestEdit={() => startEdit("wtn")}

@@ -11,6 +11,7 @@ import {
 
 import ValidationMessage from "@/components/editor/ValidationMessage";
 import { typeRole } from "@/components/typography";
+import { EMPTY_VALUE } from "@/lib/formatting";
 
 import { normalizeEmail, normalizePhone, normalizeUrl } from "./formatters";
 import type { InlineCommitReason, InlineFieldType, InlineSelectOption } from "./types";
@@ -217,10 +218,13 @@ export default function InlineEditCell({
   disabled,
   error,
   align = "left",
-  /** `metadata` = quieter directory cells; `default` = workspace field values. */
+  /**
+   * `directory` / `metadata` = Team directory secondary token (BP-025H);
+   * `default` = workspace field values.
+   */
   emphasis = "default",
   className,
-  emptyDisplay = "—",
+  emptyDisplay = EMPTY_VALUE,
   onRequestEdit,
   onCancel,
   onCommit,
@@ -240,7 +244,7 @@ export default function InlineEditCell({
   disabled?: boolean;
   error?: string;
   align?: "left" | "right";
-  emphasis?: "default" | "metadata";
+  emphasis?: "default" | "metadata" | "directory";
   className?: string;
   emptyDisplay?: string;
   onRequestEdit: () => void;
@@ -302,15 +306,14 @@ export default function InlineEditCell({
       ) : (
         (renderDisplay ?? (
           <span
-            className={`whitespace-pre-wrap ${
-              emphasis === "metadata"
-                ? value
-                  ? typeRole.metadata
-                  : `${typeRole.metadataSm} ${typeRole.metadataEmpty}`
+            className={
+              emphasis === "directory" || emphasis === "metadata"
+                ? // Same token for filled and empty — directory hierarchy (BP-025H).
+                  typeRole.directoryMeta
                 : value
-                  ? typeRole.fieldValue
-                  : `text-sm ${typeRole.metadataEmpty}`
-            }`}
+                  ? `whitespace-pre-wrap ${typeRole.fieldValue}`
+                  : `whitespace-pre-wrap text-sm ${typeRole.metadataEmpty}`
+            }
           >
             {shown}
           </span>

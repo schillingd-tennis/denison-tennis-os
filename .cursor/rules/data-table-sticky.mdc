@@ -1,0 +1,22 @@
+---
+description: Sticky Name + Actions columns for OS data tables (BP-028A)
+globs: src/components/data-table/**/*,src/features/**/components/**/*List*.tsx
+alwaysApply: false
+---
+
+# Sticky Directory Columns
+
+Large data tables in Denison Tennis OS use this layout:
+
+1. **Sticky left** — Name / identity (`stickyLeadingThClass` / `stickyLeadingTdClass`)
+2. **Scrollable middle** — Role, Hometown, Class, ratings, etc.
+3. **Sticky right** — Actions (`stickyTrailingThClass` / `stickyTrailingTdClass`)
+
+Import from `@/components/data-table/stickyColumns`. Put `stickyColumnRowClass` on each `<tr>`.
+
+- Actions width: `STICKY_ACTIONS_COLUMN_WIDTH_CLASS` (fits Call / Text / Email; never clip/wrap/shrink).
+- Name flexes and consumes remaining width.
+- Middle columns stay content-sized (`whitespace-nowrap` + fixed/`w-auto` cols).
+- Hover / `aria-selected` / `data-selected` backgrounds must track on sticky cells via `group/row`.
+
+Do not reimplement sticky CSS in feature modules.

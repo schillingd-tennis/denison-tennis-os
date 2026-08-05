@@ -2,6 +2,10 @@
 
 import { Search } from "lucide-react";
 
+/**
+ * Primary toolbar search field — 44px height, soft border, quiet placeholder.
+ * Behavior (controlled value / onChange) is intentionally unchanged.
+ */
 export default function SearchInput({
   value,
   onChange,
@@ -12,9 +16,9 @@ export default function SearchInput({
   placeholder?: string;
 }) {
   return (
-    <div className="relative flex-1">
+    <div className="relative w-full">
       <Search
-        className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-text-secondary"
+        className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-text-secondary/55"
         strokeWidth={1.75}
       />
       <input
@@ -22,7 +26,7 @@ export default function SearchInput({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="h-10 w-full rounded-control border border-border bg-surface pr-3 pl-9 text-sm text-text-primary transition-colors duration-150 placeholder:text-text-secondary focus:border-denison-red focus:ring-1 focus:ring-denison-red focus:outline-none"
+        className="h-11 w-full rounded-control border border-border/70 bg-surface pr-4 pl-10 text-sm text-text-primary transition-[border-color,box-shadow] duration-150 placeholder:text-text-secondary/45 focus:border-denison-red/45 focus:ring-1 focus:ring-denison-red/25 focus:outline-none"
       />
     </div>
   );

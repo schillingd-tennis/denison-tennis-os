@@ -6,6 +6,7 @@
  *
  * Hierarchy:
  *   personName / personNameHero  → strongest
+ *   directoryMeta                → Team directory secondary (BP-025H)
  *   fieldValue                   → readable content under labels
  *   metadata / metadataSm        → quieter supporting facts
  *   sectionTitle / sectionLabel / tableHeader → structure, not content
@@ -18,6 +19,14 @@ export const typeRole = {
   /** Workspace hero name. */
   personNameHero: "text-2xl font-semibold tracking-tight text-text-primary",
 
+  /**
+   * Team directory secondary (BP-025H).
+   * Role, Hometown, Class, UTR, WTN, and future directory columns inherit this
+   * unless explicitly promoted. Only Name (`personName`) receives emphasis.
+   */
+  directoryMeta:
+    "truncate whitespace-nowrap text-sm font-normal text-text-secondary",
+
   /** Quiet identity under a name (RoleBadge). */
   identityMeta: "max-w-full truncate text-[11px] font-normal text-text-secondary",
 
@@ -27,7 +36,7 @@ export const typeRole = {
   /** Denser supporting text (detail lines, counts, status labels). */
   metadataSm: "text-xs text-text-secondary",
 
-  /** Empty / placeholder dashes. */
+  /** Empty / placeholder dashes (workspace / non-directory). */
   metadataEmpty: "text-text-secondary/45",
 
   /** Directory table column headers. */

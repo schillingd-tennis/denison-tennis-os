@@ -1,0 +1,37 @@
+---
+description: Team directory information hierarchy (BP-025H)
+globs: src/features/people/components/PersonList.tsx,src/features/people/components/PeopleDirectory.tsx,src/features/people/directoryHierarchy.ts,src/components/data-table/**
+alwaysApply: false
+---
+
+# Team Directory Hierarchy
+
+Team is a directory, not a database table. Only two typography levels:
+
+1. **Primary** — Name (`TEAM_DIRECTORY_NAME` / `typeRole.personName`)
+2. **Secondary** — everything else (`TEAM_DIRECTORY_META` / `typeRole.directoryMeta`)
+
+## Rules
+
+- Only names receive emphasis (weight / primary color).
+- Role, Hometown, Class, UTR, WTN, and any future List columns inherit `TEAM_DIRECTORY_META` unless explicitly promoted.
+- No per-column font size, weight, or color overrides on metadata.
+- Missing values always render as `—` (`TEAM_DIRECTORY_EMPTY`) — never blank cells.
+- Rows keep identical height; truncate / `whitespace-nowrap` — no wrapping that changes row height.
+- Sticky Name (left) + sticky Actions (right); middle columns scroll (see `data-table-sticky.mdc`).
+- Administrative fields (D#, phone/email text) belong in Person Workspace, not the directory.
+
+## Example
+
+```tsx
+import {
+  TEAM_DIRECTORY_EMPTY,
+  TEAM_DIRECTORY_META,
+  TEAM_DIRECTORY_NAME,
+  directoryCellValue,
+} from "@/features/people/directoryHierarchy";
+
+<span className={TEAM_DIRECTORY_NAME}>{name}</span>
+<span className={TEAM_DIRECTORY_META}>{directoryCellValue(role)}</span>
+<span className={TEAM_DIRECTORY_META}>{TEAM_DIRECTORY_EMPTY}</span>
+```
