@@ -169,7 +169,7 @@ function InlineEditInput({
  * A single spreadsheet-style editable cell.
  *
  * - Double click / Enter / F2 → enter edit mode (stops row-level click handlers)
- * - Single click is swallowed so parent rows can own "click elsewhere → open record"
+ * - Single click bubbles so parent rows can navigate on click
  * - Enter → commit + exit
  * - Tab / Shift+Tab → commit + ask parent to move focus
  * - Escape → cancel, restore original
@@ -227,14 +227,10 @@ export default function InlineEditCell({
   const shown = displayValue !== undefined && displayValue !== "" ? displayValue : value || emptyDisplay;
   const alignClass = align === "right" ? "text-right" : "text-left";
 
-  function handleClick(event: MouseEvent) {
-    // Keep row-level "click elsewhere → open" from firing on editable cells.
-    event.stopPropagation();
-  }
-
   function handleDoubleClick(event: MouseEvent) {
     if (disabled) return;
     event.preventDefault();
+    // Stop the row's single-click navigation; parent also cancels any pending timer.
     event.stopPropagation();
     onRequestEdit();
   }
@@ -256,10 +252,9 @@ export default function InlineEditCell({
       // hydration mismatches in Next's table markup.
       tabIndex={editing || disabled ? -1 : 0}
       aria-label={`${label}: ${shown}`}
-      onClick={editing ? undefined : handleClick}
       onDoubleClick={editing ? undefined : handleDoubleClick}
       onKeyDown={editing ? undefined : handleCellKeyDown}
-      className={`${editing ? "" : `-mx-1 cursor-cell rounded-control px-1 py-0.5 outline-none transition-colors duration-150 hover:bg-app-background focus-visible:ring-2 focus-visible:ring-denison-red/40 ${disabled ? "cursor-default hover:bg-transparent" : ""}`} ${alignClass} ${className ?? ""}`}
+      className={`${editing ? "" : `-mx-1 cursor-cell rounded-control px-1 py-0.5 outline-none transition-colors duration-150 hover:bg-denison-red/[0.04] focus-visible:ring-2 focus-visible:ring-denison-red/40 ${disabled ? "cursor-default hover:bg-transparent" : ""}`} ${alignClass} ${className ?? ""}`}
       title={editing || disabled ? undefined : `Double-click to edit ${label}`}
     >
       {editing ? (

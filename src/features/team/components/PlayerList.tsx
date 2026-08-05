@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useRef, useState, type MouseEvent } from "react";
-import { ArrowRight } from "lucide-react";
+import { Mail, MessageSquare, Phone } from "lucide-react";
 
 import type { ColumnDef } from "@/components/data-table/types";
 import { useSortableData } from "@/components/data-table/useSortableData";
@@ -20,6 +20,7 @@ import {
   InlineEditCell,
   normalizeEmail,
   normalizePhone,
+  phoneHrefDigits,
   SaveIndicator,
   useSaveIndicator,
   type InlineCommitReason,
@@ -36,6 +37,7 @@ import {
 } from "@/features/people/utils";
 
 import PlayerAvatar from "@/components/PlayerAvatar";
+import QuickActionButton from "@/components/QuickActionButton";
 import StatusBadge from "@/components/StatusBadge";
 
 type PersonColumnKey =
@@ -45,7 +47,6 @@ type PersonColumnKey =
   | "email"
   | "hometown"
   | "classYear"
-  | "major"
   | "utr"
   | "wtn";
 
@@ -58,7 +59,6 @@ const EDITABLE_FIELDS: EditableField[] = [
   "email",
   "hometown",
   "classYear",
-  "major",
   "utr",
   "wtn",
 ];
@@ -75,7 +75,7 @@ type EditingCell = { personId: string; field: EditableField };
 
 /**
  * Column definitions for the Team List view — sorting via the Universal
- * DataTable engine, inline editing via `InlineEditCell` (BP-019A).
+ * DataTable engine, inline editing via `InlineEditCell` (BP-019A / BP-020).
  */
 const columns: ColumnDef<Person, PersonColumnKey>[] = [
   {
@@ -128,14 +128,6 @@ const columns: ColumnDef<Person, PersonColumnKey>[] = [
     defaultSort: "asc",
   },
   {
-    id: "major",
-    title: "Major",
-    sortable: true,
-    sortType: "text",
-    accessor: (person) => person.major,
-    defaultSort: "asc",
-  },
-  {
     id: "utr",
     title: "UTR",
     sortable: true,
@@ -182,6 +174,16 @@ function emailFieldKey(person: Person): "personalEmail" | "denisonEmail" {
 
 function emailForList(person: Person): string | undefined {
   return person.personalEmail ?? person.denisonEmail;
+}
+
+function contactHrefs(person: Person) {
+  const digits = phoneHrefDigits(person.cellPhone);
+  const email = emailForList(person);
+  return {
+    tel: digits ? `tel:${digits}` : undefined,
+    sms: digits ? `sms:${digits}` : undefined,
+    mailto: email ? `mailto:${email}` : undefined,
+  };
 }
 
 export default function PlayerList({ people }: { people: Person[] }) {
@@ -297,10 +299,6 @@ export default function PlayerList({ people }: { people: Person[] }) {
           if (value === undefined) return { patch: {}, error: "Class year must be a number." };
           return { patch: { classYear: value } };
         }
-        case "major": {
-          const trimmed = raw.trim();
-          return { patch: { major: trimmed === "" ? undefined : trimmed } };
-        }
         case "utr": {
           if (raw.trim() === "") return { patch: { utr: undefined } };
           const value = toOptionalNumber(raw);
@@ -415,208 +413,222 @@ export default function PlayerList({ people }: { people: Person[] }) {
       </div>
 
       <div className="relative overflow-hidden rounded-card border border-border bg-surface">
-      <div className="hidden overflow-x-auto md:block">
-        <table className="w-full min-w-[1100px] text-left text-sm" role="grid" aria-label="Team list">
-          <thead>
-            <tr className="border-b border-border text-xs font-medium tracking-wide text-text-secondary uppercase">
-              {columns.map((column) => (
-                <SortableColumnHeader
-                  key={column.id}
-                  label={column.title}
-                  align={column.align}
-                  sortDirection={sort?.key === column.id ? sort.direction : null}
-                  onSort={() => toggleSort(column.id)}
-                />
-              ))}
-              <th className="px-5 py-3.5 text-right font-medium">Workspace</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedItems.map((person) => {
-              const displayName = getDisplayName(person);
-              const hometown = getHometown(person);
-              const phoneDisplay = formatPhoneDisplay(person.cellPhone);
-              const emailDisplay = emailForList(person);
+        <div className="hidden overflow-x-auto md:block">
+          <table className="w-full min-w-[1040px] text-left text-sm" role="grid" aria-label="Team list">
+            <thead>
+              <tr className="border-b border-border text-xs font-medium tracking-wide text-text-secondary uppercase">
+                {columns.map((column) => (
+                  <SortableColumnHeader
+                    key={column.id}
+                    label={column.title}
+                    align={column.align}
+                    sortDirection={sort?.key === column.id ? sort.direction : null}
+                    onSort={() => toggleSort(column.id)}
+                  />
+                ))}
+                <th className="px-4 py-3.5 text-right font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedItems.map((person) => {
+                const displayName = getDisplayName(person);
+                const hometown = getHometown(person);
+                const phoneDisplay = formatPhoneDisplay(person.cellPhone);
+                const emailDisplay = emailForList(person);
+                const hrefs = contactHrefs(person);
 
-              return (
-                <tr
-                  key={person.id}
-                  onClick={() => handleRowClick(person.id)}
-                  className="cursor-pointer border-b border-border/60 transition-colors duration-150 last:border-b-0 hover:bg-app-background"
-                >
-                  <td className="px-5 py-4" onClick={stopRowNavigation}>
-                    <Link
-                      href={`/team/${person.id}`}
-                      className="flex items-center gap-3.5"
-                    >
-                      <PlayerAvatar photoUrl={person.photoUrl} initials={getInitials(person)} size={36} />
-                      <span className="text-[15px] font-semibold text-text-primary">{displayName}</span>
-                    </Link>
-                  </td>
-                  <td className="px-5 py-4">
-                    <InlineEditCell
-                      label="Status"
-                      value={person.status}
-                      displayValue={getStatusLabel(person.status)}
-                      renderDisplay={
-                        <StatusBadge
-                          label={getStatusLabel(person.status)}
-                          tone={getStatusTone(person.status)}
+                return (
+                  <tr
+                    key={person.id}
+                    onClick={() => handleRowClick(person.id)}
+                    className="h-14 cursor-pointer border-b border-border/60 transition-colors duration-150 last:border-b-0 hover:bg-denison-red/[0.03]"
+                  >
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-3.5">
+                        <PlayerAvatar
+                          photoUrl={person.photoUrl}
+                          initials={getInitials(person)}
+                          size={36}
                         />
-                      }
-                      type="select"
-                      options={statusOptions}
-                      editing={isEditing(person.id, "status")}
-                      error={isEditing(person.id, "status") ? fieldError : undefined}
-                      onRequestEdit={() => startEdit(person.id, "status")}
-                      onCancel={cancelEdit}
-                      onCommit={(raw, reason) => handleCommit(person.id, "status", raw, reason)}
-                    />
-                  </td>
-                  <td className="px-5 py-4">
-                    <InlineEditCell
-                      label="Phone"
-                      value={person.cellPhone ?? ""}
-                      displayValue={phoneDisplay}
-                      type="tel"
-                      editing={isEditing(person.id, "phone")}
-                      error={isEditing(person.id, "phone") ? fieldError : undefined}
-                      onRequestEdit={() => startEdit(person.id, "phone")}
-                      onCancel={cancelEdit}
-                      onCommit={(raw, reason) => handleCommit(person.id, "phone", raw, reason)}
-                    />
-                  </td>
-                  <td className="px-5 py-4">
-                    <InlineEditCell
-                      label="Email"
-                      value={person[emailFieldKey(person)] ?? ""}
-                      displayValue={emailDisplay}
-                      type="email"
-                      editing={isEditing(person.id, "email")}
-                      error={isEditing(person.id, "email") ? fieldError : undefined}
-                      onRequestEdit={() => startEdit(person.id, "email")}
-                      onCancel={cancelEdit}
-                      onCommit={(raw, reason) => handleCommit(person.id, "email", raw, reason)}
-                    />
-                  </td>
-                  <td className="px-5 py-4">
-                    <InlineEditCell
-                      label="Hometown"
-                      value={hometown ?? ""}
-                      displayValue={hometown}
-                      editing={isEditing(person.id, "hometown")}
-                      error={isEditing(person.id, "hometown") ? fieldError : undefined}
-                      onRequestEdit={() => startEdit(person.id, "hometown")}
-                      onCancel={cancelEdit}
-                      onCommit={(raw, reason) => handleCommit(person.id, "hometown", raw, reason)}
-                    />
-                  </td>
-                  <td className="px-5 py-4">
-                    <InlineEditCell
-                      label="Class"
-                      value={person.classYear !== undefined ? String(person.classYear) : ""}
-                      displayValue={person.classYear !== undefined ? String(person.classYear) : undefined}
-                      type="number"
-                      editing={isEditing(person.id, "classYear")}
-                      error={isEditing(person.id, "classYear") ? fieldError : undefined}
-                      onRequestEdit={() => startEdit(person.id, "classYear")}
-                      onCancel={cancelEdit}
-                      onCommit={(raw, reason) => handleCommit(person.id, "classYear", raw, reason)}
-                    />
-                  </td>
-                  <td className="px-5 py-4">
-                    <InlineEditCell
-                      label="Major"
-                      value={person.major ?? ""}
-                      displayValue={person.major}
-                      editing={isEditing(person.id, "major")}
-                      error={isEditing(person.id, "major") ? fieldError : undefined}
-                      onRequestEdit={() => startEdit(person.id, "major")}
-                      onCancel={cancelEdit}
-                      onCommit={(raw, reason) => handleCommit(person.id, "major", raw, reason)}
-                    />
-                  </td>
-                  <td className="px-5 py-4">
-                    <InlineEditCell
-                      label="UTR"
-                      value={person.utr !== undefined ? String(person.utr) : ""}
-                      displayValue={person.utr !== undefined ? person.utr.toFixed(1) : undefined}
-                      type="number"
-                      step={0.1}
-                      editing={isEditing(person.id, "utr")}
-                      error={isEditing(person.id, "utr") ? fieldError : undefined}
-                      onRequestEdit={() => startEdit(person.id, "utr")}
-                      onCancel={cancelEdit}
-                      onCommit={(raw, reason) => handleCommit(person.id, "utr", raw, reason)}
-                    />
-                  </td>
-                  <td className="px-5 py-4">
-                    <InlineEditCell
-                      label="WTN"
-                      value={person.wtn !== undefined ? String(person.wtn) : ""}
-                      displayValue={person.wtn !== undefined ? person.wtn.toFixed(1) : undefined}
-                      type="number"
-                      step={0.1}
-                      editing={isEditing(person.id, "wtn")}
-                      error={isEditing(person.id, "wtn") ? fieldError : undefined}
-                      onRequestEdit={() => startEdit(person.id, "wtn")}
-                      onCancel={cancelEdit}
-                      onCommit={(raw, reason) => handleCommit(person.id, "wtn", raw, reason)}
-                    />
-                  </td>
-                  <td className="px-5 py-4 text-right" onClick={stopRowNavigation}>
-                    <Link
-                      href={`/team/${person.id}`}
-                      className="inline-flex items-center gap-1 text-sm text-text-secondary transition-colors duration-150 hover:text-denison-red"
-                    >
-                      Open
-                      <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.75} />
-                    </Link>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                        <span className="text-[15px] font-semibold text-text-primary">
+                          {displayName}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3">
+                      <InlineEditCell
+                        label="Status"
+                        value={person.status}
+                        displayValue={getStatusLabel(person.status)}
+                        renderDisplay={
+                          <StatusBadge
+                            label={getStatusLabel(person.status)}
+                            tone={getStatusTone(person.status)}
+                          />
+                        }
+                        type="select"
+                        options={statusOptions}
+                        editing={isEditing(person.id, "status")}
+                        error={isEditing(person.id, "status") ? fieldError : undefined}
+                        onRequestEdit={() => startEdit(person.id, "status")}
+                        onCancel={cancelEdit}
+                        onCommit={(raw, reason) => handleCommit(person.id, "status", raw, reason)}
+                      />
+                    </td>
+                    <td className="px-5 py-3">
+                      <InlineEditCell
+                        label="Phone"
+                        value={person.cellPhone ?? ""}
+                        displayValue={phoneDisplay}
+                        type="tel"
+                        editing={isEditing(person.id, "phone")}
+                        error={isEditing(person.id, "phone") ? fieldError : undefined}
+                        onRequestEdit={() => startEdit(person.id, "phone")}
+                        onCancel={cancelEdit}
+                        onCommit={(raw, reason) => handleCommit(person.id, "phone", raw, reason)}
+                      />
+                    </td>
+                    <td className="px-5 py-3">
+                      <InlineEditCell
+                        label="Email"
+                        value={person[emailFieldKey(person)] ?? ""}
+                        displayValue={emailDisplay}
+                        type="email"
+                        editing={isEditing(person.id, "email")}
+                        error={isEditing(person.id, "email") ? fieldError : undefined}
+                        onRequestEdit={() => startEdit(person.id, "email")}
+                        onCancel={cancelEdit}
+                        onCommit={(raw, reason) => handleCommit(person.id, "email", raw, reason)}
+                      />
+                    </td>
+                    <td className="px-5 py-3">
+                      <InlineEditCell
+                        label="Hometown"
+                        value={hometown ?? ""}
+                        displayValue={hometown}
+                        editing={isEditing(person.id, "hometown")}
+                        error={isEditing(person.id, "hometown") ? fieldError : undefined}
+                        onRequestEdit={() => startEdit(person.id, "hometown")}
+                        onCancel={cancelEdit}
+                        onCommit={(raw, reason) => handleCommit(person.id, "hometown", raw, reason)}
+                      />
+                    </td>
+                    <td className="px-5 py-3">
+                      <InlineEditCell
+                        label="Class"
+                        value={person.classYear !== undefined ? String(person.classYear) : ""}
+                        displayValue={
+                          person.classYear !== undefined ? String(person.classYear) : undefined
+                        }
+                        type="number"
+                        editing={isEditing(person.id, "classYear")}
+                        error={isEditing(person.id, "classYear") ? fieldError : undefined}
+                        onRequestEdit={() => startEdit(person.id, "classYear")}
+                        onCancel={cancelEdit}
+                        onCommit={(raw, reason) =>
+                          handleCommit(person.id, "classYear", raw, reason)
+                        }
+                      />
+                    </td>
+                    <td className="px-5 py-3">
+                      <InlineEditCell
+                        label="UTR"
+                        value={person.utr !== undefined ? String(person.utr) : ""}
+                        displayValue={person.utr !== undefined ? person.utr.toFixed(1) : undefined}
+                        type="number"
+                        step={0.1}
+                        editing={isEditing(person.id, "utr")}
+                        error={isEditing(person.id, "utr") ? fieldError : undefined}
+                        onRequestEdit={() => startEdit(person.id, "utr")}
+                        onCancel={cancelEdit}
+                        onCommit={(raw, reason) => handleCommit(person.id, "utr", raw, reason)}
+                      />
+                    </td>
+                    <td className="px-5 py-3">
+                      <InlineEditCell
+                        label="WTN"
+                        value={person.wtn !== undefined ? String(person.wtn) : ""}
+                        displayValue={person.wtn !== undefined ? person.wtn.toFixed(1) : undefined}
+                        type="number"
+                        step={0.1}
+                        editing={isEditing(person.id, "wtn")}
+                        error={isEditing(person.id, "wtn") ? fieldError : undefined}
+                        onRequestEdit={() => startEdit(person.id, "wtn")}
+                        onCancel={cancelEdit}
+                        onCommit={(raw, reason) => handleCommit(person.id, "wtn", raw, reason)}
+                      />
+                    </td>
+                    <td className="px-4 py-3 text-right" onClick={stopRowNavigation}>
+                      <div className="inline-flex items-center justify-end gap-1.5">
+                        <QuickActionButton
+                          href={hrefs.sms}
+                          icon={MessageSquare}
+                          label="Text"
+                          tone="denison"
+                          className="text-text-secondary hover:border-denison-red/30 hover:bg-denison-red/5 hover:text-denison-red"
+                        />
+                        <QuickActionButton
+                          href={hrefs.tel}
+                          icon={Phone}
+                          label="Call"
+                          tone="denison"
+                          className="text-text-secondary hover:border-denison-red/30 hover:bg-denison-red/5 hover:text-denison-red"
+                        />
+                        <QuickActionButton
+                          href={hrefs.mailto}
+                          icon={Mail}
+                          label="Email"
+                          tone="denison"
+                          className="text-text-secondary hover:border-denison-red/30 hover:bg-denison-red/5 hover:text-denison-red"
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
 
-      {/* Mobile: stacked records, navigation only (inline edit is a desktop pattern) */}
-      <ul className="divide-y divide-border/60 md:hidden">
-        {sortedItems.map((person) => {
-          const displayName = getDisplayName(person);
-          const hometown = getHometown(person);
-          const detailLine = [
-            person.classYear ? `Class of ${person.classYear}` : null,
-            hometown,
-            person.major,
-          ]
-            .filter(Boolean)
-            .join(" · ");
+        {/* Mobile: stacked records, navigation only (inline edit / quick actions are desktop) */}
+        <ul className="divide-y divide-border/60 md:hidden">
+          {sortedItems.map((person) => {
+            const displayName = getDisplayName(person);
+            const hometown = getHometown(person);
+            const detailLine = [person.classYear ? `Class of ${person.classYear}` : null, hometown]
+              .filter(Boolean)
+              .join(" · ");
 
-          return (
-            <li key={person.id}>
-              <Link
-                href={`/team/${person.id}`}
-                className="flex items-center gap-3.5 px-5 py-5 transition-colors duration-150 active:bg-app-background"
-              >
-                <PlayerAvatar photoUrl={person.photoUrl} initials={getInitials(person)} size={44} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="truncate text-[15px] font-semibold text-text-primary">{displayName}</p>
-                    <StatusBadge
-                      label={getStatusLabel(person.status)}
-                      tone={getStatusTone(person.status)}
-                    />
+            return (
+              <li key={person.id}>
+                <Link
+                  href={`/team/${person.id}`}
+                  className="flex items-center gap-3.5 px-5 py-5 transition-colors duration-150 active:bg-denison-red/[0.03]"
+                >
+                  <PlayerAvatar
+                    photoUrl={person.photoUrl}
+                    initials={getInitials(person)}
+                    size={44}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate text-[15px] font-semibold text-text-primary">
+                        {displayName}
+                      </p>
+                      <StatusBadge
+                        label={getStatusLabel(person.status)}
+                        tone={getStatusTone(person.status)}
+                      />
+                    </div>
+                    {detailLine ? (
+                      <p className="mt-1 truncate text-sm text-text-secondary">{detailLine}</p>
+                    ) : null}
                   </div>
-                  {detailLine ? (
-                    <p className="mt-1 truncate text-sm text-text-secondary">{detailLine}</p>
-                  ) : null}
-                </div>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
       </div>
     </div>
   );

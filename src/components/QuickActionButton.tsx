@@ -37,7 +37,8 @@ export default function QuickActionButton({
   tone: QuickActionTone;
   className?: string;
 }) {
-  const baseClassName = `flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-surface transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-denison-red ${className}`;
+  const baseClassName =
+    "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-surface transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-denison-red";
 
   if (!href) {
     return (
@@ -47,7 +48,7 @@ export default function QuickActionButton({
         aria-disabled="true"
         aria-label={`${label} unavailable`}
         title={`${label} unavailable`}
-        className={`${baseClassName} cursor-not-allowed text-text-secondary/40`}
+        className={`${baseClassName} cursor-not-allowed text-text-secondary/40 ${className}`}
       >
         <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
       </button>
@@ -55,8 +56,8 @@ export default function QuickActionButton({
   }
 
   const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
-    // Quick actions sit above a full-card overlay link — never let the
-    // click bubble up into that link's navigation.
+    // Quick actions sit above a full-card / row click target — never let the
+    // click bubble up into that surface's navigation.
     event.stopPropagation();
   };
 
@@ -66,7 +67,7 @@ export default function QuickActionButton({
       aria-label={label}
       title={label}
       onClick={handleClick}
-      className={`${baseClassName} ${toneClasses[tone]}`}
+      className={`${baseClassName} ${toneClasses[tone]} ${className}`}
     >
       <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
     </a>

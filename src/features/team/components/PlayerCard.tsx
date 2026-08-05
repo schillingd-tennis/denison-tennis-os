@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Mail, MessageSquare, Phone } from "lucide-react";
 
+import { phoneHrefDigits } from "@/components/inline-edit";
 import type { Person } from "@/features/people/types";
 import {
   getDisplayFirstName,
@@ -25,6 +26,7 @@ function formatRating(value: number | undefined): string {
 export default function PlayerCard({ person }: { person: Person }) {
   const hometown = getHometown(person);
   const email = person.denisonEmail ?? person.personalEmail;
+  const phoneDigits = phoneHrefDigits(person.cellPhone);
   const playerStatusLabel =
     person.status === "current" ? getPlayerStatusLabel(person.playerStatus) : undefined;
 
@@ -87,13 +89,13 @@ export default function PlayerCard({ person }: { person: Person }) {
 
       <div className="relative z-10 mt-auto flex items-center justify-end gap-2 pt-1">
         <QuickActionButton
-          href={person.cellPhone ? `tel:${person.cellPhone}` : undefined}
+          href={phoneDigits ? `tel:${phoneDigits}` : undefined}
           icon={Phone}
           label="Call"
           tone="success"
         />
         <QuickActionButton
-          href={person.cellPhone ? `sms:${person.cellPhone}` : undefined}
+          href={phoneDigits ? `sms:${phoneDigits}` : undefined}
           icon={MessageSquare}
           label="Text"
           tone="info"

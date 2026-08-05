@@ -14,6 +14,7 @@ export {
   normalizeEmail,
   normalizePhone,
   normalizeUrl,
+  phoneHrefDigits,
 } from "./formatters";
 export type {
   InlineCommitReason,

@@ -30,7 +30,12 @@ import {
   toOptionalString,
   useFormContext,
 } from "@/components/editor";
-import { formatPhoneDisplay, normalizeEmail, normalizePhone } from "@/components/inline-edit";
+import {
+  formatPhoneDisplay,
+  normalizeEmail,
+  normalizePhone,
+  phoneHrefDigits,
+} from "@/components/inline-edit";
 
 import { updatePersonAction } from "@/features/people/actions";
 import type { FamilyContact } from "@/features/people/family";
@@ -160,8 +165,9 @@ function PlayerWorkspaceContent({ familyContacts }: { familyContacts: FamilyCont
   const hometown = getHometown(draft);
   const address = getPermanentAddress(draft);
 
-  const tel = draft.cellPhone ? `tel:${draft.cellPhone}` : undefined;
-  const sms = draft.cellPhone ? `sms:${draft.cellPhone}` : undefined;
+  const phoneDigits = phoneHrefDigits(draft.cellPhone);
+  const tel = phoneDigits ? `tel:${phoneDigits}` : undefined;
+  const sms = phoneDigits ? `sms:${phoneDigits}` : undefined;
   const email = draft.denisonEmail ?? draft.personalEmail;
   const mailto = email ? `mailto:${email}` : undefined;
 

@@ -41,6 +41,13 @@ export function formatPhoneDisplay(value: string | undefined): string | undefine
   return normalizePhone(value);
 }
 
+/** Digits-only phone for `tel:` / `sms:` hrefs. Blank / no digits → `undefined`. */
+export function phoneHrefDigits(value: string | undefined): string | undefined {
+  if (value === undefined) return undefined;
+  const digits = value.replace(/\D/g, "");
+  return digits.length > 0 ? digits : undefined;
+}
+
 /**
  * Ensure a URL has a scheme. Bare hosts like `example.com` become
  * `https://example.com`. Values that already include a scheme are left
