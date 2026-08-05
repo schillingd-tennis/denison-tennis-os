@@ -1,3 +1,5 @@
+import { typeRole } from "@/components/typography";
+
 import type { FieldType, FormMode, SelectOption } from "./types";
 import ValidationMessage from "./ValidationMessage";
 
@@ -48,8 +50,8 @@ export default function EditableField({
 
     return (
       <div className={className}>
-        <dt className="text-xs font-medium tracking-wide text-text-secondary uppercase">{label}</dt>
-        <dd className="mt-1 text-sm whitespace-pre-wrap text-text-primary">{displayValue}</dd>
+        <dt className={typeRole.sectionLabel}>{label}</dt>
+        <dd className={`mt-1 whitespace-pre-wrap ${typeRole.fieldValue}`}>{displayValue}</dd>
       </div>
     );
   }
@@ -59,7 +61,7 @@ export default function EditableField({
 
   return (
     <div className={className}>
-      <label className="text-xs font-medium tracking-wide text-text-secondary uppercase">
+      <label className={typeRole.sectionLabel}>
         {label}
         {required ? <span className="text-denison-red"> *</span> : null}
       </label>

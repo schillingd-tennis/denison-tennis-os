@@ -53,6 +53,7 @@ import { getPersonStatusIndicator } from "@/features/people/statusIndicator";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import QuickActionButton from "@/components/QuickActionButton";
 import StatusDot from "@/components/StatusDot";
+import { typeClass, typeRole } from "@/components/typography";
 
 import PersonRoleBadge from "./PersonRoleBadge";
 import PersonStatusLabel from "./PersonStatusLabel";
@@ -523,7 +524,7 @@ export default function PersonList({ people }: { people: Person[] }) {
                 {foundSetFeedback}
               </span>
             ) : null}
-            <span className="text-xs text-text-secondary tabular-nums">
+            <span className={typeClass("metadataSm", "tabular-nums")}>
               {sortedItems.length} in found set
             </span>
           </>
@@ -567,7 +568,7 @@ export default function PersonList({ people }: { people: Person[] }) {
               <col className="w-[14%]" />
             </colgroup>
             <thead>
-              <tr className="border-b border-border bg-app-background/60 text-xs font-medium tracking-wide text-text-secondary uppercase">
+              <tr className={`border-b border-border bg-app-background/60 ${typeRole.tableHeader}`}>
                 {columns.map((column) => (
                   <SortableColumnHeader
                     key={column.id}
@@ -577,10 +578,7 @@ export default function PersonList({ people }: { people: Person[] }) {
                     onSort={() => toggleSort(column.id)}
                   />
                 ))}
-                <th
-                  scope="col"
-                  className="px-4 py-3 text-right text-xs font-medium tracking-wide text-text-secondary uppercase"
-                >
+                <th scope="col" className={`px-4 py-3 text-right ${typeRole.tableHeader}`}>
                   Actions
                 </th>
               </tr>
@@ -615,16 +613,14 @@ export default function PersonList({ people }: { people: Person[] }) {
                           size={32}
                         />
                         <div className="min-w-0">
-                          <span className="block truncate text-sm font-semibold tracking-tight text-text-primary">
-                            {displayName}
-                          </span>
+                          <span className={`block ${typeRole.personName}`}>{displayName}</span>
                           <PersonRoleBadge person={person} compact className="mt-0.5" />
                         </div>
                       </div>
                     </td>
-                    <td className={`${cellPad} tabular-nums text-text-secondary`}>
+                    <td className={`${cellPad} tabular-nums ${typeRole.metadata}`}>
                       {showDenisonId ? formatDenisonIdDisplay(person.denisonId) : (
-                        <span className="text-text-secondary/50">—</span>
+                        <span className={typeRole.metadataEmpty}>—</span>
                       )}
                     </td>
                     <td className={cellPad}>
@@ -633,6 +629,7 @@ export default function PersonList({ people }: { people: Person[] }) {
                         value={person.cellPhone ?? ""}
                         displayValue={phoneDisplay}
                         type="tel"
+                        emphasis="metadata"
                         className="tabular-nums"
                         editing={isEditing(person.id, "phone")}
                         error={isEditing(person.id, "phone") ? fieldError : undefined}
@@ -647,6 +644,7 @@ export default function PersonList({ people }: { people: Person[] }) {
                         value={person[emailFieldKey(person)] ?? ""}
                         displayValue={emailDisplay}
                         type="email"
+                        emphasis="metadata"
                         className="truncate"
                         editing={isEditing(person.id, "email")}
                         error={isEditing(person.id, "email") ? fieldError : undefined}
@@ -660,6 +658,7 @@ export default function PersonList({ people }: { people: Person[] }) {
                         label="Hometown"
                         value={hometown ?? ""}
                         displayValue={hometown}
+                        emphasis="metadata"
                         className="truncate"
                         editing={isEditing(person.id, "hometown")}
                         error={isEditing(person.id, "hometown") ? fieldError : undefined}
@@ -678,6 +677,7 @@ export default function PersonList({ people }: { people: Person[] }) {
                           }
                           type="number"
                           align="right"
+                          emphasis="metadata"
                           className="tabular-nums"
                           editing={isEditing(person.id, "classYear")}
                           error={isEditing(person.id, "classYear") ? fieldError : undefined}
@@ -688,7 +688,7 @@ export default function PersonList({ people }: { people: Person[] }) {
                           }
                         />
                       ) : (
-                        <span className="text-text-secondary/50">—</span>
+                        <span className={typeRole.metadataEmpty}>—</span>
                       )}
                     </td>
                     <td className={`${cellPad} text-right`}>
@@ -700,6 +700,7 @@ export default function PersonList({ people }: { people: Person[] }) {
                           type="number"
                           step={0.1}
                           align="right"
+                          emphasis="metadata"
                           className="tabular-nums"
                           editing={isEditing(person.id, "utr")}
                           error={isEditing(person.id, "utr") ? fieldError : undefined}
@@ -708,7 +709,7 @@ export default function PersonList({ people }: { people: Person[] }) {
                           onCommit={(raw, reason) => handleCommit(person.id, "utr", raw, reason)}
                         />
                       ) : (
-                        <span className="text-text-secondary/50">—</span>
+                        <span className={typeRole.metadataEmpty}>—</span>
                       )}
                     </td>
                     <td className={`${cellPad} text-right`}>
@@ -720,6 +721,7 @@ export default function PersonList({ people }: { people: Person[] }) {
                           type="number"
                           step={0.1}
                           align="right"
+                          emphasis="metadata"
                           className="tabular-nums"
                           editing={isEditing(person.id, "wtn")}
                           error={isEditing(person.id, "wtn") ? fieldError : undefined}
@@ -728,7 +730,7 @@ export default function PersonList({ people }: { people: Person[] }) {
                           onCommit={(raw, reason) => handleCommit(person.id, "wtn", raw, reason)}
                         />
                       ) : (
-                        <span className="text-text-secondary/50">—</span>
+                        <span className={typeRole.metadataEmpty}>—</span>
                       )}
                     </td>
                     <td
@@ -762,7 +764,7 @@ export default function PersonList({ people }: { people: Person[] }) {
                           />
                         ) : null}
                         {!hrefs.tel && !hrefs.sms && !hrefs.mailto ? (
-                          <span className="text-xs text-text-secondary/45">—</span>
+                          <span className={`${typeRole.metadataSm} ${typeRole.metadataEmpty}`}>—</span>
                         ) : null}
                       </div>
                     </td>
@@ -801,9 +803,7 @@ export default function PersonList({ people }: { people: Person[] }) {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-text-primary">
-                          {displayName}
-                        </p>
+                        <p className={typeRole.personName}>{displayName}</p>
                         <PersonRoleBadge person={person} compact className="mt-0.5" />
                       </div>
                       <PersonStatusLabel
@@ -812,7 +812,7 @@ export default function PersonList({ people }: { people: Person[] }) {
                       />
                     </div>
                     {detailLine ? (
-                      <p className="mt-1 truncate text-xs text-text-secondary">{detailLine}</p>
+                      <p className={typeClass("metadataSm", "mt-1 truncate")}>{detailLine}</p>
                     ) : null}
                   </div>
                 </Link>

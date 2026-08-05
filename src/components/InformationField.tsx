@@ -1,3 +1,5 @@
+import { typeRole } from "@/components/typography";
+
 export default function InformationField({
   label,
   value,
@@ -11,10 +13,8 @@ export default function InformationField({
 
   return (
     <div>
-      <dt className="text-xs font-medium tracking-wide text-text-secondary uppercase">
-        {label}
-      </dt>
-      <dd className="mt-1 flex items-center gap-2 text-sm text-text-primary">
+      <dt className={typeRole.sectionLabel}>{label}</dt>
+      <dd className={`mt-1 flex items-center gap-2 ${typeRole.fieldValue}`}>
         <span>{value}</span>
         {action}
       </dd>

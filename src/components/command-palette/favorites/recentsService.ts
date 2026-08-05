@@ -6,9 +6,16 @@ const STORAGE_KEY = "denison-tennis-os:command-palette:recents-v2";
 const LEGACY_IDS_KEY = "denison-tennis-os:command-palette:recent";
 const MAX_RECENTS = 16;
 
+/** Stable empty snapshot for useSyncExternalStore (must be referentially equal). */
+export const EMPTY_RECENTS: RecentItem[] = [];
+
 type Listener = () => void;
 
 const listeners = new Set<Listener>();
+
+/** Cached snapshot — listRecents() must return the same reference until data changes. */
+let snapshot: RecentItem[] = EMPTY_RECENTS;
+let hydrated = false;
 
 function isRecentItem(value: unknown): value is RecentItem {
   if (!value || typeof value !== "object") return false;
@@ -21,25 +28,26 @@ function isRecentItem(value: unknown): value is RecentItem {
   );
 }
 
-function readRaw(): RecentItem[] {
+function parseAndMaybeMigrate(): RecentItem[] {
   const storage = getPalettePersistenceStorage();
   const raw = storage.getItem(STORAGE_KEY);
   if (raw) {
     try {
       const parsed = JSON.parse(raw) as unknown;
-      if (!Array.isArray(parsed)) return [];
-      return parsed.filter(isRecentItem).slice(0, MAX_RECENTS);
+      if (!Array.isArray(parsed)) return EMPTY_RECENTS;
+      const items = parsed.filter(isRecentItem).slice(0, MAX_RECENTS);
+      return items.length === 0 ? EMPTY_RECENTS : items;
     } catch {
-      return [];
+      return EMPTY_RECENTS;
     }
   }
 
   // One-time migration from BP-021D id-only recents.
   const legacy = storage.getItem(LEGACY_IDS_KEY);
-  if (!legacy) return [];
+  if (!legacy) return EMPTY_RECENTS;
   try {
     const ids = JSON.parse(legacy) as unknown;
-    if (!Array.isArray(ids)) return [];
+    if (!Array.isArray(ids)) return EMPTY_RECENTS;
     const migrated: RecentItem[] = ids
       .filter((id): id is string => typeof id === "string")
       .map((id) => ({
@@ -52,19 +60,35 @@ function readRaw(): RecentItem[] {
     if (migrated.length > 0) {
       storage.setItem(STORAGE_KEY, JSON.stringify(migrated.slice(0, MAX_RECENTS)));
     }
-    return migrated.slice(0, MAX_RECENTS);
+    const items = migrated.slice(0, MAX_RECENTS);
+    return items.length === 0 ? EMPTY_RECENTS : items;
   } catch {
-    return [];
+    return EMPTY_RECENTS;
   }
 }
 
+function ensureHydrated(): void {
+  if (hydrated) return;
+  if (typeof window === "undefined") {
+    snapshot = EMPTY_RECENTS;
+    hydrated = true;
+    return;
+  }
+  snapshot = parseAndMaybeMigrate();
+  hydrated = true;
+}
+
 function writeRaw(items: RecentItem[]): void {
-  getPalettePersistenceStorage().setItem(STORAGE_KEY, JSON.stringify(items.slice(0, MAX_RECENTS)));
+  const next = items.slice(0, MAX_RECENTS);
+  snapshot = next.length === 0 ? EMPTY_RECENTS : next;
+  hydrated = true;
+  getPalettePersistenceStorage().setItem(STORAGE_KEY, JSON.stringify(next));
   for (const listener of listeners) listener();
 }
 
 export function listRecents(): RecentItem[] {
-  return readRaw();
+  ensureHydrated();
+  return snapshot;
 }
 
 /** Record an opened searchable object (palette Enter, workspace open, etc.). */
@@ -74,7 +98,7 @@ export function recordRecentOpen(item: PinnedFavorite): void {
     ...item,
     openedAt: new Date().toISOString(),
   };
-  const next = [entry, ...readRaw().filter((existing) => favoriteKey(existing) !== key)].slice(
+  const next = [entry, ...listRecents().filter((existing) => favoriteKey(existing) !== key)].slice(
     0,
     MAX_RECENTS,
   );

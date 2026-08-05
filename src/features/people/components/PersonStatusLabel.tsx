@@ -1,4 +1,5 @@
 import StatusDot, { type StatusDotTone } from "@/components/StatusDot";
+import { typeClass } from "@/components/typography";
 
 /**
  * Program status as StatusDot + plain text (BP-022B).
@@ -15,7 +16,10 @@ export default function PersonStatusLabel({
 }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 text-xs font-medium text-text-secondary ${className}`}
+      className={typeClass(
+        "metadataSm",
+        `inline-flex items-center gap-1.5 font-medium ${className}`,
+      )}
     >
       <StatusDot tone={tone} label={label} />
       <span>{label}</span>

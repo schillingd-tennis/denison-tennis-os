@@ -274,3 +274,22 @@ update this file explicitly rather than silently drifting from it.
   without duplicate records.
 - Sync preserves application history; imports update only fields they own
   (`docs/DATA_OWNERSHIP.md`).
+
+## BP-024A — Typography System
+
+- People module typography uses shared `typeRole` stacks in
+  `src/components/typography/`. Person names are strongest; metadata is
+  quieter; table headers and workspace section titles each have one style.
+- No spacing / badge / functional changes — text roles only.
+
+## BP-024C — Command Palette Layout Regression
+
+- Root cause: palette set `document.body.style.overflow = "hidden"`, which
+  removes the scrollbar and changes viewport width (cards, toolbar, header
+  shift). Residual inline body styles could also linger after close.
+- Fix: do not mutate body overflow/padding. Block background `wheel` /
+  `touchmove` while open (allow scroll inside palette panels), and clear any
+  legacy body overflow/padding on unlock.
+- Also: favorites/recents `useSyncExternalStore` getSnapshots must return a
+  stable array reference; re-parsing localStorage every call caused
+  “Maximum update depth exceeded” and crashed the page on open.

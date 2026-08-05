@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Mail, MessageSquare, Phone } from "lucide-react";
 
 import { formatPhoneDisplay, phoneHrefDigits } from "@/components/inline-edit";
+import { typeClass, typeRole } from "@/components/typography";
 import type { Person } from "@/features/people/types";
 import {
   formatDenisonIdDisplay,
@@ -56,12 +57,12 @@ export default function PersonCard({ person }: { person: Person }) {
           <StatusDot tone={statusIndicator.tone} label={statusIndicator.label} />
           <PlayerAvatar photoUrl={person.photoUrl} initials={getInitials(person)} size={44} />
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold tracking-tight text-text-primary">
+            <p className={typeRole.personName}>
               {getDisplayFirstName(person)} {person.lastName}
             </p>
             <PersonRoleBadge person={person} className="mt-1" />
             {showDenisonId ? (
-              <p className="mt-1 truncate text-xs text-text-secondary tabular-nums">
+              <p className={typeClass("metadataSm", "mt-1 truncate tabular-nums")}>
                 {formatDenisonIdDisplay(person.denisonId)}
               </p>
             ) : null}
@@ -73,7 +74,7 @@ export default function PersonCard({ person }: { person: Person }) {
         />
       </div>
 
-      <div className="flex flex-col gap-0.5 text-sm text-text-secondary">
+      <div className={`flex flex-col gap-0.5 ${typeRole.metadata}`}>
         {hometown ? <p className="truncate">{hometown}</p> : null}
         {coachDirectory ? (
           <>
@@ -88,27 +89,27 @@ export default function PersonCard({ person }: { person: Person }) {
         )}
         {!hometown &&
         !(coachDirectory ? phoneDisplay || email : person.major || playerStatusLabel) ? (
-          <p className="text-text-secondary/55">No additional details yet</p>
+          <p className={typeRole.metadataEmpty}>No additional details yet</p>
         ) : null}
       </div>
 
       {!coachDirectory ? (
         <div className="grid grid-cols-2 gap-2 rounded-control bg-app-background px-3 py-2.5 text-center">
           <div>
-            <p className="text-[11px] font-medium tracking-wide text-text-secondary uppercase">UTR</p>
+            <p className={typeRole.sectionLabel}>UTR</p>
             <p
               className={`text-sm font-medium tabular-nums ${
-                person.utr !== undefined ? "text-text-primary" : "text-text-secondary/45"
+                person.utr !== undefined ? "text-text-primary" : typeRole.metadataEmpty
               }`}
             >
               {formatRating(person.utr)}
             </p>
           </div>
           <div>
-            <p className="text-[11px] font-medium tracking-wide text-text-secondary uppercase">WTN</p>
+            <p className={typeRole.sectionLabel}>WTN</p>
             <p
               className={`text-sm font-medium tabular-nums ${
-                person.wtn !== undefined ? "text-text-primary" : "text-text-secondary/45"
+                person.wtn !== undefined ? "text-text-primary" : typeRole.metadataEmpty
               }`}
             >
               {formatRating(person.wtn)}

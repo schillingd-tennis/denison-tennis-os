@@ -1,6 +1,7 @@
 import { Mail, MessageSquare, Phone } from "lucide-react";
 
 import { formatPhoneDisplay, phoneHrefDigits } from "@/components/inline-edit";
+import { typeClass, typeRole } from "@/components/typography";
 import type { FamilyContact } from "@/features/people/family";
 import { getPreferredContactLabel } from "@/features/people/utils";
 
@@ -19,10 +20,10 @@ export default function FamilyContactCard({ contact }: { contact: FamilyContact 
       <div className="flex items-center gap-3.5">
         <PlayerAvatar photoUrl={contact.photoUrl} initials={initials} size={44} />
         <div className="min-w-0">
-          <p className="truncate text-base font-semibold text-text-primary">
+          <p className={typeRole.personName}>
             {contact.firstName} {contact.lastName}
           </p>
-          <p className="mt-0.5 text-xs text-text-secondary">{contact.relationship}</p>
+          <p className={typeClass("metadataSm", "mt-0.5")}>{contact.relationship}</p>
         </div>
       </div>
 
@@ -39,10 +40,12 @@ export default function FamilyContactCard({ contact }: { contact: FamilyContact 
       ) : null}
 
       {phoneDisplay || contact.email || preferredLabel ? (
-        <div className="flex flex-col gap-1 text-sm text-text-secondary">
+        <div className={`flex flex-col gap-1 ${typeRole.metadata}`}>
           {phoneDisplay ? <p>{phoneDisplay}</p> : null}
           {contact.email ? <p className="truncate">{contact.email}</p> : null}
-          {preferredLabel ? <p className="text-xs">Prefers {preferredLabel}</p> : null}
+          {preferredLabel ? (
+            <p className={typeRole.metadataSm}>Prefers {preferredLabel}</p>
+          ) : null}
         </div>
       ) : null}
 

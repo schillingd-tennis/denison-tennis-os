@@ -51,6 +51,26 @@ No new font package was introduced. The app continues to use the existing
 Geist Sans / Geist Mono fonts loaded via `next/font` in `src/app/layout.tsx`,
 aliased into the theme as `--font-sans` / `--font-mono`.
 
+### Text roles (BP-024A)
+
+Reusable class stacks live in `src/components/typography/` (`typeRole`).
+Prefer these in the People module (and shared components it uses) instead of
+ad-hoc `text-*` / `font-*` combinations.
+
+| Role | Usage |
+|---|---|
+| `personName` | List + card person names (strongest in row/card) |
+| `personNameHero` | Workspace hero name |
+| `identityMeta` | Quiet role/title under a name (`RoleBadge`) |
+| `metadata` / `metadataSm` | Phone, email, hometown, D#, detail lines |
+| `metadataEmpty` | Placeholder dashes / empty states |
+| `tableHeader` | Directory table column headers |
+| `sectionTitle` | Workspace section titles (`WorkspaceSection`) |
+| `sectionLabel` | Field labels inside sections |
+| `fieldValue` | Primary values under section labels |
+
+Hierarchy: **name → field values → metadata → structural labels.**
+
 ## Rule for future work
 
 **Future features must use these shared design tokens rather than arbitrary
@@ -58,3 +78,6 @@ hard-coded colors, radii, or shell dimensions.** If a new value is genuinely
 needed, add it to the `@theme` block in `src/app/globals.css` and to this
 document — do not introduce a second, competing source of truth for an
 existing concept (e.g. a second "red," a second border color, etc.).
+
+Typography roles should be extended in `src/components/typography/roles.ts`
+rather than inventing one-off text stacks in feature code.

@@ -10,6 +10,7 @@ import {
 } from "react";
 
 import ValidationMessage from "@/components/editor/ValidationMessage";
+import { typeRole } from "@/components/typography";
 
 import { normalizeEmail, normalizePhone, normalizeUrl } from "./formatters";
 import type { InlineCommitReason, InlineFieldType, InlineSelectOption } from "./types";
@@ -216,6 +217,8 @@ export default function InlineEditCell({
   disabled,
   error,
   align = "left",
+  /** `metadata` = quieter directory cells; `default` = workspace field values. */
+  emphasis = "default",
   className,
   emptyDisplay = "—",
   onRequestEdit,
@@ -237,6 +240,7 @@ export default function InlineEditCell({
   disabled?: boolean;
   error?: string;
   align?: "left" | "right";
+  emphasis?: "default" | "metadata";
   className?: string;
   emptyDisplay?: string;
   onRequestEdit: () => void;
@@ -298,7 +302,15 @@ export default function InlineEditCell({
       ) : (
         (renderDisplay ?? (
           <span
-            className={`text-sm whitespace-pre-wrap ${value ? "text-text-primary" : "text-text-secondary/70"}`}
+            className={`whitespace-pre-wrap ${
+              emphasis === "metadata"
+                ? value
+                  ? typeRole.metadata
+                  : `${typeRole.metadataSm} ${typeRole.metadataEmpty}`
+                : value
+                  ? typeRole.fieldValue
+                  : `text-sm ${typeRole.metadataEmpty}`
+            }`}
           >
             {shown}
           </span>

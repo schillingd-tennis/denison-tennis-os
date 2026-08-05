@@ -75,6 +75,7 @@ import PlayerAvatar from "@/components/PlayerAvatar";
 import QuickActionButton from "@/components/QuickActionButton";
 import type { StatusDotTone } from "@/components/StatusDot";
 import SummaryStat from "@/components/SummaryStat";
+import { typeClass, typeRole } from "@/components/typography";
 import WorkspaceSection from "@/components/WorkspaceSection";
 
 import FamilyContactCard from "./FamilyContactCard";
@@ -214,7 +215,7 @@ function WorkspaceField({
 }) {
   return (
     <div className={className}>
-      <dt className="text-xs font-medium tracking-wide text-text-secondary uppercase">{label}</dt>
+      <dt className={typeRole.sectionLabel}>{label}</dt>
       <dd className="mt-1">{children}</dd>
     </div>
   );
@@ -582,12 +583,10 @@ export default function PersonWorkspace({
             <PlayerAvatar photoUrl={record.photoUrl} initials={getInitials(record)} size={64} />
             <div className="flex min-w-0 flex-col gap-2.5">
               <div className="flex min-w-0 flex-col gap-1.5">
-                <h1 className="text-2xl font-semibold tracking-tight text-text-primary">
-                  {fullName}
-                </h1>
+                <h1 className={typeRole.personNameHero}>{fullName}</h1>
                 <PersonRoleBadge person={record} />
                 {showDenisonId ? (
-                  <p className="text-sm text-text-secondary tabular-nums">
+                  <p className={typeClass("metadata", "tabular-nums")}>
                     {formatDenisonIdDisplay(record.denisonId)}
                   </p>
                 ) : null}
@@ -638,7 +637,7 @@ export default function PersonWorkspace({
                   />
                 ) : null}
               </div>
-              <p className="text-sm leading-relaxed text-text-secondary">
+              <p className={`${typeRole.metadata} leading-relaxed`}>
                 {(coachDirectory
                   ? [hometown, phoneDisplay, email]
                   : [

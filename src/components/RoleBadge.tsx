@@ -1,9 +1,11 @@
 /**
- * Identity metadata label (BP-022D).
+ * Identity metadata label (BP-022D / BP-024A).
  *
  * Quiet supporting text — not a button, pill, chip, or control.
  * Filled pills are reserved for Notifications / Alerts / Counts.
  */
+import { typeClass } from "@/components/typography";
+
 export type RoleBadgeTone = "neutral" | "denison" | "info" | "success";
 
 export default function RoleBadge({
@@ -19,10 +21,7 @@ export default function RoleBadge({
   void _tone;
 
   return (
-    <span
-      className={`block max-w-full truncate text-[11px] font-normal text-text-secondary ${className}`}
-      title={label}
-    >
+    <span className={typeClass("identityMeta", `block ${className}`)} title={label}>
       {label}
     </span>
   );

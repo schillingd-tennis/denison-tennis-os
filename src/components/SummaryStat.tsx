@@ -1,3 +1,5 @@
+import { typeClass, typeRole } from "@/components/typography";
+
 export default function SummaryStat({
   label,
   value,
@@ -12,14 +14,12 @@ export default function SummaryStat({
     <div className="flex min-h-[76px] flex-col justify-center gap-1 rounded-control border border-border bg-surface px-4 py-3.5">
       <span
         className={`truncate text-xl font-semibold tabular-nums ${
-          empty ? "text-text-secondary/45" : "text-text-primary"
+          empty ? typeRole.metadataEmpty : "text-text-primary"
         }`}
       >
         {display}
       </span>
-      <span className="text-[11px] font-medium tracking-wide text-text-secondary uppercase">
-        {label}
-      </span>
+      <span className={typeClass("sectionLabel")}>{label}</span>
     </div>
   );
 }

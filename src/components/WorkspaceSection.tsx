@@ -1,3 +1,5 @@
+import { typeRole } from "@/components/typography";
+
 export default function WorkspaceSection({
   title,
   action,
@@ -14,9 +16,7 @@ export default function WorkspaceSection({
       className={`rounded-card border border-border bg-surface px-5 py-5 ${className ?? ""}`}
     >
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold tracking-wide text-text-primary uppercase">
-          {title}
-        </h2>
+        <h2 className={typeRole.sectionTitle}>{title}</h2>
         {action}
       </div>
       <div className="mt-4">{children}</div>

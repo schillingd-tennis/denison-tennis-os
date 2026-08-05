@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from "react";
 
 import {
+  EMPTY_FAVORITES,
   isFavorite,
   listFavorites,
   subscribeFavorites,
@@ -10,7 +11,12 @@ import {
   unpinFavorite,
   pinFavorite,
 } from "./favoritesService";
-import { listRecents, recordRecentOpen, subscribeRecents } from "./recentsService";
+import {
+  EMPTY_RECENTS,
+  listRecents,
+  recordRecentOpen,
+  subscribeRecents,
+} from "./recentsService";
 import type { PinnedFavorite } from "./types";
 
 function subscribeFavoritesStore(onStoreChange: () => void): () => void {
@@ -21,15 +27,24 @@ function subscribeRecentsStore(onStoreChange: () => void): () => void {
   return subscribeRecents(onStoreChange);
 }
 
+function getServerFavorites(): PinnedFavorite[] {
+  return EMPTY_FAVORITES;
+}
+
+function getServerRecents() {
+  return EMPTY_RECENTS;
+}
+
 export function useFavorites(): PinnedFavorite[] {
-  return useSyncExternalStore(subscribeFavoritesStore, listFavorites, () => []);
+  return useSyncExternalStore(subscribeFavoritesStore, listFavorites, getServerFavorites);
 }
 
 export function useRecents() {
-  return useSyncExternalStore(subscribeRecentsStore, listRecents, () => []);
+  return useSyncExternalStore(subscribeRecentsStore, listRecents, getServerRecents);
 }
 
 export function useIsFavorite(objectType: string, objectId: string): boolean {
+  // getSnapshot must return a stable primitive (boolean). Do not allocate.
   return useSyncExternalStore(
     subscribeFavoritesStore,
     () => isFavorite(objectType, objectId),

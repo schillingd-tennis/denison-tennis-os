@@ -32,6 +32,7 @@ import {
   registerDefaultCommands,
   warmCommandPalette,
 } from "@/components/command-palette/registerDefaultCommands";
+import { lockBodyScroll, unlockBodyScroll } from "@/components/command-palette/lockBodyScroll";
 import {
   SEARCH_DISPLAY_GROUP_LABEL,
   SEARCH_DISPLAY_GROUP_ORDER,
@@ -182,13 +183,14 @@ function CommandPaletteDialog({
       inputRef.current?.focus();
     });
 
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    // BP-024C: block background scroll without touching body overflow
+    // (overflow:hidden removes the scrollbar and shifts page width).
+    lockBodyScroll("[data-command-palette-scroll]");
 
     return () => {
       cancelled = true;
       window.cancelAnimationFrame(frame);
-      document.body.style.overflow = previousOverflow;
+      unlockBodyScroll();
     };
   }, [sessionId]);
 
@@ -366,7 +368,8 @@ function CommandPaletteDialog({
           <div
             id={listId}
             role="listbox"
-            className="min-w-0 flex-1 overflow-y-auto border-r border-border py-2"
+            data-command-palette-scroll=""
+            className="min-w-0 flex-1 overflow-y-auto overscroll-contain border-r border-border py-2"
           >
             {flat.length === 0 ? (
               <p className="px-4 py-8 text-center text-sm text-text-secondary">{emptyLabel}</p>
@@ -425,7 +428,10 @@ function CommandPaletteDialog({
             )}
           </div>
 
-          <aside className="hidden w-[280px] shrink-0 bg-app-background/40 md:block">
+          <aside
+            data-command-palette-scroll=""
+            className="hidden w-[280px] shrink-0 overflow-y-auto overscroll-contain bg-app-background/40 md:block"
+          >
             <CommandPreviewPanel command={activeCommand} />
           </aside>
         </div>
