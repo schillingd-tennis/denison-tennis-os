@@ -17,4 +17,8 @@ export {
 } from "./serialize";
 export { copyFoundSet, copyFoundSetSnapshot } from "./copyFoundSet";
 export { exportFoundSetCsv, exportFoundSetSnapshotCsv } from "./exportFoundSet";
-export { publishFoundSet, readFoundSetSnapshot } from "./sessionFoundSet";
+export {
+  publishFoundSet,
+  readCurrentFoundSetSnapshot,
+  readFoundSetSnapshot,
+} from "./sessionFoundSet";

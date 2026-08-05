@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import {
   ArrowLeft,
   ClipboardList,
@@ -18,6 +18,11 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import {
+  FavoriteToggleButton,
+  recordRecentOpen,
+} from "@/components/command-palette/favorites";
+import type { SearchObjectType } from "@/components/command-palette/types";
 import {
   isRequired,
   isValidEmail,
@@ -52,6 +57,7 @@ import {
   formatDenisonIdDisplay,
   formatHeight,
   formatWeight,
+  getDisplayName,
   getFullDisplayName,
   getHometown,
   getInitials,
@@ -61,9 +67,16 @@ import {
   getPreferredContactLabel,
   getStatusLabel,
   getStatusTone,
+  hasRole,
   isCoachDirectoryPerson,
 } from "@/features/people/utils";
 import { TEAM_FOUND_SET_MODULE_KEY } from "@/features/people/foundSet";
+
+function favoriteObjectTypeForPerson(person: Person): SearchObjectType {
+  if (hasRole(person, "coach")) return "coaches";
+  if (hasRole(person, "staff")) return "staff";
+  return "people";
+}
 
 import InformationField from "@/components/InformationField";
 import PlayerAvatar from "@/components/PlayerAvatar";
@@ -217,10 +230,23 @@ export default function PersonWorkspace({
   }
 
   const fullName = getFullDisplayName(record);
+  const displayName = getDisplayName(record);
   const hometown = getHometown(record);
   const address = getPermanentAddress(record);
   const coachDirectory = isCoachDirectoryPerson(record);
   const showDenisonId = !coachDirectory || Boolean(record.denisonId?.trim());
+  const favoriteObjectType = favoriteObjectTypeForPerson(record);
+
+  useEffect(() => {
+    recordRecentOpen({
+      objectId: record.id,
+      objectType: favoriteObjectType,
+      displayName,
+      commandId: `person:${record.id}`,
+      iconKey: "Users",
+      href: `/team/${record.id}`,
+    });
+  }, [displayName, favoriteObjectType, record.id]);
 
   const phoneDigits = phoneHrefDigits(record.cellPhone);
   const phoneDisplay = formatPhoneDisplay(record.cellPhone);
@@ -502,6 +528,14 @@ export default function PersonWorkspace({
         }
         actions={
           <>
+            <FavoriteToggleButton
+              objectId={record.id}
+              objectType={favoriteObjectType}
+              displayName={displayName}
+              commandId={`person:${record.id}`}
+              href={`/team/${record.id}`}
+              iconKey="Users"
+            />
             <QuickActionButton href={tel} icon={Phone} label="Call" tone="success" />
             <QuickActionButton href={sms} icon={MessageSquare} label="Text" tone="denison" />
             <QuickActionButton href={mailto} icon={Mail} label="Email" tone="info" />

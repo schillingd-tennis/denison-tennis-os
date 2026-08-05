@@ -1,14 +1,16 @@
 "use client";
 
-import { LogOut } from "lucide-react";
+import { LogOut, Search } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 import { logout } from "@/app/login/actions";
+import { useCommandPalette } from "@/components/command-palette";
 
 import { getPageTitle } from "./nav-items";
 
 export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
   const pathname = usePathname();
+  const { setOpen } = useCommandPalette();
   const isHome = pathname === "/";
   const title = getPageTitle(pathname);
 
@@ -65,7 +67,20 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
       </div>
 
       <div className="flex shrink-0 items-center gap-3">
-        <div className="hidden text-right sm:block">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label="Open command palette"
+          title="Command palette (⌘K)"
+          className="inline-flex h-9 items-center gap-2 rounded-control border border-border bg-app-background px-2.5 text-text-secondary transition-colors hover:border-text-secondary/40 hover:text-text-primary"
+        >
+          <Search className="h-3.5 w-3.5" strokeWidth={2} />
+          <span className="hidden text-xs sm:inline">Search</span>
+          <kbd className="hidden rounded border border-border bg-surface px-1 py-0.5 font-mono text-[10px] sm:inline">
+            ⌘K
+          </kbd>
+        </button>
+        <div className="hidden text-right md:block">
           <p className="text-sm font-medium text-text-primary">
             David Schilling
           </p>

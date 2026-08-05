@@ -33,5 +33,8 @@ export const settingsNavItem: NavItem = {
 const allNavItems: NavItem[] = [...primaryNavItems, settingsNavItem];
 
 export function getPageTitle(pathname: string): string {
+  if (pathname === "/settings/developer" || pathname.startsWith("/settings/developer/")) {
+    return "Developer";
+  }
   return allNavItems.find((item) => item.href === pathname)?.label ?? "Denison Tennis OS";
 }

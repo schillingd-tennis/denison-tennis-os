@@ -3,6 +3,11 @@
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
+import {
+  CommandPalette,
+  CommandPaletteProvider,
+} from "@/components/command-palette";
+
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 
@@ -17,16 +22,20 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-app-background">
-      <Sidebar
-        isOpen={mobileNavOpen}
-        onClose={() => setMobileNavOpen(false)}
-      />
+    <CommandPaletteProvider>
+      <div className="min-h-screen overflow-x-hidden bg-app-background">
+        <Sidebar
+          isOpen={mobileNavOpen}
+          onClose={() => setMobileNavOpen(false)}
+        />
 
-      <div className="flex min-h-screen flex-col md:pl-[var(--sidebar-width)]">
-        <Header onMenuClick={() => setMobileNavOpen(true)} />
-        <main className="flex-1 px-6 py-10 md:px-10 lg:px-16">{children}</main>
+        <div className="flex min-h-screen flex-col md:pl-[var(--sidebar-width)]">
+          <Header onMenuClick={() => setMobileNavOpen(true)} />
+          <main className="flex-1 px-6 py-10 md:px-10 lg:px-16">{children}</main>
+        </div>
+
+        <CommandPalette />
       </div>
-    </div>
+    </CommandPaletteProvider>
   );
 }

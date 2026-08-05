@@ -2,6 +2,7 @@ import { buildFoundSetMatrix } from "./serialize";
 import type { FoundSetColumn, FoundSetSnapshot } from "./types";
 
 const STORAGE_PREFIX = "denison-tennis-os:found-set:";
+const LAST_MODULE_KEY = "denison-tennis-os:found-set:__last__";
 
 function storageKey(moduleKey: string): string {
   return `${STORAGE_PREFIX}${moduleKey}`;
@@ -35,6 +36,7 @@ export function publishFoundSet<T>({
   if (typeof window !== "undefined") {
     try {
       window.sessionStorage.setItem(storageKey(moduleKey), JSON.stringify(snapshot));
+      window.sessionStorage.setItem(LAST_MODULE_KEY, moduleKey);
     } catch {
       // Private mode / quota — live list copy/export still works without persistence.
     }
@@ -62,4 +64,25 @@ export function readFoundSetSnapshot(moduleKey: string): FoundSetSnapshot | null
   } catch {
     return null;
   }
+}
+
+/**
+ * Most recently published found set across modules (command palette /
+ * cross-surface Copy · Export). Falls back to `fallbackModuleKey` when
+ * nothing has been published this session.
+ */
+export function readCurrentFoundSetSnapshot(
+  fallbackModuleKey = "team",
+): FoundSetSnapshot | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const last = window.sessionStorage.getItem(LAST_MODULE_KEY);
+    if (last) {
+      const snapshot = readFoundSetSnapshot(last);
+      if (snapshot) return snapshot;
+    }
+  } catch {
+    // ignore
+  }
+  return readFoundSetSnapshot(fallbackModuleKey);
 }

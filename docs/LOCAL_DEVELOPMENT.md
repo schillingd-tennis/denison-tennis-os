@@ -17,13 +17,24 @@ This repository pins the CLI as a devDependency (`supabase` in
 
 Quick reference: [`docs/DATABASE_WORKFLOW.md`](./DATABASE_WORKFLOW.md).
 
+## Developer dashboard
+
+In the app: **Settings → Developer** (`/settings/developer`).
+
+Shows the current Local / Hosted environment, Supabase URL, migration and
+seed versions, People role counts, Docker / local Supabase status, and
+developer utilities (reset DB, re-run seed, migration history, Studio link,
+copy env info). Destructive actions only run against a **local** stack in
+`next dev`.
+
 ## Quick start
 
 ```bash
 # 1. Start Docker Desktop, then:
 npm run db:start
+# Also seeds the local auth user (see Local authentication below).
 
-# 2. Reset DB = apply all migrations + seed.sql
+# 2. Reset DB = apply all migrations + seed.sql + re-seed local auth
 npm run db:reset
 
 # 3. Print values for .env.local
@@ -33,9 +44,34 @@ npm run db:env
 npm run dev
 ```
 
-Open [http://localhost:3000/team](http://localhost:3000/team). You should see
-players, alumni, and coaches (including David Schilling / Andy Mackler) with
-roles and titles.
+Open [http://localhost:3000/login](http://localhost:3000/login) (or `:3001` if
+that port is in use). Sign in with the local development credentials below,
+then open Team — you should see players, alumni, and coaches (including David
+Schilling / Andy Mackler) with roles and titles.
+
+## Local authentication
+
+Hosted Supabase auth users are **not** copied into the local stack. After
+`db:start` or `db:reset`, seed a development-only login with the Auth Admin API
+(GoTrue) — never by inserting into `auth.users` by hand:
+
+```bash
+npm run db:seed-auth
+```
+
+`npm run db:start` and `npm run db:reset` already run this automatically.
+
+| Field | Value |
+|---|---|
+| Email | `schillingd@denison.edu` |
+| Password | `ChangeMe123!` |
+
+These credentials are **local development only**. Do not use them on the hosted
+project. The seed script refuses to run if Supabase is not on
+`127.0.0.1` / `localhost`.
+
+If login fails with “Invalid email or password” after a reset, run
+`npm run db:seed-auth` again (or `npm run db:reset`).
 
 ## Environment variables
 
@@ -56,10 +92,11 @@ updates for the promote step below.
 
 | Script | Purpose |
 |---|---|
-| `npm run db:start` | Start local Supabase (Docker) |
+| `npm run db:start` | Start local Supabase (Docker), then seed local auth user |
 | `npm run db:stop` | Stop local Supabase |
 | `npm run db:status` | Show local URLs / keys / health |
-| `npm run db:reset` | Drop local DB, re-apply **all** migrations, run `seed.sql` |
+| `npm run db:reset` | Drop local DB, re-apply **all** migrations, run `seed.sql`, seed local auth |
+| `npm run db:seed-auth` | Create/reset the local development login via Auth Admin API |
 | `npm run db:generate-seed` | Regenerate `supabase/seed.sql` from `src/features/people/data.ts` |
 | `npm run db:env` | Print `.env.local` lines for the running local stack |
 | `npm run db:link` | Link CLI to the hosted project (one-time; needs DB password) |

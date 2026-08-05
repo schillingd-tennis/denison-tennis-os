@@ -176,3 +176,44 @@ update this file explicitly rather than silently drifting from it.
 - Migration `0005_grant_production_people_privileges.sql` grants
   SELECT/UPDATE to Data API roles (required on newer local stacks).
 - Full guide: `docs/LOCAL_DEVELOPMENT.md`.
+
+## BP-021D — Global Command Palette
+
+- ⌘K / Ctrl+K opens a floating command palette from every authenticated
+  shell page (mounted in `AppShell`; excluded from `/login`).
+- Commands are **registered** via `commandRegistry` (`registerCommand` /
+  `registerProvider`) — future modules contribute entries without editing
+  the palette UI. Built-ins live in `registerDefaultCommands`.
+- Groups: Pages / People / Actions. People rows load through
+  `listPalettePeople` on open. Fuzzy match is local (no extra package).
+- Found-set Copy / Export actions read `readCurrentFoundSetSnapshot`
+  (last published session snapshot). Developer DB actions stay local-dev only.
+
+## BP-021E — Universal Search & Preview
+
+- The palette is the primary keyboard search/navigation surface. Modules
+  register searchable objects by `SearchObjectType` (pages, people,
+  recruits, staff, coaches, operations, practices, trips, documents,
+  research_projects, saved_views, reports, actions). The UI never
+  hard-codes future module rows — only display-group labels/order.
+- Display groups: Pages / People / Recruits / Operations / Documents /
+  Reports / Actions. Granular types fold into these (e.g. coaches →
+  People, practices → Operations).
+- Fuzzy search includes partial match + initials (e.g. `KP`). Provider
+  results are cached (~60s); `warmCommandPalette` prefetches on idle so
+  reopen stays near-instant.
+- Optional right-rail preview updates on ↑↓ highlight only; Enter runs
+  `perform`. Preview payloads are attached on each `CommandDefinition`.
+
+## BP-021F — Pinned Favorites & Recent Items
+
+- Palette empty/search lists order: **Favorites → Recent → results**.
+  Favorites never duplicate into Recent. Arrow keys traverse all sections.
+- Any searchable object can be pinned (person, page, action, and future
+  types). Stored fields: objectId, objectType, displayName, optional
+  iconKey / commandId / href.
+- Pin/Unpin via palette pin control and `FavoriteToggleButton` on object
+  pages (Person Workspace today; Recruits/Docs/Reports reuse the same
+  button when those surfaces exist). Delete/Backspace does not unpin.
+- Persistence is localStorage behind `KeyValueStorage` so a later Supabase
+  adapter can replace it without UI changes (`setPalettePersistenceStorage`).
