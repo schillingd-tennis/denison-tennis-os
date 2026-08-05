@@ -1,11 +1,11 @@
 /**
  * Boundary mapping between the `production_people` Supabase table and the
- * internal `Person` domain object (BP-015). Per `docs/ARCHITECTURE.md` §11,
+ * internal `Person` domain object (BP-015 / BP-021). Per `docs/ARCHITECTURE.md`,
  * this is the one place allowed to know the table's column names — nothing
  * outside `src/features/people/repository.ts` and `scripts/generate-supabase-seed.ts`
  * should import this module.
  */
-import type { Person, PersonRelationship } from "./types";
+import type { Person, PersonRelationship, PersonRole } from "./types";
 
 /** Shape of a row as returned by `select("*")` on `production_people`. */
 export type ProductionPersonRow = {
@@ -13,6 +13,8 @@ export type ProductionPersonRow = {
   created_at: string;
   updated_at: string;
   status: string;
+  roles: string[] | null;
+  title: string | null;
   first_name: string;
   middle_name: string | null;
   last_name: string;
@@ -49,6 +51,14 @@ function undefinedIfNull<T>(value: T | null): T | undefined {
   return value === null ? undefined : value;
 }
 
+/** Infer roles when a row predates the BP-021 column or still has an empty array. */
+function rolesFromRow(row: ProductionPersonRow): PersonRole[] {
+  if (row.roles && row.roles.length > 0) {
+    return row.roles as PersonRole[];
+  }
+  return row.status === "alumni" ? ["alumni"] : ["player"];
+}
+
 /** Maps a `production_people` row into the `Person` shape the app already uses. */
 export function rowToPerson(row: ProductionPersonRow): Person {
   return {
@@ -57,6 +67,8 @@ export function rowToPerson(row: ProductionPersonRow): Person {
     updatedAt: row.updated_at,
 
     status: row.status as Person["status"],
+    roles: rolesFromRow(row),
+    title: undefinedIfNull(row.title),
     firstName: row.first_name,
     middleName: undefinedIfNull(row.middle_name),
     lastName: row.last_name,
@@ -104,6 +116,8 @@ export function rowToPerson(row: ProductionPersonRow): Person {
  */
 const WRITABLE_FIELD_MAP: Partial<Record<keyof Person, string>> = {
   status: "status",
+  roles: "roles",
+  title: "title",
   firstName: "first_name",
   middleName: "middle_name",
   lastName: "last_name",
@@ -157,7 +171,13 @@ export function personPatchToRow(patch: Partial<Person>): Record<string, unknown
     if (!rowKey) continue;
 
     const value = patch[key];
-    row[rowKey] = key === "relationships" ? value ?? [] : value ?? null;
+    if (key === "relationships") {
+      row[rowKey] = value ?? [];
+    } else if (key === "roles") {
+      row[rowKey] = value ?? [];
+    } else {
+      row[rowKey] = value ?? null;
+    }
   }
 
   return row;
@@ -171,6 +191,8 @@ export function personToRow(person: Person): Record<string, unknown> {
     updated_at: person.updatedAt,
 
     status: person.status,
+    roles: person.roles,
+    title: person.title ?? null,
     first_name: person.firstName,
     middle_name: person.middleName ?? null,
     last_name: person.lastName,

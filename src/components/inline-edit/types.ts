@@ -8,7 +8,15 @@
  * repository via a Server Action.
  */
 
-export type InlineFieldType = "text" | "number" | "email" | "tel" | "url" | "select";
+export type InlineFieldType =
+  | "text"
+  | "number"
+  | "email"
+  | "tel"
+  | "url"
+  | "date"
+  | "textarea"
+  | "select";
 
 /**
  * Lifecycle of a single-field auto-save. `idle` is the resting state;

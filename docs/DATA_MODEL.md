@@ -1,12 +1,14 @@
 # Denison Tennis OS — Data Model
 
 This document describes the `Person` object: the foundational record for
-everyone tracked in the OS. It currently backs the Team module (current
-players and alumni) and is intentionally shaped to be reused by future
-modules (Recruiting, Operations, etc.) rather than re-modeled per feature.
+everyone tracked in the OS. It backs the **People** domain (players,
+coaches, alumni, and future staff). The left navigation still labels this
+surface **Team** and routes remain `/team` — People is the internal domain
+name (BP-021).
 
 Source of truth in code: `src/features/people/types.ts` (shape) and
-`src/features/people/data.ts` (records).
+`src/features/people/data.ts` (seed/import records). Runtime reads come from
+Supabase `production_people` via `src/features/people/repository.ts`.
 
 ## The Person object
 
@@ -22,7 +24,9 @@ A `Person` is organized into seven groups of fields:
 ### Identity
 | Field | Type | Notes |
 |---|---|---|
-| `status` | `"current" \| "alumni"` | Whether this person is on the current roster or an alum. See "status vs. playerStatus" below. |
+| `status` | `"current" \| "alumni"` | Coarse program lifecycle (on roster vs graduated). **Not** used to represent coach/staff role — see `roles`. |
+| `roles` | `PersonRole[]` | What the person *is*: `player`, `coach`, `alumni`, `staff`. Multi-valued so one Person can be e.g. alumni + coach without a duplicate record. |
+| `title` | `string?` | Job / coaching title when applicable (e.g. `Head Coach`). |
 | `firstName` | `string` | Legal/given first name. |
 | `middleName` | `string?` | Legal middle name, if on file. |
 | `lastName` | `string` | Legal last name. |
@@ -87,20 +91,21 @@ all require re-parsing an ambiguous string. Keeping `firstName` and
 top — keeps every one of those operations trivial and unambiguous, and
 avoids a second source of truth for the same data.
 
-## `status` vs. `playerStatus`
+## `roles` vs `status` vs `playerStatus`
 
-These answer two different questions and are intentionally independent
-fields:
+These answer three different questions and must not be overloaded:
 
-- **`status`** (`"current" | "alumni"`) — Is this person part of the program
-  today, or a graduate? This drives which section of the Team Directory a
-  person appears in by default and is the coarse, program-wide lifecycle
-  state for the person record itself.
+- **`roles`** (`PersonRole[]`) — What is this person in the program? Player,
+  coach, alumni, and/or staff. Multi-valued (e.g. alumni + coach).
+- **`status`** (`"current" | "alumni"`) — Coarse program lifecycle for the
+  record. Team filters for Players/Alumni combine this with roles; coaches
+  are selected by the `coach` role, not by inventing a status value.
 - **`playerStatus`** (`"active" | "injured" | "inactive" | "graduated"`) —
-  The person's tennis-specific standing at the moment (e.g. a *current*
-  player can be `injured`, and an *alumni* record is typically
-  `graduated`). This is finer-grained and specific to tennis operations,
-  not the person record as a whole.
+  Tennis-specific standing for people who play (or played). Irrelevant for
+  coach-only staff.
+
+Team directory filters (BP-021): **All | Players | Coaches | Alumni**
+(default **Players**).
 
 A person's `status` and `playerStatus` can diverge (e.g. `status: "current"`
 with `playerStatus: "injured"`), which is expected.
@@ -108,12 +113,11 @@ with `playerStatus: "injured"`), which is expected.
 ## One record, referenced everywhere
 
 A person exists as exactly **one** record, identified by `id`. The Team
-Directory and the Player Workspace both read from the same
-`src/features/people/data.ts` source — the Directory renders a limited
-subset of fields for scannability, while the Workspace renders the fuller
-picture. Future modules (Recruiting, Operations, etc.) should reference this
-same `Person` record and `id` rather than creating parallel "player" records
-of their own.
+Directory and the Person Workspace both read from the same People
+repository — the Directory renders a limited subset of fields for
+scannability, while the Workspace renders the fuller picture. Future
+modules (Recruiting, Operations, etc.) should reference this same `Person`
+record and `id` rather than creating parallel "player" records of their own.
 
 ## Family Contacts
 
@@ -128,17 +132,9 @@ the Team Directory.
 
 ## Data source
 
-`src/features/people/data.ts` is a local, in-memory array. It is designed
-to be swapped for a real database (e.g. a `people` table) without changing
-the `Person` shape or how consuming components read it — call sites depend
-on the exported `people` array and the helper functions in
-`src/features/people/utils.ts`, not on the fact that the data happens to
-live in a TypeScript file today.
-
-As of BP-012, this file holds the production Denison roster and is
-**generated**, not hand-written: running `npm run import:players`
-(`scripts/import-players.ts`) reads `private-imports/Players.csv`,
-validates and normalizes every row, and regenerates it. Do not hand-edit
-`data.ts` — re-run the import instead, or edits will be overwritten. See
-`docs/DECISIONS.md` (BP-012) for the mapping and validation rules the
-import applies.
+Runtime Person data lives in Supabase `production_people`.
+`src/features/people/data.ts` remains the generated seed/import snapshot
+used by `npm run db:generate-seed`. It is produced by
+`npm run import:players` from `private-imports/Players.csv` — Airtable is
+the single source of truth for players, coaches, and other program roles
+(BP-021). See `docs/DECISIONS.md`.

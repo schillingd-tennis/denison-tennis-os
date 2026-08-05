@@ -23,7 +23,7 @@ function normalizeForCommit(raw: string, type: InlineFieldType): string {
 }
 
 const inputClassName =
-  "w-full min-w-0 rounded-control border border-denison-red bg-surface px-2 py-1 text-sm text-text-primary shadow-sm focus:outline-none focus:ring-1 focus:ring-denison-red";
+  "w-full min-w-0 rounded-control border border-denison-red bg-surface px-2 py-1.5 text-sm text-text-primary shadow-sm focus:outline-none focus:ring-1 focus:ring-denison-red";
 
 /**
  * Mounted only while a cell is being edited — owns draft state so entering
@@ -51,7 +51,7 @@ function InlineEditInput({
   onExitFocus: () => void;
 }) {
   const [draft, setDraft] = useState(initialValue);
-  const inputRef = useRef<HTMLInputElement | HTMLSelectElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null>(null);
   const ignoreBlurRef = useRef(false);
   const committingRef = useRef(false);
 
@@ -59,7 +59,7 @@ function InlineEditInput({
     const node = inputRef.current;
     if (!node) return;
     node.focus();
-    if (node instanceof HTMLInputElement) {
+    if (node instanceof HTMLInputElement || node instanceof HTMLTextAreaElement) {
       node.select();
     }
   }, []);
@@ -79,8 +79,19 @@ function InlineEditInput({
     }
   }
 
-  function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement | HTMLSelectElement>) {
+  function handleInputKeyDown(
+    event: KeyboardEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
+  ) {
     if (event.key === "Enter") {
+      // Textareas need Enter for newlines; commit on Enter for other types.
+      if (type === "textarea") {
+        if (event.metaKey || event.ctrlKey) {
+          event.preventDefault();
+          ignoreBlurRef.current = true;
+          void commit("enter");
+        }
+        return;
+      }
       event.preventDefault();
       ignoreBlurRef.current = true;
       void commit("enter");
@@ -135,6 +146,19 @@ function InlineEditInput({
             </option>
           ))}
         </select>
+      ) : type === "textarea" ? (
+        <textarea
+          ref={(node) => {
+            inputRef.current = node;
+          }}
+          aria-label={label}
+          value={draft}
+          rows={4}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={handleInputKeyDown}
+          onBlur={handleBlur}
+          className={`${inputClassName} resize-y`}
+        />
       ) : (
         <input
           ref={(node) => {
@@ -150,7 +174,9 @@ function InlineEditInput({
                   ? "tel"
                   : type === "url"
                     ? "url"
-                    : "text"
+                    : type === "date"
+                      ? "date"
+                      : "text"
           }
           value={draft}
           step={step}
@@ -170,7 +196,7 @@ function InlineEditInput({
  *
  * - Double click / Enter / F2 → enter edit mode (stops row-level click handlers)
  * - Single click bubbles so parent rows can navigate on click
- * - Enter → commit + exit
+ * - Enter → commit + exit (⌘/Ctrl+Enter for textarea)
  * - Tab / Shift+Tab → commit + ask parent to move focus
  * - Escape → cancel, restore original
  * - Blur → commit
@@ -254,7 +280,7 @@ export default function InlineEditCell({
       aria-label={`${label}: ${shown}`}
       onDoubleClick={editing ? undefined : handleDoubleClick}
       onKeyDown={editing ? undefined : handleCellKeyDown}
-      className={`${editing ? "" : `-mx-1 cursor-cell rounded-control px-1 py-0.5 outline-none transition-colors duration-150 hover:bg-denison-red/[0.04] focus-visible:ring-2 focus-visible:ring-denison-red/40 ${disabled ? "cursor-default hover:bg-transparent" : ""}`} ${alignClass} ${className ?? ""}`}
+      className={`${editing ? "rounded-control ring-1 ring-denison-red/30" : `-mx-1 cursor-cell rounded-control px-1 py-0.5 outline-none transition-colors duration-150 hover:bg-denison-red/[0.04] focus-visible:ring-2 focus-visible:ring-denison-red/40 ${disabled ? "cursor-default hover:bg-transparent" : ""}`} ${alignClass} ${className ?? ""}`}
       title={editing || disabled ? undefined : `Double-click to edit ${label}`}
     >
       {editing ? (
@@ -271,7 +297,11 @@ export default function InlineEditCell({
         />
       ) : (
         (renderDisplay ?? (
-          <span className={`text-sm ${value ? "text-text-secondary" : "text-text-secondary/70"}`}>{shown}</span>
+          <span
+            className={`text-sm whitespace-pre-wrap ${value ? "text-text-primary" : "text-text-secondary/70"}`}
+          >
+            {shown}
+          </span>
         ))
       )}
     </div>

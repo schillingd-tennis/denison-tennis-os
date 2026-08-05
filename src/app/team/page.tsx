@@ -1,11 +1,11 @@
 import { listPeople } from "@/features/people/repository";
-import TeamDirectory from "@/features/team/components/TeamDirectory";
+import PeopleDirectory from "@/features/people/components/PeopleDirectory";
 
-// The roster now lives in Supabase (BP-015) — always render with the
-// current table contents rather than a build-time snapshot.
+// People live in Supabase (BP-015) — always render with the current table
+// contents rather than a build-time snapshot. Route stays /team (BP-021).
 export const dynamic = "force-dynamic";
 
 export default async function TeamPage() {
   const people = await listPeople();
-  return <TeamDirectory people={people} />;
+  return <PeopleDirectory people={people} />;
 }

@@ -10,12 +10,16 @@ export default function WorkspaceSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className={`rounded-card border border-border bg-surface p-7 ${className ?? ""}`}>
+    <section
+      className={`rounded-card border border-border bg-surface px-5 py-5 ${className ?? ""}`}
+    >
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-base font-semibold text-text-primary">{title}</h2>
+        <h2 className="text-sm font-semibold tracking-wide text-text-primary uppercase">
+          {title}
+        </h2>
         {action}
       </div>
-      <div className="mt-5">{children}</div>
+      <div className="mt-4">{children}</div>
     </section>
   );
 }

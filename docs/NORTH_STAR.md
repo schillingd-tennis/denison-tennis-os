@@ -73,7 +73,7 @@ someone else's data.
 Current roadmap:
 
 - Home
-- Team
+- Team (People domain; nav label stays "Team")
 - Recruiting
 - Operations
 - Research Lab

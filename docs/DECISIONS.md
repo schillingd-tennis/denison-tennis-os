@@ -62,11 +62,11 @@ update this file explicitly rather than silently drifting from it.
   is a generated file, produced by `npm run import:players`
   (`scripts/import-players.ts`) from `private-imports/Players.csv`. Do not
   hand-edit it; re-run the import instead.
-- This blueprint imports **players only**. Rows with `Class = Coach` are
-  excluded from the People data entirely (they are out of scope, not
-  errors) and are listed in the import report's `skipped` section. Parents
-  and coaches get their own import in a later blueprint.
-- Stable `id`s are derived from name (e.g. `player-kael-shah`), never from
+- This blueprint originally imported players only. As of BP-021 the same
+  pipeline imports **all people** from the Airtable export (players,
+  coaches, staff, alumni) through `classifyPersonRow` + the Person role
+  model. Duplicate name rows (e.g. alumni + coach) are merged into one
+  Person with unioned roles. Parents remain a later blueprint.- Stable `id`s are derived from name (e.g. `player-kael-shah`), never from
   CSV row position or the Airtable record id in the `Player ID` column —
   consistent with the BP-011 rule that external IDs never become domain
   identity. The Airtable record id is not persisted on `Person` at all
@@ -135,3 +135,44 @@ update this file explicitly rather than silently drifting from it.
   intercept arbitrary in-app `<Link>` navigation app-wide (e.g. sidebar
   nav) — a general App Router navigation guard is a separate concern from
   "build the editing framework" and can be added later if needed.
+
+## BP-021 — People Foundation
+
+- **People** is the internal domain model (`src/features/people/`). **Team**
+  remains the user-facing left-nav label and `/team` URL prefix — no routing
+  rename in this blueprint.
+- Players, coaches, alumni, and future staff share one `Person` foundation.
+  A person may hold multiple `roles` (`player` | `coach` | `alumni` |
+  `staff`) without duplicate Person records. Roles are stored as
+  `production_people.roles text[]` — not overloaded onto `status` or
+  `player_status`.
+- Optional `title` holds coaching/job titles (e.g. Head Coach).
+- Team directory filters: All | Players | Coaches | Alumni (default
+  Players). Players = current + `player` role; Coaches = `coach` role;
+  Alumni = `alumni` role or `status = alumni`.
+- Coaches (and other program roles) import through the normal Airtable
+  pipeline — no hard-coded coach-only overlay module. Class values like
+  `Coach`, `Head Coach`, or `Assistant Coach` map to the `coach` role.
+  Same-name rows merge (Andy Mackler alumni + coach → one Person).
+- Reserved stable ids for development coaches (`person-david-schilling`,
+  `person-andy-mackler`) live in `scripts/import/knownPeople.ts` so re-imports
+  update those rows instead of creating `player-*` duplicates. Migration
+  `0004_seed_coach_people.sql` upserts verified Airtable fields for local
+  testing (temporary seed).
+- Migration `0003_people_roles_and_coaches.sql` adds `roles`/`title` and
+  backfills roles from status only.
+- `PersonRoleBadge` shows `title` or a role-derived label under every name
+  in List and Card views.
+- UI lives under `src/features/people/components/` (PeopleDirectory,
+  PersonList, PersonCard, PersonWorkspace). Status dots remain; Status
+  column stays removed (BP-020E).
+
+## BP-021B — Local Development Environment
+
+- Local Supabase (Docker + CLI) is the primary development database.
+  Workflow: Local → Test → Commit → Push → Hosted (`npm run db:push`).
+- CLI is a project devDependency; use `npm run db:*` scripts.
+- `supabase/config.toml` seeds from `supabase/seed.sql` on `db reset`.
+- Migration `0005_grant_production_people_privileges.sql` grants
+  SELECT/UPDATE to Data API roles (required on newer local stacks).
+- Full guide: `docs/LOCAL_DEVELOPMENT.md`.

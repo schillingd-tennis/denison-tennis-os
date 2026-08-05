@@ -1,10 +1,10 @@
 /**
  * People repository (BP-015; writes added in BP-017 Phase 1).
  *
- * The Team module's only sanctioned way to read and write `Person` records.
- * Per `docs/ARCHITECTURE.md` §3D/§9, this is the stable interface pages,
- * components, and Server Actions call — they must not import
- * `src/lib/supabase.ts`/`src/lib/supabase/server.ts` or the
+ * The People domain's only sanctioned way to read and write `Person` records.
+ * The Team nav surface (`/team`) consumes this repository. Per
+ * `docs/ARCHITECTURE.md` §3D/§9, pages, components, and Server Actions call
+ * this interface — they must not import Supabase clients or the
  * `production_people` table shape directly.
  */
 import { supabase } from "@/lib/supabase";

@@ -19,24 +19,33 @@ const toneClasses: Record<QuickActionTone, string> = {
 };
 
 /**
- * A circular icon button for quick contact actions (call / text / email)
- * on Team List rows, cards, and the Player Workspace. Stops click
- * propagation so activating the action never triggers a parent row/card
- * navigation target, and renders as a disabled, visually muted control
- * when the required contact value is missing.
+ * A circular icon button for quick contact / utility actions on Team List
+ * rows, cards, and the Player Workspace. Stops click propagation so
+ * activating the action never triggers a parent row/card navigation
+ * target. Renders disabled (with an optional tooltip) when neither `href`
+ * nor `onAction` is provided.
  */
 export default function QuickActionButton({
   href,
+  onAction,
   icon: Icon,
   label,
   tone,
   className = "",
+  unavailableTitle,
+  openInNewTab = false,
 }: {
   href?: string;
+  /** Click handler for non-navigation actions (e.g. Copy Address). */
+  onAction?: () => void;
   icon: LucideIcon;
   label: string;
   tone: QuickActionTone;
   className?: string;
+  /** Tooltip when the control is disabled (defaults to `${label} unavailable`). */
+  unavailableTitle?: string;
+  /** When true and `href` is set, open in a new tab. */
+  openInNewTab?: boolean;
 }) {
   const baseClassName =
     "inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border bg-surface select-none transition-[color,background-color,border-color,box-shadow,transform] duration-150 hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-denison-red";
@@ -47,17 +56,35 @@ export default function QuickActionButton({
     event.stopPropagation();
   }
 
-  if (!href) {
+  if (!href && !onAction) {
     return (
       <button
         type="button"
         disabled
         aria-disabled="true"
         aria-label={`${label} unavailable`}
-        title={`${label} unavailable`}
+        title={unavailableTitle ?? `${label} unavailable`}
         onClick={stopParentNavigation}
         onMouseDown={stopParentNavigation}
         className={`${baseClassName} cursor-not-allowed border-border text-text-secondary/35 hover:scale-100 hover:shadow-none ${className}`}
+      >
+        <Icon className="h-[17px] w-[17px]" strokeWidth={2} aria-hidden />
+      </button>
+    );
+  }
+
+  if (onAction && !href) {
+    return (
+      <button
+        type="button"
+        aria-label={label}
+        title={label}
+        onClick={(event) => {
+          stopParentNavigation(event);
+          onAction();
+        }}
+        onMouseDown={stopParentNavigation}
+        className={`${baseClassName} ${toneClasses[tone]} ${className}`}
       >
         <Icon className="h-[17px] w-[17px]" strokeWidth={2} aria-hidden />
       </button>
@@ -69,6 +96,8 @@ export default function QuickActionButton({
       href={href}
       aria-label={label}
       title={label}
+      target={openInNewTab ? "_blank" : undefined}
+      rel={openInNewTab ? "noopener noreferrer" : undefined}
       onClick={stopParentNavigation}
       onMouseDown={stopParentNavigation}
       className={`${baseClassName} ${toneClasses[tone]} ${className}`}

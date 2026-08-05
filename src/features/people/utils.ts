@@ -1,4 +1,4 @@
-import type { ContactMethod, Person, PersonStatus, PlayerStatus } from "./types";
+import type { ContactMethod, Person, PersonRole, PersonStatus, PlayerStatus } from "./types";
 
 export function getDisplayFirstName(person: Person): string {
   return person.preferredName?.trim() || person.firstName;
@@ -20,6 +20,17 @@ export function getInitials(person: Person): string {
   const first = getDisplayFirstName(person).charAt(0);
   const last = person.lastName.charAt(0);
   return `${first}${last}`.toUpperCase();
+}
+
+/**
+ * Display format for Denison ID (D#). Stored values are typically `D02008078`;
+ * UI always shows `D#02008078`, or `D# —` when unset.
+ */
+export function formatDenisonIdDisplay(denisonId: string | undefined): string {
+  const trimmed = denisonId?.trim();
+  if (!trimmed) return "D# —";
+  const digits = trimmed.replace(/^D#?/i, "");
+  return digits ? `D#${digits}` : "D# —";
 }
 
 export function getHometown(person: Person): string | undefined {
@@ -108,11 +119,56 @@ export function getPreferredContactLabel(method?: ContactMethod): string | undef
   }
 }
 
+export function hasRole(person: Person, role: PersonRole): boolean {
+  return person.roles.includes(role);
+}
+
+/** True when the person holds the coach role (may also be alumni/player). */
+export function isCoach(person: Person): boolean {
+  return hasRole(person, "coach");
+}
+
+/**
+ * Coach-oriented directory presentation: has coach role and is not a
+ * current player. Alumni coaches (e.g. Andy Mackler) still use this path
+ * so list/cards emphasize title + contact over player ratings.
+ */
+export function isCoachDirectoryPerson(person: Person): boolean {
+  return hasRole(person, "coach") && !(hasRole(person, "player") && person.status === "current");
+}
+
+/**
+ * Label shown under a person's name (List / Card). Prefers `title` from the
+ * Person record (coaching/staff titles from Airtable), otherwise derives a
+ * clear label from roles — so future roles display without UI changes.
+ */
+export function getPersonRoleLabel(person: Person): string {
+  const titled = person.title?.trim();
+  if (titled) return titled;
+
+  if (hasRole(person, "coach")) return "Coach";
+  if (hasRole(person, "staff")) return "Staff";
+  if (hasRole(person, "player") && person.status === "current") return "Player";
+  if (hasRole(person, "alumni") || person.status === "alumni") return "Alumni";
+  if (hasRole(person, "player")) return "Player";
+
+  const first = person.roles[0];
+  if (first) return first.charAt(0).toUpperCase() + first.slice(1);
+  return "Person";
+}
+
 export function matchesSearch(person: Person, query: string): boolean {
   const q = query.trim().toLowerCase();
   if (!q) return true;
 
-  const haystack = [person.firstName, person.lastName, person.preferredName, person.city, person.major]
+  const haystack = [
+    person.firstName,
+    person.lastName,
+    person.preferredName,
+    person.title,
+    person.city,
+    person.major,
+  ]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
@@ -120,14 +176,37 @@ export function matchesSearch(person: Person, query: string): boolean {
   return haystack.includes(q);
 }
 
-export type StatusFilter = "all" | PersonStatus;
+/** Team directory role filter (BP-021). Default UI selection is `players`. */
+export type RoleFilter = "all" | "players" | "coaches" | "alumni";
+
+/**
+ * Default roles when importing/backfilling from program status alone.
+ * Coaches and staff are assigned explicitly — never inferred from status.
+ */
+export function defaultRolesForStatus(status: PersonStatus): PersonRole[] {
+  return status === "alumni" ? ["alumni"] : ["player"];
+}
 
 export function filterPeople(
   people: Person[],
-  { status, query }: { status: StatusFilter; query: string },
+  { role, query }: { role: RoleFilter; query: string },
 ): Person[] {
   return people
-    .filter((person) => status === "all" || person.status === status)
+    .filter((person) => {
+      switch (role) {
+        case "all":
+          return true;
+        case "players":
+          // Current player records — coach-only staff stay out of this filter.
+          return hasRole(person, "player") && person.status === "current";
+        case "coaches":
+          return hasRole(person, "coach");
+        case "alumni":
+          return hasRole(person, "alumni") || person.status === "alumni";
+        default:
+          return true;
+      }
+    })
     .filter((person) => matchesSearch(person, query))
     .sort((a, b) => a.lastName.localeCompare(b.lastName));
 }

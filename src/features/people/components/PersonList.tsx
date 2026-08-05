@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useRef, useState, type MouseEvent } from "react";
-import { Mail, MessageSquare, Phone } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { ClipboardList, Download, Mail, MessageSquare, Phone } from "lucide-react";
 
 import type { ColumnDef, SortState } from "@/components/data-table/types";
 import { useSortableData } from "@/components/data-table/useSortableData";
@@ -16,6 +16,11 @@ import {
   toOptionalNumber,
 } from "@/components/editor";
 import {
+  copyFoundSet,
+  exportFoundSetCsv,
+  publishFoundSet,
+} from "@/components/found-set";
+import {
   formatPhoneDisplay,
   InlineEditCell,
   normalizeEmail,
@@ -25,25 +30,37 @@ import {
   useSaveIndicator,
   type InlineCommitReason,
 } from "@/components/inline-edit";
+import { StickyProductivityActionBar } from "@/components/productivity";
 
 import { updatePersonAction } from "@/features/people/actions";
-import type { Person, PersonStatus } from "@/features/people/types";
+import type { Person } from "@/features/people/types";
 import {
+  formatDenisonIdDisplay,
   getDisplayFirstName,
   getDisplayName,
   getHometown,
   getInitials,
   getStatusLabel,
   getStatusTone,
+  isCoachDirectoryPerson,
 } from "@/features/people/utils";
+import {
+  TEAM_FOUND_SET_COLUMNS,
+  TEAM_FOUND_SET_FILENAME_BASE,
+  TEAM_FOUND_SET_MODULE_KEY,
+} from "@/features/people/foundSet";
+import { getPersonStatusIndicator } from "@/features/people/statusIndicator";
 
 import PlayerAvatar from "@/components/PlayerAvatar";
 import QuickActionButton from "@/components/QuickActionButton";
 import StatusBadge from "@/components/StatusBadge";
+import StatusDot from "@/components/StatusDot";
+
+import PersonRoleBadge from "./PersonRoleBadge";
 
 type PersonColumnKey =
   | "name"
-  | "status"
+  | "denisonId"
   | "phone"
   | "email"
   | "hometown"
@@ -52,10 +69,9 @@ type PersonColumnKey =
   | "wtn";
 
 /** Fields that support double-click inline editing in the Team List (BP-019A). */
-type EditableField = Exclude<PersonColumnKey, "name">;
+type EditableField = Exclude<PersonColumnKey, "name" | "denisonId">;
 
 const EDITABLE_FIELDS: EditableField[] = [
-  "status",
   "phone",
   "email",
   "hometown",
@@ -72,18 +88,13 @@ const TEAM_LIST_SORT_STORAGE_KEY = "denison-tennis-os:team-list-sort";
 
 const PERSON_COLUMN_KEYS: readonly PersonColumnKey[] = [
   "name",
-  "status",
+  "denisonId",
   "phone",
   "email",
   "hometown",
   "classYear",
   "utr",
   "wtn",
-];
-
-const statusOptions = [
-  { value: "current", label: "Current" },
-  { value: "alumni", label: "Alumni" },
 ];
 
 type EditingCell = { personId: string; field: EditableField };
@@ -146,12 +157,11 @@ const columns: ColumnDef<Person, PersonColumnKey>[] = [
     defaultSort: "asc",
   },
   {
-    id: "status",
-    title: "Status",
+    id: "denisonId",
+    title: "D#",
     sortable: true,
-    sortType: "enum",
-    accessor: (person) => person.status,
-    enumOrder: ["current", "alumni"] satisfies PersonStatus[],
+    sortType: "text",
+    accessor: (person) => person.denisonId,
     defaultSort: "asc",
   },
   {
@@ -248,7 +258,7 @@ function contactHrefs(person: Person) {
   };
 }
 
-export default function PlayerList({ people }: { people: Person[] }) {
+export default function PersonList({ people }: { people: Person[] }) {
   const router = useRouter();
   const [rows, setRows] = useState(people);
   const [trackedPeople, setTrackedPeople] = useState(people);
@@ -268,6 +278,40 @@ export default function PlayerList({ people }: { people: Person[] }) {
     getInitialSort: readStoredTeamListSort,
     onSortChange: writeStoredTeamListSort,
   });
+
+  // Keep the Team found set in session so Workspace Copy / Export match
+  // the list's current search · filter · sort (BP-021).
+  useEffect(() => {
+    publishFoundSet({
+      moduleKey: TEAM_FOUND_SET_MODULE_KEY,
+      filenameBase: TEAM_FOUND_SET_FILENAME_BASE,
+      rows: sortedItems,
+      columns: TEAM_FOUND_SET_COLUMNS,
+    });
+  }, [sortedItems]);
+
+  const [foundSetFeedback, setFoundSetFeedback] = useState<string | undefined>(undefined);
+
+  const handleCopyFoundSet = useCallback(async () => {
+    if (sortedItems.length === 0) return;
+    try {
+      await copyFoundSet(sortedItems, TEAM_FOUND_SET_COLUMNS);
+      setFoundSetFeedback("Found set copied");
+      window.setTimeout(() => setFoundSetFeedback(undefined), 2000);
+    } catch {
+      setFoundSetFeedback("Copy failed");
+      window.setTimeout(() => setFoundSetFeedback(undefined), 2000);
+    }
+  }, [sortedItems]);
+
+  const handleExportFoundSet = useCallback(() => {
+    if (sortedItems.length === 0) return;
+    exportFoundSetCsv({
+      rows: sortedItems,
+      columns: TEAM_FOUND_SET_COLUMNS,
+      filenameBase: TEAM_FOUND_SET_FILENAME_BASE,
+    });
+  }, [sortedItems]);
 
   const openWorkspace = useCallback(
     (personId: string) => {
@@ -337,10 +381,6 @@ export default function PlayerList({ people }: { people: Person[] }) {
       raw: string,
     ): { patch: Partial<Person>; error?: string } => {
       switch (field) {
-        case "status": {
-          if (!raw) return { patch: {}, error: "Status is required." };
-          return { patch: { status: raw as PersonStatus } };
-        }
         case "phone": {
           const value = normalizePhone(raw);
           const error = isValidPhone(value);
@@ -475,9 +515,39 @@ export default function PlayerList({ people }: { people: Person[] }) {
 
   return (
     <div className="flex flex-col gap-2.5">
-      <div className="flex min-h-5 items-center justify-end px-1">
-        <SaveIndicator status={saveStatus} error={saveError} />
-      </div>
+      <StickyProductivityActionBar
+        leading={
+          <>
+            <SaveIndicator status={saveStatus} error={saveError} />
+            {foundSetFeedback ? (
+              <span className="text-xs font-medium text-success" role="status">
+                {foundSetFeedback}
+              </span>
+            ) : null}
+            <span className="text-xs text-text-secondary">
+              {sortedItems.length} in found set
+            </span>
+          </>
+        }
+        actions={
+          <>
+            <QuickActionButton
+              onAction={sortedItems.length > 0 ? handleCopyFoundSet : undefined}
+              icon={ClipboardList}
+              label="Copy Found Set"
+              tone="neutral"
+              unavailableTitle="No records in found set"
+            />
+            <QuickActionButton
+              onAction={sortedItems.length > 0 ? handleExportFoundSet : undefined}
+              icon={Download}
+              label="Export Found Set"
+              tone="neutral"
+              unavailableTitle="No records in found set"
+            />
+          </>
+        }
+      />
 
       <div className="relative overflow-hidden rounded-card border border-border bg-surface">
         <div className="hidden overflow-x-auto md:block">
@@ -487,15 +557,15 @@ export default function PlayerList({ people }: { people: Person[] }) {
             aria-label="Team list"
           >
             <colgroup>
-              <col className="w-[17%]" />
-              <col className="w-[9%]" />
+              <col className="w-[18%]" />
+              <col className="w-[10%]" />
               <col className="w-[12%]" />
               <col className="w-[15%]" />
               <col className="w-[13%]" />
               <col className="w-[6%]" />
               <col className="w-[6%]" />
               <col className="w-[6%]" />
-              <col className="w-[16%]" />
+              <col className="w-[14%]" />
             </colgroup>
             <thead>
               <tr className="border-b border-border bg-app-background/60 text-xs font-medium tracking-wide text-text-secondary uppercase">
@@ -523,6 +593,10 @@ export default function PlayerList({ people }: { people: Person[] }) {
                 const phoneDisplay = formatPhoneDisplay(person.cellPhone);
                 const emailDisplay = emailForList(person);
                 const hrefs = contactHrefs(person);
+                const statusIndicator = getPersonStatusIndicator(person);
+                const coachDirectory = isCoachDirectoryPerson(person);
+                const showDenisonId = !coachDirectory || Boolean(person.denisonId?.trim());
+                const showPlayerMetrics = !coachDirectory;
 
                 return (
                   <tr
@@ -531,36 +605,28 @@ export default function PlayerList({ people }: { people: Person[] }) {
                     className="h-14 cursor-pointer border-b border-border/50 transition-colors duration-150 last:border-b-0 hover:bg-denison-red/[0.045]"
                   >
                     <td className={cellPad}>
-                      <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <StatusDot
+                          tone={statusIndicator.tone}
+                          label={statusIndicator.label}
+                        />
                         <PlayerAvatar
                           photoUrl={person.photoUrl}
                           initials={getInitials(person)}
                           size={32}
                         />
-                        <span className="truncate text-[14px] font-semibold tracking-tight text-text-primary">
-                          {displayName}
-                        </span>
+                        <div className="min-w-0">
+                          <span className="block truncate text-[14px] font-semibold tracking-tight text-text-primary">
+                            {displayName}
+                          </span>
+                          <PersonRoleBadge person={person} />
+                        </div>
                       </div>
                     </td>
-                    <td className={cellPad}>
-                      <InlineEditCell
-                        label="Status"
-                        value={person.status}
-                        displayValue={getStatusLabel(person.status)}
-                        renderDisplay={
-                          <StatusBadge
-                            label={getStatusLabel(person.status)}
-                            tone={getStatusTone(person.status)}
-                          />
-                        }
-                        type="select"
-                        options={statusOptions}
-                        editing={isEditing(person.id, "status")}
-                        error={isEditing(person.id, "status") ? fieldError : undefined}
-                        onRequestEdit={() => startEdit(person.id, "status")}
-                        onCancel={cancelEdit}
-                        onCommit={(raw, reason) => handleCommit(person.id, "status", raw, reason)}
-                      />
+                    <td className={`${cellPad} tabular-nums text-text-secondary`}>
+                      {showDenisonId ? formatDenisonIdDisplay(person.denisonId) : (
+                        <span className="text-text-secondary/50">—</span>
+                      )}
                     </td>
                     <td className={cellPad}>
                       <InlineEditCell
@@ -604,55 +670,67 @@ export default function PlayerList({ people }: { people: Person[] }) {
                       />
                     </td>
                     <td className={`${cellPad} text-right`}>
-                      <InlineEditCell
-                        label="Class"
-                        value={person.classYear !== undefined ? String(person.classYear) : ""}
-                        displayValue={
-                          person.classYear !== undefined ? String(person.classYear) : undefined
-                        }
-                        type="number"
-                        align="right"
-                        className="tabular-nums"
-                        editing={isEditing(person.id, "classYear")}
-                        error={isEditing(person.id, "classYear") ? fieldError : undefined}
-                        onRequestEdit={() => startEdit(person.id, "classYear")}
-                        onCancel={cancelEdit}
-                        onCommit={(raw, reason) =>
-                          handleCommit(person.id, "classYear", raw, reason)
-                        }
-                      />
+                      {showPlayerMetrics ? (
+                        <InlineEditCell
+                          label="Class"
+                          value={person.classYear !== undefined ? String(person.classYear) : ""}
+                          displayValue={
+                            person.classYear !== undefined ? String(person.classYear) : undefined
+                          }
+                          type="number"
+                          align="right"
+                          className="tabular-nums"
+                          editing={isEditing(person.id, "classYear")}
+                          error={isEditing(person.id, "classYear") ? fieldError : undefined}
+                          onRequestEdit={() => startEdit(person.id, "classYear")}
+                          onCancel={cancelEdit}
+                          onCommit={(raw, reason) =>
+                            handleCommit(person.id, "classYear", raw, reason)
+                          }
+                        />
+                      ) : (
+                        <span className="text-text-secondary/50">—</span>
+                      )}
                     </td>
                     <td className={`${cellPad} text-right`}>
-                      <InlineEditCell
-                        label="UTR"
-                        value={person.utr !== undefined ? String(person.utr) : ""}
-                        displayValue={person.utr !== undefined ? person.utr.toFixed(1) : undefined}
-                        type="number"
-                        step={0.1}
-                        align="right"
-                        className="tabular-nums"
-                        editing={isEditing(person.id, "utr")}
-                        error={isEditing(person.id, "utr") ? fieldError : undefined}
-                        onRequestEdit={() => startEdit(person.id, "utr")}
-                        onCancel={cancelEdit}
-                        onCommit={(raw, reason) => handleCommit(person.id, "utr", raw, reason)}
-                      />
+                      {showPlayerMetrics ? (
+                        <InlineEditCell
+                          label="UTR"
+                          value={person.utr !== undefined ? String(person.utr) : ""}
+                          displayValue={person.utr !== undefined ? person.utr.toFixed(1) : undefined}
+                          type="number"
+                          step={0.1}
+                          align="right"
+                          className="tabular-nums"
+                          editing={isEditing(person.id, "utr")}
+                          error={isEditing(person.id, "utr") ? fieldError : undefined}
+                          onRequestEdit={() => startEdit(person.id, "utr")}
+                          onCancel={cancelEdit}
+                          onCommit={(raw, reason) => handleCommit(person.id, "utr", raw, reason)}
+                        />
+                      ) : (
+                        <span className="text-text-secondary/50">—</span>
+                      )}
                     </td>
                     <td className={`${cellPad} text-right`}>
-                      <InlineEditCell
-                        label="WTN"
-                        value={person.wtn !== undefined ? String(person.wtn) : ""}
-                        displayValue={person.wtn !== undefined ? person.wtn.toFixed(1) : undefined}
-                        type="number"
-                        step={0.1}
-                        align="right"
-                        className="tabular-nums"
-                        editing={isEditing(person.id, "wtn")}
-                        error={isEditing(person.id, "wtn") ? fieldError : undefined}
-                        onRequestEdit={() => startEdit(person.id, "wtn")}
-                        onCancel={cancelEdit}
-                        onCommit={(raw, reason) => handleCommit(person.id, "wtn", raw, reason)}
-                      />
+                      {showPlayerMetrics ? (
+                        <InlineEditCell
+                          label="WTN"
+                          value={person.wtn !== undefined ? String(person.wtn) : ""}
+                          displayValue={person.wtn !== undefined ? person.wtn.toFixed(1) : undefined}
+                          type="number"
+                          step={0.1}
+                          align="right"
+                          className="tabular-nums"
+                          editing={isEditing(person.id, "wtn")}
+                          error={isEditing(person.id, "wtn") ? fieldError : undefined}
+                          onRequestEdit={() => startEdit(person.id, "wtn")}
+                          onCancel={cancelEdit}
+                          onCommit={(raw, reason) => handleCommit(person.id, "wtn", raw, reason)}
+                        />
+                      ) : (
+                        <span className="text-text-secondary/50">—</span>
+                      )}
                     </td>
                     <td
                       className={`${cellPad} text-right`}
@@ -692,9 +770,12 @@ export default function PlayerList({ people }: { people: Person[] }) {
           {sortedItems.map((person) => {
             const displayName = getDisplayName(person);
             const hometown = getHometown(person);
-            const detailLine = [person.classYear ? `Class of ${person.classYear}` : null, hometown]
-              .filter(Boolean)
-              .join(" · ");
+            const coachDirectory = isCoachDirectoryPerson(person);
+            const detailLine = coachDirectory
+              ? [person.title, hometown].filter(Boolean).join(" · ")
+              : [person.classYear ? `Class of ${person.classYear}` : null, hometown]
+                  .filter(Boolean)
+                  .join(" · ");
 
             return (
               <li key={person.id}>
@@ -709,9 +790,12 @@ export default function PlayerList({ people }: { people: Person[] }) {
                   />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="truncate text-[15px] font-semibold text-text-primary">
-                        {displayName}
-                      </p>
+                      <div className="min-w-0">
+                        <p className="truncate text-[15px] font-semibold text-text-primary">
+                          {displayName}
+                        </p>
+                        <PersonRoleBadge person={person} />
+                      </div>
                       <StatusBadge
                         label={getStatusLabel(person.status)}
                         tone={getStatusTone(person.status)}

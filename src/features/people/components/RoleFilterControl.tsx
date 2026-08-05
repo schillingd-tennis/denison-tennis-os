@@ -1,24 +1,25 @@
 "use client";
 
-import type { StatusFilter } from "@/features/people/utils";
+import type { RoleFilter } from "@/features/people/utils";
 
-const options: { value: StatusFilter; label: string }[] = [
+const options: { value: RoleFilter; label: string }[] = [
   { value: "all", label: "All" },
-  { value: "current", label: "Current" },
+  { value: "players", label: "Players" },
+  { value: "coaches", label: "Coaches" },
   { value: "alumni", label: "Alumni" },
 ];
 
-export default function StatusFilterControl({
+export default function RoleFilterControl({
   value,
   onChange,
 }: {
-  value: StatusFilter;
-  onChange: (value: StatusFilter) => void;
+  value: RoleFilter;
+  onChange: (value: RoleFilter) => void;
 }) {
   return (
     <div
       role="group"
-      aria-label="Filter by status"
+      aria-label="Filter by role"
       className="inline-flex h-10 items-center gap-1 rounded-control border border-border bg-surface p-1"
     >
       {options.map((option) => (

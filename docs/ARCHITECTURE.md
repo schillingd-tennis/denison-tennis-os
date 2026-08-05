@@ -223,15 +223,13 @@ Roles describe what a Person is. Relationships describe how one Person
 connects to another Person. These are deliberately separate concepts —
 a role is a property of one person; a relationship links two people.
 
-> **Note on today's implementation:** the current codebase models a
-> parent/guardian as a lighter `FamilyContact` record linked to a player
-> by `personId` (see `docs/DATA_MODEL.md`), rather than as a full `Person`
-> with a `PersonRole`/`PersonRelationship`. This is an intentional,
-> smaller first step — the target shape described above (family members
-> as full `Person` records connected via `PersonRelationship`) is where
-> this evolves once a real workflow needs a parent to be addressable as
-> a first-class person (e.g. a parent who is also a donor). This does not
-> contradict `DATA_MODEL.md`; it describes where that model is headed.
+> **Note on today's implementation (BP-021):** `Person.roles` is a
+> Postgres `text[]` / TypeScript `PersonRole[]` on the same Person row
+> (`player` | `coach` | `alumni` | `staff`). That is the smallest clean
+> multi-role model without a join table or duplicate Person records.
+> Parent/guardian contacts remain the lighter `FamilyContact` shape
+> linked by `personId` until a workflow needs them as full `Person`
+> records. See `docs/DATA_MODEL.md`.
 
 ## 6. Module Architecture
 
@@ -248,8 +246,14 @@ The locked primary modules:
 **Home** — cross-module orientation and executive brief. Built later
 because it depends on other modules having real data to summarize.
 
-**Team** — current players and alumni. Player Directory and Player
-Workspace.
+**Team** — user-facing navigation label for the People directory and
+Person Workspace. Routes stay `/team`. Internally this is the People
+domain: players, coaches, alumni, and future staff share one `Person`
+foundation with multi-valued `roles`.
+
+Local Supabase is the primary development database; see
+`docs/LOCAL_DEVELOPMENT.md` for migrations, seed, and promote-to-hosted
+workflow (BP-021B).
 
 **Recruiting** — recruit discovery, communication, evaluation, visits,
 admissions. Recruit Directory and Recruit Workspace.

@@ -1,3 +1,5 @@
+import { lookupKnownPerson } from "./knownPeople";
+
 /** Slugifies a name fragment: lowercase, ASCII-only, hyphen-separated. */
 function slugify(value: string): string {
   return value
@@ -9,18 +11,25 @@ function slugify(value: string): string {
 }
 
 /**
- * Generates a stable, human-readable id (e.g. `player-kael-shah`) derived
- * from name only — never from row position or an Airtable record id, both
- * of which can change independently of who the person is.
+ * Generates a stable, human-readable id derived from name only — never from
+ * row position or an Airtable record id.
  *
- * Collisions (two players with the same first + last name) are resolved
- * with a numeric suffix and must be flagged by the caller as a warning.
+ * Known people (e.g. David Schilling, Andy Mackler) use reserved `person-*`
+ * ids so Airtable re-imports update the same rows rather than duplicating.
+ *
+ * Other collisions are resolved with a numeric suffix.
  */
 export function generateStableId(
   firstName: string,
   lastName: string,
   usedIds: Set<string>,
-): { id: string; collided: boolean } {
+): { id: string; collided: boolean; knownTitle?: string } {
+  const known = lookupKnownPerson(firstName, lastName);
+  if (known) {
+    usedIds.add(known.id);
+    return { id: known.id, collided: false, knownTitle: known.title };
+  }
+
   const base = `player-${slugify(firstName)}-${slugify(lastName)}`;
   let id = base;
   let suffix = 2;

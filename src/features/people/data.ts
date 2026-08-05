@@ -3,12 +3,13 @@ import type { Person } from "./types";
 /**
  * Production Denison Tennis roster.
  *
- * GENERATED FILE — do not hand-edit. Produced by `npm run import:players`
+ * GENERATED FILE — produced by `npm run import:players`
  * (see `scripts/import-players.ts`) from `private-imports/Players.csv`.
- * Re-run the import to regenerate; manual edits here will be overwritten.
+ * Imports all people (players, coaches, staff, alumni) via the Person role model.
+ * Re-run the import to regenerate.
  *
- * Generated: 2026-08-04T11:43:59.181Z
- * Records: 36
+ * Generated: 2026-08-05T13:14:48.207Z
+ * Records: 40
  */
 export const people: Person[] = [
   {
@@ -16,6 +17,9 @@ export const people: Person[] = [
     createdAt: "2026-07-22T16:29:00.000Z",
     updatedAt: "2026-07-22T16:29:00.000Z",
     status: "current",
+    roles: [
+      "player"
+    ],
     firstName: "Peter",
     lastName: "Berns",
     classYear: 2030,
@@ -27,6 +31,9 @@ export const people: Person[] = [
     createdAt: "2026-07-30T14:29:00.000Z",
     updatedAt: "2026-07-30T14:29:00.000Z",
     status: "current",
+    roles: [
+      "player"
+    ],
     firstName: "Aidan",
     lastName: "Borosko",
     dateOfBirth: "2006-03-07",
@@ -45,6 +52,9 @@ export const people: Person[] = [
     createdAt: "2023-01-01T08:47:00.000Z",
     updatedAt: "2023-01-01T08:47:00.000Z",
     status: "current",
+    roles: [
+      "player"
+    ],
     firstName: "JP",
     lastName: "Boyle",
     dateOfBirth: "2003-11-28",
@@ -60,6 +70,9 @@ export const people: Person[] = [
     createdAt: "2024-01-25T07:11:00.000Z",
     updatedAt: "2024-01-25T07:11:00.000Z",
     status: "alumni",
+    roles: [
+      "alumni"
+    ],
     firstName: "Jack",
     lastName: "Bulger",
     dateOfBirth: "2001-07-23",
@@ -75,6 +88,9 @@ export const people: Person[] = [
     createdAt: "2026-05-23T06:26:00.000Z",
     updatedAt: "2026-05-23T06:26:00.000Z",
     status: "alumni",
+    roles: [
+      "alumni"
+    ],
     firstName: "Andreas",
     lastName: "Chapides",
     dateOfBirth: "2003-03-21",
@@ -93,6 +109,9 @@ export const people: Person[] = [
     createdAt: "2026-07-22T16:28:00.000Z",
     updatedAt: "2026-07-22T16:28:00.000Z",
     status: "current",
+    roles: [
+      "player"
+    ],
     firstName: "Luke",
     lastName: "Colson",
     classYear: 2030,
@@ -104,6 +123,9 @@ export const people: Person[] = [
     createdAt: "2026-07-22T10:00:00.000Z",
     updatedAt: "2026-07-22T10:00:00.000Z",
     status: "current",
+    roles: [
+      "player"
+    ],
     firstName: "Mason",
     middleName: "Jonathon Mason (Mason is middle name)",
     lastName: "Conlin",
@@ -123,6 +145,9 @@ export const people: Person[] = [
     createdAt: "2023-02-06T10:14:00.000Z",
     updatedAt: "2023-02-06T10:14:00.000Z",
     status: "current",
+    roles: [
+      "player"
+    ],
     firstName: "Blake",
     lastName: "Eason",
     dateOfBirth: "2002-10-01",
@@ -139,6 +164,9 @@ export const people: Person[] = [
     createdAt: "2024-01-25T07:12:00.000Z",
     updatedAt: "2024-01-25T07:12:00.000Z",
     status: "current",
+    roles: [
+      "player"
+    ],
     firstName: "Camden",
     lastName: "French",
     dateOfBirth: "2003-09-26",
@@ -154,6 +182,9 @@ export const people: Person[] = [
     createdAt: "2026-07-23T09:39:00.000Z",
     updatedAt: "2026-07-23T09:39:00.000Z",
     status: "current",
+    roles: [
+      "player"
+    ],
     firstName: "Arya",
     lastName: "Ganapathy Kallambella",
     dateOfBirth: "2007-01-21",
@@ -170,6 +201,9 @@ export const people: Person[] = [
     createdAt: "2024-01-25T07:11:00.000Z",
     updatedAt: "2024-01-25T07:11:00.000Z",
     status: "alumni",
+    roles: [
+      "alumni"
+    ],
     firstName: "Daniel",
     lastName: "Garcia",
     dateOfBirth: "2001-07-16",
@@ -186,6 +220,9 @@ export const people: Person[] = [
     createdAt: "2026-05-23T06:23:00.000Z",
     updatedAt: "2026-05-23T06:23:00.000Z",
     status: "alumni",
+    roles: [
+      "alumni"
+    ],
     firstName: "Milan",
     lastName: "Gonela",
     dateOfBirth: "2001-10-26",
@@ -201,6 +238,9 @@ export const people: Person[] = [
     createdAt: "2025-07-16T14:24:00.000Z",
     updatedAt: "2025-07-16T14:24:00.000Z",
     status: "alumni",
+    roles: [
+      "alumni"
+    ],
     firstName: "Colin",
     middleName: "Connor",
     lastName: "Gramley",
@@ -217,6 +257,9 @@ export const people: Person[] = [
     createdAt: "2026-05-23T06:26:00.000Z",
     updatedAt: "2026-05-23T06:26:00.000Z",
     status: "alumni",
+    roles: [
+      "alumni"
+    ],
     firstName: "Ethan",
     middleName: "Michael",
     lastName: "Green",
@@ -236,6 +279,9 @@ export const people: Person[] = [
     createdAt: "2024-01-25T07:11:00.000Z",
     updatedAt: "2024-01-25T07:11:00.000Z",
     status: "alumni",
+    roles: [
+      "alumni"
+    ],
     firstName: "Marc-Lennart",
     lastName: "Harms",
     dateOfBirth: "2000-03-21",
@@ -252,6 +298,9 @@ export const people: Person[] = [
     createdAt: "2026-07-22T17:59:00.000Z",
     updatedAt: "2026-07-22T17:59:00.000Z",
     status: "current",
+    roles: [
+      "player"
+    ],
     firstName: "Wesley",
     lastName: "Huang",
     dateOfBirth: "2006-12-18",
@@ -270,6 +319,9 @@ export const people: Person[] = [
     createdAt: "2026-07-22T07:19:00.000Z",
     updatedAt: "2026-07-22T07:19:00.000Z",
     status: "current",
+    roles: [
+      "player"
+    ],
     firstName: "Balraj",
     lastName: "Idnani",
     dateOfBirth: "2006-07-20",
@@ -288,6 +340,9 @@ export const people: Person[] = [
     createdAt: "2026-07-22T08:57:00.000Z",
     updatedAt: "2026-07-22T08:57:00.000Z",
     status: "current",
+    roles: [
+      "player"
+    ],
     firstName: "Ishwar",
     lastName: "Idnani",
     dateOfBirth: "2006-07-20",
@@ -306,6 +361,9 @@ export const people: Person[] = [
     createdAt: "2024-07-14T09:20:00.000Z",
     updatedAt: "2024-07-14T09:20:00.000Z",
     status: "alumni",
+    roles: [
+      "alumni"
+    ],
     firstName: "Nadeem",
     lastName: "Jones",
     dateOfBirth: "2002-08-08",
@@ -322,6 +380,9 @@ export const people: Person[] = [
     createdAt: "2025-02-05T19:29:00.000Z",
     updatedAt: "2025-02-05T19:29:00.000Z",
     status: "current",
+    roles: [
+      "player"
+    ],
     firstName: "Aayush",
     lastName: "Kishore",
     dateOfBirth: "2004-11-12",
@@ -337,6 +398,9 @@ export const people: Person[] = [
     createdAt: "2026-07-22T16:38:00.000Z",
     updatedAt: "2026-07-22T16:38:00.000Z",
     status: "current",
+    roles: [
+      "player"
+    ],
     firstName: "Minato",
     lastName: "Koido",
     classYear: 2030,
@@ -344,15 +408,44 @@ export const people: Person[] = [
     relationships: []
   },
   {
-    id: "player-andy-mackler",
+    id: "player-chris-landauer",
+    createdAt: "2025-09-03T12:47:00.000Z",
+    updatedAt: "2025-09-03T12:47:00.000Z",
+    status: "current",
+    roles: [
+      "coach"
+    ],
+    title: "Coach",
+    firstName: "Chris",
+    middleName: "Neal",
+    lastName: "Landauer",
+    dateOfBirth: "1981-07-10",
+    cellPhone: "(614) 940-8985",
+    denisonEmail: "Landauerc@denison.edu",
+    city: "Columbus",
+    state: "OH",
+    country: "USA",
+    denisonId: "D01930462",
+    relationships: []
+  },
+  {
+    id: "person-andy-mackler",
     createdAt: "2026-01-08T06:43:00.000Z",
-    updatedAt: "2026-01-08T06:43:00.000Z",
+    updatedAt: "2026-07-22T20:10:00.000Z",
     status: "alumni",
+    roles: [
+      "alumni",
+      "coach"
+    ],
+    title: "Assistant Coach",
     firstName: "Andy",
     lastName: "Mackler",
     dateOfBirth: "2001-09-28",
     cellPhone: "(407) 994-3266",
     denisonEmail: "mackle_a1@denison.edu",
+    city: "Lake Mary",
+    state: "FL",
+    country: "USA",
     major: "HESS",
     minor: "Global Health",
     denisonId: "D01926981",
@@ -360,10 +453,34 @@ export const people: Person[] = [
     relationships: []
   },
   {
+    id: "player-donald-macpherson",
+    createdAt: "2025-08-10T07:50:00.000Z",
+    updatedAt: "2025-08-10T07:50:00.000Z",
+    status: "current",
+    roles: [
+      "coach"
+    ],
+    title: "Coach",
+    firstName: "Donald",
+    middleName: "Grant",
+    lastName: "MacPherson",
+    dateOfBirth: "1995-12-13",
+    cellPhone: "(419) 351-6854",
+    personalEmail: "macphersong95@gmail.com",
+    city: "Columbus",
+    state: "OH",
+    country: "USA",
+    denisonId: "D01653320",
+    relationships: []
+  },
+  {
     id: "player-jackson-mactaggart",
     createdAt: "2026-07-22T18:05:00.000Z",
     updatedAt: "2026-07-22T18:05:00.000Z",
     status: "current",
+    roles: [
+      "player"
+    ],
     firstName: "Jackson",
     lastName: "MacTaggart",
     classYear: 2030,
@@ -375,6 +492,9 @@ export const people: Person[] = [
     createdAt: "2024-01-25T07:11:00.000Z",
     updatedAt: "2024-01-25T07:11:00.000Z",
     status: "alumni",
+    roles: [
+      "alumni"
+    ],
     firstName: "Dimitrio",
     lastName: "Martinez",
     dateOfBirth: "1982-10-04",
@@ -388,6 +508,9 @@ export const people: Person[] = [
     createdAt: "2026-07-22T16:54:00.000Z",
     updatedAt: "2026-07-22T16:54:00.000Z",
     status: "current",
+    roles: [
+      "player"
+    ],
     firstName: "Nick",
     middleName: "Petar",
     lastName: "Meyers",
@@ -408,6 +531,9 @@ export const people: Person[] = [
     createdAt: "2026-05-23T06:26:00.000Z",
     updatedAt: "2026-05-23T06:26:00.000Z",
     status: "alumni",
+    roles: [
+      "alumni"
+    ],
     firstName: "Nickawn",
     lastName: "Namdar",
     dateOfBirth: "2004-01-08",
@@ -423,6 +549,9 @@ export const people: Person[] = [
     createdAt: "2026-07-30T14:29:00.000Z",
     updatedAt: "2026-07-30T14:29:00.000Z",
     status: "current",
+    roles: [
+      "player"
+    ],
     firstName: "Chika",
     middleName: "Janez Caleb",
     lastName: "Nwaozuzu",
@@ -443,6 +572,9 @@ export const people: Person[] = [
     createdAt: "2026-05-23T06:26:00.000Z",
     updatedAt: "2026-05-23T06:26:00.000Z",
     status: "alumni",
+    roles: [
+      "alumni"
+    ],
     firstName: "Tomer",
     lastName: "Ozmo",
     dateOfBirth: "2001-06-28",
@@ -457,6 +589,9 @@ export const people: Person[] = [
     createdAt: "2026-07-22T08:54:00.000Z",
     updatedAt: "2026-07-22T08:54:00.000Z",
     status: "current",
+    roles: [
+      "player"
+    ],
     firstName: "Kyle",
     middleName: "Liam",
     lastName: "Patrick",
@@ -477,6 +612,9 @@ export const people: Person[] = [
     createdAt: "2025-07-16T14:24:00.000Z",
     updatedAt: "2025-07-16T14:24:00.000Z",
     status: "alumni",
+    roles: [
+      "alumni"
+    ],
     firstName: "Ryan",
     middleName: "Edward",
     lastName: "Patrick",
@@ -493,6 +631,9 @@ export const people: Person[] = [
     createdAt: "2026-05-23T06:26:00.000Z",
     updatedAt: "2026-05-23T06:26:00.000Z",
     status: "alumni",
+    roles: [
+      "alumni"
+    ],
     firstName: "Jake",
     middleName: "Robert",
     lastName: "Patterson",
@@ -512,6 +653,9 @@ export const people: Person[] = [
     createdAt: "2026-05-23T06:26:00.000Z",
     updatedAt: "2026-05-23T06:26:00.000Z",
     status: "alumni",
+    roles: [
+      "alumni"
+    ],
     firstName: "Anthony",
     middleName: "John",
     lastName: "Payiavlas",
@@ -531,6 +675,9 @@ export const people: Person[] = [
     createdAt: "2024-07-14T09:20:00.000Z",
     updatedAt: "2024-07-14T09:20:00.000Z",
     status: "alumni",
+    roles: [
+      "alumni"
+    ],
     firstName: "Zach",
     lastName: "Portnoy",
     dateOfBirth: "2001-01-09",
@@ -542,10 +689,33 @@ export const people: Person[] = [
     relationships: []
   },
   {
+    id: "person-david-schilling",
+    createdAt: "2026-07-22T07:11:00.000Z",
+    updatedAt: "2026-07-22T07:11:00.000Z",
+    status: "current",
+    roles: [
+      "coach"
+    ],
+    title: "Head Coach",
+    firstName: "David",
+    lastName: "Schilling",
+    dateOfBirth: "1967-03-27",
+    cellPhone: "(614) 886-3558",
+    denisonEmail: "schillingd@denison.edu",
+    city: "Columbus",
+    state: "OH",
+    country: "USA",
+    denisonId: "D01224395",
+    relationships: []
+  },
+  {
     id: "player-kael-shah",
     createdAt: "2026-05-23T06:26:00.000Z",
     updatedAt: "2026-05-23T06:26:00.000Z",
     status: "alumni",
+    roles: [
+      "alumni"
+    ],
     firstName: "Kael",
     middleName: "Shalin",
     lastName: "Shah",
@@ -563,6 +733,9 @@ export const people: Person[] = [
     createdAt: "2026-07-22T14:36:00.000Z",
     updatedAt: "2026-07-22T14:36:00.000Z",
     status: "current",
+    roles: [
+      "player"
+    ],
     firstName: "Tom",
     lastName: "Suedmeyer",
     dateOfBirth: "2005-09-04",
@@ -580,6 +753,9 @@ export const people: Person[] = [
     createdAt: "2025-07-16T14:24:00.000Z",
     updatedAt: "2025-07-16T14:24:00.000Z",
     status: "alumni",
+    roles: [
+      "alumni"
+    ],
     firstName: "Archie",
     middleName: "Joseph",
     lastName: "Turner",
@@ -588,6 +764,20 @@ export const people: Person[] = [
     major: "Economics",
     denisonId: "D01943689",
     playerStatus: "graduated",
+    relationships: []
+  },
+  {
+    id: "player-nick-williams",
+    createdAt: "2026-01-08T06:44:00.000Z",
+    updatedAt: "2026-01-08T06:44:00.000Z",
+    status: "current",
+    roles: [
+      "coach"
+    ],
+    title: "Coach",
+    firstName: "Nick",
+    lastName: "Williams",
+    personalEmail: "wi1895@osumc.edu",
     relationships: []
   }
 ];

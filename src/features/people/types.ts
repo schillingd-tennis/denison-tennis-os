@@ -1,17 +1,23 @@
 /**
  * The Person data model — the single source of truth for anyone tracked in
- * Denison Tennis OS (current players and alumni today; future modules will
- * reference the same record rather than re-modeling people separately).
+ * Denison Tennis OS (players, coaches, alumni, and future staff). Future
+ * modules reference the same record rather than re-modeling people separately.
  *
- * This currently lives in a local TypeScript module (see `data.ts`) and is
- * intentionally shaped so it can be swapped for a real database later
- * without changing the fields consumers rely on.
+ * Internal domain name: People. User-facing Team navigation still routes to
+ * `/team` (BP-021).
  */
 
 export type PersonStatus = "current" | "alumni";
 export type DominantHand = "right" | "left";
 export type PlayerStatus = "active" | "injured" | "inactive" | "graduated";
 export type ContactMethod = "phone" | "text" | "email";
+
+/**
+ * What a Person *is* within the program. A person may hold more than one
+ * role (e.g. alumni + coach) without duplicating the Person record.
+ * Distinct from `status` / `playerStatus` (lifecycle / tennis standing).
+ */
+export type PersonRole = "player" | "coach" | "alumni" | "staff";
 
 /**
  * How another record relates to this person (e.g. a parent). Populated
@@ -33,6 +39,10 @@ export type Person = {
 
   // Identity
   status: PersonStatus;
+  /** Program roles; may contain more than one value. */
+  roles: PersonRole[];
+  /** Job / coaching title when applicable (e.g. "Head Coach"). */
+  title?: string;
   firstName: string;
   middleName?: string;
   lastName: string;

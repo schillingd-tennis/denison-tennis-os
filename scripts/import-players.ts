@@ -1,24 +1,23 @@
 /**
- * BP-012 — Production People Import.
+ * BP-012 / BP-021 — Production People Import.
  *
  * Reads `private-imports/Players.csv`, validates and normalizes every row,
- * maps it onto the `Person` model, and regenerates
- * `src/features/people/data.ts` — the single data source the Team module
- * reads from. Also writes a JSON import report alongside the source CSV
- * (both live in the gitignored `private-imports/` folder).
+ * maps it onto the `Person` model (players, coaches, staff, alumni — same
+ * path), merges duplicate name rows (e.g. alumni + coach), and regenerates
+ * `src/features/people/data.ts`.
  *
  * Usage: `npm run import:players`
  *
- * Scope: Players only. Parents, coaches, and Airtable sync are out of
- * scope for this blueprint and are handled by later blueprints.
+ * Airtable remains the single source of truth — no hard-coded person overlays.
  */
 import { existsSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import type { Person } from "../src/features/people/types";
 import { readCsvRows } from "./import/csv";
-import { isCoachRow, KNOWN_COLUMNS, FIELDS_WITH_NO_SOURCE_COLUMN, mapRowToPlayer } from "./import/mapPlayer";
+import { KNOWN_COLUMNS, FIELDS_WITH_NO_SOURCE_COLUMN, mapRowToPerson } from "./import/mapPlayer";
 import { generateDataFileContents } from "./import/generateDataFile";
+import { mergePeopleByName } from "./import/mergePeople";
 import { buildMissingValueCounts, printReportSummary, skippedRow, writeReport } from "./import/report";
 import type { ImportReport, SkippedRow } from "./import/types";
 import { findDuplicateDenisonIds, findDuplicateEmails } from "./import/validate";
@@ -39,21 +38,13 @@ function main(): void {
   const { headers, rows } = readCsvRows(SOURCE_PATH);
 
   const usedIds = new Set<string>();
-  const people: Person[] = [];
+  const mapped: Person[] = [];
   const skipped: SkippedRow[] = [];
   const warnings: string[] = [];
 
   for (const row of rows) {
     const name = (row["Name"] ?? "").trim() || "(unnamed row)";
-
-    if (isCoachRow(row)) {
-      skipped.push(
-        skippedRow(name, "Class = Coach — out of scope for BP-012 (Players only); coaches import in a later blueprint."),
-      );
-      continue;
-    }
-
-    const result = mapRowToPlayer(row, usedIds, referenceDate);
+    const result = mapRowToPerson(row, usedIds, referenceDate);
 
     if ("error" in result) {
       skipped.push(skippedRow(name, result.error));
@@ -61,10 +52,17 @@ function main(): void {
     }
 
     const { person, warnings: rowWarnings } = result;
-    people.push(person);
+    mapped.push(person);
     for (const warning of rowWarnings) {
       warnings.push(`${name}: ${warning}`);
     }
+  }
+
+  const { people, mergeCount } = mergePeopleByName(mapped);
+  if (mergeCount > 0) {
+    warnings.push(
+      `Merged ${mergeCount} duplicate name row(s) into a single Person (unioned roles; preferred populated fields).`,
+    );
   }
 
   const unknownColumns = headers.filter((header) => !KNOWN_COLUMNS.includes(header));
@@ -98,8 +96,6 @@ function main(): void {
     missingValueCounts: buildMissingValueCounts(people),
   };
 
-  // Sort the roster the same way the Team Directory does by default, so a
-  // diff of the generated file is easy to read: last name, then first name.
   people.sort((a, b) => a.lastName.localeCompare(b.lastName) || a.firstName.localeCompare(b.firstName));
 
   const dataFileContents = generateDataFileContents(people, timestamp);
@@ -108,7 +104,7 @@ function main(): void {
   writeReport(report, REPORT_PATH);
   printReportSummary(report);
 
-  console.log(`Wrote ${people.length} players to src/features/people/data.ts`);
+  console.log(`Wrote ${people.length} people to src/features/people/data.ts`);
   console.log(`Wrote import report to private-imports/import-report.json`);
 }
 

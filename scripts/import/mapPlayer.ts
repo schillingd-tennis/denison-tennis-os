@@ -2,7 +2,7 @@ import type { Person } from "../../src/features/people/types";
 import {
   classYearFromClass,
   classifyEmail,
-  mapStatusAndPlayerStatus,
+  classifyPersonRow,
   normalizeDenisonId,
   normalizeMiddleName,
   normalizePhone,
@@ -23,6 +23,7 @@ export const KNOWN_COLUMNS = [
   "Name",
   "Class",
   "Status",
+  "Title",
   "Date of Birth",
   "D Number",
   "First Name",
@@ -52,11 +53,11 @@ export const FIELDS_WITH_NO_SOURCE_COLUMN = [
   "weightLbs",
 ];
 
-export function isCoachRow(row: RawPlayerRow): boolean {
-  return (row["Class"] ?? "").trim().toLowerCase() === "coach";
-}
-
-export function mapRowToPlayer(
+/**
+ * Maps one Airtable People row onto a Person. Handles players, coaches,
+ * staff, and alumni through the same path using the Person Role model.
+ */
+export function mapRowToPerson(
   row: RawPlayerRow,
   usedIds: Set<string>,
   referenceDate: Date,
@@ -74,19 +75,29 @@ export function mapRowToPlayer(
     return { error: `Missing first and/or last name (Name column: "${row["Name"] ?? ""}").` };
   }
 
-  const { id, collided } = generateStableId(firstName, lastName, usedIds);
+  const { id, collided, knownTitle } = generateStableId(firstName, lastName, usedIds);
   if (collided) {
-    warnings.push(`Generated id "${id}" — a player with the same name was already imported; suffixed to stay unique.`);
+    warnings.push(
+      `Generated id "${id}" — a person with the same name was already imported; suffixed to stay unique (may merge later by name).`,
+    );
   }
 
-  const { status, playerStatus, warning: statusWarning } = mapStatusAndPlayerStatus(
+  const classification = classifyPersonRow(
     row["Class"] ?? "",
     row["Status"] ?? "",
+    row["Title"],
   );
-  if (statusWarning) warnings.push(statusWarning);
+  if (classification.warning) warnings.push(classification.warning);
+
+  const { status, playerStatus, roles, isProgramRoleRow } = classification;
+  // Reserved coaching titles for known people when Airtable has no Title yet.
+  const title =
+    knownTitle && (!classification.title || classification.title === "Coach")
+      ? knownTitle
+      : classification.title;
 
   const classYear = classYearFromClass(row["Class"] ?? "");
-  if (classYear === undefined && status === "current") {
+  if (classYear === undefined && status === "current" && !isProgramRoleRow) {
     warnings.push(`Could not determine classYear from Class value "${row["Class"]}".`);
   }
 
@@ -96,23 +107,23 @@ export function mapRowToPlayer(
   } else if (dateOfBirth) {
     const dobWarning = validateBirthDate(dateOfBirth, referenceDate);
     if (dobWarning) warnings.push(dobWarning);
-  } else if (isBlankValue(row["Date of Birth"])) {
+  } else if (isBlankValue(row["Date of Birth"]) && !isProgramRoleRow) {
     warnings.push("Missing Date of Birth.");
   }
 
   const denisonId = normalizeDenisonId(row["D Number"] ?? "");
-  if (!denisonId) warnings.push("Missing D Number (denisonId).");
+  if (!denisonId && !isProgramRoleRow) warnings.push("Missing D Number (denisonId).");
 
   const { middleName, warning: middleNameWarning } = normalizeMiddleName(row["Middle Name"] ?? "");
   if (middleNameWarning) warnings.push(middleNameWarning);
 
   const { city, state, country, warning: locationWarning } = splitCityState(row["City, State"] ?? "");
   if (locationWarning) warnings.push(locationWarning);
-  if (!city && !state && !country) warnings.push("Missing City, State.");
+  if (!city && !state && !country && !isProgramRoleRow) warnings.push("Missing City, State.");
 
   const { major, minor, warning: majorWarning } = splitMajorMinor(row["Major"] ?? "");
   if (majorWarning) warnings.push(majorWarning);
-  if (!major) warnings.push("Missing Major.");
+  if (!major && !isProgramRoleRow) warnings.push("Missing Major.");
 
   const { personalEmail, denisonEmail } = classifyEmail(row["Email"] ?? "");
   if (!personalEmail && !denisonEmail) warnings.push("Missing Email.");
@@ -133,13 +144,13 @@ export function mapRowToPlayer(
   }
 
   const person: Person = {
-    // System
     id,
     createdAt: timestamp,
     updatedAt: timestamp,
 
-    // Identity
     status,
+    roles,
+    title,
     firstName,
     middleName,
     lastName,
@@ -147,13 +158,11 @@ export function mapRowToPlayer(
     dateOfBirth,
     photoUrl: undefined,
 
-    // Contact
     cellPhone,
     personalEmail,
     denisonEmail,
     preferredContactMethod: undefined,
 
-    // Permanent Address
     addressLine1: undefined,
     addressLine2: undefined,
     city,
@@ -161,15 +170,13 @@ export function mapRowToPlayer(
     zipCode: undefined,
     country,
 
-    // Denison Information
-    classYear,
+    classYear: isProgramRoleRow ? undefined : classYear,
     major,
     minor,
     denisonId,
     dorm: undefined,
     roomNumber: undefined,
 
-    // Tennis Information
     utr,
     wtn,
     dominantHand: undefined,
@@ -177,12 +184,14 @@ export function mapRowToPlayer(
     weightLbs: undefined,
     playerStatus,
 
-    // Relationships
     relationships: [],
   };
 
   return { person, warnings };
 }
+
+/** @deprecated Use `mapRowToPerson`. */
+export const mapRowToPlayer = mapRowToPerson;
 
 function isBlankValue(value: string | undefined): boolean {
   return !value || value.trim() === "";
