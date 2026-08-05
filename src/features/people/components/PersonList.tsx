@@ -41,7 +41,6 @@ import {
   getHometown,
   getInitials,
   getStatusLabel,
-  getStatusTone,
   isCoachDirectoryPerson,
 } from "@/features/people/utils";
 import {
@@ -53,10 +52,10 @@ import { getPersonStatusIndicator } from "@/features/people/statusIndicator";
 
 import PlayerAvatar from "@/components/PlayerAvatar";
 import QuickActionButton from "@/components/QuickActionButton";
-import StatusBadge from "@/components/StatusBadge";
 import StatusDot from "@/components/StatusDot";
 
 import PersonRoleBadge from "./PersonRoleBadge";
+import PersonStatusLabel from "./PersonStatusLabel";
 
 type PersonColumnKey =
   | "name"
@@ -511,10 +510,10 @@ export default function PersonList({ people }: { people: Person[] }) {
     cancelPendingRowClick();
   }
 
-  const cellPad = "px-4 py-2.5 align-middle";
+  const cellPad = "px-3.5 py-2 align-middle";
 
   return (
-    <div className="flex flex-col gap-2.5">
+    <div className="flex flex-col gap-2">
       <StickyProductivityActionBar
         leading={
           <>
@@ -524,7 +523,7 @@ export default function PersonList({ people }: { people: Person[] }) {
                 {foundSetFeedback}
               </span>
             ) : null}
-            <span className="text-xs text-text-secondary">
+            <span className="text-xs text-text-secondary tabular-nums">
               {sortedItems.length} in found set
             </span>
           </>
@@ -552,7 +551,7 @@ export default function PersonList({ people }: { people: Person[] }) {
       <div className="relative overflow-hidden rounded-card border border-border bg-surface">
         <div className="hidden overflow-x-auto md:block">
           <table
-            className="w-full min-w-[1020px] table-fixed text-left text-sm"
+            className="w-full min-w-[980px] table-fixed text-left text-sm"
             role="grid"
             aria-label="Team list"
           >
@@ -602,7 +601,7 @@ export default function PersonList({ people }: { people: Person[] }) {
                   <tr
                     key={person.id}
                     onClick={() => handleRowClick(person.id)}
-                    className="h-14 cursor-pointer border-b border-border/50 transition-colors duration-150 last:border-b-0 hover:bg-denison-red/[0.045]"
+                    className="h-12 cursor-pointer border-b border-border/40 transition-colors duration-150 last:border-b-0 hover:bg-app-background"
                   >
                     <td className={cellPad}>
                       <div className="flex min-w-0 items-center gap-2.5">
@@ -616,10 +615,10 @@ export default function PersonList({ people }: { people: Person[] }) {
                           size={32}
                         />
                         <div className="min-w-0">
-                          <span className="block truncate text-[14px] font-semibold tracking-tight text-text-primary">
+                          <span className="block truncate text-sm font-semibold tracking-tight text-text-primary">
                             {displayName}
                           </span>
-                          <PersonRoleBadge person={person} />
+                          <PersonRoleBadge person={person} compact className="mt-0.5" />
                         </div>
                       </div>
                     </td>
@@ -738,24 +737,33 @@ export default function PersonList({ people }: { people: Person[] }) {
                       onMouseDown={stopRowNavigation}
                     >
                       <div className="inline-flex w-full items-center justify-end gap-1">
-                        <QuickActionButton
-                          href={hrefs.sms}
-                          icon={MessageSquare}
-                          label="Text"
-                          tone="denison"
-                        />
-                        <QuickActionButton
-                          href={hrefs.tel}
-                          icon={Phone}
-                          label="Call"
-                          tone="success"
-                        />
-                        <QuickActionButton
-                          href={hrefs.mailto}
-                          icon={Mail}
-                          label="Email"
-                          tone="info"
-                        />
+                        {hrefs.tel ? (
+                          <QuickActionButton
+                            href={hrefs.tel}
+                            icon={Phone}
+                            label="Call"
+                            tone="success"
+                          />
+                        ) : null}
+                        {hrefs.sms ? (
+                          <QuickActionButton
+                            href={hrefs.sms}
+                            icon={MessageSquare}
+                            label="Text"
+                            tone="denison"
+                          />
+                        ) : null}
+                        {hrefs.mailto ? (
+                          <QuickActionButton
+                            href={hrefs.mailto}
+                            icon={Mail}
+                            label="Email"
+                            tone="info"
+                          />
+                        ) : null}
+                        {!hrefs.tel && !hrefs.sms && !hrefs.mailto ? (
+                          <span className="text-xs text-text-secondary/45">—</span>
+                        ) : null}
                       </div>
                     </td>
                   </tr>
@@ -766,13 +774,14 @@ export default function PersonList({ people }: { people: Person[] }) {
         </div>
 
         {/* Mobile: stacked records, navigation only (inline edit / quick actions are desktop) */}
-        <ul className="divide-y divide-border/60 md:hidden">
+        <ul className="divide-y divide-border/50 md:hidden">
           {sortedItems.map((person) => {
             const displayName = getDisplayName(person);
             const hometown = getHometown(person);
             const coachDirectory = isCoachDirectoryPerson(person);
+            const statusIndicator = getPersonStatusIndicator(person);
             const detailLine = coachDirectory
-              ? [person.title, hometown].filter(Boolean).join(" · ")
+              ? [hometown].filter(Boolean).join(" · ")
               : [person.classYear ? `Class of ${person.classYear}` : null, hometown]
                   .filter(Boolean)
                   .join(" · ");
@@ -781,28 +790,29 @@ export default function PersonList({ people }: { people: Person[] }) {
               <li key={person.id}>
                 <Link
                   href={`/team/${person.id}`}
-                  className="flex items-center gap-3.5 px-5 py-5 transition-colors duration-150 active:bg-denison-red/[0.03]"
+                  className="flex items-center gap-3 px-4 py-4 transition-colors duration-150 active:bg-app-background"
                 >
+                  <StatusDot tone={statusIndicator.tone} label={statusIndicator.label} />
                   <PlayerAvatar
                     photoUrl={person.photoUrl}
                     initials={getInitials(person)}
-                    size={44}
+                    size={40}
                   />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="truncate text-[15px] font-semibold text-text-primary">
+                        <p className="truncate text-sm font-semibold text-text-primary">
                           {displayName}
                         </p>
-                        <PersonRoleBadge person={person} />
+                        <PersonRoleBadge person={person} compact className="mt-0.5" />
                       </div>
-                      <StatusBadge
+                      <PersonStatusLabel
+                        tone={person.status === "alumni" ? "alumni" : "active"}
                         label={getStatusLabel(person.status)}
-                        tone={getStatusTone(person.status)}
                       />
                     </div>
                     {detailLine ? (
-                      <p className="mt-1 truncate text-sm text-text-secondary">{detailLine}</p>
+                      <p className="mt-1 truncate text-xs text-text-secondary">{detailLine}</p>
                     ) : null}
                   </div>
                 </Link>

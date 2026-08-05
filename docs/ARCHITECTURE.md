@@ -5,10 +5,12 @@ practical technical architecture. Where the North Star describes *why* and
 *what*, this document describes *how*: the layers, boundaries, and object
 model that future development should build within.
 
-This is a **documentation-only** blueprint. It describes target
-architecture — much of it (repositories, application services, external
-data sources) does not exist in code yet. See [Section 20](#20-current-and-next-state)
-for what is actually implemented today versus what is planned.
+**System of record:** Denison Tennis OS (PostgreSQL via Supabase) is the
+long-term system of record. External tools are providers/sync sources — see
+[`SYSTEM_OF_RECORD.md`](./SYSTEM_OF_RECORD.md) (BP-023A).
+
+This blueprint describes target architecture. See
+[Section 20](#20-current-and-next-state) for what is implemented today.
 
 ---
 
@@ -38,11 +40,11 @@ Repository Implementations
 External Data Sources
 ```
 
-The **UI must never communicate directly with Airtable, Coda, Supabase, or
-any other external data source.** All data access is mediated by
-repositories. This is the single most important boundary in the system —
-it is what allows the data source underneath the app to change (local
-sample data → Airtable → Supabase) without rewriting pages or components.
+The **UI must never communicate directly with Airtable, Coda, or any other
+external provider.** Runtime reads/writes go through repositories to the
+application database (Supabase). Sync adapters may talk to external
+providers; pages and components must not. This boundary lets providers
+change or disappear without rewriting UI or the Person domain model.
 
 ## 2. Current Technology Foundation
 
@@ -55,13 +57,14 @@ The current stack:
   and mobile, with offline/installable capability as a future goal
 - **GitHub** — version control
 - **Vercel** — planned deployment platform
-- **Airtable** and **Coda** — current external data sources (Team/Parents
-  in Airtable, Recruiting in Coda)
-- **Supabase** or **PostgreSQL** — possible future central storage
+- **Supabase (PostgreSQL)** — application database / system of record store
+- **Airtable** — current external synchronization source for People bootstrap
+  (CSV import); not a permanent owner of program data
+- **Coda** — historical/optional recruiting provider if reconnected
 
 Technology choices may evolve. The domain and repository boundaries
 described in this document should remain stable regardless of which
-database, hosting provider, or framework version sits underneath them.
+provider, hosting platform, or framework version sits underneath them.
 
 ## 3. Core Architectural Layers
 
@@ -134,16 +137,17 @@ Responsibilities:
 
 Responsibilities:
 
-- Airtable clients
-- Coda clients
-- Supabase clients
+- Supabase / PostgreSQL clients (system of record store)
+- Sync adapters and import scripts for external providers
+- Airtable / Coda / UTR / TRN clients (as adopted)
 - API integrations
 - authentication providers
 - storage providers
 - model providers
 
-The Infrastructure Layer **implements** repository interfaces — it is the
-only layer permitted to know that Airtable or Coda exist.
+The Infrastructure Layer **implements** repository interfaces and sync
+adapters — it is the only layer permitted to know that a given external
+provider exists. Presentation and domain code must not.
 
 ## 4. Object Model
 
@@ -368,27 +372,29 @@ TypeScript interfaces are written in this sprint):
 
 ## 10. Data Source Strategy
 
-Current situation:
+**Canonical direction:** [`SYSTEM_OF_RECORD.md`](./SYSTEM_OF_RECORD.md).
 
-- Players are currently in Airtable.
-- Parents are currently in a separate Airtable table.
-- Recruits are currently in a Coda database.
-- Existing data may not be completely clean.
+Current situation (Phase 1 — bootstrap):
 
-Initial strategy:
+- People runtime data lives in Supabase `production_people`.
+- Airtable CSV export is the current synchronization source that bootstraps
+  / refreshes provider-synced Person fields.
+- Parents may still originate from separate Airtable tables; they should
+  converge on Person + relationships.
+- Recruiting may use Coda historically; treat it as a provider if connected.
+- Existing provider data may not be completely clean.
 
-1. Keep current systems in place.
-2. Add repository abstractions.
-3. Connect Airtable read-only first.
-4. Map Airtable records to the internal `Person` model.
-5. Surface data-quality problems without blocking development.
-6. Add create and update operations only after reads are stable.
-7. Reevaluate whether to consolidate into Supabase later.
+Strategy:
 
-**The application's internal domain model is authoritative for
-structure.** Airtable and Coda are current sources, not permanent
-architectural owners — the app is designed so that swapping them out later
-does not require reshaping the domain model or rewriting UI.
+1. Keep the Person domain and repositories as the only UI-facing model.
+2. Sync providers through adapters (import scripts / future jobs).
+3. Map provider records → internal `Person` at the boundary only.
+4. Preserve application-owned history on every sync (notes, evaluations, …).
+5. Grow in-app create/update until external tools are optional (Phase 3).
+
+**The application's database + domain model are the system of record.**
+Airtable and Coda are current or historical providers — not permanent
+architectural owners. Removing them must not require reshaping Person or UI.
 
 ## 11. Data Mapping
 
@@ -429,19 +435,18 @@ finalized in this sprint.
 
 ## 13. Read and Write Strategy
 
-Planned phased sequence:
+Aligned with the system-of-record phases in
+[`SYSTEM_OF_RECORD.md`](./SYSTEM_OF_RECORD.md):
 
-| Phase | Scope |
+| SoR phase | Scope |
 |---|---|
-| Phase 1 | Local demo repository; read-only UI development |
-| Phase 2 | Airtable read integration; real Team data |
-| Phase 3 | Create Person; update Person; create relationships |
-| Phase 4 | Coda recruiting integration |
-| Phase 5 | Evaluate a central database |
+| Phase 1 (current) | Supabase SoR store; Airtable CSV sync bootstraps People; in-app edits for app-owned fields |
+| Phase 2 (hybrid) | Provider sync + rich in-app operational data; app owns history |
+| Phase 3 (target) | App is complete SoR; providers optional or removed |
 
-Read and write integrations are introduced **separately** to reduce risk —
-a data source is proven safe to read from before the app is allowed to
-write back to it.
+Provider read sync and any future write-back are introduced **separately**.
+Routine sync must never wipe application history (see
+[`DATA_OWNERSHIP.md`](./DATA_OWNERSHIP.md)).
 
 ## 14. AI Harness Architecture
 
@@ -547,25 +552,21 @@ Intended testing levels (not added in this sprint):
 
 ## 20. Current and Next State
 
-**Completed capabilities:**
+**Completed capabilities (selected):**
 
-- Application shell
-- Primary navigation
-- Design system
-- Team Directory
-- Player Workspace
-- People model
-- Parent and guardian relationships (via `FamilyContact`)
-- Reusable DataTable sorting foundation (BP-009)
-- North Star document (BP-010A)
+- Application shell, navigation, design system
+- People model, Team Directory, Person Workspace
+- Supabase-backed People repository (local-first development)
+- Airtable CSV → import → seed sync (provider-synced columns only)
+- Local data integrity workflow (BP-022E)
+- System of record architecture (BP-023A)
 
-**Next planned sequence:**
+**Direction (not a feature checklist):**
 
-- **BP-012** — Repository Layer using current local sample data
-- **BP-013** — Airtable read-only Team integration
-- **BP-014** — Add Person workflow
-- **BP-015** — Edit Person workflow
+- Expand Person lifecycle roles without duplicate records
+- Grow application-owned modules (tasks, messages, evaluations, recruiting)
+- Reduce dependence on Airtable until it is optional (Phase 3)
+- Same adapter pattern for UTR / TRN / NCAA / Google as needed
 
-The exact BP numbers may change as priorities shift, but this sequence —
-repositories before external integration, reads before writes, Team before
-Recruiting — should remain the guiding order.
+See [`SYSTEM_OF_RECORD.md`](./SYSTEM_OF_RECORD.md) for the migration path
+away from Airtable.

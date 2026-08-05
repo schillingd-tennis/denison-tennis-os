@@ -6,7 +6,7 @@ import { getPreferredContactLabel } from "@/features/people/utils";
 
 import PlayerAvatar from "@/components/PlayerAvatar";
 import QuickActionButton from "@/components/QuickActionButton";
-import StatusBadge from "@/components/StatusBadge";
+import RoleBadge from "@/components/RoleBadge";
 
 export default function FamilyContactCard({ contact }: { contact: FamilyContact }) {
   const initials = `${contact.firstName.charAt(0)}${contact.lastName.charAt(0)}`.toUpperCase();
@@ -27,14 +27,15 @@ export default function FamilyContactCard({ contact }: { contact: FamilyContact 
       </div>
 
       {contact.isPrimaryContact || contact.isEmergencyContact ? (
-        <div className="flex flex-wrap gap-2">
-          {contact.isPrimaryContact ? (
-            <StatusBadge label="Primary Contact" tone="denison" />
-          ) : null}
-          {contact.isEmergencyContact ? (
-            <StatusBadge label="Emergency Contact" tone="warning" />
-          ) : null}
-        </div>
+        <RoleBadge
+          label={[
+            contact.isPrimaryContact ? "Primary Contact" : null,
+            contact.isEmergencyContact ? "Emergency Contact" : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+          className="mt-0.5"
+        />
       ) : null}
 
       {phoneDisplay || contact.email || preferredLabel ? (

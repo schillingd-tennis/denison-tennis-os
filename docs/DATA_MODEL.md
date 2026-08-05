@@ -25,7 +25,7 @@ A `Person` is organized into seven groups of fields:
 | Field | Type | Notes |
 |---|---|---|
 | `status` | `"current" \| "alumni"` | Coarse program lifecycle (on roster vs graduated). **Not** used to represent coach/staff role — see `roles`. |
-| `roles` | `PersonRole[]` | What the person *is*: `player`, `coach`, `alumni`, `staff`. Multi-valued so one Person can be e.g. alumni + coach without a duplicate record. |
+| `roles` | `PersonRole[]` | What the person *is*: `player`, `coach`, `alumni`, `staff`, `recruit`. Multi-valued so one Person can be e.g. alumni + coach without a duplicate record. Future roles (`parent`, `donor`) attach here too — never a parallel person record. |
 | `title` | `string?` | Job / coaching title when applicable (e.g. `Head Coach`). |
 | `firstName` | `string` | Legal/given first name. |
 | `middleName` | `string?` | Legal middle name, if on file. |
@@ -96,7 +96,8 @@ avoids a second source of truth for the same data.
 These answer three different questions and must not be overloaded:
 
 - **`roles`** (`PersonRole[]`) — What is this person in the program? Player,
-  coach, alumni, and/or staff. Multi-valued (e.g. alumni + coach).
+  coach, alumni, staff, and/or recruit. Multi-valued (e.g. alumni + coach).
+  Future `parent` / `donor` roles attach to the same Person.
 - **`status`** (`"current" | "alumni"`) — Coarse program lifecycle for the
   record. Team filters for Players/Alumni combine this with roles; coaches
   are selected by the `coach` role, not by inventing a status value.
@@ -132,9 +133,13 @@ the Team Directory.
 
 ## Data source
 
-Runtime Person data lives in Supabase `production_people`.
-`src/features/people/data.ts` remains the generated seed/import snapshot
-used by `npm run db:generate-seed`. It is produced by
-`npm run import:players` from `private-imports/Players.csv` — Airtable is
-the single source of truth for players, coaches, and other program roles
-(BP-021). See `docs/DECISIONS.md`.
+**System of record:** Denison Tennis OS (Supabase `production_people`).
+See [`SYSTEM_OF_RECORD.md`](./SYSTEM_OF_RECORD.md) and
+[`DATA_OWNERSHIP.md`](./DATA_OWNERSHIP.md).
+
+`src/features/people/data.ts` is a generated **sync snapshot** used by
+`npm run db:generate-seed`. It is produced by `npm run import:players` from
+`private-imports/Players.csv`. That CSV is the **current synchronization
+source** (Airtable export) for provider-synced fields — not a permanent
+owner of program data. Application-owned fields live only in the database
+and survive re-seed (BP-022E / BP-023A).

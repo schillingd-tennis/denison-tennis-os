@@ -1,28 +1,29 @@
 import type { Person } from "@/features/people/types";
-import { getPersonRoleLabel } from "@/features/people/utils";
+import { getPersonRoleBadges } from "@/features/people/utils";
+
+import RoleBadge from "@/components/RoleBadge";
 
 /**
- * Compact role / title line under a person's name (BP-021).
+ * Quiet identity metadata under a person's name (BP-022D).
  *
- * Prefers `Person.title` (e.g. Head Coach from Airtable). Falls back to a
- * role-derived label (Player, Coach, Alumni, Staff) so new roles display
- * without custom per-surface code.
+ * Renders nothing for plain Players. Surfaces titles and meaningful roles
+ * (Head Coach, Recruit, Alumni, …) as plain secondary text — not a pill.
  */
 export default function PersonRoleBadge({
   person,
   className = "",
+  compact = false,
 }: {
   person: Person;
   className?: string;
+  /** Single primary label only (dense list rows). */
+  compact?: boolean;
 }) {
-  const label = getPersonRoleLabel(person);
+  const badges = getPersonRoleBadges(person);
+  const visible = compact ? badges.slice(0, 1) : badges;
+  if (visible.length === 0) return null;
 
-  return (
-    <span
-      className={`block truncate text-xs text-text-secondary ${className}`}
-      title={label}
-    >
-      {label}
-    </span>
-  );
+  const label = visible.map((badge) => badge.label).join(" · ");
+
+  return <RoleBadge label={label} className={className} />;
 }

@@ -1,3 +1,5 @@
+import type { RoleBadgeTone } from "@/components/RoleBadge";
+
 import type { ContactMethod, Person, PersonRole, PersonStatus, PlayerStatus } from "./types";
 
 export function getDisplayFirstName(person: Person): string {
@@ -137,24 +139,79 @@ export function isCoachDirectoryPerson(person: Person): boolean {
   return hasRole(person, "coach") && !(hasRole(person, "player") && person.status === "current");
 }
 
+export type PersonRoleBadgeInfo = {
+  label: string;
+  /** Always neutral — identity metadata, never a notification tone. */
+  tone: RoleBadgeTone;
+};
+
+/** Roles that add identity information. `player` is silent (BP-022D). */
+const MEANINGFUL_ROLES: PersonRole[] = ["recruit", "coach", "staff", "alumni"];
+
+function canonicalRoleLabel(role: PersonRole): string | null {
+  switch (role) {
+    case "player":
+      return null;
+    case "coach":
+      return "Coach";
+    case "alumni":
+      return "Alumni";
+    case "staff":
+      return "Staff";
+    case "recruit":
+      return "Recruit";
+    default: {
+      const _exhaustive: never = role;
+      return _exhaustive;
+    }
+  }
+}
+
 /**
- * Label shown under a person's name (List / Card). Prefers `title` from the
- * Person record (coaching/staff titles from Airtable), otherwise derives a
- * clear label from roles — so future roles display without UI changes.
+ * Quiet identity metadata for directory + workspace (BP-022D).
+ *
+ * Prefers `title` (Head Coach / Assistant Coach / Athletic Trainer), then
+ * meaningful roles (Coach, Recruit, Alumni, Staff). Never surfaces "Player"
+ * — the default roster identity is silent. Empty when nothing to add.
+ */
+export function getPersonRoleBadges(person: Person): PersonRoleBadgeInfo[] {
+  const badges: PersonRoleBadgeInfo[] = [];
+  const titled = person.title?.trim();
+  const seen = new Set<string>();
+
+  function push(label: string) {
+    const key = label.toLowerCase();
+    if (!label || key === "player" || seen.has(key)) return;
+    seen.add(key);
+    badges.push({ label, tone: "neutral" });
+  }
+
+  if (titled) {
+    push(titled);
+  }
+
+  for (const role of MEANINGFUL_ROLES) {
+    if (!hasRole(person, role)) continue;
+    // Title already communicates coach identity.
+    if (role === "coach" && titled) continue;
+    const label = canonicalRoleLabel(role);
+    if (label) push(label);
+  }
+
+  if (person.status === "alumni") {
+    push("Alumni");
+  }
+
+  return badges.slice(0, 3);
+}
+
+/**
+ * Primary role / title label (single string). Empty when identity is silent
+ * (e.g. a Player with no additional roles). Prefer `getPersonRoleBadges`
+ * when rendering UI.
  */
 export function getPersonRoleLabel(person: Person): string {
-  const titled = person.title?.trim();
-  if (titled) return titled;
-
-  if (hasRole(person, "coach")) return "Coach";
-  if (hasRole(person, "staff")) return "Staff";
-  if (hasRole(person, "player") && person.status === "current") return "Player";
-  if (hasRole(person, "alumni") || person.status === "alumni") return "Alumni";
-  if (hasRole(person, "player")) return "Player";
-
-  const first = person.roles[0];
-  if (first) return first.charAt(0).toUpperCase() + first.slice(1);
-  return "Person";
+  return getPersonRoleBadges(person)[0]?.label ?? "";
 }
 
 export function matchesSearch(person: Person, query: string): boolean {

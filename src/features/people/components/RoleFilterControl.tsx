@@ -20,7 +20,7 @@ export default function RoleFilterControl({
     <div
       role="group"
       aria-label="Filter by role"
-      className="inline-flex h-10 items-center gap-1 rounded-control border border-border bg-surface p-1"
+      className="inline-flex h-9 items-center gap-0.5 rounded-control border border-border bg-surface p-0.5"
     >
       {options.map((option) => (
         <button
@@ -28,10 +28,10 @@ export default function RoleFilterControl({
           type="button"
           onClick={() => onChange(option.value)}
           aria-pressed={value === option.value}
-          className={`flex h-8 items-center rounded-control px-3.5 text-sm font-medium transition-colors duration-150 ${
+          className={`flex h-7 items-center rounded-control px-3 text-xs font-medium transition-colors duration-150 ${
             value === option.value
               ? "bg-denison-red text-surface"
-              : "text-text-secondary hover:text-text-primary"
+              : "text-text-secondary hover:bg-app-background hover:text-text-primary"
           }`}
         >
           {option.label}

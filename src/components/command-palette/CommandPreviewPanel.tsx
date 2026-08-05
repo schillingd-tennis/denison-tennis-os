@@ -37,11 +37,16 @@ function PersonPreview({ data }: { data: PersonPreviewData }) {
         <PlayerAvatar photoUrl={data.photoUrl} initials={data.initials} size={48} />
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-text-primary">{data.name}</p>
-          <p className="truncate text-xs text-text-secondary">{data.roleLabel}</p>
+          {data.roleLabel ? (
+            <p className="truncate text-xs text-text-secondary">{data.roleLabel}</p>
+          ) : null}
         </div>
       </div>
       <dl className="divide-y divide-border/70">
-        <PreviewRow label="Roles" value={data.roles.join(" · ")} />
+        <PreviewRow
+          label="Roles"
+          value={data.roles.length > 0 ? data.roles.join(" · ") : undefined}
+        />
         <PreviewRow label="Class" value={data.classYear} />
         <PreviewRow label="D#" value={data.denisonIdDisplay} />
         <PreviewRow label="UTR" value={formatRating(data.utr)} />

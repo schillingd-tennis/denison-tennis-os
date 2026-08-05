@@ -9,6 +9,7 @@ import {
   getFullDisplayName,
   getHometown,
   getInitials,
+  getPersonRoleBadges,
   getPersonRoleLabel,
   hasRole,
 } from "@/features/people/utils";
@@ -36,15 +37,7 @@ function objectTypeForPerson(
 }
 
 function roleLabels(person: Person): string[] {
-  const labels: string[] = [];
-  if (person.title?.trim()) labels.push(person.title.trim());
-  for (const role of person.roles) {
-    const pretty = role.charAt(0).toUpperCase() + role.slice(1);
-    if (!labels.some((label) => label.toLowerCase() === pretty.toLowerCase())) {
-      labels.push(pretty);
-    }
-  }
-  return labels.length > 0 ? labels : ["Person"];
+  return getPersonRoleBadges(person).map((badge) => badge.label);
 }
 
 /** Lightweight people rows for the global command palette + preview rail. */

@@ -7,7 +7,6 @@ import {
   ClipboardList,
   Copy,
   Download,
-  ExternalLink,
   FileText,
   GraduationCap,
   Mail,
@@ -49,6 +48,7 @@ import {
   type InlineSelectOption,
 } from "@/components/inline-edit";
 import { StickyProductivityActionBar } from "@/components/productivity";
+import EmptyState from "@/components/EmptyState";
 
 import { updatePersonAction } from "@/features/people/actions";
 import type { FamilyContact } from "@/features/people/family";
@@ -63,14 +63,23 @@ import {
   getInitials,
   getPermanentAddress,
   getPlayerStatusLabel,
-  getPlayerStatusTone,
   getPreferredContactLabel,
   getStatusLabel,
-  getStatusTone,
   hasRole,
   isCoachDirectoryPerson,
 } from "@/features/people/utils";
 import { TEAM_FOUND_SET_MODULE_KEY } from "@/features/people/foundSet";
+
+import InformationField from "@/components/InformationField";
+import PlayerAvatar from "@/components/PlayerAvatar";
+import QuickActionButton from "@/components/QuickActionButton";
+import type { StatusDotTone } from "@/components/StatusDot";
+import SummaryStat from "@/components/SummaryStat";
+import WorkspaceSection from "@/components/WorkspaceSection";
+
+import FamilyContactCard from "./FamilyContactCard";
+import PersonRoleBadge from "./PersonRoleBadge";
+import PersonStatusLabel from "./PersonStatusLabel";
 
 function favoriteObjectTypeForPerson(person: Person): SearchObjectType {
   if (hasRole(person, "coach")) return "coaches";
@@ -78,14 +87,20 @@ function favoriteObjectTypeForPerson(person: Person): SearchObjectType {
   return "people";
 }
 
-import InformationField from "@/components/InformationField";
-import PlayerAvatar from "@/components/PlayerAvatar";
-import QuickActionButton from "@/components/QuickActionButton";
-import StatusBadge from "@/components/StatusBadge";
-import SummaryStat from "@/components/SummaryStat";
-import WorkspaceSection from "@/components/WorkspaceSection";
-
-import FamilyContactCard from "./FamilyContactCard";
+function playerStatusDotTone(playerStatus: PlayerStatus | undefined): StatusDotTone {
+  switch (playerStatus) {
+    case "active":
+      return "active";
+    case "injured":
+      return "injured";
+    case "inactive":
+      return "inactive";
+    case "graduated":
+      return "alumni";
+    default:
+      return "muted";
+  }
+}
 
 function capitalize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
@@ -257,9 +272,6 @@ export default function PersonWorkspace({
 
   // Rating profile URLs are not stored in the Person schema yet (BP-021
   // placeholders) — open buttons stay disabled until those fields exist.
-  const tennisRecruitingUrl: string | undefined = undefined;
-  const utrProfileUrl: string | undefined = undefined;
-  const wtnProfileUrl: string | undefined = undefined;
 
   const moveEditing = useCallback((from: EditableField, direction: "next" | "prev") => {
     const index = EDITABLE_FIELDS.indexOf(from);
@@ -507,7 +519,7 @@ export default function PersonWorkspace({
   }, []);
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-5">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
       <StickyProductivityActionBar
         leading={
           <>
@@ -516,7 +528,7 @@ export default function PersonWorkspace({
               className="inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-text-secondary transition-colors duration-150 hover:text-text-primary"
             >
               <ArrowLeft className="h-4 w-4" strokeWidth={1.75} />
-              Back to Team
+              Team
             </Link>
             <SaveIndicator status={saveStatus} error={saveError} />
             {copyFeedback ? (
@@ -536,40 +548,17 @@ export default function PersonWorkspace({
               href={`/team/${record.id}`}
               iconKey="Users"
             />
-            <QuickActionButton href={tel} icon={Phone} label="Call" tone="success" />
-            <QuickActionButton href={sms} icon={MessageSquare} label="Text" tone="denison" />
-            <QuickActionButton href={mailto} icon={Mail} label="Email" tone="info" />
-            <QuickActionButton
-              onAction={address ? handleCopyAddress : undefined}
-              icon={Copy}
-              label="Copy Address"
-              tone="neutral"
-              unavailableTitle="No address on file"
-            />
-            <QuickActionButton
-              href={tennisRecruitingUrl}
-              icon={ExternalLink}
-              label="Open TennisRecruiting.net"
-              tone="neutral"
-              openInNewTab
-              unavailableTitle="Coming soon"
-            />
-            <QuickActionButton
-              href={utrProfileUrl}
-              icon={ExternalLink}
-              label="Open UTR"
-              tone="neutral"
-              openInNewTab
-              unavailableTitle="Coming soon"
-            />
-            <QuickActionButton
-              href={wtnProfileUrl}
-              icon={ExternalLink}
-              label="Open WTN"
-              tone="neutral"
-              openInNewTab
-              unavailableTitle="Coming soon"
-            />
+            {tel ? <QuickActionButton href={tel} icon={Phone} label="Call" tone="success" /> : null}
+            {sms ? <QuickActionButton href={sms} icon={MessageSquare} label="Text" tone="denison" /> : null}
+            {mailto ? <QuickActionButton href={mailto} icon={Mail} label="Email" tone="info" /> : null}
+            {address ? (
+              <QuickActionButton
+                onAction={handleCopyAddress}
+                icon={Copy}
+                label="Copy Address"
+                tone="neutral"
+              />
+            ) : null}
             <QuickActionButton
               onAction={handleCopyFoundSet}
               icon={ClipboardList}
@@ -587,29 +576,31 @@ export default function PersonWorkspace({
       />
 
       {/* Header */}
-      <div className="rounded-card border border-border bg-surface px-5 py-5">
+      <div className="rounded-card border border-border bg-surface px-6 py-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-4">
             <PlayerAvatar photoUrl={record.photoUrl} initials={getInitials(record)} size={64} />
-            <div className="flex min-w-0 flex-col gap-2">
-              <h1 className="text-2xl font-semibold tracking-tight text-text-primary">{fullName}</h1>
-              {record.title ? (
-                <p className="text-sm font-medium text-text-secondary">{record.title}</p>
-              ) : null}
-              {showDenisonId ? (
-                <p className="text-sm text-text-secondary tabular-nums">
-                  {formatDenisonIdDisplay(record.denisonId)}
-                </p>
-              ) : null}
+            <div className="flex min-w-0 flex-col gap-2.5">
+              <div className="flex min-w-0 flex-col gap-1.5">
+                <h1 className="text-2xl font-semibold tracking-tight text-text-primary">
+                  {fullName}
+                </h1>
+                <PersonRoleBadge person={record} />
+                {showDenisonId ? (
+                  <p className="text-sm text-text-secondary tabular-nums">
+                    {formatDenisonIdDisplay(record.denisonId)}
+                  </p>
+                ) : null}
+              </div>
               <div className="flex flex-wrap items-center gap-2">
                 <InlineEditCell
                   label="Status"
                   value={record.status}
                   displayValue={getStatusLabel(record.status)}
                   renderDisplay={
-                    <StatusBadge
+                    <PersonStatusLabel
+                      tone={record.status === "alumni" ? "alumni" : "active"}
                       label={getStatusLabel(record.status)}
-                      tone={getStatusTone(record.status)}
                     />
                   }
                   type="select"
@@ -629,9 +620,9 @@ export default function PersonWorkspace({
                     }
                     renderDisplay={
                       record.playerStatus ? (
-                        <StatusBadge
+                        <PersonStatusLabel
+                          tone={playerStatusDotTone(record.playerStatus)}
                           label={getPlayerStatusLabel(record.playerStatus)}
-                          tone={getPlayerStatusTone(record.playerStatus)}
                         />
                       ) : (
                         <span className="text-sm text-text-secondary/70">Player status —</span>
@@ -647,7 +638,7 @@ export default function PersonWorkspace({
                   />
                 ) : null}
               </div>
-              <p className="text-sm text-text-secondary">
+              <p className="text-sm leading-relaxed text-text-secondary">
                 {(coachDirectory
                   ? [hometown, phoneDisplay, email]
                   : [
@@ -666,18 +657,36 @@ export default function PersonWorkspace({
         </div>
       </div>
 
-      {/* At-a-glance summary */}
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
-        <SummaryStat label="UTR" value={record.utr !== undefined ? record.utr.toFixed(1) : undefined} />
-        <SummaryStat label="WTN" value={record.wtn !== undefined ? record.wtn.toFixed(1) : undefined} />
-        <SummaryStat label="Class Year" value={record.classYear ? String(record.classYear) : undefined} />
-        <SummaryStat label="Major" value={record.major} />
-        <SummaryStat label="Dorm" value={record.dorm} />
-        <SummaryStat
-          label="Player Status"
-          value={record.playerStatus ? getPlayerStatusLabel(record.playerStatus) : undefined}
-        />
-      </div>
+      {/* At-a-glance summary — coach vs player layout */}
+      {coachDirectory ? (
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+          <SummaryStat label="Title" value={record.title} />
+          <SummaryStat label="Hometown" value={hometown} />
+          <SummaryStat label="Phone" value={phoneDisplay} />
+          <SummaryStat label="Email" value={email} />
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
+          <SummaryStat
+            label="UTR"
+            value={record.utr !== undefined ? record.utr.toFixed(1) : undefined}
+          />
+          <SummaryStat
+            label="WTN"
+            value={record.wtn !== undefined ? record.wtn.toFixed(1) : undefined}
+          />
+          <SummaryStat
+            label="Class Year"
+            value={record.classYear ? String(record.classYear) : undefined}
+          />
+          <SummaryStat label="Major" value={record.major} />
+          <SummaryStat label="Dorm" value={record.dorm} />
+          <SummaryStat
+            label="Player Status"
+            value={record.playerStatus ? getPlayerStatusLabel(record.playerStatus) : undefined}
+          />
+        </div>
+      )}
 
       {/* Overview */}
       <div className="grid gap-5 lg:grid-cols-3">
@@ -997,9 +1006,6 @@ export default function PersonWorkspace({
                 />
               </WorkspaceField>
             </dl>
-            <p className="mt-3 text-xs text-text-secondary">
-              TennisRecruiting.net, UTR, and WTN profile links — coming soon.
-            </p>
           </WorkspaceSection>
 
           <WorkspaceSection title="Address">
@@ -1101,22 +1107,26 @@ export default function PersonWorkspace({
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-text-secondary">No family contacts have been added.</p>
+              <EmptyState
+                compact
+                title="No family contacts"
+                description="Related people will appear here when linked."
+              />
             )}
           </WorkspaceSection>
 
-          <WorkspaceSection title="Coming Later">
-            <div className="grid grid-cols-2 gap-2.5">
+          <WorkspaceSection title="More to come">
+            <ul className="flex flex-col gap-1.5">
               {comingLaterModules.map((module) => (
-                <div
+                <li
                   key={module.label}
-                  className="flex flex-col items-center gap-2 rounded-control border border-dashed border-border px-3 py-4 text-center opacity-60"
+                  className="flex items-center gap-2.5 rounded-control px-1 py-1.5 text-sm text-text-secondary/70"
                 >
-                  <module.icon className="h-5 w-5 text-text-secondary" strokeWidth={1.5} />
-                  <span className="text-xs font-medium text-text-secondary">{module.label}</span>
-                </div>
+                  <module.icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
+                  <span>{module.label}</span>
+                </li>
               ))}
-            </div>
+            </ul>
           </WorkspaceSection>
         </div>
       </div>

@@ -1,25 +1,9 @@
-export type StatusTone = "neutral" | "denison" | "success" | "warning" | "danger";
-
-const toneClasses: Record<StatusTone, string> = {
-  neutral: "bg-app-background text-text-secondary",
-  denison: "bg-denison-red text-surface",
-  success: "bg-success/10 text-success",
-  warning: "bg-warning/10 text-warning",
-  danger: "bg-danger/10 text-danger",
-};
-
-export default function StatusBadge({
-  label,
-  tone = "neutral",
-}: {
-  label: string;
-  tone?: StatusTone;
-}) {
-  return (
-    <span
-      className={`inline-flex shrink-0 items-center rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap ${toneClasses[tone]}`}
-    >
-      {label}
-    </span>
-  );
-}
+/**
+ * @deprecated BP-022B — Filled pills are for notifications only.
+ * Use `NotificationPill` for alerts/counts. Use `RoleBadge` for quiet identity metadata.
+ * Use `StatusDot` + text for Current / Alumni.
+ *
+ * Kept as a thin alias so any stray imports keep compiling until migrated.
+ */
+export type { NotificationPillTone as StatusTone } from "./NotificationPill";
+export { default } from "./NotificationPill";

@@ -51,10 +51,21 @@ function undefinedIfNull<T>(value: T | null): T | undefined {
   return value === null ? undefined : value;
 }
 
+const KNOWN_ROLES = new Set<PersonRole>([
+  "player",
+  "coach",
+  "alumni",
+  "staff",
+  "recruit",
+]);
+
 /** Infer roles when a row predates the BP-021 column or still has an empty array. */
 function rolesFromRow(row: ProductionPersonRow): PersonRole[] {
   if (row.roles && row.roles.length > 0) {
-    return row.roles as PersonRole[];
+    const known = row.roles.filter((role): role is PersonRole =>
+      KNOWN_ROLES.has(role as PersonRole),
+    );
+    if (known.length > 0) return known;
   }
   return row.status === "alumni" ? ["alumni"] : ["player"];
 }

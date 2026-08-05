@@ -1,7 +1,6 @@
 "use server";
 
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { detectEnvironment } from "./detectEnvironment";
@@ -34,6 +33,29 @@ function assertLocalDev(): DeveloperActionResult | null {
   return null;
 }
 
+function runNpmScript(script: string): DeveloperActionResult {
+  try {
+    const stdout = execFileSync("npm", ["run", script], {
+      encoding: "utf-8",
+      env: dockerPathEnv(),
+      stdio: ["ignore", "pipe", "pipe"],
+      timeout: 180_000,
+      cwd: process.cwd(),
+    });
+    const tail = stdout.trim().split("\n").slice(-6).join("\n");
+    return {
+      success: true,
+      message: tail || `Completed: npm run ${script}`,
+    };
+  } catch (error) {
+    const err = error as { stderr?: string; message?: string };
+    return {
+      success: false,
+      error: (err.stderr ?? err.message ?? "Command failed").trim().slice(0, 800),
+    };
+  }
+}
+
 function runSupabase(args: string[]): DeveloperActionResult {
   const supabaseBin = resolve(process.cwd(), "node_modules/.bin/supabase");
   try {
@@ -58,58 +80,35 @@ function runSupabase(args: string[]): DeveloperActionResult {
   }
 }
 
-/** Full local reset: migrations + seed.sql */
+/**
+ * DESTRUCTIVE — drops the local database, re-applies migrations + seed.sql,
+ * then seeds the local auth user. All manual edits are lost.
+ */
 export async function resetLocalDatabaseAction(): Promise<DeveloperActionResult> {
   const blocked = assertLocalDev();
   if (blocked) return blocked;
-  return runSupabase(["db", "reset", "--yes"]);
+  const reset = runSupabase(["db", "reset", "--yes"]);
+  if (!reset.success) return reset;
+  const auth = runNpmScript("db:seed-auth");
+  if (!auth.success) {
+    return {
+      success: false,
+      error: `Database reset succeeded but auth seed failed: ${auth.error}`,
+    };
+  }
+  return {
+    success: true,
+    message: "Local database reset complete (migrations + seed + auth). All prior local data was destroyed.",
+  };
 }
 
-/** Re-apply seed.sql to the local database without dropping schema. */
+/**
+ * Re-apply seed.sql without dropping the database.
+ * Updates provider-synced columns only; preserves UTR / WTN / notes / etc.
+ * Never falls back to db reset.
+ */
 export async function rerunSeedAction(): Promise<DeveloperActionResult> {
   const blocked = assertLocalDev();
   if (blocked) return blocked;
-
-  const seedPath = resolve(process.cwd(), "supabase/seed.sql");
-  const sql = readFileSync(seedPath, "utf-8");
-
-  try {
-    execFileSync(
-      "docker",
-      [
-        "exec",
-        "-i",
-        "supabase_db_denison-tennis-os",
-        "psql",
-        "-U",
-        "postgres",
-        "-v",
-        "ON_ERROR_STOP=1",
-        "-f",
-        "-",
-      ],
-      {
-        encoding: "utf-8",
-        env: dockerPathEnv(),
-        input: sql,
-        stdio: ["pipe", "pipe", "pipe"],
-        timeout: 120_000,
-        cwd: process.cwd(),
-      },
-    );
-    return { success: true, message: "Seed.sql applied to local database." };
-  } catch (error) {
-    const err = error as { stderr?: string; message?: string };
-    const reset = runSupabase(["db", "reset", "--yes"]);
-    if (reset.success) {
-      return {
-        success: true,
-        message: `Direct seed failed; completed via db reset instead. (${(err.stderr ?? err.message ?? "error").slice(0, 120)})`,
-      };
-    }
-    return {
-      success: false,
-      error: (err.stderr ?? err.message ?? reset.error ?? "Seed failed").trim().slice(0, 800),
-    };
-  }
+  return runNpmScript("db:seed");
 }

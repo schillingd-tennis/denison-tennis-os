@@ -54,8 +54,9 @@ export const FIELDS_WITH_NO_SOURCE_COLUMN = [
 ];
 
 /**
- * Maps one Airtable People row onto a Person. Handles players, coaches,
- * staff, and alumni through the same path using the Person Role model.
+ * Maps one People sync CSV row onto a Person (current source: Airtable
+ * export). Handles players, coaches, staff, and alumni through the same
+ * path using the Person Role model.
  */
 export function mapRowToPerson(
   row: RawPlayerRow,
@@ -90,7 +91,7 @@ export function mapRowToPerson(
   if (classification.warning) warnings.push(classification.warning);
 
   const { status, playerStatus, roles, isProgramRoleRow } = classification;
-  // Reserved coaching titles for known people when Airtable has no Title yet.
+  // Reserved coaching titles for known people when sync CSV has no Title yet.
   const title =
     knownTitle && (!classification.title || classification.title === "Coach")
       ? knownTitle

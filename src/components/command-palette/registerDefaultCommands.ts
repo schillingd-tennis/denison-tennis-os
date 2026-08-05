@@ -173,19 +173,19 @@ function actionCommands(): CommandDefinition[] {
       id: "action:reset-local-db",
       objectType: "actions",
       label: "Reset Local Database",
-      subtitle: "Developer only — drops local data, re-applies migrations + seed",
+      subtitle: "DESTRUCTIVE — destroys all local data, then migrations + seed",
       keywords: ["reset", "database", "supabase", "local"],
       icon: RotateCcw,
       enabled: developerToolsEnabled,
       preview: {
         kind: "action",
         explanation:
-          "Resets the local Supabase database (migrations + seed). Only available in local development. Requires confirmation.",
+          "DESTRUCTIVE: drops the local database (UTR, WTN, notes, and all manual edits are lost), then re-applies migrations + seed. Local development only.",
       },
       perform: async ({ notify }) => {
         if (
           !window.confirm(
-            "Reset the local database? This drops local data and re-applies all migrations + seed.",
+            "DESTRUCTIVE: Reset the local database? This permanently destroys all local People data (including UTR, WTN, notes, and manual edits).",
           )
         ) {
           return;
@@ -204,16 +204,23 @@ function actionCommands(): CommandDefinition[] {
       id: "action:rerun-seed",
       objectType: "actions",
       label: "Re-run Seed",
-      subtitle: "Developer only — re-applies supabase/seed.sql locally",
+      subtitle: "Updates provider-synced fields — preserves UTR / WTN / notes",
       keywords: ["seed", "database", "supabase", "local"],
       icon: RefreshCw,
       enabled: developerToolsEnabled,
       preview: {
         kind: "action",
         explanation:
-          "Re-applies supabase/seed.sql to the local database without a full schema drop when possible.",
+          "Applies supabase/seed.sql without dropping the database. Updates provider-synced columns; preserves application-owned fields (UTR, WTN, notes, …). Never falls back to db reset.",
       },
       perform: async ({ notify }) => {
+        if (
+          !window.confirm(
+            "Re-apply seed.sql? Updates provider-synced fields. Preserves UTR, WTN, notes, and other app-owned fields.",
+          )
+        ) {
+          return;
+        }
         notify("Re-running seed…");
         const result = await rerunSeedAction();
         if (result.success) {

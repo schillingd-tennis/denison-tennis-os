@@ -31,8 +31,11 @@ export function getPersonStatusIndicator(person: Person): PersonStatusIndicator 
     case "graduated":
       return { tone: "alumni", label: getPlayerStatusLabel("graduated") };
     default:
-      if (hasRole(person, "coach") && !hasRole(person, "player")) {
-        return { tone: "active", label: person.title?.trim() || "Coach" };
+      if (hasRole(person, "recruit")) {
+        return { tone: "recruit", label: "Recruit" };
+      }
+      if (hasRole(person, "coach") && !(hasRole(person, "player") && person.status === "current")) {
+        return { tone: "coach", label: person.title?.trim() || "Coach" };
       }
       if (person.status === "current") {
         return { tone: "active", label: getStatusLabel("current") };

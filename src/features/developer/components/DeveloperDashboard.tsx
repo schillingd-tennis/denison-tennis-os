@@ -264,7 +264,7 @@ export default function DeveloperDashboard({ snapshot }: { snapshot: DeveloperSn
             onClick={() => {
               if (
                 !window.confirm(
-                  "Reset the local database? This drops local data and re-applies all migrations + seed.",
+                  "DESTRUCTIVE: Reset the local database? This permanently destroys all local People data (including UTR, WTN, notes, and manual edits), then re-applies migrations + seed.",
                 )
               ) {
                 return;
@@ -276,7 +276,16 @@ export default function DeveloperDashboard({ snapshot }: { snapshot: DeveloperSn
             label="Re-run Seed"
             icon={RefreshCw}
             disabled={!snapshot.localActionsEnabled || pending}
-            onClick={() => runAction(rerunSeedAction)}
+            onClick={() => {
+              if (
+                !window.confirm(
+                  "Re-apply seed.sql? Updates provider-synced fields (name, hometown, contact, class year, …). Preserves app-owned fields (UTR, WTN, notes, …). Does not drop the database.",
+                )
+              ) {
+                return;
+              }
+              runAction(rerunSeedAction);
+            }}
           />
           <ActionButton
             label="View Migration History"

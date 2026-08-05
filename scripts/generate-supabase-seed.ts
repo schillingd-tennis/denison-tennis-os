@@ -1,9 +1,11 @@
 /**
- * BP-015 / BP-021 — Supabase Seed Generator.
+ * BP-015 / BP-021 / BP-022E — Supabase Seed Generator.
  *
  * Reads the current roster from `src/features/people/data.ts` and writes
- * `supabase/seed.sql`: idempotent `INSERT ... ON CONFLICT (id) DO UPDATE`
- * statements for `production_people`.
+ * `supabase/seed.sql`: `INSERT ... ON CONFLICT (id) DO UPDATE` that updates
+ * **only provider-synced columns** (current sync source: Airtable CSV
+ * bootstrap). Application-owned fields (UTR, WTN, notes, …) are preserved
+ * on conflict — see `scripts/fieldOwnership.ts` / `docs/SYSTEM_OF_RECORD.md`.
  *
  * Usage: `npm run db:generate-seed`
  *
@@ -15,6 +17,8 @@ import { resolve } from "node:path";
 
 import { people } from "../src/features/people/data";
 import { personToRow } from "../src/features/people/supabaseMapping";
+
+import { EXTERNAL_SYNC_COLUMNS } from "./fieldOwnership";
 
 const OUTPUT_PATH = resolve(process.cwd(), "supabase/seed.sql");
 
@@ -81,26 +85,27 @@ function sqlLiteral(value: unknown, column?: string): string {
   return `'${text}'`;
 }
 
+/** Only provider-synced columns — never wipe app-owned values on re-seed. */
 function buildUpdateAssignments(): string {
-  return COLUMNS.filter((column) => column !== "id")
-    .map((column) => `${column} = excluded.${column}`)
-    .join(",\n    ");
+  return EXTERNAL_SYNC_COLUMNS.map((column) => `${column} = excluded.${column}`).join(",\n    ");
 }
 
 function main(): void {
   const header = [
-    "-- BP-015 / BP-021 — Generated seed data for production_people.",
+    "-- BP-015 / BP-021 / BP-022E / BP-023A — Generated seed data for production_people.",
     "--",
     `-- GENERATED FILE — do not hand-edit. Produced by \`npm run db:generate-seed\``,
     "-- (scripts/generate-supabase-seed.ts) from src/features/people/data.ts",
-    "-- (Airtable import via npm run import:players — no hard-coded overlays).",
+    "-- (External People sync provider via npm run import:players — currently Airtable CSV).",
     "-- Re-run the generator to regenerate after data.ts changes.",
     "--",
     `-- Generated: ${new Date().toISOString()}`,
     `-- Records: ${people.length}`,
     "--",
     "-- Requires migrations through 0003_people_roles_and_coaches.sql for roles/title.",
-    "-- Safe to re-run: each row is upserted by id.",
+    "-- ON CONFLICT updates provider-synced columns only (BP-022E / BP-023A).",
+    "-- Application-owned fields (utr, wtn, notes, …) are preserved on re-seed.",
+    "-- Full wipe still happens only via `npm run db:reset` (drops the database).",
     "",
   ].join("\n");
 
@@ -123,6 +128,9 @@ function main(): void {
   writeFileSync(OUTPUT_PATH, `${header}${statements}\n`, "utf-8");
 
   console.log(`Wrote ${people.length} upsert statements to supabase/seed.sql`);
+  console.log(
+    `ON CONFLICT updates ${EXTERNAL_SYNC_COLUMNS.length} provider-synced columns; app-owned fields preserved.`,
+  );
 }
 
 main();

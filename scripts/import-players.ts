@@ -8,7 +8,14 @@
  *
  * Usage: `npm run import:players`
  *
- * Airtable remains the single source of truth — no hard-coded person overlays.
+ * Writes `data.ts` only — does NOT touch the live database. Apply with
+ * `npm run db:generate-seed` then `npm run db:seed` (preserves app-owned
+ * fields) or intentional `npm run db:reset` (full wipe). See BP-022E /
+ * BP-023A, docs/DATA_OWNERSHIP.md, docs/SYSTEM_OF_RECORD.md.
+ *
+ * Current synchronization source: Airtable CSV export. Provider-synced
+ * roster identity/contact fields land in the file snapshot; application-
+ * owned fields (UTR, WTN, notes, …) live in the database and survive sync.
  */
 import { existsSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";

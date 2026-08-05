@@ -1,8 +1,13 @@
-# Local Development & Database Workflow (BP-021B)
+# Local Development & Database Workflow (BP-021B / BP-022E)
 
 Local Supabase is the **primary development database**. The hosted Supabase
 project is updated only after changes are tested locally, committed, and
 pushed — never by ad-hoc SQL edits in the dashboard during feature work.
+
+**BP-022E:** Manual People edits (UTR, WTN, hometown while developing, notes,
+…) must persist across normal development. Data is replaced only when you
+intentionally reset or re-seed. See [`DATA_OWNERSHIP.md`](./DATA_OWNERSHIP.md)
+and [`SYSTEM_OF_RECORD.md`](./SYSTEM_OF_RECORD.md).
 
 ## Prerequisites
 
@@ -32,22 +37,90 @@ copy env info). Destructive actions only run against a **local** stack in
 ```bash
 # 1. Start Docker Desktop, then:
 npm run db:start
-# Also seeds the local auth user (see Local authentication below).
+# Starts local Supabase (keeps existing data if volumes exist).
+# Seeds the local auth user only — does NOT reset People data.
 
-# 2. Reset DB = apply all migrations + seed.sql + re-seed local auth
-npm run db:reset
-
-# 3. Print values for .env.local
+# 2. Print values for .env.local (first time / after fresh start)
 npm run db:env
 
-# 4. Put those two lines into .env.local, then:
+# 3. Put those two lines into .env.local, then:
 npm run dev
 ```
 
 Open [http://localhost:3000/login](http://localhost:3000/login) (or `:3001` if
 that port is in use). Sign in with the local development credentials below,
-then open Team — you should see players, alumni, and coaches (including David
-Schilling / Andy Mackler) with roles and titles.
+then open Team.
+
+**Only when you intentionally want a clean database:**
+
+```bash
+npm run db:reset   # DESTRUCTIVE — destroys all local People data
+```
+
+## Command reference (safe vs destructive)
+
+### Safe (do not rewrite People rows)
+
+| Script | Behavior |
+|---|---|
+| `npm run db:start` | Starts local Supabase (Docker). Does **not** reset or reseed People. Runs `db:seed-auth` for the login user only. Existing Postgres volumes are kept. |
+| `npm run db:stop` | Stops containers; **keeps** data volumes (default). |
+| `npm run db:status` | Health / URLs / keys. |
+| `npm run db:env` | Prints `.env.local` lines for the running local stack. |
+| `npm run db:seed-auth` | Creates/resets the local Auth login via Admin API. Does not touch `production_people`. |
+| `npm run db:generate-seed` | Regenerates `supabase/seed.sql` from `data.ts`. **Does not** apply it. |
+| `npm run import:players` | Regenerates `src/features/people/data.ts` from CSV. **Does not** touch the database. |
+| `npm run db:lint` | SQL lint. |
+| `npm run dev` | Next.js app. Does not seed or reset. |
+| Browser refresh / git commit / branch checkout | Do not touch the local Postgres volume. |
+
+### Partial (provider-synced columns only)
+
+| Script | Behavior |
+|---|---|
+| `npm run db:seed` | Applies `supabase/seed.sql` to the **running** local DB. Upserts **provider-synced** columns only (current sync source: Airtable CSV). **Preserves** UTR, WTN, notes, and other app-owned fields. Does **not** drop the database. |
+
+### Destructive
+
+| Script | Behavior |
+|---|---|
+| `npm run db:reset` | **Destroys** the local database, re-applies **all** migrations, runs `seed.sql`, then `db:seed-auth`. **All** local People data is lost (including UTR, WTN, notes, manual edits). |
+| `npx supabase stop --no-backup` | Stops and may discard local DB volumes — treat as destructive. |
+| Developer “Reset Local Database” / palette equivalent | Same as `db:reset`. |
+
+### Hosted promote (not for day-to-day People edits)
+
+| Script | Behavior |
+|---|---|
+| `npm run db:link` | One-time link to hosted project. |
+| `npm run db:push` | Pushes **pending migrations** to hosted. Does **not** re-run seed. |
+
+## Recommended day-to-day workflow (never lose manual edits)
+
+```bash
+# Morning / after reboot
+npm run db:start          # if Supabase isn't already running
+npm run dev
+
+# Edit People in the UI (UTR, WTN, hometown while testing, notes, …)
+# Values live in local Postgres — they survive:
+#   - npm run dev restarts
+#   - browser refresh
+#   - git commit / checkout
+#   - Docker Desktop restart (volumes intact)
+#   - npm run db:stop && npm run db:start
+```
+
+**Do not** run `db:reset` unless you mean to wipe local data.
+
+When the People sync CSV changes and you want provider-synced roster fields
+refreshed **without** losing UTR/WTN/notes:
+
+```bash
+npm run import:players
+npm run db:generate-seed
+npm run db:seed           # preserving upsert — NOT db:reset
+```
 
 ## Local authentication
 
@@ -88,20 +161,8 @@ Example file checked into the repo: [`.env.local.example`](../.env.local.example
 **Do not point day-to-day feature work at the hosted project.** Keep hosted
 updates for the promote step below.
 
-## npm scripts
-
-| Script | Purpose |
-|---|---|
-| `npm run db:start` | Start local Supabase (Docker), then seed local auth user |
-| `npm run db:stop` | Stop local Supabase |
-| `npm run db:status` | Show local URLs / keys / health |
-| `npm run db:reset` | Drop local DB, re-apply **all** migrations, run `seed.sql`, seed local auth |
-| `npm run db:seed-auth` | Create/reset the local development login via Auth Admin API |
-| `npm run db:generate-seed` | Regenerate `supabase/seed.sql` from `src/features/people/data.ts` |
-| `npm run db:env` | Print `.env.local` lines for the running local stack |
-| `npm run db:link` | Link CLI to the hosted project (one-time; needs DB password) |
-| `npm run db:push` | Push pending migrations to the **linked hosted** project |
-| `npm run import:players` | Re-import Airtable CSV → `data.ts` (then regenerate seed) |
+If the app “forgets” local edits, first check that `.env.local` still points at
+**local** (`127.0.0.1:54321`), not the hosted project URL.
 
 ## Migration workflow
 
@@ -115,8 +176,15 @@ updates for the promote step below.
 4. `0004_seed_coach_people.sql`
 5. `0005_grant_production_people_privileges.sql` (Data API grants for `anon` / `authenticated`)
 
-The CLI records applied migrations in the local database. `npm run db:reset`
-always starts clean and applies every file.
+The CLI records applied migrations in the local database.
+
+Prefer applying a **new** migration without wiping data:
+
+```bash
+npx supabase migration up
+```
+
+Use `npm run db:reset` only when you need a clean schema+data rebuild.
 
 ### Day-to-day order (required)
 
@@ -129,8 +197,7 @@ Local Development
 ```
 
 1. **Local Development** — write a new migration under `supabase/migrations/`.
-   Apply with `npm run db:reset` (or `npx supabase migration up` on an already
-   running local DB).
+   Prefer `npx supabase migration up` to apply without destroying data.
 2. **Test** — run the app against local Supabase (`npm run db:env` → `.env.local`,
    then `npm run dev`). Confirm schema + data behavior.
 3. **Commit** — include the migration SQL (and seed updates if needed).
@@ -149,13 +216,22 @@ Local Development
    ```
 
 `db:push` applies **only pending migrations** to the linked remote. It does
-not re-run seeds. To refresh hosted **data**, run `supabase/seed.sql` in the
-hosted SQL Editor deliberately (or a future data sync job) — do not treat the
-dashboard as the schema source of truth.
+not re-run seeds. To refresh hosted **data**, run seed deliberately — do not
+treat the dashboard as the schema source of truth.
 
 ## Seed workflow
 
-1. Update People data via Airtable import when needed:
+`supabase/config.toml` enables seeding **on `db reset` only**:
+
+```toml
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+```
+
+`db:start` does **not** re-run `seed.sql` when volumes already exist.
+
+1. Update People file snapshot from the current sync source when needed:
 
    ```bash
    npm run import:players
@@ -167,22 +243,19 @@ dashboard as the schema source of truth.
    npm run db:generate-seed
    ```
 
-3. Load into local DB:
+3. Apply without wiping app-owned fields:
+
+   ```bash
+   npm run db:seed
+   ```
+
+   Or, only if you accept a full wipe:
 
    ```bash
    npm run db:reset
    ```
 
-`supabase/config.toml` enables seeding with:
-
-```toml
-[db.seed]
-enabled = true
-sql_paths = ["./seed.sql"]
-```
-
-The seed upserts all current People (players, alumni, coaches) including
-roles, titles, D#, and status. Coach stable ids:
+Seed upserts update **provider-synced** columns only (BP-022E / BP-023A). Coach stable ids:
 
 - `person-david-schilling` (Head Coach)
 - `person-andy-mackler` (Assistant Coach)
@@ -193,14 +266,13 @@ roles, titles, D#, and status. Coach stable ids:
 npm run db:reset
 ```
 
-This destroys local data, re-applies every migration, and runs `seed.sql`.
-Safe and expected during development.
+This **destroys** local data, re-applies every migration, and runs `seed.sql`.
+Use only when you intentionally want a clean slate.
 
-To fully tear down containers:
+To stop containers while keeping data:
 
 ```bash
 npm run db:stop
-# or: npx supabase stop --no-backup
 ```
 
 ## Promote schema changes to hosted Supabase
@@ -208,7 +280,7 @@ npm run db:stop
 | Do | Don’t |
 |---|---|
 | Author migrations in `supabase/migrations/` | Hand-edit hosted schema in the dashboard |
-| Test with `npm run db:reset` locally | Apply untested SQL only on hosted |
+| Test locally (prefer `migration up` over reset) | Apply untested SQL only on hosted |
 | `npm run db:push` after commit/push | Skip local verification |
 | Keep hosted seed refreshes explicit | Assume `db:push` reloads seed data |
 
@@ -242,35 +314,38 @@ If the hosted database was changed manually (e.g. missing `0003` / `0004`):
 
 ## Verification checklist
 
-After `db:reset` + pointing `.env.local` at local:
+After pointing `.env.local` at local:
 
 ```bash
 npm run db:status
 npm run db:env
-# Query via Studio (printed by db:status) or:
 npx supabase db lint
 ```
 
 Confirm:
 
+- [ ] `.env.local` URL is `http://127.0.0.1:54321` (not hosted)
 - [ ] `roles` and `title` columns exist on `production_people`
 - [ ] `person-david-schilling` and `person-andy-mackler` exist
-- [ ] Row count matches seed (currently 40 People)
 - [ ] `/team` loads; Coaches filter shows David + Andy
+- [ ] Manual UTR edit survives `npm run db:seed` and `db:stop` / `db:start`
 - [ ] No pending migrations (`migration list` local = remote after push)
 
 ## Troubleshooting
 
 | Symptom | Fix |
 |---|---|
+| Manual UTR/WTN/notes disappeared | You likely ran `db:reset`, or an old full-overwrite seed. Confirm you are on BP-022E seed (provider-synced conflict updates only). Avoid reset for day-to-day work. |
+| Edits “vanish” after refresh but DB still has them | `.env.local` may point at **hosted** Supabase — run `db:env` and fix. |
 | `docker: command not found` | Install/start Docker Desktop; ensure `docker` is on `PATH` |
 | `db:start` hangs / unhealthy | Restart Docker Desktop; `npm run db:stop` then `db:start` |
-| App still shows old hosted data | `.env.local` still points at hosted URL — run `npm run db:env` and replace |
-| Seed missing coaches | Regenerate seed (`db:generate-seed`) then `db:reset` |
+| Seed missing coaches | Regenerate seed (`db:generate-seed`) then `db:seed` (or `db:reset` if you accept a wipe) |
 | `db:push` unauthorized | Re-run `db:link` with the database password |
 
 ## Related docs
 
+- [`docs/SYSTEM_OF_RECORD.md`](./SYSTEM_OF_RECORD.md) — long-term SoR architecture
+- [`docs/DATA_OWNERSHIP.md`](./DATA_OWNERSHIP.md) — provider vs app field ownership
 - [`docs/DATA_MODEL.md`](./DATA_MODEL.md) — Person / roles model
-- [`docs/DECISIONS.md`](./DECISIONS.md) — BP-021 / BP-021B decisions
+- [`docs/DECISIONS.md`](./DECISIONS.md) — locked decisions including BP-023A
 - [`docs/ARCHITECTURE.md`](./ARCHITECTURE.md) — repository boundaries

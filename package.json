@@ -14,6 +14,7 @@
     "db:stop": "supabase stop",
     "db:status": "supabase status",
     "db:reset": "supabase db reset && npm run db:seed-auth",
+    "db:seed": "tsx scripts/apply-local-seed.ts",
     "db:seed-auth": "tsx scripts/seed-local-auth.ts",
     "db:lint": "supabase db lint",
     "db:push": "supabase db push",

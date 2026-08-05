@@ -1,13 +1,13 @@
 /**
  * Known people with reserved stable Person ids (BP-021 development seed).
  *
- * Airtable import must reuse these ids so later syncs update the same rows
+ * People sync import must reuse these ids so later syncs update the same rows
  * instead of creating `player-*` duplicates. Titles here are the verified
- * coaching titles for development until Airtable carries a Title column.
+ * coaching titles for development when the sync CSV lacks a Title value.
  */
 export type KnownPersonSpec = {
   id: string;
-  /** Preferred display title when Airtable Class is a generic "Coach". */
+  /** Preferred display title when sync Class is a generic "Coach". */
   title: string;
 };
 

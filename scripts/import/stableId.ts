@@ -12,10 +12,11 @@ function slugify(value: string): string {
 
 /**
  * Generates a stable, human-readable id derived from name only — never from
- * row position or an Airtable record id.
+ * row position or an external provider record id.
  *
  * Known people (e.g. David Schilling, Andy Mackler) use reserved `person-*`
- * ids so Airtable re-imports update the same rows rather than duplicating.
+ * ids so re-imports from the current sync source update the same rows rather
+ * than duplicating.
  *
  * Other collisions are resolved with a numeric suffix.
  */

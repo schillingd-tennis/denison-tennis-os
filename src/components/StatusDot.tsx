@@ -15,11 +15,12 @@ export type StatusDotTone =
   | "muted";
 
 const toneClasses: Record<StatusDotTone, string> = {
-  // Current mapping (BP-020E): Current / Active = Denison red.
+  // ● Current / Active — filled Denison red (BP-022B).
   active: "bg-denison-red",
   // Reserved for future roster / player statuses.
   recruit: "bg-info",
-  alumni: "bg-text-secondary/40",
+  // ○ Alumni — hollow ring, not a filled pill.
+  alumni: "border border-text-secondary/45 bg-transparent",
   coach: "bg-text-secondary/55",
   injured: "bg-warning",
   inactive: "bg-text-secondary/30",

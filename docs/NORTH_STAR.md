@@ -137,21 +137,22 @@ Future:
 
 ## Data
 
-The application should never depend directly on a database. Modules
-communicate with repositories. Repositories communicate with data sources.
+Denison Tennis OS is the long-term **system of record** for the program
+(see `docs/SYSTEM_OF_RECORD.md`). Modules communicate with repositories.
+Repositories talk to the application database; sync adapters may pull from
+external providers.
 
-Current data sources may include:
+Current runtime store:
 
-- Demo Data
-- Airtable
-- Coda
+- Supabase (PostgreSQL)
 
-Future:
+Current / optional synchronization sources (providers — not permanent owners):
 
-- Supabase
-- PostgreSQL
+- Airtable (People bootstrap CSV)
+- Coda (historical recruiting, if reconnected)
+- Future: UTR, TRN, Google, NCAA, …
 
-The UI should not care where data originates.
+The UI should not care which provider last synchronized a field.
 
 ## Design
 

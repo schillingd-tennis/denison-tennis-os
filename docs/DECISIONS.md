@@ -39,22 +39,19 @@ update this file explicitly rather than silently drifting from it.
 
 ## BP-011 — Architecture Blueprint
 
-- The UI never talks directly to Airtable, Coda, Supabase, or any other
-  external data source. All data access flows through repositories.
-- Repositories isolate data-source details behind stable interfaces —
-  they are the only layer permitted to change when the underlying data
-  source changes.
+- The UI never talks directly to Airtable, Coda, or other external
+  providers. Runtime access goes through repositories to the application
+  database (system of record).
+- Repositories isolate provider/storage details behind stable interfaces —
+  they are the only layer that must change when a sync source changes.
 - External records are mapped into internal domain objects (e.g.
-  `Person`) at the infrastructure/repository boundary. External field
-  names must never leak into UI components.
+  `Person`) at the adapter/repository boundary. External field names must
+  never leak into UI components.
 - Internal domain IDs and external source IDs (e.g. `airtableRecordId`,
   `codaRowId`) remain distinct. External IDs may be stored alongside a
   domain object but must not replace its internal identity.
-- Airtable (and any future data source) read integration precedes write
-  integration — reads are proven stable before the app is allowed to
-  create or update records in that source.
-- See `docs/ARCHITECTURE.md` for the full technical architecture this is
-  drawn from.
+- Provider read sync precedes any write-back to that provider.
+- See `docs/ARCHITECTURE.md` and `docs/SYSTEM_OF_RECORD.md`.
 
 ## BP-012 — Production People Import
 
@@ -63,14 +60,15 @@ update this file explicitly rather than silently drifting from it.
   (`scripts/import-players.ts`) from `private-imports/Players.csv`. Do not
   hand-edit it; re-run the import instead.
 - This blueprint originally imported players only. As of BP-021 the same
-  pipeline imports **all people** from the Airtable export (players,
-  coaches, staff, alumni) through `classifyPersonRow` + the Person role
-  model. Duplicate name rows (e.g. alumni + coach) are merged into one
-  Person with unioned roles. Parents remain a later blueprint.- Stable `id`s are derived from name (e.g. `player-kael-shah`), never from
-  CSV row position or the Airtable record id in the `Player ID` column —
+  pipeline imports **all people** from the current synchronization source
+  (Airtable CSV export: players, coaches, staff, alumni) through
+  `classifyPersonRow` + the Person role model. Duplicate name rows
+  (e.g. alumni + coach) are merged into one Person with unioned roles.
+  Parents remain a later blueprint.
+- Stable `id`s are derived from name (e.g. `player-kael-shah`), never from
+  CSV row position or an external record id in the `Player ID` column —
   consistent with the BP-011 rule that external IDs never become domain
-  identity. The Airtable record id is not persisted on `Person` at all
-  today; it is treated as an unmapped column.
+  identity. Provider record ids are not persisted on `Person` today.
 - `Person` gained two additions to support this import: `middleName`
   (Identity) and `relationships: PersonRelationship[]` (a new
   "Relationships" group). Every imported player gets `relationships: []`
@@ -150,15 +148,15 @@ update this file explicitly rather than silently drifting from it.
 - Team directory filters: All | Players | Coaches | Alumni (default
   Players). Players = current + `player` role; Coaches = `coach` role;
   Alumni = `alumni` role or `status = alumni`.
-- Coaches (and other program roles) import through the normal Airtable
+- Coaches (and other program roles) import through the normal People sync
   pipeline — no hard-coded coach-only overlay module. Class values like
   `Coach`, `Head Coach`, or `Assistant Coach` map to the `coach` role.
   Same-name rows merge (Andy Mackler alumni + coach → one Person).
 - Reserved stable ids for development coaches (`person-david-schilling`,
   `person-andy-mackler`) live in `scripts/import/knownPeople.ts` so re-imports
   update those rows instead of creating `player-*` duplicates. Migration
-  `0004_seed_coach_people.sql` upserts verified Airtable fields for local
-  testing (temporary seed).
+  `0004_seed_coach_people.sql` upserts verified provider-synced fields for
+  local testing (temporary seed).
 - Migration `0003_people_roles_and_coaches.sql` adds `roles`/`title` and
   backfills roles from status only.
 - `PersonRoleBadge` shows `title` or a role-derived label under every name
@@ -172,7 +170,8 @@ update this file explicitly rather than silently drifting from it.
 - Local Supabase (Docker + CLI) is the primary development database.
   Workflow: Local → Test → Commit → Push → Hosted (`npm run db:push`).
 - CLI is a project devDependency; use `npm run db:*` scripts.
-- `supabase/config.toml` seeds from `supabase/seed.sql` on `db reset`.
+- `supabase/config.toml` seeds from `supabase/seed.sql` on `db reset` only
+  (not on every `db:start`).
 - Migration `0005_grant_production_people_privileges.sql` grants
   SELECT/UPDATE to Data API roles (required on newer local stacks).
 - Full guide: `docs/LOCAL_DEVELOPMENT.md`.
@@ -217,3 +216,61 @@ update this file explicitly rather than silently drifting from it.
   button when those surfaces exist). Delete/Backspace does not unpin.
 - Persistence is localStorage behind `KeyValueStorage` so a later Supabase
   adapter can replace it without UI changes (`setPalettePersistenceStorage`).
+
+## BP-022A — People Module Polish
+
+- People remains the single Person object model. Roles may include
+  `recruit` (type vocabulary); Recruiting CRM itself is a later BP.
+- Role badges are standardized via `RoleBadge` + `getPersonRoleBadges`
+  (title-aware: Head Coach / Assistant Coach; multi-role supported).
+- Polish only: directory density, coach workspace presentation, quieter
+  placeholders — no Recruiting / Operations / Research features.
+
+## BP-022B — Badge System Refinement
+
+- **RoleBadge** — quiet outlined chip only (transparent, 1px border, no
+  color fills). Identifies a Person. Not a notification.
+- **Status** — Current / Alumni via `StatusDot` + plain text
+  (`PersonStatusLabel`). No status pills. Alumni uses a hollow ring (○).
+- **NotificationPill** — filled colorful pills reserved exclusively for
+  future alerts/counts (messages, tasks due, etc.).
+- Do not use filled pills for roles, program status, or contact labels.
+
+## BP-022C — Quiet Role Badges
+
+- RoleBadge is a lightweight identity tag: soft `bg-app-background/60`,
+  `border-border/30`, `text-text-secondary/80`, 11px semibold, full pill.
+  Visual weight stays below name and status. Neutral only — no role colors.
+
+## BP-022D — Identity Metadata Refinement
+
+- Identity is quiet metadata, not a control. No pills/chips/borders/fills
+  for roles. `RoleBadge` is plain `text-[11px] font-medium text-text-secondary`.
+- Never surface "Player" in the UI — default roster identity is silent.
+- Show labels only when they add information: titles (Head Coach,
+  Assistant Coach, Athletic Trainer, …), Coach, Recruit, Alumni, Staff,
+  Volunteer. Multi-role people join with " · ".
+- Filled pills remain reserved for Notifications / Alerts / Counts /
+  Action Required.
+
+## BP-022E — Local Data Integrity & Development Workflow
+
+- Root cause of disappearing local edits: `seed.sql` used
+  `ON CONFLICT DO UPDATE` for **all** columns (including UTR/WTN/notes),
+  and Developer “Re-run Seed” could fall back to a full `db reset`.
+- Seed conflict updates now touch **provider-synced columns only**
+  (`scripts/fieldOwnership.ts`, `docs/DATA_OWNERSHIP.md`).
+- `npm run db:seed` applies seed without dropping the DB; never falls
+  back to reset. `npm run db:reset` remains the only intentional full wipe.
+- `db:start` / `db:stop` / `dev` / git / browser refresh do not rewrite People.
+
+## BP-023A — System of Record Architecture
+
+- Denison Tennis OS is the long-term **system of record**. External tools
+  (Airtable, TRN, UTR, etc.) are data providers / synchronization sources.
+- Phase model: (1) Airtable bootstrap, (2) hybrid sync, (3) app is complete
+  SoR and Airtable may be removed — see `docs/SYSTEM_OF_RECORD.md`.
+- Person-first: one Person persists across Recruit → Player → Alumni → …
+  without duplicate records.
+- Sync preserves application history; imports update only fields they own
+  (`docs/DATA_OWNERSHIP.md`).
