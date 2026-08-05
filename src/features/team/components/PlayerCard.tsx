@@ -98,13 +98,13 @@ export default function PlayerCard({ person }: { person: Person }) {
           href={phoneDigits ? `sms:${phoneDigits}` : undefined}
           icon={MessageSquare}
           label="Text"
-          tone="info"
+          tone="denison"
         />
         <QuickActionButton
           href={email ? `mailto:${email}` : undefined}
           icon={Mail}
           label="Email"
-          tone="denison"
+          tone="info"
         />
       </div>
     </div>

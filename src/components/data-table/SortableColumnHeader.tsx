@@ -27,7 +27,7 @@ export default function SortableColumnHeader({
     <th
       scope="col"
       aria-sort={ariaSortValue[sortDirection ?? "none"]}
-      className={`px-5 py-3.5 font-medium ${align === "right" ? "text-right" : "text-left"}`}
+      className={`px-4 py-3 font-medium ${align === "right" ? "text-right" : "text-left"}`}
     >
       <button
         type="button"

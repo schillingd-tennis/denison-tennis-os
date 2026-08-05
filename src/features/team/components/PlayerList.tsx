@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useRef, useState, type MouseEvent } from "react";
 import { Mail, MessageSquare, Phone } from "lucide-react";
 
-import type { ColumnDef } from "@/components/data-table/types";
+import type { ColumnDef, SortState } from "@/components/data-table/types";
 import { useSortableData } from "@/components/data-table/useSortableData";
 import SortableColumnHeader from "@/components/data-table/SortableColumnHeader";
 import {
@@ -29,6 +29,7 @@ import {
 import { updatePersonAction } from "@/features/people/actions";
 import type { Person, PersonStatus } from "@/features/people/types";
 import {
+  getDisplayFirstName,
   getDisplayName,
   getHometown,
   getInitials,
@@ -66,12 +67,69 @@ const EDITABLE_FIELDS: EditableField[] = [
 /** Delay so a double-click on a cell isn't also treated as a row open. */
 const ROW_CLICK_DELAY_MS = 250;
 
+/** Session-only persistence so returning from a workspace keeps the sort. */
+const TEAM_LIST_SORT_STORAGE_KEY = "denison-tennis-os:team-list-sort";
+
+const PERSON_COLUMN_KEYS: readonly PersonColumnKey[] = [
+  "name",
+  "status",
+  "phone",
+  "email",
+  "hometown",
+  "classYear",
+  "utr",
+  "wtn",
+];
+
 const statusOptions = [
   { value: "current", label: "Current" },
   { value: "alumni", label: "Alumni" },
 ];
 
 type EditingCell = { personId: string; field: EditableField };
+
+/**
+ * Sort key for the Name column: last name primary, first/preferred name as
+ * a stable tiebreaker. Display remains "First Last" via `getDisplayName`.
+ */
+function nameSortKey(person: Person): string {
+  const last = person.lastName?.trim() || "";
+  const first = getDisplayFirstName(person).trim();
+  return `${last}\u0000${first}`;
+}
+
+function readStoredTeamListSort(): SortState<PersonColumnKey> {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(TEAM_LIST_SORT_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { key?: unknown; direction?: unknown } | null;
+    if (
+      !parsed ||
+      typeof parsed.key !== "string" ||
+      (parsed.direction !== "asc" && parsed.direction !== "desc") ||
+      !PERSON_COLUMN_KEYS.includes(parsed.key as PersonColumnKey)
+    ) {
+      return null;
+    }
+    return { key: parsed.key as PersonColumnKey, direction: parsed.direction };
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredTeamListSort(sort: SortState<PersonColumnKey>) {
+  if (typeof window === "undefined") return;
+  try {
+    if (!sort) {
+      window.sessionStorage.removeItem(TEAM_LIST_SORT_STORAGE_KEY);
+      return;
+    }
+    window.sessionStorage.setItem(TEAM_LIST_SORT_STORAGE_KEY, JSON.stringify(sort));
+  } catch {
+    // Private mode / quota — sort still works for this mount; persistence is best-effort.
+  }
+}
 
 /**
  * Column definitions for the Team List view — sorting via the Universal
@@ -83,7 +141,8 @@ const columns: ColumnDef<Person, PersonColumnKey>[] = [
     title: "Name",
     sortable: true,
     sortType: "text",
-    accessor: (person) => getDisplayName(person),
+    // Always sort by last name (A→Z first click); display stays First Last.
+    accessor: nameSortKey,
     defaultSort: "asc",
   },
   {
@@ -124,6 +183,7 @@ const columns: ColumnDef<Person, PersonColumnKey>[] = [
     title: "Class",
     sortable: true,
     sortType: "number",
+    align: "right",
     accessor: (person) => person.classYear,
     defaultSort: "asc",
   },
@@ -132,6 +192,7 @@ const columns: ColumnDef<Person, PersonColumnKey>[] = [
     title: "UTR",
     sortable: true,
     sortType: "number",
+    align: "right",
     accessor: (person) => person.utr,
     defaultSort: "desc",
   },
@@ -140,6 +201,7 @@ const columns: ColumnDef<Person, PersonColumnKey>[] = [
     title: "WTN",
     sortable: true,
     sortType: "number",
+    align: "right",
     accessor: (person) => person.wtn,
     defaultSort: "desc",
   },
@@ -202,7 +264,10 @@ export default function PlayerList({ people }: { people: Person[] }) {
     setRows(people);
   }
 
-  const { sortedItems, sort, toggleSort } = useSortableData(rows, columns);
+  const { sortedItems, sort, toggleSort } = useSortableData(rows, columns, {
+    getInitialSort: readStoredTeamListSort,
+    onSortChange: writeStoredTeamListSort,
+  });
 
   const openWorkspace = useCallback(
     (personId: string) => {
@@ -406,17 +471,34 @@ export default function PlayerList({ people }: { people: Person[] }) {
     cancelPendingRowClick();
   }
 
+  const cellPad = "px-4 py-2.5 align-middle";
+
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-2.5">
       <div className="flex min-h-5 items-center justify-end px-1">
         <SaveIndicator status={saveStatus} error={saveError} />
       </div>
 
       <div className="relative overflow-hidden rounded-card border border-border bg-surface">
         <div className="hidden overflow-x-auto md:block">
-          <table className="w-full min-w-[1040px] text-left text-sm" role="grid" aria-label="Team list">
+          <table
+            className="w-full min-w-[1020px] table-fixed text-left text-sm"
+            role="grid"
+            aria-label="Team list"
+          >
+            <colgroup>
+              <col className="w-[17%]" />
+              <col className="w-[9%]" />
+              <col className="w-[12%]" />
+              <col className="w-[15%]" />
+              <col className="w-[13%]" />
+              <col className="w-[6%]" />
+              <col className="w-[6%]" />
+              <col className="w-[6%]" />
+              <col className="w-[16%]" />
+            </colgroup>
             <thead>
-              <tr className="border-b border-border text-xs font-medium tracking-wide text-text-secondary uppercase">
+              <tr className="border-b border-border bg-app-background/60 text-xs font-medium tracking-wide text-text-secondary uppercase">
                 {columns.map((column) => (
                   <SortableColumnHeader
                     key={column.id}
@@ -426,7 +508,12 @@ export default function PlayerList({ people }: { people: Person[] }) {
                     onSort={() => toggleSort(column.id)}
                   />
                 ))}
-                <th className="px-4 py-3.5 text-right font-medium">Actions</th>
+                <th
+                  scope="col"
+                  className="px-4 py-3 text-right text-xs font-medium tracking-wide text-text-secondary uppercase"
+                >
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -441,21 +528,21 @@ export default function PlayerList({ people }: { people: Person[] }) {
                   <tr
                     key={person.id}
                     onClick={() => handleRowClick(person.id)}
-                    className="h-14 cursor-pointer border-b border-border/60 transition-colors duration-150 last:border-b-0 hover:bg-denison-red/[0.03]"
+                    className="h-14 cursor-pointer border-b border-border/50 transition-colors duration-150 last:border-b-0 hover:bg-denison-red/[0.045]"
                   >
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-3.5">
+                    <td className={cellPad}>
+                      <div className="flex min-w-0 items-center gap-3">
                         <PlayerAvatar
                           photoUrl={person.photoUrl}
                           initials={getInitials(person)}
-                          size={36}
+                          size={32}
                         />
-                        <span className="text-[15px] font-semibold text-text-primary">
+                        <span className="truncate text-[14px] font-semibold tracking-tight text-text-primary">
                           {displayName}
                         </span>
                       </div>
                     </td>
-                    <td className="px-5 py-3">
+                    <td className={cellPad}>
                       <InlineEditCell
                         label="Status"
                         value={person.status}
@@ -475,12 +562,13 @@ export default function PlayerList({ people }: { people: Person[] }) {
                         onCommit={(raw, reason) => handleCommit(person.id, "status", raw, reason)}
                       />
                     </td>
-                    <td className="px-5 py-3">
+                    <td className={cellPad}>
                       <InlineEditCell
                         label="Phone"
                         value={person.cellPhone ?? ""}
                         displayValue={phoneDisplay}
                         type="tel"
+                        className="tabular-nums"
                         editing={isEditing(person.id, "phone")}
                         error={isEditing(person.id, "phone") ? fieldError : undefined}
                         onRequestEdit={() => startEdit(person.id, "phone")}
@@ -488,12 +576,13 @@ export default function PlayerList({ people }: { people: Person[] }) {
                         onCommit={(raw, reason) => handleCommit(person.id, "phone", raw, reason)}
                       />
                     </td>
-                    <td className="px-5 py-3">
+                    <td className={cellPad}>
                       <InlineEditCell
                         label="Email"
                         value={person[emailFieldKey(person)] ?? ""}
                         displayValue={emailDisplay}
                         type="email"
+                        className="truncate"
                         editing={isEditing(person.id, "email")}
                         error={isEditing(person.id, "email") ? fieldError : undefined}
                         onRequestEdit={() => startEdit(person.id, "email")}
@@ -501,11 +590,12 @@ export default function PlayerList({ people }: { people: Person[] }) {
                         onCommit={(raw, reason) => handleCommit(person.id, "email", raw, reason)}
                       />
                     </td>
-                    <td className="px-5 py-3">
+                    <td className={cellPad}>
                       <InlineEditCell
                         label="Hometown"
                         value={hometown ?? ""}
                         displayValue={hometown}
+                        className="truncate"
                         editing={isEditing(person.id, "hometown")}
                         error={isEditing(person.id, "hometown") ? fieldError : undefined}
                         onRequestEdit={() => startEdit(person.id, "hometown")}
@@ -513,7 +603,7 @@ export default function PlayerList({ people }: { people: Person[] }) {
                         onCommit={(raw, reason) => handleCommit(person.id, "hometown", raw, reason)}
                       />
                     </td>
-                    <td className="px-5 py-3">
+                    <td className={`${cellPad} text-right`}>
                       <InlineEditCell
                         label="Class"
                         value={person.classYear !== undefined ? String(person.classYear) : ""}
@@ -521,6 +611,8 @@ export default function PlayerList({ people }: { people: Person[] }) {
                           person.classYear !== undefined ? String(person.classYear) : undefined
                         }
                         type="number"
+                        align="right"
+                        className="tabular-nums"
                         editing={isEditing(person.id, "classYear")}
                         error={isEditing(person.id, "classYear") ? fieldError : undefined}
                         onRequestEdit={() => startEdit(person.id, "classYear")}
@@ -530,13 +622,15 @@ export default function PlayerList({ people }: { people: Person[] }) {
                         }
                       />
                     </td>
-                    <td className="px-5 py-3">
+                    <td className={`${cellPad} text-right`}>
                       <InlineEditCell
                         label="UTR"
                         value={person.utr !== undefined ? String(person.utr) : ""}
                         displayValue={person.utr !== undefined ? person.utr.toFixed(1) : undefined}
                         type="number"
                         step={0.1}
+                        align="right"
+                        className="tabular-nums"
                         editing={isEditing(person.id, "utr")}
                         error={isEditing(person.id, "utr") ? fieldError : undefined}
                         onRequestEdit={() => startEdit(person.id, "utr")}
@@ -544,13 +638,15 @@ export default function PlayerList({ people }: { people: Person[] }) {
                         onCommit={(raw, reason) => handleCommit(person.id, "utr", raw, reason)}
                       />
                     </td>
-                    <td className="px-5 py-3">
+                    <td className={`${cellPad} text-right`}>
                       <InlineEditCell
                         label="WTN"
                         value={person.wtn !== undefined ? String(person.wtn) : ""}
                         displayValue={person.wtn !== undefined ? person.wtn.toFixed(1) : undefined}
                         type="number"
                         step={0.1}
+                        align="right"
+                        className="tabular-nums"
                         editing={isEditing(person.id, "wtn")}
                         error={isEditing(person.id, "wtn") ? fieldError : undefined}
                         onRequestEdit={() => startEdit(person.id, "wtn")}
@@ -558,28 +654,29 @@ export default function PlayerList({ people }: { people: Person[] }) {
                         onCommit={(raw, reason) => handleCommit(person.id, "wtn", raw, reason)}
                       />
                     </td>
-                    <td className="px-4 py-3 text-right" onClick={stopRowNavigation}>
-                      <div className="inline-flex items-center justify-end gap-1.5">
+                    <td
+                      className={`${cellPad} text-right`}
+                      onClick={stopRowNavigation}
+                      onMouseDown={stopRowNavigation}
+                    >
+                      <div className="inline-flex w-full items-center justify-end gap-1">
                         <QuickActionButton
                           href={hrefs.sms}
                           icon={MessageSquare}
                           label="Text"
                           tone="denison"
-                          className="text-text-secondary hover:border-denison-red/30 hover:bg-denison-red/5 hover:text-denison-red"
                         />
                         <QuickActionButton
                           href={hrefs.tel}
                           icon={Phone}
                           label="Call"
-                          tone="denison"
-                          className="text-text-secondary hover:border-denison-red/30 hover:bg-denison-red/5 hover:text-denison-red"
+                          tone="success"
                         />
                         <QuickActionButton
                           href={hrefs.mailto}
                           icon={Mail}
                           label="Email"
-                          tone="denison"
-                          className="text-text-secondary hover:border-denison-red/30 hover:bg-denison-red/5 hover:text-denison-red"
+                          tone="info"
                         />
                       </div>
                     </td>

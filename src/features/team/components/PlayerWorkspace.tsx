@@ -55,9 +55,9 @@ import {
   getStatusTone,
 } from "@/features/people/utils";
 
-import ContactAction from "@/components/ContactAction";
 import InformationField from "@/components/InformationField";
 import PlayerAvatar from "@/components/PlayerAvatar";
+import QuickActionButton from "@/components/QuickActionButton";
 import StatusBadge from "@/components/StatusBadge";
 import SummaryStat from "@/components/SummaryStat";
 import WorkspaceSection from "@/components/WorkspaceSection";
@@ -324,9 +324,9 @@ function PlayerWorkspaceContent({ familyContacts }: { familyContacts: FamilyCont
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <ContactAction href={tel} icon={Phone} label="Call" />
-            <ContactAction href={sms} icon={MessageSquare} label="Text" />
-            <ContactAction href={mailto} icon={Mail} label="Email" />
+            <QuickActionButton href={sms} icon={MessageSquare} label="Text" tone="denison" />
+            <QuickActionButton href={tel} icon={Phone} label="Call" tone="success" />
+            <QuickActionButton href={mailto} icon={Mail} label="Email" tone="info" />
           </div>
         </div>
       </div>
@@ -568,10 +568,10 @@ function PlayerWorkspaceContent({ familyContacts }: { familyContacts: FamilyCont
 
         <div className="flex flex-col gap-8">
           <WorkspaceSection title="Quick Actions">
-            <div className="flex flex-col gap-2">
-              <ContactAction href={tel} icon={Phone} label="Call" className="w-full" />
-              <ContactAction href={sms} icon={MessageSquare} label="Text" className="w-full" />
-              <ContactAction href={mailto} icon={Mail} label="Email" className="w-full" />
+            <div className="flex flex-wrap items-center gap-2">
+              <QuickActionButton href={sms} icon={MessageSquare} label="Text" tone="denison" />
+              <QuickActionButton href={tel} icon={Phone} label="Call" tone="success" />
+              <QuickActionButton href={mailto} icon={Mail} label="Email" tone="info" />
             </div>
           </WorkspaceSection>
 

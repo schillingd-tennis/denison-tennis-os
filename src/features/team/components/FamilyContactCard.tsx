@@ -4,8 +4,8 @@ import { formatPhoneDisplay, phoneHrefDigits } from "@/components/inline-edit";
 import type { FamilyContact } from "@/features/people/family";
 import { getPreferredContactLabel } from "@/features/people/utils";
 
-import ContactAction from "@/components/ContactAction";
 import PlayerAvatar from "@/components/PlayerAvatar";
+import QuickActionButton from "@/components/QuickActionButton";
 import StatusBadge from "@/components/StatusBadge";
 
 export default function FamilyContactCard({ contact }: { contact: FamilyContact }) {
@@ -46,23 +46,23 @@ export default function FamilyContactCard({ contact }: { contact: FamilyContact 
       ) : null}
 
       <div className="flex items-center gap-2">
-        <ContactAction
-          variant="icon"
-          href={phoneDigits ? `tel:${phoneDigits}` : undefined}
-          icon={Phone}
-          label="Call"
-        />
-        <ContactAction
-          variant="icon"
+        <QuickActionButton
           href={phoneDigits ? `sms:${phoneDigits}` : undefined}
           icon={MessageSquare}
           label="Text"
+          tone="denison"
         />
-        <ContactAction
-          variant="icon"
+        <QuickActionButton
+          href={phoneDigits ? `tel:${phoneDigits}` : undefined}
+          icon={Phone}
+          label="Call"
+          tone="success"
+        />
+        <QuickActionButton
           href={contact.email ? `mailto:${contact.email}` : undefined}
           icon={Mail}
           label="Email"
+          tone="info"
         />
       </div>
     </div>
