@@ -294,6 +294,13 @@ build on this baseline without relaxing these rules.
 - Invariants: `npx tsx scripts/assert-ownership-lock.ts`.
 - Canonical docs: `DATA_OWNERSHIP.md`, `SYSTEM_OF_RECORD.md`, `scripts/fieldOwnership.ts`.
 
+## BP-031A — Player Workspace Navigation
+
+- List row click and Card click navigate to `/team/[personId]` (stable Person.id).
+- Existing `PersonWorkspace` is the destination — no UI removal or simplification.
+- Back to Team restores search, filters, sort, and Cards/List via session/local storage.
+- Full workspace remains the foundation for future milestones.
+
 ## BP-027 — Global Data Formatting Standards
 
 - Shared presentation helpers live in `src/lib/formatting`.

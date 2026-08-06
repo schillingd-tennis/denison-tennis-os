@@ -562,7 +562,7 @@ export default function PersonWorkspace({
               className="inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-text-secondary transition-colors duration-150 hover:text-text-primary"
             >
               <ArrowLeft className="h-4 w-4" strokeWidth={1.75} />
-              Team
+              Back to Team
             </Link>
             <SaveIndicator status={saveStatus} error={saveError} />
             {copyFeedback ? (

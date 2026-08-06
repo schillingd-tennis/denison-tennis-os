@@ -4,8 +4,12 @@ import { familyContacts, getFamilyContactsForPerson } from "@/features/people/fa
 import PersonWorkspace from "@/features/people/components/PersonWorkspace";
 import { getPersonById } from "@/features/people/repository";
 
-// People live in Supabase (BP-015) — always render with the current table
-// contents rather than a build-time snapshot. Route stays /team/[id] (BP-021).
+/**
+ * BP-031A — Player Workspace route (existing PersonWorkspace).
+ * Uses stable Person.id (e.g. `player-nick-meyers`), not a display slug.
+ * Directory state (search / filters / sort / view) is restored via session
+ * storage when returning to `/team`.
+ */
 export const dynamic = "force-dynamic";
 
 export default async function PersonWorkspacePage(props: PageProps<"/team/[id]">) {
