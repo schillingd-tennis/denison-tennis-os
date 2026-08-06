@@ -35,30 +35,31 @@ store through repositories — never through provider APIs directly.
 
 ## 2. Phase Model
 
-### Current — System of Record (BP-026B)
+### Current — System of Record (BP-029A Ownership Lock)
 
 - Supabase `production_people` is the permanent system of record for People.
-- Airtable CSV is an **import source only** (bootstrap / occasional refresh).
+- Airtable CSV is **bootstrap / fill-null import only**.
+- After a Person exists (or a field is non-NULL), **OS owns** that field.
 - Runtime edits in Tennis OS are authoritative for all Person fields.
 - Normal import/seed **fills missing values only** — never overwrites existing
-  Supabase data.
-- Overwriting provider-import columns requires an explicit
-  **Force Refresh From Provider** operation.
+  Supabase data (including with blank/NULL).
+- **Airtable Force Refresh hard-replace is disabled** — not normal workflow.
+- Future automated providers (UTR/WTN/TRN) may own only their scoped columns
+  later; Airtable is never that class.
 - Evaluations, tags, notes, relationships, and ratings live in (or will live
   in) Supabase; they are never owned by Airtable.
 
 ### Target — Airtable removed
 
 - Import adapter deleted; Person / Team / repositories unchanged.
-- Optional future providers (UTR, TRN, NCAA) are adapters that fill or
-  force-refresh only their documented columns.
+- Optional future providers (UTR, TRN, NCAA) update only their documented
+  columns and preserve history.
 
 ```
-Bootstrap import  →  Supabase SoR (edits win)  →  Airtable optional/removed
-                     Fill-nulls on seed
-                     Force Refresh = explicit
+Bootstrap import  →  Supabase SoR (OS owns after fill)  →  Airtable removable
+                     Fill-nulls on seed only
+                     Airtable Force Refresh = disabled
 ```
-
 ---
 
 ## 3. Person-First Architecture
@@ -100,15 +101,15 @@ Full tables: [`DATA_OWNERSHIP.md`](./DATA_OWNERSHIP.md).
 
 | Category | Meaning |
 |---|---|
-| **System of record** | Supabase; UI edits are authoritative |
-| **Provider-import** | May fill NULLs; Force Refresh may hard-replace |
-| **App-authoritative** | Fill NULLs only; never Force Refresh from import |
+| **Imported Once** | Bootstrap may fill empty columns only |
+| **OS Managed** | Supabase / Tennis OS authoritative after population |
+| **Provider Managed (future)** | Real automated integration, scoped columns only — not Airtable |
 | **Computed** | Derived at read time |
 
-**Import sources (examples):** Airtable CSV (current), future UTR/TRN/NCAA adapters.
+**Import sources (examples):** Airtable CSV (bootstrap), future UTR/TRN adapters.
 
-**Always SoR (examples):** hometown, role, class, status, D#, contact, UTR,
-WTN, notes, evaluations, tags, relationships, communication history, tasks.
+**Always SoR after bootstrap:** identity, contact, hometown, role, class, status,
+D#, UTR, WTN, notes, evaluations, tags, relationships, communications, tasks.
 
 Code: [`scripts/fieldOwnership.ts`](../scripts/fieldOwnership.ts).
 
@@ -122,8 +123,8 @@ Imports **populate gaps**. They do **not** own live data.
 
 - Every existing non-NULL value in Supabase
 - Notes, evaluations, tags, relationships
-- UTR / WTN and other app-authoritative columns
-- Manual edits to hometown, role, status, class, contact, D#
+- UTR / WTN / hometown / role / status / class / contact / D# / names / …
+- Any manual OS edit
 
 ### Normal seed (`npm run db:seed`)
 
@@ -134,18 +135,17 @@ ON CONFLICT (id) DO UPDATE
 -- existing values always win
 ```
 
-### Force Refresh From Provider (`npm run db:seed:force-refresh`)
+### Airtable Force Refresh (`npm run db:seed:force-refresh`)
 
-```
-ON CONFLICT (id) DO UPDATE
-  SET <provider-import columns> = excluded.<column>
--- app-authoritative columns omitted
-```
+**Disabled (BP-029A).** CLI and developer action refuse to run. The generated
+`seed-force-refresh.sql` is a stub that raises if applied. Hard-replacing
+populated SoR fields from Airtable is not part of normal operations.
 
 ### Import must never
 
 - Silently overwrite existing Supabase values on routine seed
-- Blank-wipe UTR / WTN / notes via Force Refresh
+- Replace populated fields with blank or NULL
+- Delete or archive a Person because they disappeared from Airtable
 - Fall back to `db:reset` when import/seed fails
 - Treat “re-run seed” as “reset the world”
 

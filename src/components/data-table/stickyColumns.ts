@@ -1,24 +1,27 @@
 /**
- * Sticky edge-column contract for OS directory / data tables (BP-025D / BP-028A).
+ * Sticky edge-column contract for OS directory / data tables (BP-028E).
  *
- * Standard layout for large tables:
- * - Sticky first column (Name / identity) on the left
- * - Sticky Actions column on the right
- * - Middle columns scroll horizontally between them
+ * - Sticky Name (left) — content width only; does not flex
+ * - Sticky Actions (right) — button-cluster width only; does not flex
+ * - Middle columns share remaining width between the sticky edges
  *
- * Apply these classes to the edge `<th>` / `<td>` cells. Pair body rows with
- * `stickyColumnRowClass` (`group/row`) so hover / selected backgrounds stay
- * aligned on sticky cells. Do not copy ad-hoc sticky CSS into feature tables.
+ * Pair body rows with `stickyColumnRowClass`. Never put overflow-hidden on
+ * sticky edge cells.
  */
+
+import {
+  DIRECTORY_ACTIONS_WIDTH_CLASS,
+  DIRECTORY_NAME_WIDTH_CLASS,
+} from "./directoryColumnWidths";
 
 const LEADING_SHADOW = "shadow-[2px_0_6px_-2px_rgba(17,24,39,0.10)]";
 const TRAILING_SHADOW = "shadow-[-2px_0_6px_-2px_rgba(17,24,39,0.10)]";
 
-/**
- * Fixed Actions column width — fits Phone + Message + Email icon buttons
- * (3 × 40px + gaps + cell padding) without clip, wrap, or shrink.
- */
-export const STICKY_ACTIONS_COLUMN_WIDTH_CLASS = "w-[10.5rem] min-w-[10.5rem] max-w-[10.5rem]";
+/** @deprecated Prefer DIRECTORY_ACTIONS_WIDTH_CLASS. */
+export const STICKY_ACTIONS_COLUMN_WIDTH_CLASS = DIRECTORY_ACTIONS_WIDTH_CLASS;
+
+/** @deprecated Prefer DIRECTORY_NAME_WIDTH_CLASS. */
+export const STICKY_NAME_COLUMN_WIDTH_CLASS = DIRECTORY_NAME_WIDTH_CLASS;
 
 /** Row class so sticky cells track hover / selected state. */
 export const stickyColumnRowClass = "group/row";
@@ -37,6 +40,7 @@ export const stickyLeadingThClass = [
   "sticky left-0 z-30",
   "bg-app-background/95 backdrop-blur-[2px]",
   LEADING_SHADOW,
+  DIRECTORY_NAME_WIDTH_CLASS,
 ].join(" ");
 
 /** Leading (Name) body cell. */
@@ -45,6 +49,7 @@ export const stickyLeadingTdClass = [
   "bg-surface",
   stickyCellHoverSelected,
   LEADING_SHADOW,
+  DIRECTORY_NAME_WIDTH_CLASS,
 ].join(" ");
 
 /** Trailing (Actions) header cell. */
@@ -53,7 +58,7 @@ export const stickyTrailingThClass = [
   "bg-app-background/95 backdrop-blur-[2px]",
   "border-l border-border/70",
   TRAILING_SHADOW,
-  STICKY_ACTIONS_COLUMN_WIDTH_CLASS,
+  DIRECTORY_ACTIONS_WIDTH_CLASS,
   "whitespace-nowrap",
 ].join(" ");
 
@@ -64,6 +69,6 @@ export const stickyTrailingTdClass = [
   stickyCellHoverSelected,
   "border-l border-border/70",
   TRAILING_SHADOW,
-  STICKY_ACTIONS_COLUMN_WIDTH_CLASS,
+  DIRECTORY_ACTIONS_WIDTH_CLASS,
   "whitespace-nowrap",
 ].join(" ");

@@ -9,12 +9,12 @@
  * Usage: `npm run import:players`
  *
  * Writes `data.ts` only — does NOT touch the live database. Apply with
- * `npm run db:generate-seed` then `npm run db:seed` (fill missing only) or
- * `npm run db:seed:force-refresh` (explicit provider overwrite). See BP-026B,
- * docs/DATA_OWNERSHIP.md, docs/SYSTEM_OF_RECORD.md.
+ * `npm run db:generate-seed` then `npm run db:seed` (fill missing only).
+ * Airtable Force Refresh hard-replace is disabled (BP-029A).
+ * See docs/DATA_OWNERSHIP.md, docs/SYSTEM_OF_RECORD.md.
  *
- * Airtable CSV is an **import source only**. After import, Supabase is the
- * system of record; runtime edits are authoritative.
+ * Airtable CSV is an **import / bootstrap source only**. After import,
+ * Supabase is the system of record; runtime edits are authoritative.
  */
 import { existsSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";

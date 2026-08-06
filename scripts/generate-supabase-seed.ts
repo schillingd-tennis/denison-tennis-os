@@ -1,12 +1,12 @@
 /**
- * BP-015 / BP-022E / BP-026B — Supabase Seed Generator.
+ * BP-015 / BP-022E / BP-026B / BP-029A — Supabase Seed Generator.
  *
  * Reads `src/features/people/data.ts` and writes:
  * - `supabase/seed.sql` — INSERT + ON CONFLICT **fill missing only**
- * - `supabase/seed-force-refresh.sql` — INSERT + ON CONFLICT **force provider**
+ * - `supabase/seed-force-refresh.sql` — **disabled stub** (BP-029A)
  *
- * System of record: Supabase. Import sources (Airtable CSV today) never
- * overwrite existing values unless Force Refresh is applied explicitly.
+ * System of record: Supabase. Airtable CSV is bootstrap / fill-null only.
+ * Never overwrites populated Supabase values on normal seed.
  *
  * Usage: `npm run db:generate-seed`
  */
@@ -17,10 +17,9 @@ import { people } from "../src/features/people/data";
 import { personToRow } from "../src/features/people/supabaseMapping";
 
 import {
-  APP_AUTHORITATIVE_COLUMNS,
-  PROVIDER_IMPORT_COLUMNS,
+  FORCE_REFRESH_DISABLED_MESSAGE,
   fillNullAssignment,
-  forceRefreshAssignment,
+  fillNullConflictColumns,
 } from "./fieldOwnership";
 
 const SEED_PATH = resolve(process.cwd(), "supabase/seed.sql");
@@ -83,61 +82,50 @@ function sqlLiteral(value: unknown): string {
   return `'${text}'`;
 }
 
-/**
- * Normal seed: provider + app-authoritative columns fill NULLs only.
- * Never stamps `updated_at` from the snapshot (preserves edit times).
- */
+/** Normal seed: all importable profile columns fill NULLs only. */
 function buildFillNullAssignments(): string {
-  const columns = [
-    ...PROVIDER_IMPORT_COLUMNS,
-    ...APP_AUTHORITATIVE_COLUMNS.filter((column) => column !== "created_at"),
-  ];
-  return columns.map(fillNullAssignment).join(",\n    ");
+  return fillNullConflictColumns().map(fillNullAssignment).join(",\n    ");
 }
 
-/**
- * Force refresh: hard-replace provider-import columns only.
- * App-authoritative columns (UTR, WTN, notes, …) are omitted — Tennis OS wins.
- */
-function buildForceRefreshAssignments(): string {
-  return [
-    ...PROVIDER_IMPORT_COLUMNS.map(forceRefreshAssignment),
-    "updated_at = excluded.updated_at",
-  ].join(",\n    ");
-}
-
-function buildHeader(mode: "fill-nulls" | "force-refresh"): string {
+function buildFillNullHeader(): string {
   const generated = new Date().toISOString();
-  if (mode === "fill-nulls") {
-    return [
-      "-- BP-026B — Generated seed data for production_people (fill missing only).",
-      "--",
-      "-- GENERATED FILE — do not hand-edit. Produced by `npm run db:generate-seed`",
-      "-- from src/features/people/data.ts (import source adapter; currently Airtable CSV).",
-      "--",
-      `-- Generated: ${generated}`,
-      `-- Records: ${people.length}`,
-      "--",
-      "-- ON CONFLICT: coalesce(existing, excluded) for importable + app fields.",
-      "-- Existing Supabase values are never overwritten. Apply with: npm run db:seed",
-      "-- Force overwrite of provider columns: npm run db:seed:force-refresh",
-      "-- Full wipe only via: npm run db:reset",
-      "",
-    ].join("\n");
-  }
-
   return [
-    "-- BP-026B — Force Refresh From Provider seed for production_people.",
+    "-- BP-029A — Generated seed data for production_people (fill missing only).",
     "--",
     "-- GENERATED FILE — do not hand-edit. Produced by `npm run db:generate-seed`",
+    "-- from src/features/people/data.ts (Airtable CSV bootstrap adapter).",
     "--",
     `-- Generated: ${generated}`,
     `-- Records: ${people.length}`,
     "--",
-    "-- ON CONFLICT: HARD-REPLACES provider-import columns (role, status, hometown,",
-    "-- contact, class, D#, names, …) from the import snapshot — including NULLs.",
-    "-- App-authoritative columns (utr, wtn, notes, relationships, …) are NOT touched.",
-    "-- Apply only via: npm run db:seed:force-refresh",
+    "-- ON CONFLICT: coalesce(existing, excluded) for all importable profile fields.",
+    "-- Existing Supabase values are never overwritten (including by NULL/blank).",
+    "-- Apply with: npm run db:seed",
+    "-- Airtable Force Refresh hard-replace is DISABLED (BP-029A).",
+    "-- Full wipe only via: npm run db:reset",
+    "",
+  ].join("\n");
+}
+
+/** BP-029A — do not emit hard-replace upserts; applying this file fails closed. */
+function buildForceRefreshDisabledSql(): string {
+  const generated = new Date().toISOString();
+  const escaped = FORCE_REFRESH_DISABLED_MESSAGE.replace(/'/g, "''");
+  return [
+    "-- BP-029A — Force Refresh From Airtable is DISABLED.",
+    "--",
+    "-- GENERATED FILE — do not hand-edit. Produced by `npm run db:generate-seed`",
+    `-- Generated: ${generated}`,
+    "--",
+    "-- Supabase is the permanent system of record. Airtable may only create",
+    "-- missing People and fill NULL fields via supabase/seed.sql.",
+    "-- This file intentionally raises if applied.",
+    "",
+    "do $bp029a$",
+    "begin",
+    `  raise exception '${escaped}';`,
+    "end",
+    "$bp029a$;",
     "",
   ].join("\n");
 }
@@ -160,17 +148,16 @@ function buildStatements(updateAssignments: string): string {
 
 function main(): void {
   const fillNull = buildFillNullAssignments();
-  const force = buildForceRefreshAssignments();
 
-  writeFileSync(SEED_PATH, `${buildHeader("fill-nulls")}${buildStatements(fillNull)}\n`, "utf-8");
-  writeFileSync(FORCE_PATH, `${buildHeader("force-refresh")}${buildStatements(force)}\n`, "utf-8");
+  writeFileSync(SEED_PATH, `${buildFillNullHeader()}${buildStatements(fillNull)}\n`, "utf-8");
+  writeFileSync(FORCE_PATH, buildForceRefreshDisabledSql(), "utf-8");
 
   console.log(`Wrote ${people.length} upsert statements to supabase/seed.sql (fill missing only)`);
   console.log(
-    `Wrote ${people.length} upsert statements to supabase/seed-force-refresh.sql (force provider columns)`,
+    "Wrote supabase/seed-force-refresh.sql as DISABLED stub (BP-029A — no Airtable hard-replace)",
   );
   console.log(
-    `Provider-import columns: ${PROVIDER_IMPORT_COLUMNS.length}; app-authoritative protected on force: ${APP_AUTHORITATIVE_COLUMNS.length}`,
+    `Fill-null conflict columns: ${fillNullConflictColumns().length} (Imported Once → OS Managed)`,
   );
 }
 

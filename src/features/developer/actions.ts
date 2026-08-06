@@ -5,6 +5,10 @@ import { resolve } from "node:path";
 
 import { detectEnvironment } from "./detectEnvironment";
 
+/** Mirrors scripts/fieldOwnership.ts FORCE_REFRESH_DISABLED_MESSAGE (BP-029A). */
+const FORCE_REFRESH_DISABLED_MESSAGE =
+  "BP-029A — Force Refresh From Airtable is disabled. Supabase is the permanent system of record. Airtable may only create missing People and fill NULL fields (npm run db:seed). Hard-replacing populated SoR fields from Airtable is not part of normal operations. Use db:reset only when you intentionally wipe the local database.";
+
 export type DeveloperActionResult =
   | { success: true; message: string }
   | { success: false; error: string };
@@ -114,12 +118,12 @@ export async function rerunSeedAction(): Promise<DeveloperActionResult> {
 }
 
 /**
- * Force Refresh From Provider — hard-replaces provider-import columns from
- * the import snapshot. App-authoritative fields (UTR, WTN, notes, …) are
- * never overwritten. Explicit opt-in only (BP-026B).
+ * BP-029A — Airtable Force Refresh hard-replace is disabled.
+ * Supabase is SoR; normal seed fills NULLs only. Kept as an explicit action
+ * entry point so callers receive a clear error (never runs automatically).
  */
 export async function forceRefreshFromProviderAction(): Promise<DeveloperActionResult> {
   const blocked = assertLocalDev();
   if (blocked) return blocked;
-  return runNpmScript("db:seed:force-refresh");
+  return { success: false, error: FORCE_REFRESH_DISABLED_MESSAGE };
 }

@@ -1,12 +1,11 @@
 /**
- * BP-022E / BP-026B — Apply People seed SQL to the running local database.
+ * BP-022E / BP-026B / BP-029A — Apply People seed SQL to the local database.
  *
  * Default (`npm run db:seed`): fill missing values only — never overwrites
  * existing Supabase fields.
  *
- * Force (`npm run db:seed:force-refresh`): hard-replaces provider-import
- * columns from the snapshot. App-authoritative fields (UTR, WTN, notes, …)
- * remain untouched.
+ * `--force-refresh` is **disabled** (BP-029A). Airtable must not hard-replace
+ * populated SoR fields. Use `db:seed` for bootstrap fill-null only.
  *
  * Does NOT drop the database.
  */
@@ -15,6 +14,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { loadEnvConfig } from "@next/env";
+
+import { FORCE_REFRESH_DISABLED_MESSAGE } from "./fieldOwnership";
 
 loadEnvConfig(process.cwd());
 
@@ -46,8 +47,12 @@ function assertLocalUrl(): void {
 function main(): void {
   assertLocalUrl();
 
-  const forceRefresh = process.argv.includes(FORCE_FLAG);
-  const fileName = forceRefresh ? "seed-force-refresh.sql" : "seed.sql";
+  if (process.argv.includes(FORCE_FLAG)) {
+    console.error(FORCE_REFRESH_DISABLED_MESSAGE);
+    process.exit(1);
+  }
+
+  const fileName = "seed.sql";
   const seedPath = resolve(process.cwd(), "supabase", fileName);
   const sql = readFileSync(seedPath, "utf-8");
   const container = "supabase_db_denison-tennis-os";
@@ -64,16 +69,9 @@ function main(): void {
         cwd: process.cwd(),
       },
     );
-    if (forceRefresh) {
-      console.log(
-        "Applied supabase/seed-force-refresh.sql (provider-import columns hard-replaced).",
-      );
-      console.log("App-authoritative fields (UTR, WTN, notes, …) were not overwritten.");
-    } else {
-      console.log(
-        "Applied supabase/seed.sql (fill missing values only — existing Supabase data preserved).",
-      );
-    }
+    console.log(
+      "Applied supabase/seed.sql (fill missing values only — existing Supabase data preserved).",
+    );
   } catch {
     console.error(`Failed to apply ${fileName} via docker exec on container "${container}".`);
     console.error("Is local Supabase running? Try: npm run db:start");

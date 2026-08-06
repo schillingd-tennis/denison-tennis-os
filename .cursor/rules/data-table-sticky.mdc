@@ -1,22 +1,27 @@
 ---
-description: Sticky Name + Actions columns for OS data tables (BP-028A)
+description: Sticky directory columns + edge/middle width contract (BP-028E)
 globs: src/components/data-table/**/*,src/features/**/components/**/*List*.tsx
 alwaysApply: false
 ---
 
-# Sticky Directory Columns
+# Directory List Tables
 
-Large data tables in Denison Tennis OS use this layout:
+Layout (`directoryColumnWidths.ts`):
 
-1. **Sticky left** — Name / identity (`stickyLeadingThClass` / `stickyLeadingTdClass`)
-2. **Scrollable middle** — Role, Hometown, Class, ratings, etc.
-3. **Sticky right** — Actions (`stickyTrailingThClass` / `stickyTrailingTdClass`)
+```
+[ Sticky Name — content width ] [ Flexible middle ] [ Sticky Actions — content width ]
+```
 
-Import from `@/components/data-table/stickyColumns`. Put `stickyColumnRowClass` on each `<tr>`.
+| Column | Sizing |
+|---|---|
+| Name (sticky left) | Fixed ~320px — fits “Arya Ganapathy Kallambella”; does **not** grow |
+| Role / Hometown / Class / UTR / WTN | Share remaining width (no fixed width) |
+| Actions (sticky right) | Fixed 152px — Call / Text / Email only; does **not** grow |
 
-- Actions width: `STICKY_ACTIONS_COLUMN_WIDTH_CLASS` (fits Call / Text / Email; never clip/wrap/shrink).
-- Name flexes and consumes remaining width.
-- Middle columns stay content-sized (`whitespace-nowrap` + fixed/`w-auto` cols).
-- Hover / `aria-selected` / `data-selected` backgrounds must track on sticky cells via `group/row`.
+Import sticky helpers from `@/components/data-table/stickyColumns`. Put `stickyColumnRowClass` on each `<tr>`.
+
+- Never put `overflow-hidden` on sticky Name/Actions cells.
+- DirectoryTable scrollport must not wrap the table in `min-w-full`.
+- Hover / `aria-selected` / `data-selected` track via `group/row`.
 
 Do not reimplement sticky CSS in feature modules.

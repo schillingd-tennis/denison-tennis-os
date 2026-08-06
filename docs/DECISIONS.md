@@ -276,9 +276,18 @@ update this file explicitly rather than silently drifting from it.
 - Runtime edits are authoritative for hometown, role, class, status, D#,
   contact, UTR, WTN, notes, relationships (and future evaluations/tags).
 - `npm run db:seed` uses `coalesce(existing, excluded)` — fill missing only.
-- `npm run db:seed:force-refresh` hard-replaces provider-import columns only;
-  app-authoritative columns (UTR, WTN, notes, …) are never force-refreshed.
+- Force Refresh hard-replace superseded/disabled by BP-029A.
 - List `parseHometown` must not NULL `state` when the user edits city-only.
+
+## BP-029A — Ownership Lock
+
+- Supabase is permanent SoR; Airtable is bootstrap / fill-null only.
+- All Person profile fields: Imported Once → OS Managed (no Airtable overwrite).
+- Normal seed creates missing rows and fills NULLs only; never blank-wipes.
+- `db:seed:force-refresh` and Force Refresh developer action are **disabled**.
+- Runtime edits continue to write only to Supabase.
+- No schema / UI / Team Directory changes in this phase.
+- Invariants: `npx tsx scripts/assert-ownership-lock.ts`.
 
 ## BP-027 — Global Data Formatting Standards
 
@@ -293,7 +302,35 @@ update this file explicitly rather than silently drifting from it.
 - OS data tables: sticky Name (left) + sticky Actions (right); middle scrolls.
 - Shared classes in `src/components/data-table/stickyColumns.ts`.
 - Actions column fixed width fits Call / Text / Email without clip/wrap/shrink.
-- Name flexes; Role / Hometown / Class / UTR / WTN stay content-sized.
+
+## BP-028B — Team Directory Column Optimization
+
+- Default directory widths in `directoryColumnWidths.ts`:
+  Name 240 · Role 130 · Hometown 150 · Class 75 · UTR 70 · WTN 70 · Actions 170.
+- Name/Hometown single-line ellipsis; no wrap; vertically centered.
+- Standard for future directory lists unless a module overrides.
+- Target: no horizontal scroll on 1440px; less stretched whitespace.
+
+## BP-028C — Restore Sticky Directory Columns
+
+- Regression: BP-028B fixed table width + `min-w-full` wrapper + `overflow-hidden`
+  on sticky cells prevented horizontal overflow and broke `position:sticky`.
+- Restore: scrollport owns overflow; table `minWidth` = directory total; sticky
+  Name/Actions keep opaque backgrounds + separator/shadow; no overflow-hidden
+  on sticky edge cells. Column widths from BP-028B unchanged.
+
+## BP-028D — Sticky Directory Columns & Responsive Layout
+
+- Sticky Name (left) + sticky Actions (right); middle scrolls.
+- Superseded on flex behavior by BP-028E.
+
+## BP-028E — Directory Column Sizing & Sticky Behavior
+
+- Layout: `[ Sticky Name (content) ] [ Flexible middle ] [ Sticky Actions (content) ]`.
+- Name: fixed 320px (Arya Ganapathy Kallambella + avatar); does **not** absorb leftover width.
+- Actions: fixed 152px (Phone / Text / Email + padding); no extra whitespace.
+- Role / Hometown / Class / UTR / WTN share remaining width under `table-fixed`.
+- Filtering, search, sort, typography, Cards, toolbar unchanged.
 
 ## BP-024A — Typography System
 

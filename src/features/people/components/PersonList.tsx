@@ -6,9 +6,14 @@ import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } fr
 import { ClipboardList, Download, Mail, MessageSquare, Phone } from "lucide-react";
 
 import DirectoryTable from "@/components/data-table/DirectoryTable";
+import {
+  DIRECTORY_CELL_CLIP,
+  DIRECTORY_CELL_PAD,
+  DIRECTORY_COL,
+  DIRECTORY_TABLE_WIDTH_PX,
+} from "@/components/data-table/directoryColumnWidths";
 import SortableColumnHeader from "@/components/data-table/SortableColumnHeader";
 import {
-  STICKY_ACTIONS_COLUMN_WIDTH_CLASS,
   stickyColumnRowClass,
   stickyLeadingTdClass,
   stickyLeadingThClass,
@@ -475,7 +480,8 @@ export default function PersonList({ people }: { people: Person[] }) {
     cancelPendingRowClick();
   }
 
-  const cellPad = "px-3.5 py-2 align-middle overflow-hidden";
+  const cellPad = DIRECTORY_CELL_PAD;
+  const middleCell = `${DIRECTORY_CELL_PAD} ${DIRECTORY_CELL_CLIP}`;
 
   return (
     <div className="flex flex-col gap-2">
@@ -556,19 +562,20 @@ export default function PersonList({ people }: { people: Person[] }) {
         }
       >
         <table
-          className="w-full min-w-[56rem] table-fixed text-left text-sm"
+          className="w-full table-fixed text-left text-sm"
+          style={{ minWidth: DIRECTORY_TABLE_WIDTH_PX }}
           role="grid"
           aria-label="Team list"
         >
           <colgroup>
-            {/* Name flexes; middle cols content-sized; Actions fixed (BP-028A). */}
+            {/* Sticky content-width edges; middle cols share remainder (BP-028E). */}
+            <col className={DIRECTORY_COL.name} />
             <col />
-            <col className="w-[8rem]" />
-            <col className="w-[12rem]" />
-            <col className="w-[5rem]" />
-            <col className="w-[5rem]" />
-            <col className="w-[5rem]" />
-            <col className={STICKY_ACTIONS_COLUMN_WIDTH_CLASS} />
+            <col />
+            <col />
+            <col />
+            <col />
+            <col className={DIRECTORY_COL.actions} />
           </colgroup>
           <thead>
             <tr className={`border-b border-border bg-app-background/60 ${typeRole.tableHeader}`}>
@@ -581,14 +588,14 @@ export default function PersonList({ people }: { people: Person[] }) {
                   onSort={() => toggleSort(column.id)}
                   className={
                     column.id === "name"
-                      ? `${stickyLeadingThClass} min-w-[14rem]`
-                      : "whitespace-nowrap"
+                      ? stickyLeadingThClass
+                      : "whitespace-nowrap align-middle"
                   }
                 />
               ))}
               <th
                 scope="col"
-                className={`px-3.5 py-3 text-right ${typeRole.tableHeader} ${stickyTrailingThClass}`}
+                className={`px-3 py-3 text-right align-middle ${typeRole.tableHeader} ${stickyTrailingThClass}`}
               >
                 Actions
               </th>
@@ -614,26 +621,31 @@ export default function PersonList({ people }: { people: Person[] }) {
                   onClick={() => handleRowClick(person.id)}
                   className={`${stickyColumnRowClass} h-12 cursor-pointer border-b border-border/40 transition-colors duration-150 last:border-b-0 hover:bg-app-background`}
                 >
-                  <td className={`${cellPad} ${stickyLeadingTdClass} min-w-[14rem]`}>
-                    <div className="flex h-8 min-w-0 items-center gap-2.5">
+                  <td className={`${cellPad} ${stickyLeadingTdClass}`}>
+                    <div className="flex h-8 min-w-0 items-center gap-2">
                       <PlayerAvatar
                         photoUrl={person.photoUrl}
                         initials={getInitials(person)}
                         size={32}
                       />
-                      <span className={`min-w-0 ${TEAM_DIRECTORY_NAME}`}>{displayName}</span>
+                      <span className={`min-w-0 truncate ${TEAM_DIRECTORY_NAME}`}>
+                        {displayName}
+                      </span>
                     </div>
                   </td>
-                  <td className={`${cellPad} whitespace-nowrap`}>
-                    <span className={TEAM_DIRECTORY_META}>{roleDisplay}</span>
+                  <td className={middleCell}>
+                    <span className={`block whitespace-nowrap ${TEAM_DIRECTORY_META}`}>
+                      {roleDisplay}
+                    </span>
                   </td>
-                  <td className={`${cellPad} whitespace-nowrap`}>
+                  <td className={middleCell}>
                     <InlineEditCell
                       label="Hometown"
                       value={hometown ?? ""}
                       displayValue={directoryCellValue(hometown)}
                       emptyDisplay={TEAM_DIRECTORY_EMPTY}
                       emphasis="directory"
+                      className="truncate"
                       editing={isEditing(person.id, "hometown")}
                       error={isEditing(person.id, "hometown") ? fieldError : undefined}
                       onRequestEdit={() => startEdit(person.id, "hometown")}
@@ -641,7 +653,7 @@ export default function PersonList({ people }: { people: Person[] }) {
                       onCommit={(raw, reason) => handleCommit(person.id, "hometown", raw, reason)}
                     />
                   </td>
-                  <td className={`${cellPad} whitespace-nowrap text-right`}>
+                  <td className={`${middleCell} text-right`}>
                     {showPlayerMetrics ? (
                       <InlineEditCell
                         label="Class"
@@ -663,7 +675,7 @@ export default function PersonList({ people }: { people: Person[] }) {
                       <span className={TEAM_DIRECTORY_META}>{TEAM_DIRECTORY_EMPTY}</span>
                     )}
                   </td>
-                  <td className={`${cellPad} whitespace-nowrap text-right`}>
+                  <td className={`${middleCell} text-right`}>
                     {showPlayerMetrics ? (
                       <InlineEditCell
                         label="UTR"
@@ -684,7 +696,7 @@ export default function PersonList({ people }: { people: Person[] }) {
                       <span className={TEAM_DIRECTORY_META}>{TEAM_DIRECTORY_EMPTY}</span>
                     )}
                   </td>
-                  <td className={`${cellPad} whitespace-nowrap text-right`}>
+                  <td className={`${middleCell} text-right`}>
                     {showPlayerMetrics ? (
                       <InlineEditCell
                         label="WTN"
@@ -710,7 +722,7 @@ export default function PersonList({ people }: { people: Person[] }) {
                     onClick={stopRowNavigation}
                     onMouseDown={stopRowNavigation}
                   >
-                    <div className="inline-flex h-10 w-full shrink-0 items-center justify-end gap-1">
+                    <div className="inline-flex h-10 shrink-0 items-center justify-end gap-1">
                       {hrefs.tel ? (
                         <QuickActionButton
                           href={hrefs.tel}

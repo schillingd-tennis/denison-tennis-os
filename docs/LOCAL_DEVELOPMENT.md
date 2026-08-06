@@ -79,7 +79,7 @@ npm run db:reset   # DESTRUCTIVE — destroys all local People data
 | Script | Behavior |
 |---|---|
 | `npm run db:seed` | Applies `supabase/seed.sql` to the **running** local DB. **Fill missing (NULL) values only** — never overwrites existing Supabase data. Does **not** drop the database. |
-| `npm run db:seed:force-refresh` | Applies `supabase/seed-force-refresh.sql`. **Hard-replaces provider-import columns** (names, role, status, hometown, contact, class, D#, …). Does **not** touch UTR / WTN / notes / relationships. Explicit opt-in only. |
+| `npm run db:seed:force-refresh` | **Disabled (BP-029A)** — refuses to run. Airtable must not hard-replace SoR fields. |
 
 ### Destructive
 
@@ -121,7 +121,7 @@ refreshed **without** losing UTR/WTN/notes:
 npm run import:players
 npm run db:generate-seed
 npm run db:seed                  # fill missing only — NOT db:reset
-npm run db:seed:force-refresh    # explicit provider overwrite (rare)
+npm run db:seed:force-refresh    # disabled (BP-029A) — will exit with error
 ```
 
 ## Local authentication
@@ -337,7 +337,7 @@ Confirm:
 
 | Symptom | Fix |
 |---|---|
-| Manual edits disappeared | You likely ran `db:reset`, or `db:seed:force-refresh`. Normal `db:seed` fills NULLs only (BP-026B). Avoid reset for day-to-day work. |
+| Manual edits disappeared | You likely ran `db:reset`. Normal `db:seed` fills NULLs only (BP-029A). Airtable Force Refresh is disabled. Avoid reset for day-to-day work. |
 | Edits “vanish” after refresh but DB still has them | `.env.local` may point at **hosted** Supabase — run `db:env` and fix. |
 | `docker: command not found` | Install/start Docker Desktop; ensure `docker` is on `PATH` |
 | `db:start` hangs / unhealthy | Restart Docker Desktop; `npm run db:stop` then `db:start` |

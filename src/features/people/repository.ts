@@ -1,5 +1,8 @@
 /**
- * People repository (BP-015; writes BP-017; lookups BP-025A).
+ * People repository (BP-015; writes BP-017; lookups BP-025A; SoR BP-029A).
+ *
+ * Runtime reads and writes go only to Supabase `production_people`.
+ * Airtable/import adapters must never be called from this layer.
  */
 import { supabase } from "@/lib/supabase";
 import { createSupabaseServerClient } from "@/lib/supabase/server";

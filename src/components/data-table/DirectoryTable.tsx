@@ -10,12 +10,9 @@ import type { ReactNode } from "react";
  * Middle columns scroll between them.
  */
 export default function DirectoryTable({
-  minWidthClassName = "min-w-full",
   children,
   mobile,
 }: {
-  /** Ensures horizontal scroll when columns exceed the viewport. */
-  minWidthClassName?: string;
   /** Desktop table (typically a full `<table>`). */
   children: ReactNode;
   /** Optional stacked mobile list rendered below `md`. */
@@ -23,9 +20,12 @@ export default function DirectoryTable({
 }) {
   return (
     <div className="relative overflow-hidden rounded-card border border-border bg-surface">
-      <div className="hidden overflow-x-auto md:block">
-        <div className={minWidthClassName}>{children}</div>
-      </div>
+      {/*
+        Scrollport for sticky Name / Actions (BP-028C).
+        Do not wrap children in min-w-full — that prevents overflow and
+        disables position:sticky on the edge columns.
+      */}
+      <div className="hidden overflow-x-auto md:block">{children}</div>
       {mobile ? <div className="md:hidden">{mobile}</div> : null}
     </div>
   );
