@@ -1,5 +1,8 @@
 # Data Ownership (BP-029A)
 
+> **BP-029A status: COMPLETED / BASELINE** (accepted 2026-08-06).  
+> Not an active work item. Do not change these rules unless a bug is found.
+
 Denison Tennis OS (Supabase) is the **permanent system of record**.
 
 Airtable (CSV) is an **import / bootstrap source only**. After a Person exists
@@ -11,7 +14,7 @@ Code lists: [`scripts/fieldOwnership.ts`](../scripts/fieldOwnership.ts).
 
 ---
 
-## Ownership model (BP-029A)
+## Ownership model (BP-029A baseline)
 
 | Class | Meaning |
 |---|---|

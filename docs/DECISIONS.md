@@ -279,7 +279,11 @@ update this file explicitly rather than silently drifting from it.
 - Force Refresh hard-replace superseded/disabled by BP-029A.
 - List `parseHometown` must not NULL `state` when the user edits city-only.
 
-## BP-029A — Ownership Lock
+## BP-029A — Ownership Lock ✅ COMPLETED / BASELINE
+
+**Status:** Accepted 2026-08-06. Validated end-to-end. **Not an active work item.**
+Do not reopen or revise unless a bug is discovered. Later BP-029 phases (if any)
+build on this baseline without relaxing these rules.
 
 - Supabase is permanent SoR; Airtable is bootstrap / fill-null only.
 - All Person profile fields: Imported Once → OS Managed (no Airtable overwrite).
@@ -288,6 +292,7 @@ update this file explicitly rather than silently drifting from it.
 - Runtime edits continue to write only to Supabase.
 - No schema / UI / Team Directory changes in this phase.
 - Invariants: `npx tsx scripts/assert-ownership-lock.ts`.
+- Canonical docs: `DATA_OWNERSHIP.md`, `SYSTEM_OF_RECORD.md`, `scripts/fieldOwnership.ts`.
 
 ## BP-027 — Global Data Formatting Standards
 

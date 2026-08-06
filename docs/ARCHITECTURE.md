@@ -560,6 +560,9 @@ Intended testing levels (not added in this sprint):
 - Airtable CSV → import → seed sync (provider-synced columns only)
 - Local data integrity workflow (BP-022E)
 - System of record architecture (BP-023A)
+- **Ownership Lock (BP-029A) — COMPLETED / BASELINE:** Supabase SoR;
+  Airtable bootstrap/fill-null only; Force Refresh disabled; validated
+  2026-08-06. Not an active work item.
 
 **Direction (not a feature checklist):**
 

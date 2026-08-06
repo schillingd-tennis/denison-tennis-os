@@ -1,6 +1,9 @@
 /**
  * BP-029A — People field ownership (system of record lock).
  *
+ * STATUS: COMPLETED / BASELINE (accepted 2026-08-06). Not an active work item.
+ * Do not change these rules unless a bug is discovered.
+ *
  * Supabase `production_people` is the permanent system of record.
  * Airtable (CSV) is an **import / bootstrap source only**.
  *

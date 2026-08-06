@@ -1,0 +1,24 @@
+---
+description: BP-029A Ownership Lock is COMPLETED / BASELINE — do not reopen
+globs: scripts/fieldOwnership.ts,scripts/generate-supabase-seed.ts,scripts/apply-local-seed.ts,docs/DATA_OWNERSHIP.md,docs/SYSTEM_OF_RECORD.md
+alwaysApply: false
+---
+
+# BP-029A — Ownership Lock (COMPLETED / BASELINE)
+
+**Status:** Accepted 2026-08-06. Validated. **Not an active work item.**
+
+Do not reopen, redesign, or “improve” this milestone unless a bug is discovered.
+Later BP-029 phases (if any) must not relax these rules.
+
+## Baseline rules
+
+1. Supabase is the permanent system of record for People.
+2. Airtable is bootstrap / fill-null import only.
+3. After a Person exists (or a field is non-NULL), OS owns the field.
+4. Normal seed: `coalesce(existing, excluded)` — never overwrite populated values.
+5. Airtable Force Refresh hard-replace is **disabled**.
+6. Runtime edits write only to Supabase.
+
+Canonical: `docs/DATA_OWNERSHIP.md`, `docs/SYSTEM_OF_RECORD.md`, `docs/DECISIONS.md` (BP-029A), `scripts/fieldOwnership.ts`.
+Invariants: `npx tsx scripts/assert-ownership-lock.ts`.

@@ -35,7 +35,10 @@ store through repositories — never through provider APIs directly.
 
 ## 2. Phase Model
 
-### Current — System of Record (BP-029A Ownership Lock)
+### Current — System of Record (BP-029A Ownership Lock) ✅ BASELINE
+
+> **BP-029A is COMPLETED / BASELINE** (accepted 2026-08-06, validated).  
+> Not an active work item. Do not reopen unless a bug is discovered.
 
 - Supabase `production_people` is the permanent system of record for People.
 - Airtable CSV is **bootstrap / fill-null import only**.
