@@ -32,6 +32,16 @@ export const settingsNavItem: NavItem = {
 
 const allNavItems: NavItem[] = [...primaryNavItems, settingsNavItem];
 
+/**
+ * Sidebar active state (BP-031C): prefix match for module roots so child
+ * routes (e.g. `/team/[id]`) keep the parent nav item active.
+ * Home (`/`) stays exact-only so it does not match every path.
+ */
+export function isNavItemActive(pathname: string, href: string): boolean {
+  if (href === "/") return pathname === "/";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 export function getPageTitle(pathname: string): string {
   if (pathname === "/settings/developer" || pathname.startsWith("/settings/developer/")) {
     return "Developer";

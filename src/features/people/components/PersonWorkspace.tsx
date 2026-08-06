@@ -60,9 +60,6 @@ import {
   formatHeight,
   formatWeight,
   getDisplayName,
-  getFullDisplayName,
-  getHometown,
-  getInitials,
   getPermanentAddress,
   getPlayerStatusLabel,
   getPreferredContactLabel,
@@ -71,18 +68,16 @@ import {
   isCoachDirectoryPerson,
 } from "@/features/people/utils";
 import { TEAM_FOUND_SET_MODULE_KEY } from "@/features/people/foundSet";
-import { EMPTY_VALUE, formatDate, formatDisplay, formatUtr, formatWtn } from "@/lib/formatting";
+import { formatDate, formatUtr, formatWtn } from "@/lib/formatting";
 
 import InformationField from "@/components/InformationField";
-import PlayerAvatar from "@/components/PlayerAvatar";
+import { OverviewPanel, PersonHeader } from "@/components/person";
 import QuickActionButton from "@/components/QuickActionButton";
 import type { StatusDotTone } from "@/components/StatusDot";
-import SummaryStat from "@/components/SummaryStat";
-import { typeClass, typeRole } from "@/components/typography";
+import { typeRole } from "@/components/typography";
 import WorkspaceSection from "@/components/WorkspaceSection";
 
 import FamilyContactCard from "./FamilyContactCard";
-import PersonRoleBadge from "./PersonRoleBadge";
 import PersonStatusLabel from "./PersonStatusLabel";
 
 function favoriteObjectTypeForPerson(person: Person): SearchObjectType {
@@ -256,12 +251,9 @@ export default function PersonWorkspace({
     label: role.label,
   }));
 
-  const fullName = getFullDisplayName(record);
   const displayName = getDisplayName(record);
-  const hometown = getHometown(record);
   const address = getPermanentAddress(record);
   const coachDirectory = isCoachDirectoryPerson(record);
-  const showDenisonId = !coachDirectory || Boolean(record.denisonId?.trim());
   const favoriteObjectType = favoriteObjectTypeForPerson(record);
 
   useEffect(() => {
@@ -552,6 +544,13 @@ export default function PersonWorkspace({
     exportFoundSetSnapshotCsv(snapshot);
   }, []);
 
+  const handleAddNote = () => {
+    document.getElementById("workspace-notes")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+    window.setTimeout(() => startEdit("notes"), 350);
+  };
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
       <StickyProductivityActionBar
@@ -609,131 +608,79 @@ export default function PersonWorkspace({
         }
       />
 
-      {/* Header */}
-      <div className="rounded-card border border-border bg-surface px-6 py-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex items-start gap-4">
-            <PlayerAvatar photoUrl={record.photoUrl} initials={getInitials(record)} size={64} />
-            <div className="flex min-w-0 flex-col gap-2.5">
-              <div className="flex min-w-0 flex-col gap-1.5">
-                <h1 className={typeRole.personNameHero}>{fullName}</h1>
-                <PersonRoleBadge person={record} />
-                {showDenisonId ? (
-                  <p className={typeClass("metadata", "tabular-nums")}>
-                    {formatDenisonIdDisplay(record.denisonId)}
-                  </p>
-                ) : null}
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <InlineEditCell
-                  label="Status"
-                  value={record.statusId}
-                  displayValue={getStatusLabel(record)}
-                  renderDisplay={
-                    <PersonStatusLabel
-                      tone={record.status.key === STATUS_KEYS.former ? "alumni" : "active"}
-                      label={getStatusLabel(record)}
-                    />
-                  }
-                  type="select"
-                  options={statusOptions}
-                  editing={isEditing("status")}
-                  error={isEditing("status") ? fieldError : undefined}
-                  onRequestEdit={() => startEdit("status")}
-                  onCancel={cancelEdit}
-                  onCommit={(raw, reason) => handleCommit("status", raw, reason)}
-                />
-                <InlineEditCell
-                  label="Role"
-                  value={record.roleId}
-                  displayValue={record.role.label}
-                  renderDisplay={
-                    <span className="text-sm font-medium text-text-primary">{record.role.label}</span>
-                  }
-                  type="select"
-                  options={roleOptions}
-                  editing={isEditing("role")}
-                  error={isEditing("role") ? fieldError : undefined}
-                  onRequestEdit={() => startEdit("role")}
-                  onCancel={cancelEdit}
-                  onCommit={(raw, reason) => handleCommit("role", raw, reason)}
-                />
-                {!coachDirectory ? (
-                  <InlineEditCell
-                    label="Player Status"
-                    value={record.playerStatus ?? ""}
-                    displayValue={
-                      record.playerStatus ? getPlayerStatusLabel(record.playerStatus) : undefined
-                    }
-                    renderDisplay={
-                      record.playerStatus ? (
-                        <PersonStatusLabel
-                          tone={playerStatusDotTone(record.playerStatus)}
-                          label={getPlayerStatusLabel(record.playerStatus)}
-                        />
-                      ) : (
-                        <span className="text-sm text-text-secondary/70">Player status —</span>
-                      )
-                    }
-                    type="select"
-                    options={playerStatusOptions}
-                    editing={isEditing("playerStatus")}
-                    error={isEditing("playerStatus") ? fieldError : undefined}
-                    onRequestEdit={() => startEdit("playerStatus")}
-                    onCancel={cancelEdit}
-                    onCommit={(raw, reason) => handleCommit("playerStatus", raw, reason)}
+      <PersonHeader
+        person={record}
+        onAddNote={handleAddNote}
+        statusSlot={
+          <InlineEditCell
+            label="Status"
+            value={record.statusId}
+            displayValue={getStatusLabel(record)}
+            renderDisplay={
+              <PersonStatusLabel
+                tone={record.status.key === STATUS_KEYS.former ? "alumni" : "active"}
+                label={getStatusLabel(record)}
+              />
+            }
+            type="select"
+            options={statusOptions}
+            editing={isEditing("status")}
+            error={isEditing("status") ? fieldError : undefined}
+            onRequestEdit={() => startEdit("status")}
+            onCancel={cancelEdit}
+            onCommit={(raw, reason) => handleCommit("status", raw, reason)}
+          />
+        }
+        roleSlot={
+          <InlineEditCell
+            label="Role"
+            value={record.roleId}
+            displayValue={record.role.label}
+            renderDisplay={
+              <span className="text-sm font-medium text-text-primary">{record.role.label}</span>
+            }
+            type="select"
+            options={roleOptions}
+            editing={isEditing("role")}
+            error={isEditing("role") ? fieldError : undefined}
+            onRequestEdit={() => startEdit("role")}
+            onCancel={cancelEdit}
+            onCommit={(raw, reason) => handleCommit("role", raw, reason)}
+          />
+        }
+        playerStatusSlot={
+          !coachDirectory ? (
+            <InlineEditCell
+              label="Player Status"
+              value={record.playerStatus ?? ""}
+              displayValue={
+                record.playerStatus ? getPlayerStatusLabel(record.playerStatus) : undefined
+              }
+              renderDisplay={
+                record.playerStatus ? (
+                  <PersonStatusLabel
+                    tone={playerStatusDotTone(record.playerStatus)}
+                    label={getPlayerStatusLabel(record.playerStatus)}
                   />
-                ) : null}
-              </div>
-              <p className={`${typeRole.metadata} leading-relaxed`}>
-                {(() => {
-                  const utrLine = formatUtr(record.utr);
-                  const wtnLine = formatWtn(record.wtn);
-                  return (coachDirectory
-                    ? [hometown, phoneDisplay, email]
-                    : [
-                        record.classYear ? `Class of ${record.classYear}` : null,
-                        record.major,
-                        hometown,
-                        utrLine !== EMPTY_VALUE ? `UTR ${utrLine}` : null,
-                        wtnLine !== EMPTY_VALUE ? `WTN ${wtnLine}` : null,
-                      ]
-                  )
-                    .filter(Boolean)
-                    .join(" · ");
-                })()}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+                ) : (
+                  <span className="text-sm text-text-secondary/70">Player status —</span>
+                )
+              }
+              type="select"
+              options={playerStatusOptions}
+              editing={isEditing("playerStatus")}
+              error={isEditing("playerStatus") ? fieldError : undefined}
+              onRequestEdit={() => startEdit("playerStatus")}
+              onCancel={cancelEdit}
+              onCommit={(raw, reason) => handleCommit("playerStatus", raw, reason)}
+            />
+          ) : undefined
+        }
+      />
 
-      {/* At-a-glance summary — coach vs player layout */}
-      {coachDirectory ? (
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
-          <SummaryStat label="Title" value={record.title} />
-          <SummaryStat label="Hometown" value={hometown} />
-          <SummaryStat label="Phone" value={phoneDisplay} />
-          <SummaryStat label="Email" value={email} />
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
-          <SummaryStat label="UTR" value={formatUtr(record.utr)} />
-          <SummaryStat label="WTN" value={formatWtn(record.wtn)} />
-          <SummaryStat
-            label="Class Year"
-            value={formatDisplay(record.classYear)}
-          />
-          <SummaryStat label="Major" value={record.major} />
-          <SummaryStat label="Dorm" value={record.dorm} />
-          <SummaryStat
-            label="Player Status"
-            value={record.playerStatus ? getPlayerStatusLabel(record.playerStatus) : undefined}
-          />
-        </div>
-      )}
+      <OverviewPanel person={record} />
 
-      {/* Overview */}
+      {/* Overview detail sections */}
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="flex flex-col gap-5 lg:col-span-2">
           <WorkspaceSection title="Personal">
@@ -1123,6 +1070,7 @@ export default function PersonWorkspace({
             </dl>
           </WorkspaceSection>
 
+          <div id="workspace-notes">
           <WorkspaceSection title="Notes">
             <dl>
               <WorkspaceField label="Notes" className="sm:col-span-2">
@@ -1141,6 +1089,7 @@ export default function PersonWorkspace({
               </WorkspaceField>
             </dl>
           </WorkspaceSection>
+          </div>
         </div>
 
         <div className="flex flex-col gap-5">

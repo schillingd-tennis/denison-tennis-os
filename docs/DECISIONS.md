@@ -301,6 +301,13 @@ build on this baseline without relaxing these rules.
 - Back to Team restores search, filters, sort, and Cards/List via session/local storage.
 - Full workspace remains the foundation for future milestones.
 
+## BP-031B — Person Workspace Header & Overview
+
+- Shared `PersonHeader` + `OverviewPanel` in `src/components/person/`.
+- Wired into existing `PersonWorkspace` without removing edit sections.
+- Overview placeholders use “Coming soon” / “No data” where domains are missing.
+- Status / Role / Player Status inline edits preserved via header slots.
+
 ## BP-027 — Global Data Formatting Standards
 
 - Shared presentation helpers live in `src/lib/formatting`.

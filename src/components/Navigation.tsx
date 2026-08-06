@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import type { NavItem } from "./nav-items";
+import { isNavItemActive, type NavItem } from "./nav-items";
 
 export default function Navigation({
   items,
@@ -17,7 +17,7 @@ export default function Navigation({
   return (
     <ul className="flex flex-col gap-1.5">
       {items.map((item) => {
-        const isActive = pathname === item.href;
+        const isActive = isNavItemActive(pathname, item.href);
         const Icon = item.icon;
 
         return (
