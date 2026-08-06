@@ -346,8 +346,10 @@ Confirm:
 
 ## Related docs
 
+- [`docs/README.md`](./README.md) — documentation index
 - [`docs/SYSTEM_OF_RECORD.md`](./SYSTEM_OF_RECORD.md) — long-term SoR architecture
 - [`docs/DATA_OWNERSHIP.md`](./DATA_OWNERSHIP.md) — provider vs app field ownership
 - [`docs/DATA_MODEL.md`](./DATA_MODEL.md) — Person / roles model
 - [`docs/DECISIONS.md`](./DECISIONS.md) — locked decisions including BP-023A
 - [`docs/ARCHITECTURE.md`](./ARCHITECTURE.md) — repository boundaries
+- [`docs/INTERACTION_MODEL.md`](./INTERACTION_MODEL.md) — interaction / UX architecture (BP-033)

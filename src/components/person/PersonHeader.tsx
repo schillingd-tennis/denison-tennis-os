@@ -1,8 +1,6 @@
 import type { ReactNode } from "react";
-import { Mail, MessageSquare, Phone, StickyNote } from "lucide-react";
 
 import PlayerAvatar from "@/components/PlayerAvatar";
-import QuickActionButton from "@/components/QuickActionButton";
 import { typeClass, typeRole } from "@/components/typography";
 import type { Person } from "@/features/people/types";
 import {
@@ -10,46 +8,80 @@ import {
   getHometown,
   getInitials,
   getPersonRoleDisplay,
+  getPlayerStatusLabel,
   getStatusLabel,
   isCoachDirectoryPerson,
 } from "@/features/people/utils";
-import { EMPTY_VALUE, formatDisplay, formatUtr, formatWtn } from "@/lib/formatting";
-import { formatPhoneDisplay, phoneHrefDigits } from "@/components/inline-edit";
+import {
+  EMPTY_VALUE,
+  formatDisplay,
+  formatUtr,
+  formatWtn,
+} from "@/lib/formatting";
 
 const NO_DATA = "No data";
+const COMING_SOON = "Coming soon";
 
-function HeaderFact({ label, value }: { label: string; value: string }) {
-  const empty = value === EMPTY_VALUE || value === NO_DATA || value.trim() === "";
+function metricOrNoData(value: string): string {
+  if (!value.trim() || value === EMPTY_VALUE) return NO_DATA;
+  return value;
+}
+
+function SnapshotMetric({ label, value }: { label: string; value: string }) {
+  const empty =
+    value === NO_DATA || value === COMING_SOON || value === EMPTY_VALUE;
   return (
-    <div className="min-w-0">
-      <dt className={typeRole.sectionLabel}>{label}</dt>
-      <dd
-        className={`mt-1 truncate ${empty ? typeRole.metadataEmpty : typeRole.fieldValue}`}
+    <div className="min-w-0 rounded-control border border-border/80 bg-app-background/60 px-3 py-3">
+      <p className={typeRole.sectionLabel}>{label}</p>
+      <p
+        className={`mt-1.5 truncate text-base font-semibold tracking-tight ${
+          empty ? typeRole.metadataEmpty : "text-text-primary"
+        }`}
       >
-        {empty ? NO_DATA : value}
-      </dd>
+        {value}
+      </p>
     </div>
   );
 }
 
+function IdentityFact({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  const empty = !value.trim() || value === NO_DATA || value === EMPTY_VALUE;
+  return (
+    <span className="inline-flex min-w-0 items-baseline gap-1.5">
+      <span className={`shrink-0 ${typeRole.sectionLabel}`}>{label}</span>
+      <span
+        className={`truncate text-sm font-medium ${
+          empty ? typeRole.metadataEmpty : "text-text-primary"
+        }`}
+      >
+        {empty ? NO_DATA : value}
+      </span>
+    </span>
+  );
+}
+
 /**
- * Shared Person identity header (BP-031B).
- * Display-only facts + quick actions. Optional slots preserve workspace inline edits.
+ * Executive Person header (BP-031E / BP-031G).
+ * Identity + Executive Overview. Page actions live in the workspace toolbar only.
  */
 export default function PersonHeader({
   person,
   statusSlot,
   roleSlot,
   playerStatusSlot,
-  onAddNote,
   className,
 }: {
   person: Person;
-  /** When set, replaces the read-only Status fact (e.g. InlineEditCell). */
+  /** When set, replaces the read-only Status badge (e.g. InlineEditCell). */
   statusSlot?: ReactNode;
   roleSlot?: ReactNode;
   playerStatusSlot?: ReactNode;
-  onAddNote?: () => void;
   className?: string;
 }) {
   const fullName = getFullDisplayName(person);
@@ -61,18 +93,26 @@ export default function PersonHeader({
   const hometown = getHometown(person);
   const coachDirectory = isCoachDirectoryPerson(person);
   const roleDisplay = getPersonRoleDisplay(person);
-  const phoneDigits = phoneHrefDigits(person.cellPhone);
-  const phoneDisplay = formatPhoneDisplay(person.cellPhone);
-  const email = person.denisonEmail ?? person.personalEmail;
-  const tel = phoneDigits ? `tel:${phoneDigits}` : undefined;
-  const sms = phoneDigits ? `sms:${phoneDigits}` : undefined;
-  const mailto = email ? `mailto:${email}` : undefined;
+
   const classYear =
     !coachDirectory && person.classYear !== undefined
-      ? `Class of ${person.classYear}`
+      ? String(person.classYear)
       : NO_DATA;
-  const utr = coachDirectory ? NO_DATA : formatUtr(person.utr);
-  const wtn = coachDirectory ? NO_DATA : formatWtn(person.wtn);
+  const major = coachDirectory
+    ? NO_DATA
+    : metricOrNoData(formatDisplay(person.major));
+  const hometownDisplay = metricOrNoData(formatDisplay(hometown));
+  const utr = metricOrNoData(
+    coachDirectory ? EMPTY_VALUE : formatUtr(person.utr)
+  );
+  const wtn = metricOrNoData(
+    coachDirectory ? EMPTY_VALUE : formatWtn(person.wtn)
+  );
+  const playerStatus = person.playerStatus
+    ? getPlayerStatusLabel(person.playerStatus)
+    : NO_DATA;
+
+  const showBadgeRow = Boolean(statusSlot || roleSlot || playerStatusSlot);
 
   return (
     <section
@@ -80,8 +120,10 @@ export default function PersonHeader({
       aria-label="Person header"
     >
       <div className="flex flex-col gap-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex min-w-0 items-start gap-4">
+        {/* Identity row: Left / Center */}
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:gap-6">
+          {/* LEFT — identity */}
+          <div className="flex min-w-0 flex-1 items-start gap-4">
             <PlayerAvatar
               photoUrl={person.photoUrl}
               initials={getInitials(person)}
@@ -92,49 +134,77 @@ export default function PersonHeader({
               {preferred ? (
                 <p className={typeClass("identityMeta")}>Preferred: {preferred}</p>
               ) : null}
-              {(statusSlot || roleSlot || playerStatusSlot) && (
+              {showBadgeRow ? (
                 <div className="mt-1 flex flex-wrap items-center gap-2">
                   {statusSlot}
                   {roleSlot}
                   {playerStatusSlot}
                 </div>
+              ) : (
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-medium text-text-primary">
+                    {formatDisplay(getStatusLabel(person))}
+                  </span>
+                  <span className="text-text-secondary/40" aria-hidden>
+                    ·
+                  </span>
+                  <span className="text-sm font-medium text-text-primary">
+                    {formatDisplay(roleDisplay)}
+                  </span>
+                  {!coachDirectory ? (
+                    <>
+                      <span className="text-text-secondary/40" aria-hidden>
+                        ·
+                      </span>
+                      <span
+                        className={`text-sm font-medium ${
+                          playerStatus === NO_DATA
+                            ? typeRole.metadataEmpty
+                            : "text-text-primary"
+                        }`}
+                      >
+                        {playerStatus}
+                      </span>
+                    </>
+                  ) : null}
+                </div>
               )}
             </div>
           </div>
 
-          <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
-            <QuickActionButton href={tel} icon={Phone} label="Call" tone="success" />
-            <QuickActionButton href={sms} icon={MessageSquare} label="Text" tone="denison" />
-            <QuickActionButton href={mailto} icon={Mail} label="Email" tone="info" />
-            <QuickActionButton
-              onAction={onAddNote}
-              icon={StickyNote}
-              label="Add Note"
-              tone="neutral"
-              unavailableTitle="Add Note unavailable"
-            />
+          {/* CENTER — primary identity facts (UTR/WTN live in Executive Overview only) */}
+          <div
+            className="flex min-w-0 flex-1 flex-col justify-center gap-2 border-border lg:border-l lg:pl-6"
+            aria-label="Primary identity"
+          >
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2">
+              <IdentityFact label="Class" value={classYear} />
+              <span className="hidden text-text-secondary/35 sm:inline" aria-hidden>
+                ·
+              </span>
+              <IdentityFact label="Major" value={major} />
+            </div>
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2">
+              <IdentityFact label="Hometown" value={hometownDisplay} />
+            </div>
           </div>
         </div>
 
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-3.5 sm:grid-cols-3 lg:grid-cols-4">
-          {!statusSlot ? (
-            <HeaderFact label="Status" value={formatDisplay(getStatusLabel(person))} />
-          ) : null}
-          {!roleSlot ? <HeaderFact label="Role" value={formatDisplay(roleDisplay)} /> : null}
-          <HeaderFact label="Graduation Class" value={classYear} />
-          <HeaderFact label="UTR" value={utr === EMPTY_VALUE ? NO_DATA : utr} />
-          <HeaderFact label="WTN" value={wtn === EMPTY_VALUE ? NO_DATA : wtn} />
-          <HeaderFact label="Hometown" value={formatDisplay(hometown)} />
-          <HeaderFact
-            label="Major"
-            value={coachDirectory ? NO_DATA : formatDisplay(person.major)}
-          />
-          <HeaderFact
-            label="Cell Phone"
-            value={phoneDisplay?.trim() ? phoneDisplay : NO_DATA}
-          />
-          <HeaderFact label="Email" value={formatDisplay(email)} />
-        </dl>
+        {/* Executive Overview */}
+        <div aria-label="Executive Overview">
+          <p className={`${typeRole.sectionTitle} mb-3`}>Executive Overview</p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <SnapshotMetric label="UTR" value={utr} />
+            <SnapshotMetric label="WTN" value={wtn} />
+            <SnapshotMetric label="Team Record" value={COMING_SOON} />
+            <SnapshotMetric label="GPA" value={COMING_SOON} />
+            <SnapshotMetric
+              label="Player Status"
+              value={coachDirectory ? NO_DATA : playerStatus}
+            />
+            <SnapshotMetric label="Next Follow-up" value={COMING_SOON} />
+          </div>
+        </div>
       </div>
     </section>
   );

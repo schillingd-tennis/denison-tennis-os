@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   ClipboardList,
@@ -13,8 +13,9 @@ import {
   MessageSquare,
   Phone,
   Plane,
-  TrendingUp,
-  type LucideIcon,
+  School,
+  UserRound,
+  Users,
 } from "lucide-react";
 
 import {
@@ -23,42 +24,44 @@ import {
 } from "@/components/command-palette/favorites";
 import type { SearchObjectType } from "@/components/command-palette/types";
 import {
-  isRequired,
-  isValidEmail,
-  isValidPhone,
-  isValidUtr,
-  isValidWtn,
-  toOptionalNumber,
-} from "@/components/editor";
-import {
   copyFoundSetSnapshot,
   exportFoundSetSnapshotCsv,
   readFoundSetSnapshot,
 } from "@/components/found-set";
 import {
-  formatPhoneDisplay,
   InlineEditCell,
-  normalizeEmail,
-  normalizePhone,
-  phoneHrefDigits,
   SaveIndicator,
   useSaveIndicator,
   type InlineCommitReason,
-  type InlineFieldType,
   type InlineSelectOption,
 } from "@/components/inline-edit";
+import { OverviewPanel, PersonHeader } from "@/components/person";
 import { StickyProductivityActionBar } from "@/components/productivity";
-import EmptyState from "@/components/EmptyState";
+import QuickActionButton from "@/components/QuickActionButton";
+import type { StatusDotTone } from "@/components/StatusDot";
+import { typeRole } from "@/components/typography";
+import {
+  AdaptiveWorkspace,
+  AdaptiveWorkspacePlaceholder,
+  type AdaptiveWorkspaceDefinition,
+} from "@/components/adaptive-workspace";
+import {
+  WorkspaceNavigation,
+  type WorkspaceNavItem,
+} from "@/components/workspace-navigation";
 
+import {
+  createCommunicationActions,
+  usePersonCommunications,
+  type Communication,
+} from "@/features/communication";
 import { ROLE_KEYS, STATUS_KEYS } from "@/features/lookups/seed";
 import { useRoles, useStatuses } from "@/features/lookups/useLookups";
 import { updatePersonAction } from "@/features/people/actions";
 import type { FamilyContact } from "@/features/people/family";
+import { TEAM_FOUND_SET_MODULE_KEY } from "@/features/people/foundSet";
 import type { Person, PlayerStatus } from "@/features/people/types";
 import {
-  formatDenisonIdDisplay,
-  formatHeight,
-  formatWeight,
   getDisplayName,
   getPermanentAddress,
   getPlayerStatusLabel,
@@ -67,17 +70,8 @@ import {
   hasRole,
   isCoachDirectoryPerson,
 } from "@/features/people/utils";
-import { TEAM_FOUND_SET_MODULE_KEY } from "@/features/people/foundSet";
-import { formatDate, formatUtr, formatWtn } from "@/lib/formatting";
+import { formatDate, parseDisplayDate } from "@/lib/formatting";
 
-import InformationField from "@/components/InformationField";
-import { OverviewPanel, PersonHeader } from "@/components/person";
-import QuickActionButton from "@/components/QuickActionButton";
-import type { StatusDotTone } from "@/components/StatusDot";
-import { typeRole } from "@/components/typography";
-import WorkspaceSection from "@/components/WorkspaceSection";
-
-import FamilyContactCard from "./FamilyContactCard";
 import PersonStatusLabel from "./PersonStatusLabel";
 
 function favoriteObjectTypeForPerson(person: Person): SearchObjectType {
@@ -101,15 +95,17 @@ function playerStatusDotTone(playerStatus: PlayerStatus | undefined): StatusDotT
   }
 }
 
-function capitalize(value: string): string {
-  return value.charAt(0).toUpperCase() + value.slice(1);
+function valuesEqual(a: unknown, b: unknown): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
 }
 
-const comingLaterModules: { label: string; icon: LucideIcon }[] = [
-  { label: "Performance", icon: TrendingUp },
-  { label: "Academics", icon: GraduationCap },
-  { label: "Travel", icon: Plane },
-  { label: "Documents", icon: FileText },
+/** Header-only editable fields (detail editing moves to drawers later). */
+type HeaderEditableField = "status" | "role" | "playerStatus";
+
+const HEADER_EDITABLE_FIELDS: HeaderEditableField[] = [
+  "status",
+  "role",
+  "playerStatus",
 ];
 
 const playerStatusOptions: InlineSelectOption[] = [
@@ -119,107 +115,69 @@ const playerStatusOptions: InlineSelectOption[] = [
   { value: "graduated", label: "Graduated" },
 ];
 
-const dominantHandOptions: InlineSelectOption[] = [
-  { value: "right", label: "Right" },
-  { value: "left", label: "Left" },
-];
-
-const preferredContactOptions: InlineSelectOption[] = [
-  { value: "phone", label: "Phone" },
-  { value: "text", label: "Text" },
-  { value: "email", label: "Email" },
-];
-
-/**
- * Editable fields in Tab order for the Player Workspace (BP-021).
- * Read-only fields (e.g. Denison ID) are intentionally omitted.
- */
-type EditableField =
-  | "status"
-  | "role"
-  | "playerStatus"
-  | "firstName"
-  | "middleName"
-  | "lastName"
-  | "preferredName"
-  | "dateOfBirth"
-  | "cellPhone"
-  | "personalEmail"
-  | "denisonEmail"
-  | "preferredContactMethod"
-  | "classYear"
-  | "major"
-  | "minor"
-  | "dorm"
-  | "roomNumber"
-  | "utr"
-  | "wtn"
-  | "dominantHand"
-  | "heightInches"
-  | "weightLbs"
-  | "addressLine1"
-  | "city"
-  | "state"
-  | "zipCode"
-  | "country"
-  | "notes";
-
-const EDITABLE_FIELDS: EditableField[] = [
-  "status",
-  "role",
-  "playerStatus",
-  "firstName",
-  "middleName",
-  "lastName",
-  "preferredName",
-  "dateOfBirth",
-  "cellPhone",
-  "personalEmail",
-  "denisonEmail",
-  "preferredContactMethod",
-  "classYear",
-  "major",
-  "minor",
-  "dorm",
-  "roomNumber",
-  "utr",
-  "wtn",
-  "dominantHand",
-  "heightInches",
-  "weightLbs",
-  "addressLine1",
-  "city",
-  "state",
-  "zipCode",
-  "country",
-  "notes",
-];
-
-function valuesEqual(a: unknown, b: unknown): boolean {
-  return JSON.stringify(a) === JSON.stringify(b);
+function startOfLocalDay(date: Date): Date {
+  const next = new Date(date);
+  next.setHours(0, 0, 0, 0);
+  return next;
 }
 
-function WorkspaceField({
-  label,
-  className,
-  children,
-}: {
-  label: string;
-  className?: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className={className}>
-      <dt className={typeRole.sectionLabel}>{label}</dt>
-      <dd className="mt-1">{children}</dd>
-    </div>
+/** Compact relative day for workspace status lines (Today / Yesterday / date). */
+function formatRelativeDay(value: string | undefined): string {
+  if (!value) return "No recent contact";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return formatDate(value);
+
+  const today = startOfLocalDay(new Date());
+  const target = startOfLocalDay(date);
+  const diffDays = Math.round(
+    (today.getTime() - target.getTime()) / (1000 * 60 * 60 * 24),
   );
+
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays > 1 && diffDays < 7) return `${diffDays} days ago`;
+  return formatMonthDay(date);
+}
+
+function formatMonthDay(date: Date): string {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+  }).format(date);
+}
+
+/** Natural follow-up line for Communication status. */
+function followUpStatusLine(communications: Communication[]): string {
+  const upcoming = communications
+    .map((entry) => entry.followUpDate)
+    .filter((value): value is string => Boolean(value))
+    .sort();
+  if (upcoming.length === 0) return "No follow-up scheduled";
+
+  const date = parseDisplayDate(upcoming[0]);
+  if (!date) return `Follow-up ${formatDate(upcoming[0])}`;
+
+  const today = startOfLocalDay(new Date());
+  const target = startOfLocalDay(date);
+  const diffDays = Math.round(
+    (target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+  );
+
+  if (diffDays === 0) return "Follow-up today";
+  if (diffDays === 1) return "Follow-up tomorrow";
+  if (diffDays === -1) return "Follow-up was yesterday";
+  return `Follow-up ${formatMonthDay(date)}`;
+}
+
+function noteStatusLine(communications: Communication[]): string {
+  const noteCount = communications.filter((entry) => entry.type === "note").length;
+  if (noteCount === 0) return "No notes yet";
+  return noteCount === 1 ? "1 note" : `${noteCount} notes`;
 }
 
 /**
- * Player Workspace — always-on inline editing via the Universal Inline
- * Editing Framework (BP-021). No page-level Edit mode; double-click any
- * field to edit, with sticky quick actions for contact / ratings links.
+ * Person Workspace — executive dashboard + Adaptive Workspace (BP-035C).
+ * Header / overview / performance stay fixed; only the workspace surface changes.
  */
 export default function PersonWorkspace({
   person,
@@ -230,9 +188,10 @@ export default function PersonWorkspace({
 }) {
   const [record, setRecord] = useState(person);
   const [trackedPerson, setTrackedPerson] = useState(person);
-  const [editing, setEditing] = useState<EditableField | null>(null);
+  const [editing, setEditing] = useState<HeaderEditableField | null>(null);
   const [fieldError, setFieldError] = useState<string | undefined>(undefined);
   const [copyFeedback, setCopyFeedback] = useState<string | undefined>(undefined);
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
   const { status: saveStatus, error: saveError, runSave } = useSaveIndicator();
   const roles = useRoles();
   const statuses = useStatuses();
@@ -267,33 +226,37 @@ export default function PersonWorkspace({
     });
   }, [displayName, favoriteObjectType, record.id]);
 
-  const phoneDigits = phoneHrefDigits(record.cellPhone);
-  const phoneDisplay = formatPhoneDisplay(record.cellPhone);
-  const tel = phoneDigits ? `tel:${phoneDigits}` : undefined;
-  const sms = phoneDigits ? `sms:${phoneDigits}` : undefined;
   const email = record.denisonEmail ?? record.personalEmail;
-  const mailto = email ? `mailto:${email}` : undefined;
+  const communications = usePersonCommunications(record.id);
+  const communicationActions = createCommunicationActions({
+    personId: record.id,
+    cellPhone: record.cellPhone,
+    email,
+  });
 
-  // Rating profile URLs are not stored in the Person schema yet (BP-021
-  // placeholders) — open buttons stay disabled until those fields exist.
-
-  const moveEditing = useCallback((from: EditableField, direction: "next" | "prev") => {
-    const index = EDITABLE_FIELDS.indexOf(from);
-    if (index < 0) {
-      setEditing(null);
-      return;
-    }
-    const nextIndex = direction === "next" ? index + 1 : index - 1;
-    if (nextIndex < 0 || nextIndex >= EDITABLE_FIELDS.length) {
-      setEditing(null);
-      return;
-    }
-    setFieldError(undefined);
-    setEditing(EDITABLE_FIELDS[nextIndex]);
-  }, []);
+  const moveEditing = useCallback(
+    (from: HeaderEditableField, direction: "next" | "prev") => {
+      const index = HEADER_EDITABLE_FIELDS.indexOf(from);
+      if (index < 0) {
+        setEditing(null);
+        return;
+      }
+      const nextIndex = direction === "next" ? index + 1 : index - 1;
+      if (nextIndex < 0 || nextIndex >= HEADER_EDITABLE_FIELDS.length) {
+        setEditing(null);
+        return;
+      }
+      setFieldError(undefined);
+      setEditing(HEADER_EDITABLE_FIELDS[nextIndex]);
+    },
+    [],
+  );
 
   const buildPatch = useCallback(
-    (field: EditableField, raw: string): { patch: Partial<Person>; error?: string } => {
+    (
+      field: HeaderEditableField,
+      raw: string,
+    ): { patch: Partial<Person>; error?: string } => {
       switch (field) {
         case "status": {
           if (!raw) return { patch: {}, error: "Status is required." };
@@ -318,126 +281,9 @@ export default function PersonWorkspace({
           };
         }
         case "playerStatus": {
-          return { patch: { playerStatus: (raw || undefined) as PlayerStatus | undefined } };
-        }
-        case "firstName": {
-          const error = isRequired(raw);
-          return error ? { patch: {}, error } : { patch: { firstName: raw.trim() } };
-        }
-        case "middleName": {
-          const trimmed = raw.trim();
-          return { patch: { middleName: trimmed === "" ? undefined : trimmed } };
-        }
-        case "lastName": {
-          const error = isRequired(raw);
-          return error ? { patch: {}, error } : { patch: { lastName: raw.trim() } };
-        }
-        case "preferredName": {
-          const trimmed = raw.trim();
-          return { patch: { preferredName: trimmed === "" ? undefined : trimmed } };
-        }
-        case "dateOfBirth": {
-          const trimmed = raw.trim();
-          return { patch: { dateOfBirth: trimmed === "" ? undefined : trimmed } };
-        }
-        case "cellPhone": {
-          const value = normalizePhone(raw);
-          const error = isValidPhone(value);
-          return error ? { patch: {}, error } : { patch: { cellPhone: value } };
-        }
-        case "personalEmail": {
-          const value = normalizeEmail(raw);
-          const error = isValidEmail(value);
-          return error ? { patch: {}, error } : { patch: { personalEmail: value } };
-        }
-        case "denisonEmail": {
-          const value = normalizeEmail(raw);
-          const error = isValidEmail(value);
-          return error ? { patch: {}, error } : { patch: { denisonEmail: value } };
-        }
-        case "preferredContactMethod": {
           return {
-            patch: {
-              preferredContactMethod: (raw || undefined) as Person["preferredContactMethod"],
-            },
+            patch: { playerStatus: (raw || undefined) as PlayerStatus | undefined },
           };
-        }
-        case "classYear": {
-          if (raw.trim() === "") return { patch: { classYear: undefined } };
-          const value = toOptionalNumber(raw);
-          if (value === undefined) return { patch: {}, error: "Class year must be a number." };
-          return { patch: { classYear: value } };
-        }
-        case "major": {
-          const trimmed = raw.trim();
-          return { patch: { major: trimmed === "" ? undefined : trimmed } };
-        }
-        case "minor": {
-          const trimmed = raw.trim();
-          return { patch: { minor: trimmed === "" ? undefined : trimmed } };
-        }
-        case "dorm": {
-          const trimmed = raw.trim();
-          return { patch: { dorm: trimmed === "" ? undefined : trimmed } };
-        }
-        case "roomNumber": {
-          const trimmed = raw.trim();
-          return { patch: { roomNumber: trimmed === "" ? undefined : trimmed } };
-        }
-        case "utr": {
-          if (raw.trim() === "") return { patch: { utr: undefined } };
-          const value = toOptionalNumber(raw);
-          if (value === undefined) return { patch: {}, error: "UTR must be a number." };
-          const error = isValidUtr(value);
-          return error ? { patch: {}, error } : { patch: { utr: value } };
-        }
-        case "wtn": {
-          if (raw.trim() === "") return { patch: { wtn: undefined } };
-          const value = toOptionalNumber(raw);
-          if (value === undefined) return { patch: {}, error: "WTN must be a number." };
-          const error = isValidWtn(value);
-          return error ? { patch: {}, error } : { patch: { wtn: value } };
-        }
-        case "dominantHand": {
-          return {
-            patch: { dominantHand: (raw || undefined) as Person["dominantHand"] },
-          };
-        }
-        case "heightInches": {
-          if (raw.trim() === "") return { patch: { heightInches: undefined } };
-          const value = toOptionalNumber(raw);
-          if (value === undefined) return { patch: {}, error: "Height must be a number." };
-          return { patch: { heightInches: value } };
-        }
-        case "weightLbs": {
-          if (raw.trim() === "") return { patch: { weightLbs: undefined } };
-          const value = toOptionalNumber(raw);
-          if (value === undefined) return { patch: {}, error: "Weight must be a number." };
-          return { patch: { weightLbs: value } };
-        }
-        case "addressLine1": {
-          const trimmed = raw.trim();
-          return { patch: { addressLine1: trimmed === "" ? undefined : trimmed } };
-        }
-        case "city": {
-          const trimmed = raw.trim();
-          return { patch: { city: trimmed === "" ? undefined : trimmed } };
-        }
-        case "state": {
-          const trimmed = raw.trim();
-          return { patch: { state: trimmed === "" ? undefined : trimmed } };
-        }
-        case "zipCode": {
-          const trimmed = raw.trim();
-          return { patch: { zipCode: trimmed === "" ? undefined : trimmed } };
-        }
-        case "country": {
-          const trimmed = raw.trim();
-          return { patch: { country: trimmed === "" ? undefined : trimmed } };
-        }
-        case "notes": {
-          const trimmed = raw.trim();
-          return { patch: { notes: trimmed === "" ? undefined : trimmed } };
         }
       }
     },
@@ -445,7 +291,7 @@ export default function PersonWorkspace({
   );
 
   const handleCommit = useCallback(
-    async (field: EditableField, raw: string, reason: InlineCommitReason) => {
+    async (field: HeaderEditableField, raw: string, reason: InlineCommitReason) => {
       const { patch, error } = buildPatch(field, raw);
       if (error) {
         setFieldError(error);
@@ -454,12 +300,14 @@ export default function PersonWorkspace({
 
       setFieldError(undefined);
 
-      // Compare FK ids only — nested lookup refs are display joins.
       const unchanged =
         (patch.roleId === undefined || patch.roleId === record.roleId) &&
         (patch.statusId === undefined || patch.statusId === record.statusId) &&
         Object.entries(patch)
-          .filter(([key]) => key !== "role" && key !== "status" && key !== "roleId" && key !== "statusId")
+          .filter(
+            ([key]) =>
+              key !== "role" && key !== "status" && key !== "roleId" && key !== "statusId",
+          )
           .every(([key, value]) => valuesEqual(record[key as keyof Person], value));
 
       if (unchanged) {
@@ -491,7 +339,7 @@ export default function PersonWorkspace({
     [buildPatch, moveEditing, record, runSave],
   );
 
-  function startEdit(field: EditableField) {
+  function startEdit(field: HeaderEditableField) {
     setFieldError(undefined);
     setEditing(field);
   }
@@ -501,7 +349,7 @@ export default function PersonWorkspace({
     setEditing(null);
   }
 
-  function isEditing(field: EditableField): boolean {
+  function isEditing(field: HeaderEditableField): boolean {
     return editing === field;
   }
 
@@ -544,13 +392,165 @@ export default function PersonWorkspace({
     exportFoundSetSnapshotCsv(snapshot);
   }, []);
 
-  const handleAddNote = () => {
-    document.getElementById("workspace-notes")?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-    window.setTimeout(() => startEdit("notes"), 350);
-  };
+  const workspaceItems = useMemo((): WorkspaceNavItem[] => {
+    const latest = communications[0];
+    const hasPhone = Boolean(record.cellPhone);
+    const hasEmail = Boolean(record.personalEmail || record.denisonEmail);
+    const preferred = getPreferredContactLabel(record.preferredContactMethod);
+    const parentCount = familyContacts.length;
+    const hasEmergency = familyContacts.some((contact) => contact.isEmergencyContact);
+
+    const contactLines = [
+      hasPhone ? "Phone available" : "No phone number",
+      hasEmail ? "Email available" : "No email address",
+    ];
+    if (preferred) {
+      contactLines.push(`Preferred: ${preferred}`);
+    }
+
+    return [
+      {
+        id: "communication",
+        title: "Communication",
+        icon: MessageSquare,
+        lines: [
+          formatRelativeDay(latest?.createdAt),
+          followUpStatusLine(communications),
+          noteStatusLine(communications),
+        ],
+      },
+      {
+        id: "contact",
+        title: "Contact Information",
+        icon: UserRound,
+        lines: contactLines,
+      },
+      {
+        id: "academics",
+        title: "Academics",
+        icon: GraduationCap,
+        lines: ["Standing unavailable", "GPA coming soon"],
+      },
+      {
+        id: "family",
+        title: "Family",
+        icon: Users,
+        lines: [
+          parentCount === 0
+            ? "No parents connected"
+            : parentCount === 1
+              ? "1 parent connected"
+              : `${parentCount} parents connected`,
+          hasEmergency ? "Emergency contact on file" : "No emergency contact",
+        ],
+      },
+      {
+        id: "travel",
+        title: "Travel",
+        icon: Plane,
+        lines: ["No upcoming travel", "Travel details coming soon"],
+      },
+      {
+        id: "documents",
+        title: "Documents",
+        icon: FileText,
+        lines: ["No documents yet", "Uploads coming soon"],
+      },
+      {
+        id: "denison",
+        title: "Denison Information",
+        icon: School,
+        lines: [
+          record.classYear !== undefined
+            ? `Class ${record.classYear}`
+            : "Class year not set",
+          record.major?.trim() || "Major not set",
+        ],
+      },
+    ];
+  }, [
+    communications,
+    familyContacts,
+    record.cellPhone,
+    record.classYear,
+    record.denisonEmail,
+    record.major,
+    record.personalEmail,
+    record.preferredContactMethod,
+  ]);
+
+  const adaptiveWorkspaces = useMemo((): AdaptiveWorkspaceDefinition[] => {
+    return [
+      {
+        id: "communication",
+        title: "Communication",
+        subtitle: displayName,
+        content: (
+          <AdaptiveWorkspacePlaceholder
+            message="Timeline coming soon."
+            action={
+              <button
+                type="button"
+                disabled
+                className="inline-flex h-9 items-center justify-center rounded-control bg-denison-red px-3.5 text-sm font-semibold text-surface opacity-40"
+              >
+                Add Communication
+              </button>
+            }
+          />
+        ),
+      },
+      {
+        id: "contact",
+        title: "Contact Information",
+        subtitle: displayName,
+        content: (
+          <AdaptiveWorkspacePlaceholder message="Contact details coming soon." />
+        ),
+      },
+      {
+        id: "academics",
+        title: "Academics",
+        subtitle: displayName,
+        content: (
+          <AdaptiveWorkspacePlaceholder message="Academic dashboard coming soon." />
+        ),
+      },
+      {
+        id: "family",
+        title: "Family",
+        subtitle: displayName,
+        content: (
+          <AdaptiveWorkspacePlaceholder message="Family contacts coming soon." />
+        ),
+      },
+      {
+        id: "travel",
+        title: "Travel",
+        subtitle: displayName,
+        content: (
+          <AdaptiveWorkspacePlaceholder message="Travel workspace coming soon." />
+        ),
+      },
+      {
+        id: "documents",
+        title: "Documents",
+        subtitle: displayName,
+        content: (
+          <AdaptiveWorkspacePlaceholder message="Documents workspace coming soon." />
+        ),
+      },
+      {
+        id: "denison",
+        title: "Denison Information",
+        subtitle: displayName,
+        content: (
+          <AdaptiveWorkspacePlaceholder message="Denison information coming soon." />
+        ),
+      },
+    ];
+  }, [displayName]);
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
       <StickyProductivityActionBar
@@ -581,9 +581,30 @@ export default function PersonWorkspace({
               href={`/team/${record.id}`}
               iconKey="Users"
             />
-            {tel ? <QuickActionButton href={tel} icon={Phone} label="Call" tone="success" /> : null}
-            {sms ? <QuickActionButton href={sms} icon={MessageSquare} label="Text" tone="denison" /> : null}
-            {mailto ? <QuickActionButton href={mailto} icon={Mail} label="Email" tone="info" /> : null}
+            {communicationActions.call.href ? (
+              <QuickActionButton
+                href={communicationActions.call.href}
+                icon={Phone}
+                label={communicationActions.call.label}
+                tone="success"
+              />
+            ) : null}
+            {communicationActions.text.href ? (
+              <QuickActionButton
+                href={communicationActions.text.href}
+                icon={MessageSquare}
+                label={communicationActions.text.label}
+                tone="denison"
+              />
+            ) : null}
+            {communicationActions.email.href ? (
+              <QuickActionButton
+                href={communicationActions.email.href}
+                icon={Mail}
+                label={communicationActions.email.label}
+                tone="info"
+              />
+            ) : null}
             {address ? (
               <QuickActionButton
                 onAction={handleCopyAddress}
@@ -610,7 +631,6 @@ export default function PersonWorkspace({
 
       <PersonHeader
         person={record}
-        onAddNote={handleAddNote}
         statusSlot={
           <InlineEditCell
             label="Status"
@@ -637,7 +657,9 @@ export default function PersonWorkspace({
             value={record.roleId}
             displayValue={record.role.label}
             renderDisplay={
-              <span className="text-sm font-medium text-text-primary">{record.role.label}</span>
+              <span className="text-sm font-medium text-text-primary">
+                {record.role.label}
+              </span>
             }
             type="select"
             options={roleOptions}
@@ -654,7 +676,9 @@ export default function PersonWorkspace({
               label="Player Status"
               value={record.playerStatus ?? ""}
               displayValue={
-                record.playerStatus ? getPlayerStatusLabel(record.playerStatus) : undefined
+                record.playerStatus
+                  ? getPlayerStatusLabel(record.playerStatus)
+                  : undefined
               }
               renderDisplay={
                 record.playerStatus ? (
@@ -663,7 +687,9 @@ export default function PersonWorkspace({
                     label={getPlayerStatusLabel(record.playerStatus)}
                   />
                 ) : (
-                  <span className="text-sm text-text-secondary/70">Player status —</span>
+                  <span className="text-sm text-text-secondary/70">
+                    Player status —
+                  </span>
                 )
               }
               type="select"
@@ -680,497 +706,25 @@ export default function PersonWorkspace({
 
       <OverviewPanel person={record} />
 
-      {/* Overview detail sections */}
-      <div className="grid gap-5 lg:grid-cols-3">
-        <div className="flex flex-col gap-5 lg:col-span-2">
-          <WorkspaceSection title="Personal">
-            <dl className="grid grid-cols-1 gap-x-6 gap-y-3.5 sm:grid-cols-2">
-              <WorkspaceField label="First Name">
-                <PersonInlineField
-                  label="First Name"
-                  field="firstName"
-                  value={record.firstName}
-                  editing={isEditing("firstName")}
-                  error={isEditing("firstName") ? fieldError : undefined}
-                  onRequestEdit={() => startEdit("firstName")}
-                  onCancel={cancelEdit}
-                  onCommit={handleCommit}
-                />
-              </WorkspaceField>
-              <WorkspaceField label="Middle Name">
-                <PersonInlineField
-                  label="Middle Name"
-                  field="middleName"
-                  value={record.middleName ?? ""}
-                  displayValue={record.middleName}
-                  editing={isEditing("middleName")}
-                  error={isEditing("middleName") ? fieldError : undefined}
-                  onRequestEdit={() => startEdit("middleName")}
-                  onCancel={cancelEdit}
-                  onCommit={handleCommit}
-                />
-              </WorkspaceField>
-              <WorkspaceField label="Last Name">
-                <PersonInlineField
-                  label="Last Name"
-                  field="lastName"
-                  value={record.lastName}
-                  editing={isEditing("lastName")}
-                  error={isEditing("lastName") ? fieldError : undefined}
-                  onRequestEdit={() => startEdit("lastName")}
-                  onCancel={cancelEdit}
-                  onCommit={handleCommit}
-                />
-              </WorkspaceField>
-              <WorkspaceField label="Preferred Name">
-                <PersonInlineField
-                  label="Preferred Name"
-                  field="preferredName"
-                  value={record.preferredName ?? ""}
-                  displayValue={record.preferredName}
-                  editing={isEditing("preferredName")}
-                  error={isEditing("preferredName") ? fieldError : undefined}
-                  onRequestEdit={() => startEdit("preferredName")}
-                  onCancel={cancelEdit}
-                  onCommit={handleCommit}
-                />
-              </WorkspaceField>
-              <WorkspaceField label="Date of Birth">
-                <PersonInlineField
-                  label="Date of Birth"
-                  field="dateOfBirth"
-                  value={record.dateOfBirth ?? ""}
-                  displayValue={formatDate(record.dateOfBirth)}
-                  type="date"
-                  editing={isEditing("dateOfBirth")}
-                  error={isEditing("dateOfBirth") ? fieldError : undefined}
-                  onRequestEdit={() => startEdit("dateOfBirth")}
-                  onCancel={cancelEdit}
-                  onCommit={handleCommit}
-                />
-              </WorkspaceField>
-            </dl>
-          </WorkspaceSection>
-
-          <WorkspaceSection title="Contact Information">
-            <dl className="grid grid-cols-1 gap-x-6 gap-y-3.5 sm:grid-cols-2">
-              <WorkspaceField label="Cell Phone">
-                <PersonInlineField
-                  label="Cell Phone"
-                  field="cellPhone"
-                  value={record.cellPhone ?? ""}
-                  displayValue={phoneDisplay}
-                  type="tel"
-                  editing={isEditing("cellPhone")}
-                  error={isEditing("cellPhone") ? fieldError : undefined}
-                  onRequestEdit={() => startEdit("cellPhone")}
-                  onCancel={cancelEdit}
-                  onCommit={handleCommit}
-                  renderDisplay={
-                    phoneDisplay && tel ? (
-                      <a
-                        href={tel}
-                        className="text-sm text-text-primary transition-colors hover:text-denison-red"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        {phoneDisplay}
-                      </a>
-                    ) : undefined
-                  }
-                />
-              </WorkspaceField>
-              <WorkspaceField label="Personal Email">
-                <PersonInlineField
-                  label="Personal Email"
-                  field="personalEmail"
-                  value={record.personalEmail ?? ""}
-                  displayValue={record.personalEmail}
-                  type="email"
-                  editing={isEditing("personalEmail")}
-                  error={isEditing("personalEmail") ? fieldError : undefined}
-                  onRequestEdit={() => startEdit("personalEmail")}
-                  onCancel={cancelEdit}
-                  onCommit={handleCommit}
-                  renderDisplay={
-                    record.personalEmail ? (
-                      <a
-                        href={`mailto:${record.personalEmail}`}
-                        className="text-sm text-text-primary transition-colors hover:text-denison-red"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        {record.personalEmail}
-                      </a>
-                    ) : undefined
-                  }
-                />
-              </WorkspaceField>
-              <WorkspaceField label="Denison Email">
-                <PersonInlineField
-                  label="Denison Email"
-                  field="denisonEmail"
-                  value={record.denisonEmail ?? ""}
-                  displayValue={record.denisonEmail}
-                  type="email"
-                  editing={isEditing("denisonEmail")}
-                  error={isEditing("denisonEmail") ? fieldError : undefined}
-                  onRequestEdit={() => startEdit("denisonEmail")}
-                  onCancel={cancelEdit}
-                  onCommit={handleCommit}
-                  renderDisplay={
-                    record.denisonEmail ? (
-                      <a
-                        href={`mailto:${record.denisonEmail}`}
-                        className="text-sm text-text-primary transition-colors hover:text-denison-red"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        {record.denisonEmail}
-                      </a>
-                    ) : undefined
-                  }
-                />
-              </WorkspaceField>
-              <WorkspaceField label="Preferred Contact">
-                <PersonInlineField
-                  label="Preferred Contact"
-                  field="preferredContactMethod"
-                  value={record.preferredContactMethod ?? ""}
-                  displayValue={getPreferredContactLabel(record.preferredContactMethod)}
-                  type="select"
-                  options={preferredContactOptions}
-                  editing={isEditing("preferredContactMethod")}
-                  error={isEditing("preferredContactMethod") ? fieldError : undefined}
-                  onRequestEdit={() => startEdit("preferredContactMethod")}
-                  onCancel={cancelEdit}
-                  onCommit={handleCommit}
-                />
-              </WorkspaceField>
-            </dl>
-          </WorkspaceSection>
-
-          <WorkspaceSection title="Denison Information">
-            <dl className="grid grid-cols-1 gap-x-6 gap-y-3.5 sm:grid-cols-2">
-              <WorkspaceField label="Class Year">
-                <PersonInlineField
-                  label="Class Year"
-                  field="classYear"
-                  value={record.classYear !== undefined ? String(record.classYear) : ""}
-                  displayValue={record.classYear !== undefined ? String(record.classYear) : undefined}
-                  type="number"
-                  editing={isEditing("classYear")}
-                  error={isEditing("classYear") ? fieldError : undefined}
-                  onRequestEdit={() => startEdit("classYear")}
-                  onCancel={cancelEdit}
-                  onCommit={handleCommit}
-                />
-              </WorkspaceField>
-              <WorkspaceField label="Major">
-                <PersonInlineField
-                  label="Major"
-                  field="major"
-                  value={record.major ?? ""}
-                  displayValue={record.major}
-                  editing={isEditing("major")}
-                  error={isEditing("major") ? fieldError : undefined}
-                  onRequestEdit={() => startEdit("major")}
-                  onCancel={cancelEdit}
-                  onCommit={handleCommit}
-                />
-              </WorkspaceField>
-              <WorkspaceField label="Minor">
-                <PersonInlineField
-                  label="Minor"
-                  field="minor"
-                  value={record.minor ?? ""}
-                  displayValue={record.minor}
-                  editing={isEditing("minor")}
-                  error={isEditing("minor") ? fieldError : undefined}
-                  onRequestEdit={() => startEdit("minor")}
-                  onCancel={cancelEdit}
-                  onCommit={handleCommit}
-                />
-              </WorkspaceField>
-              <InformationField
-                label="Denison ID"
-                value={record.denisonId ? formatDenisonIdDisplay(record.denisonId) : undefined}
-              />
-              <WorkspaceField label="Dorm">
-                <PersonInlineField
-                  label="Dorm"
-                  field="dorm"
-                  value={record.dorm ?? ""}
-                  displayValue={record.dorm}
-                  editing={isEditing("dorm")}
-                  error={isEditing("dorm") ? fieldError : undefined}
-                  onRequestEdit={() => startEdit("dorm")}
-                  onCancel={cancelEdit}
-                  onCommit={handleCommit}
-                />
-              </WorkspaceField>
-              <WorkspaceField label="Room">
-                <PersonInlineField
-                  label="Room"
-                  field="roomNumber"
-                  value={record.roomNumber ?? ""}
-                  displayValue={record.roomNumber}
-                  editing={isEditing("roomNumber")}
-                  error={isEditing("roomNumber") ? fieldError : undefined}
-                  onRequestEdit={() => startEdit("roomNumber")}
-                  onCancel={cancelEdit}
-                  onCommit={handleCommit}
-                />
-              </WorkspaceField>
-            </dl>
-          </WorkspaceSection>
-
-          <WorkspaceSection title="Tennis Information">
-            <dl className="grid grid-cols-1 gap-x-6 gap-y-3.5 sm:grid-cols-2">
-              <WorkspaceField label="UTR">
-                <PersonInlineField
-                  label="UTR"
-                  field="utr"
-                  value={record.utr !== undefined ? String(record.utr) : ""}
-                  displayValue={formatUtr(record.utr)}
-                  type="number"
-                  step={0.01}
-                  editing={isEditing("utr")}
-                  error={isEditing("utr") ? fieldError : undefined}
-                  onRequestEdit={() => startEdit("utr")}
-                  onCancel={cancelEdit}
-                  onCommit={handleCommit}
-                />
-              </WorkspaceField>
-              <WorkspaceField label="WTN">
-                <PersonInlineField
-                  label="WTN"
-                  field="wtn"
-                  value={record.wtn !== undefined ? String(record.wtn) : ""}
-                  displayValue={formatWtn(record.wtn)}
-                  type="number"
-                  step={0.01}
-                  editing={isEditing("wtn")}
-                  error={isEditing("wtn") ? fieldError : undefined}
-                  onRequestEdit={() => startEdit("wtn")}
-                  onCancel={cancelEdit}
-                  onCommit={handleCommit}
-                />
-              </WorkspaceField>
-              <WorkspaceField label="Dominant Hand">
-                <PersonInlineField
-                  label="Dominant Hand"
-                  field="dominantHand"
-                  value={record.dominantHand ?? ""}
-                  displayValue={record.dominantHand ? capitalize(record.dominantHand) : undefined}
-                  type="select"
-                  options={dominantHandOptions}
-                  editing={isEditing("dominantHand")}
-                  error={isEditing("dominantHand") ? fieldError : undefined}
-                  onRequestEdit={() => startEdit("dominantHand")}
-                  onCancel={cancelEdit}
-                  onCommit={handleCommit}
-                />
-              </WorkspaceField>
-              <WorkspaceField label="Height">
-                <PersonInlineField
-                  label="Height"
-                  field="heightInches"
-                  value={record.heightInches !== undefined ? String(record.heightInches) : ""}
-                  displayValue={formatHeight(record.heightInches)}
-                  type="number"
-                  editing={isEditing("heightInches")}
-                  error={isEditing("heightInches") ? fieldError : undefined}
-                  onRequestEdit={() => startEdit("heightInches")}
-                  onCancel={cancelEdit}
-                  onCommit={handleCommit}
-                />
-              </WorkspaceField>
-              <WorkspaceField label="Weight">
-                <PersonInlineField
-                  label="Weight"
-                  field="weightLbs"
-                  value={record.weightLbs !== undefined ? String(record.weightLbs) : ""}
-                  displayValue={formatWeight(record.weightLbs)}
-                  type="number"
-                  editing={isEditing("weightLbs")}
-                  error={isEditing("weightLbs") ? fieldError : undefined}
-                  onRequestEdit={() => startEdit("weightLbs")}
-                  onCancel={cancelEdit}
-                  onCommit={handleCommit}
-                />
-              </WorkspaceField>
-            </dl>
-          </WorkspaceSection>
-
-          <WorkspaceSection title="Address">
-            <dl className="grid grid-cols-1 gap-x-6 gap-y-3.5 sm:grid-cols-2">
-              <WorkspaceField label="Street" className="sm:col-span-2">
-                <PersonInlineField
-                  label="Street"
-                  field="addressLine1"
-                  value={record.addressLine1 ?? ""}
-                  displayValue={record.addressLine1}
-                  editing={isEditing("addressLine1")}
-                  error={isEditing("addressLine1") ? fieldError : undefined}
-                  onRequestEdit={() => startEdit("addressLine1")}
-                  onCancel={cancelEdit}
-                  onCommit={handleCommit}
-                />
-              </WorkspaceField>
-              <WorkspaceField label="City">
-                <PersonInlineField
-                  label="City"
-                  field="city"
-                  value={record.city ?? ""}
-                  displayValue={record.city}
-                  editing={isEditing("city")}
-                  error={isEditing("city") ? fieldError : undefined}
-                  onRequestEdit={() => startEdit("city")}
-                  onCancel={cancelEdit}
-                  onCommit={handleCommit}
-                />
-              </WorkspaceField>
-              <WorkspaceField label="State">
-                <PersonInlineField
-                  label="State"
-                  field="state"
-                  value={record.state ?? ""}
-                  displayValue={record.state}
-                  editing={isEditing("state")}
-                  error={isEditing("state") ? fieldError : undefined}
-                  onRequestEdit={() => startEdit("state")}
-                  onCancel={cancelEdit}
-                  onCommit={handleCommit}
-                />
-              </WorkspaceField>
-              <WorkspaceField label="Zip">
-                <PersonInlineField
-                  label="Zip"
-                  field="zipCode"
-                  value={record.zipCode ?? ""}
-                  displayValue={record.zipCode}
-                  editing={isEditing("zipCode")}
-                  error={isEditing("zipCode") ? fieldError : undefined}
-                  onRequestEdit={() => startEdit("zipCode")}
-                  onCancel={cancelEdit}
-                  onCommit={handleCommit}
-                />
-              </WorkspaceField>
-              <WorkspaceField label="Country">
-                <PersonInlineField
-                  label="Country"
-                  field="country"
-                  value={record.country ?? ""}
-                  displayValue={record.country}
-                  editing={isEditing("country")}
-                  error={isEditing("country") ? fieldError : undefined}
-                  onRequestEdit={() => startEdit("country")}
-                  onCancel={cancelEdit}
-                  onCommit={handleCommit}
-                />
-              </WorkspaceField>
-            </dl>
-          </WorkspaceSection>
-
-          <div id="workspace-notes">
-          <WorkspaceSection title="Notes">
-            <dl>
-              <WorkspaceField label="Notes" className="sm:col-span-2">
-                <PersonInlineField
-                  label="Notes"
-                  field="notes"
-                  value={record.notes ?? ""}
-                  displayValue={record.notes}
-                  type="textarea"
-                  editing={isEditing("notes")}
-                  error={isEditing("notes") ? fieldError : undefined}
-                  onRequestEdit={() => startEdit("notes")}
-                  onCancel={cancelEdit}
-                  onCommit={handleCommit}
-                />
-              </WorkspaceField>
-            </dl>
-          </WorkspaceSection>
-          </div>
+      {/*
+        BP-035D — Section title sits above both panes so the Workspace list and
+        Adaptive Workspace share the same top edge (no per-pane top offset).
+      */}
+      <section aria-label="Workspaces">
+        <h2 className={typeRole.sectionTitle}>Workspaces</h2>
+        <div className="mt-2.5 grid gap-5 lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)] lg:items-start">
+          <WorkspaceNavigation
+            showTitle={false}
+            items={workspaceItems}
+            activeId={activeWorkspaceId}
+            onSelect={setActiveWorkspaceId}
+          />
+          <AdaptiveWorkspace
+            activeId={activeWorkspaceId}
+            workspaces={adaptiveWorkspaces}
+          />
         </div>
-
-        <div className="flex flex-col gap-5">
-          <WorkspaceSection title="Family & Contacts">
-            {familyContacts.length > 0 ? (
-              <div className="flex flex-col gap-3">
-                {familyContacts.map((contact) => (
-                  <FamilyContactCard key={contact.id} contact={contact} />
-                ))}
-              </div>
-            ) : (
-              <EmptyState
-                compact
-                title="No family contacts"
-                description="Related people will appear here when linked."
-              />
-            )}
-          </WorkspaceSection>
-
-          <WorkspaceSection title="More to come">
-            <ul className="flex flex-col gap-1.5">
-              {comingLaterModules.map((module) => (
-                <li
-                  key={module.label}
-                  className="flex items-center gap-2.5 rounded-control px-1 py-1.5 text-sm text-text-secondary/70"
-                >
-                  <module.icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
-                  <span>{module.label}</span>
-                </li>
-              ))}
-            </ul>
-          </WorkspaceSection>
-        </div>
-      </div>
+      </section>
     </div>
-  );
-}
-
-function PersonInlineField({
-  label,
-  field,
-  value,
-  displayValue,
-  type,
-  options,
-  step,
-  editing,
-  error,
-  renderDisplay,
-  onRequestEdit,
-  onCancel,
-  onCommit,
-}: {
-  label: string;
-  field: EditableField;
-  value: string;
-  displayValue?: string;
-  type?: InlineFieldType;
-  options?: InlineSelectOption[];
-  step?: number;
-  editing: boolean;
-  error?: string;
-  renderDisplay?: ReactNode;
-  onRequestEdit: () => void;
-  onCancel: () => void;
-  onCommit: (field: EditableField, raw: string, reason: InlineCommitReason) => void | Promise<void>;
-}) {
-  return (
-    <InlineEditCell
-      label={label}
-      value={value}
-      displayValue={displayValue}
-      renderDisplay={renderDisplay}
-      type={type}
-      options={options}
-      step={step}
-      editing={editing}
-      error={error}
-      onRequestEdit={onRequestEdit}
-      onCancel={onCancel}
-      onCommit={(raw, reason) => onCommit(field, raw, reason)}
-    />
   );
 }

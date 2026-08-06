@@ -308,6 +308,106 @@ build on this baseline without relaxing these rules.
 - Overview placeholders use “Coming soon” / “No data” where domains are missing.
 - Status / Role / Player Status inline edits preserved via header slots.
 
+## BP-031D — Communication Timeline
+
+- Shared `CommunicationTimeline` in `src/components/communication/`.
+- Person-agnostic (players, recruits, coaches, alumni); no invented rows.
+- Empty state until a real communication domain exists; Add Communication is a placeholder until create is implemented.
+
+## BP-031E — Executive Person Header
+
+- Approved baseline: left / center / right identity row, six-metric Executive
+  Overview cards in the header, plus standalone Player Snapshot + Tennis
+  Performance panels below (shared `OverviewPanel`).
+- Terminology only: Executive Snapshot → Executive Overview; Tennis Snapshot →
+  Tennis Performance. Layout/spacing/typography are frozen unless a prompt
+  explicitly authorizes a UI change.
+- Missing domains use “Coming soon”; missing known values use “No data”.
+  Schedule action is a placeholder. Status / role / player-status slots remain.
+
+## BP-031F — Recent Activity Panel
+
+- Shared `RecentActivity` in `src/components/activity/` is a full-width
+  workspace section below Executive Overview and above Player Snapshot /
+  Tennis Performance — not inside the Person Header.
+- Person Header stays identity-focused; header whitespace is intentionally
+  reserved for future high-value features.
+- Placeholder rows keep the feed alive until a real activity domain exists.
+- Reusable for players, recruits, coaches, and alumni.
+
+## BP-031G — Header Polish
+
+- Inline UTR/WTN removed from identity facts (remain in Executive Overview only).
+- Person Header no longer duplicates Call / Text / Email / Add Note / Schedule;
+  the page-level sticky toolbar is the single action source for Person Workspaces.
+
+## BP-035D — Adaptive Workspace Top Alignment
+
+- Shared **Workspaces** section title sits above the two-column layout.
+- Workspace list pane and Adaptive Workspace pane share the same top edge
+  (no heading offset on the left column alone).
+- Adaptive Workspace header vertical padding matched to nav row padding so the
+  module title lines up with the first workspace row.
+- No architecture / navigation / behavior changes.
+
+## BP-035C — Adaptive Workspace Framework
+
+- Primary module surfaces are **Adaptive Workspaces**, not drawers.
+  Shared shell: `src/components/adaptive-workspace/` (`AdaptiveWorkspace`,
+  header, placeholder). Workspace list is navigation only.
+- Person page permanence: Header, Executive Overview, Tennis Performance stay
+  fixed; only the Adaptive Workspace panel swaps (≈150–200ms crossfade).
+- Selecting Communication / Contact / Academics / Family / Travel / Documents /
+  Denison does **not** open a drawer or change routes — placeholder content only.
+- Drawers remain available for future focused edits inside a workspace; they are
+  not the home for whole modules.
+- Supersedes BP-035A/B drawer-from-row interaction for module selection.
+
+## BP-035B — Workspace Navigation Polish
+
+- Denser rows (~25–30% less vertical padding), softer dividers, larger icons.
+- Clearer click affordance: pointer cursor, subtle hover tint, keyboard focus.
+- Natural status language (status over counts); coach-workflow row order:
+  Communication → Contact → Academics → Family → Travel → Documents → Denison.
+- Architecture, routing, and drawer behavior unchanged (BP-035A shell).
+  Module selection interaction superseded by BP-035C.
+
+## BP-035A — Workspace Navigation Panel
+
+- Person Workspace module list uses reusable `WorkspaceNavigation`
+  (`src/components/workspace-navigation/`) — compact settings-style rows under
+  a single **Workspaces** section, not a grid of large summary cards.
+- Row click opens the existing Drawer Manager / WorkspaceDrawer (placeholders only).
+- Module-agnostic item model (`WorkspaceNavItem`) for Players, Recruits, Coaches,
+  Alumni, Staff, Operations, Research later.
+- Header, Executive Overview, Tennis Performance, routing, and drawer behavior
+  unchanged.
+
+## BP-034A — Workspace Interaction Framework + Summary Card Architecture
+
+- Shared drawer UI lives in `src/components/workspace-drawer/`:
+  `WorkspaceDrawer`, `DrawerHeader`, `DrawerBody`, `DrawerFooter`,
+  `DrawerOverlay`, plus centralized `DrawerManagerProvider`.
+- Pages open work via `openDrawer` / `closeDrawer` / `replaceDrawer` — they do
+  not mount independent drawer state.
+- Desktop: right panel (~480px). Mobile: full-screen slide-up. ESC, overlay,
+  and close control dismiss; sticky footer stays visible.
+- **Revised:** Person Workspace is the blueprint workspace. Keep Header,
+  Executive Overview, and Tennis Performance on the page. Large detail sections
+  move off-page into drawers. BP-035A supersedes the summary-card grid with
+  `WorkspaceNavigation` rows.
+- Temporary toolbar “Add Note” demo removed in favor of workspace opens.
+- Follows `docs/INTERACTION_MODEL.md` (summary on page, detail in drawer).
+
+## BP-032A — Communication Engine Foundation
+
+- Domain lives in `src/features/communication/` (types, mock service, action map,
+  hooks, utils). Person-agnostic; no player-specific branching.
+- UI (`CommunicationTimeline`, Recent Activity) consumes typed mock
+  `Communication` objects — no persistence or integrations yet.
+- Toolbar Call / Text / Email resolve through `createCommunicationActions`
+  (same href UX today; `execute` reserved for later).
+
 ## BP-027 — Global Data Formatting Standards
 
 - Shared presentation helpers live in `src/lib/formatting`.

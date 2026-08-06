@@ -43,3 +43,15 @@ body {
   color: var(--color-text-primary);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
+
+/* BP-035C — Adaptive Workspace enter (short crossfade / slide). */
+@keyframes adaptive-workspace-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

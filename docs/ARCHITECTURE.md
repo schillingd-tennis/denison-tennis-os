@@ -539,6 +539,8 @@ Intended testing levels (not added in this sprint):
 ## 19. Development Rules
 
 - Reference `NORTH_STAR.md` before major architecture changes.
+- Reference [`INTERACTION_MODEL.md`](./INTERACTION_MODEL.md) before adding
+  navigation, drawers, modals, or new workspace surfaces (BP-033).
 - Do not allow pages to call Airtable or Coda directly.
 - Do not duplicate domain records.
 - Do not embed parents inside player records.
