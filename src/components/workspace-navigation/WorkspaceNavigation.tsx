@@ -5,32 +5,44 @@ import { typeRole } from "@/components/typography";
 import type { WorkspaceNavItem } from "./types";
 
 /**
- * BP-035A / BP-035C / BP-035D — Compact workspace navigation panel.
+ * BP-035A / BP-035C / BP-035D / BP-036D — Compact workspace navigation panel.
  *
  * Settings-style rows select the Adaptive Workspace. Not a drawer launcher.
  * Reusable across Person, Recruiting, Operations, Research, and future modules.
  *
  * When `showTitle` is false, only the list pane renders so a parent can place
- * the section title above a two-column layout (nav + Adaptive Workspace).
+ * the section title in a desktop split shell (BP-036D).
+ *
+ * When `framed` is false, omit the standalone card chrome — used inside a
+ * permanent two-pane Adaptive Workspace split.
  */
 export default function WorkspaceNavigation({
   title = "Workspaces",
   showTitle = true,
+  framed = true,
   items,
   activeId = null,
   onSelect,
   className,
 }: {
   title?: string;
-  /** When false, omit the section heading so pane tops can align with a sibling. */
+  /** When false, omit the section heading so a parent can own the pane title. */
   showTitle?: boolean;
+  /** When false, render the list without its own card border (split layout). */
+  framed?: boolean;
   items: WorkspaceNavItem[];
   activeId?: string | null;
   onSelect: (id: string) => void;
   className?: string;
 }) {
   const list = (
-    <div className="overflow-hidden rounded-card border border-border/70 bg-surface">
+    <div
+      className={
+        framed
+          ? "overflow-hidden rounded-card border border-border/70 bg-surface"
+          : undefined
+      }
+    >
       <ul className="divide-y divide-border/35" role="listbox" aria-label={title}>
         {items.map((item) => {
           const Icon = item.icon;

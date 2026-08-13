@@ -1,0 +1,31 @@
+---
+description: Core project operating rules for every milestone
+alwaysApply: true
+---
+
+# Project Operating Rules
+
+Unless a milestone explicitly overrides these:
+
+1. **Desktop First** — Optimize for large monitors. Favor persistent context,
+   split panes, information density, and desktop workflows over mobile-first layouts.
+
+2. **UI Freeze** — Approved layouts are frozen. Do not modify layouts, spacing,
+   typography, navigation, component hierarchy, card sizing, or Adaptive
+   Workspace behavior unless the milestone explicitly authorizes UI changes.
+   See also `design-freeze.mdc`.
+
+3. **Scope Discipline** — Implement only the requested feature. No adjacent
+   redesigns or unrelated improvements.
+
+4. **Single Source of Truth** — Fields, components, and business logic exist
+   once. Workspaces, tables, exports, forms, AI, filters, and reports consume
+   centralized Person field definitions (`src/features/people/fieldCatalog.ts`).
+
+5. **Preserve Context** — Change the active workspace, not the page. The user
+   should not feel they left the current record.
+
+6. **Ask Before Redesign** — If a milestone requires changing an approved UI
+   layout and does not explicitly authorize UI work, stop and ask first.
+
+7. **No Commit** — Do not commit until explicitly approved.

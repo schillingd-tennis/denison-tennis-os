@@ -1,0 +1,31 @@
+---
+description: Design Freeze — approved Git commits are canonical UI (BP-036C)
+alwaysApply: true
+---
+
+# Design Freeze
+
+Once a UI milestone has been approved and committed, that Git commit becomes
+the canonical design reference.
+
+**Current Adaptive Workspace / Person Workspace baseline:** `32fd0f8`
+(“Adaptive Workspace foundation and Person Workspace UI polish”), as amended
+by explicit UI milestones (currently **BP-036D** — permanent desktop split:
+nav left + active workspace right).
+
+## Rules
+
+- Future milestones may **NOT** modify approved layouts unless the milestone
+  explicitly authorizes UI work.
+- Any unrelated UI modification is a **regression** — revert it to the
+  approved commit for those files.
+- Do not reinterpret, modernize, or “improve” frozen layouts during data-model,
+  backend, or non-UI milestones.
+- When restoring UI, prefer restoring exact file contents from the canonical
+  commit rather than re-implementing from memory.
+
+## Scope (Person Workspace)
+
+Frozen surfaces include Workspace Navigation, Adaptive Workspace panel,
+workspace switching, Executive Overview layout, Tennis Performance layout,
+and related sizing / positioning / spacing / typography.

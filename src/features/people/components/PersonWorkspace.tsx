@@ -60,6 +60,7 @@ import { useRoles, useStatuses } from "@/features/lookups/useLookups";
 import { updatePersonAction } from "@/features/people/actions";
 import type { FamilyContact } from "@/features/people/family";
 import { TEAM_FOUND_SET_MODULE_KEY } from "@/features/people/foundSet";
+import { toPersonWritePatch } from "@/features/people/personWritePatch";
 import type { Person, PlayerStatus } from "@/features/people/types";
 import {
   getDisplayName,
@@ -73,6 +74,7 @@ import {
 import { formatDate, parseDisplayDate } from "@/lib/formatting";
 
 import PersonStatusLabel from "./PersonStatusLabel";
+import TravelWorkspace from "./TravelWorkspace";
 
 function favoriteObjectTypeForPerson(person: Person): SearchObjectType {
   if (hasRole(person, ROLE_KEYS.coach)) return "coaches";
@@ -325,7 +327,7 @@ export default function PersonWorkspace({
       else setEditing(null);
 
       const ok = await runSave(async () => {
-        const result = await updatePersonAction(record.id, patch);
+        const result = await updatePersonAction(record.id, toPersonWritePatch(patch));
         if (!result.success) {
           throw new Error(result.error);
         }
@@ -529,7 +531,11 @@ export default function PersonWorkspace({
         title: "Travel",
         subtitle: displayName,
         content: (
-          <AdaptiveWorkspacePlaceholder message="Travel workspace coming soon." />
+          <TravelWorkspace
+            person={record}
+            onPersonChange={setRecord}
+            runSave={runSave}
+          />
         ),
       },
       {
@@ -549,7 +555,7 @@ export default function PersonWorkspace({
         ),
       },
     ];
-  }, [displayName]);
+  }, [displayName, record, runSave]);
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
@@ -707,19 +713,28 @@ export default function PersonWorkspace({
       <OverviewPanel person={record} />
 
       {/*
-        BP-035D — Section title sits above both panes so the Workspace list and
-        Adaptive Workspace share the same top edge (no per-pane top offset).
+        BP-036D — Permanent desktop split: Workspace Navigation (left) +
+        Active Workspace (right). Always side-by-side; selection updates only
+        the right pane. Not stacked, not drawers, not accordions.
       */}
       <section aria-label="Workspaces">
-        <h2 className={typeRole.sectionTitle}>Workspaces</h2>
-        <div className="mt-2.5 grid gap-5 lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)] lg:items-start">
-          <WorkspaceNavigation
-            showTitle={false}
-            items={workspaceItems}
-            activeId={activeWorkspaceId}
-            onSelect={setActiveWorkspaceId}
-          />
+        <div className="grid min-h-[420px] grid-cols-[minmax(260px,320px)_minmax(0,1fr)] items-stretch overflow-hidden rounded-card border border-border/70 bg-surface">
+          <aside className="flex min-h-0 flex-col border-r border-border/50">
+            <div className="shrink-0 border-b border-border/50 px-3.5 py-2">
+              <h2 className={typeRole.sectionTitle}>Workspaces</h2>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <WorkspaceNavigation
+                showTitle={false}
+                framed={false}
+                items={workspaceItems}
+                activeId={activeWorkspaceId}
+                onSelect={setActiveWorkspaceId}
+              />
+            </div>
+          </aside>
           <AdaptiveWorkspace
+            framed={false}
             activeId={activeWorkspaceId}
             workspaces={adaptiveWorkspaces}
           />

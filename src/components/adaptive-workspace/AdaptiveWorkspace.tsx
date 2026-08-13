@@ -6,27 +6,34 @@ import AdaptiveWorkspaceHeader from "./AdaptiveWorkspaceHeader";
 import type { AdaptiveWorkspaceDefinition } from "./types";
 
 /**
- * BP-035C — Permanent Adaptive Workspace container.
+ * BP-035C / BP-036D — Permanent Adaptive Workspace container (right pane).
  *
  * The surrounding page (header, executive overview, performance) stays put.
  * Only this surface swaps module content with a short enter animation.
+ *
+ * When `framed` is false, omit standalone card chrome so a parent split shell
+ * can own the border (desktop two-pane layout).
  */
 export default function AdaptiveWorkspace({
   activeId,
   workspaces,
   emptyLabel = "Select a workspace to begin.",
+  framed = true,
   className,
 }: {
   activeId: string | null;
   workspaces: AdaptiveWorkspaceDefinition[];
   emptyLabel?: string;
+  framed?: boolean;
   className?: string;
 }) {
   const active = workspaces.find((workspace) => workspace.id === activeId) ?? null;
 
   return (
     <section
-      className={`flex min-h-[280px] flex-col overflow-hidden rounded-card border border-border/70 bg-surface ${className ?? ""}`}
+      className={`flex h-full min-h-[280px] flex-col overflow-hidden ${
+        framed ? "rounded-card border border-border/70 bg-surface" : "bg-surface"
+      } ${className ?? ""}`}
       aria-label="Adaptive workspace"
       aria-live="polite"
     >
