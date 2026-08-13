@@ -188,7 +188,14 @@ function noteStatusLine(communications: Communication[]): string {
  * Person Workspace — executive dashboard + Adaptive Workspace (BP-035C).
  * Header / overview / performance stay fixed; only the workspace surface changes.
  */
-export default function PersonWorkspace({ person }: { person: Person }) {
+export default function PersonWorkspace({
+  person,
+  fromPlayerId,
+}: {
+  person: Person;
+  /** Originating player id when opened from a player's Family workspace (`?fromPlayer=`). */
+  fromPlayerId?: string;
+}) {
   const [record, setRecord] = useState(person);
   const [trackedPerson, setTrackedPerson] = useState(person);
   const [editing, setEditing] = useState<HeaderEditableField | null>(null);
@@ -273,13 +280,20 @@ export default function PersonWorkspace({ person }: { person: Person }) {
     };
   }, [familyPerson, record.id]);
 
-  const email = record.denisonEmail ?? record.personalEmail;
+  // Family Persons use personal email only (not Denison student email).
+  const email = familyPerson
+    ? record.personalEmail
+    : (record.denisonEmail ?? record.personalEmail);
   const communications = usePersonCommunications(record.id);
   const communicationActions = createCommunicationActions({
     personId: record.id,
     cellPhone: record.cellPhone,
     email,
   });
+  const backToPlayer =
+    familyPerson && fromPlayerId
+      ? { href: `/team/${fromPlayerId}`, label: "Back to Player" as const }
+      : { href: "/team", label: "Back to Team" as const };
 
   const moveEditing = useCallback(
     (from: HeaderEditableField, direction: "next" | "prev") => {
@@ -442,7 +456,9 @@ export default function PersonWorkspace({ person }: { person: Person }) {
   const workspaceItems = useMemo((): WorkspaceNavItem[] => {
     const latest = communications[0];
     const hasPhone = Boolean(record.cellPhone);
-    const hasEmail = Boolean(record.personalEmail || record.denisonEmail);
+    const hasEmail = familyPerson
+      ? Boolean(record.personalEmail)
+      : Boolean(record.personalEmail || record.denisonEmail);
     const preferred = getPreferredContactLabel(record.preferredContactMethod);
     const parentCount = familySummary.parentCount;
     const hasEmergency = familySummary.hasEmergencyContact;
@@ -641,6 +657,8 @@ export default function PersonWorkspace({ person }: { person: Person }) {
           <FamilyWorkspace
             key={record.id}
             player={record}
+            onPersonChange={setRecord}
+            runSave={runSave}
             onSummaryChange={setFamilySummary}
           />
         ),
@@ -668,11 +686,11 @@ export default function PersonWorkspace({ person }: { person: Person }) {
         leading={
           <>
             <Link
-              href="/team"
+              href={backToPlayer.href}
               className="inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-text-secondary transition-colors duration-150 hover:text-text-primary"
             >
               <ArrowLeft className="h-4 w-4" strokeWidth={1.75} />
-              Back to Team
+              {backToPlayer.label}
             </Link>
             <SaveIndicator status={saveStatus} error={saveError} />
             {copyFeedback ? (

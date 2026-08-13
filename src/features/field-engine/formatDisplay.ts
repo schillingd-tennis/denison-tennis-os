@@ -70,6 +70,10 @@ export function formatFieldDisplay(def: FieldDefinition, value: unknown): string
         value === undefined || value === null || value === "" ? undefined : String(value),
       );
     case "longText":
+      if (value === undefined || value === null || value === "") {
+        return def.placeholder ?? EMPTY_VALUE;
+      }
+      return String(value);
     case "text":
     case "phone":
     case "email":

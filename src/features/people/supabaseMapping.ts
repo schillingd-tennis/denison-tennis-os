@@ -70,6 +70,7 @@ export type ProductionPersonRow = {
   seat_preference: string | null;
   relationships: PersonRelationship[] | null;
   notes: string | null;
+  family_notes: string | null;
 };
 
 function undefinedIfNull<T>(value: T | null): T | undefined {
@@ -156,6 +157,7 @@ export function rowToPerson(row: ProductionPersonRow): Person {
     relationships: row.relationships ?? [],
 
     notes: undefinedIfNull(row.notes),
+    familyNotes: undefinedIfNull(row.family_notes),
   };
 }
 

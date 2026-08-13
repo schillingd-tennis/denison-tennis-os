@@ -8,6 +8,7 @@ import OpenPersonAction from "@/components/OpenPersonAction";
 import QuickActionButton from "@/components/QuickActionButton";
 import { typeClass, typeRole } from "@/components/typography";
 import { useDrawerManager } from "@/components/workspace-drawer";
+import { FieldRenderer, PersonFieldSession } from "@/features/field-engine";
 import {
   createParentForPlayerAction,
   linkPersonAsParentAction,
@@ -411,7 +412,11 @@ function ParentRow({
           ) : null}
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
-          <OpenPersonAction href={`/team/${person.id}`} label="Open Parent" />
+          <OpenPersonAction
+            href={`/team/${person.id}`}
+            label="Open Parent"
+            fromPlayerId={playerId}
+          />
           <QuickActionButton
             onAction={removing ? undefined : () => void handleRemove()}
             icon={Trash2}
@@ -427,14 +432,19 @@ function ParentRow({
 }
 
 /**
- * Family Adaptive Workspace body (B2C) — Player → Parents / Guardians.
+ * Family Adaptive Workspace body (B2C) — Player → Parents / Guardians + Family Notes.
  * Shell stays in PersonWorkspace; Add Parent uses DrawerManager.
+ * Family Notes persist on the Player (`familyNotes`), not on parent Person.notes.
  */
 export default function FamilyWorkspace({
   player,
+  onPersonChange,
+  runSave,
   onSummaryChange,
 }: {
   player: Person;
+  onPersonChange: (person: Person) => void;
+  runSave: (fn: () => Promise<void>) => Promise<boolean>;
   onSummaryChange: (summary: FamilyWorkspaceSummary) => void;
 }) {
   const { openDrawer, closeDrawer } = useDrawerManager();
@@ -495,45 +505,59 @@ export default function FamilyWorkspace({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h3 className={typeRole.sectionTitle}>Parents / Guardians</h3>
-          <p className={`mt-1 ${typeRole.metadata}`}>
-            People related to this player through family relationships.
-          </p>
-        </div>
-        <button type="button" className={primaryButtonClass} onClick={openAddParentDrawer}>
-          + Add Parent
-        </button>
-      </div>
-
-      {rows === null ? (
-        <p className={typeRole.metadata}>Loading family…</p>
-      ) : loadError ? (
-        <p className="text-sm text-danger">{loadError}</p>
-      ) : rows.length === 0 ? (
-        <div className="flex flex-col items-start gap-4 rounded-control border border-dashed border-border px-5 py-8">
-          <p className={typeRole.metadata}>
-            No parents or guardians are connected yet. Add a parent to keep family
-            contacts on this player&apos;s record.
-          </p>
+    <PersonFieldSession
+      person={player}
+      onPersonChange={onPersonChange}
+      runSave={runSave}
+      fields={["familyNotes"]}
+    >
+      <div className="space-y-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className={typeRole.sectionTitle}>Parents / Guardians</h3>
+            <p className={`mt-1 ${typeRole.metadata}`}>
+              People related to this player through family relationships.
+            </p>
+          </div>
           <button type="button" className={primaryButtonClass} onClick={openAddParentDrawer}>
             + Add Parent
           </button>
         </div>
-      ) : (
-        <div className="max-w-xl divide-y divide-border/60 border-y border-border/60">
-          {rows.map((row) => (
-            <ParentRow
-              key={row.relationship.id}
-              row={row}
-              playerId={player.id}
-              onRemoved={() => void refresh()}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+
+        {rows === null ? (
+          <p className={typeRole.metadata}>Loading family…</p>
+        ) : loadError ? (
+          <p className="text-sm text-danger">{loadError}</p>
+        ) : rows.length === 0 ? (
+          <div className="flex flex-col items-start gap-4 rounded-control border border-dashed border-border px-5 py-8">
+            <p className={typeRole.metadata}>
+              No parents or guardians are connected yet. Add a parent to keep family
+              contacts on this player&apos;s record.
+            </p>
+            <button type="button" className={primaryButtonClass} onClick={openAddParentDrawer}>
+              + Add Parent
+            </button>
+          </div>
+        ) : (
+          <div className="max-w-xl divide-y divide-border/60 border-y border-border/60">
+            {rows.map((row) => (
+              <ParentRow
+                key={row.relationship.id}
+                row={row}
+                playerId={player.id}
+                onRemoved={() => void refresh()}
+              />
+            ))}
+          </div>
+        )}
+
+        <section aria-label="Notes">
+          <h3 className={typeRole.sectionTitle}>Notes</h3>
+          <div className="mt-3 max-w-xl min-h-[5.5rem]">
+            <FieldRenderer field="familyNotes" align="left" />
+          </div>
+        </section>
+      </div>
+    </PersonFieldSession>
   );
 }

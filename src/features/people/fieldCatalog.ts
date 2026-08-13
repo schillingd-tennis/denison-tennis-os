@@ -34,7 +34,7 @@ export type PersonFieldSection =
   | "notes";
 
 /** Adaptive Workspace ids that may include a field (membership, not layout). */
-export type PersonWorkspaceId = "travel" | "contact";
+export type PersonWorkspaceId = "travel" | "contact" | "family";
 
 /**
  * Grouping within a workspace. Titles/layout live in the workspace component;
@@ -47,7 +47,9 @@ export type PersonWorkspaceGroupId =
   | "travel.government"
   | "contact.email"
   | "contact.phone"
-  | "contact.preferences";
+  | "contact.preferences"
+  | "contact.notes"
+  | "family.notes";
 
 export type PersonFieldEnumOption<T extends string = string> = {
   value: T;
@@ -663,7 +665,7 @@ export const PERSON_FIELD_CATALOG: readonly PersonFieldDefinition[] = [
     dbColumn: "relationships",
   },
 
-  // Notes
+  // Notes — Person.notes; Contact workspace shows for Family Persons (view filters).
   {
     key: "notes",
     label: "Notes",
@@ -672,6 +674,26 @@ export const PERSON_FIELD_CATALOG: readonly PersonFieldDefinition[] = [
     editable: true,
     exportable: true,
     dbColumn: "notes",
+    workspaces: ["contact"],
+    workspaceGroup: "contact.notes",
+    workspaceOrder: 10,
+  },
+
+  // Player Family Notes — family-context notes on the Player (not parent Person.notes).
+  {
+    key: "familyNotes",
+    label: "Notes",
+    section: "notes",
+    type: "longText",
+    editable: true,
+    exportable: true,
+    dbColumn: "family_notes",
+    placeholder: "No family notes yet",
+    description:
+      "Family-context notes for this player (siblings, dynamics, recruiting observations).",
+    workspaces: ["family"],
+    workspaceGroup: "family.notes",
+    workspaceOrder: 10,
   },
 ] as const;
 

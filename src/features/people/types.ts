@@ -115,6 +115,11 @@ export type Person = {
   // Notes
   /** Free-text operational notes. Edited via the Universal Person Editor (BP-013). */
   notes?: string;
+  /**
+   * Player-level Family workspace notes (siblings, dynamics, recruiting context).
+   * Distinct from `notes` (individual / parent Contact Information notes).
+   */
+  familyNotes?: string;
 };
 
 /**
