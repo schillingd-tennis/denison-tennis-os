@@ -6,13 +6,21 @@ coaches, alumni, and future staff). The left navigation still labels this
 surface **Team** and routes remain `/team` — People is the internal domain
 name (BP-021).
 
-Source of truth in code: `src/features/people/types.ts` (shape) and
-`src/features/people/data.ts` (seed/import records). Runtime reads come from
-Supabase `production_people` via `src/features/people/repository.ts`.
+Source of truth in code: `src/features/people/types.ts` (shape),
+`src/features/people/fieldCatalog.ts` (field metadata — labels, sections,
+sensitivity, enums; BP-036A), and `src/features/people/data.ts`
+(seed/import records). Runtime reads come from Supabase `production_people`
+via `src/features/people/repository.ts`.
+
+Modules must consume the field catalog rather than defining their own copies
+of Person fields (Adaptive Workspaces, spreadsheet views, column pickers,
+exports, filters, search, AI, forms). Spreadsheet / CSV / saved-view
+architecture: [`SPREADSHEET_ENGINE.md`](./SPREADSHEET_ENGINE.md) (BP-038A) —
+columns resolve only from this catalog.
 
 ## The Person object
 
-A `Person` is organized into seven groups of fields:
+A `Person` is organized into these groups of fields:
 
 ### System
 | Field | Type | Notes |
@@ -24,15 +32,21 @@ A `Person` is organized into seven groups of fields:
 ### Identity
 | Field | Type | Notes |
 |---|---|---|
-| `status` | `"current" \| "alumni"` | Coarse program lifecycle (on roster vs graduated). **Not** used to represent coach/staff role — see `roles`. |
-| `roles` | `PersonRole[]` | What the person *is*: `player`, `coach`, `alumni`, `staff`, `recruit`. Multi-valued so one Person can be e.g. alumni + coach without a duplicate record. Future roles (`parent`, `donor`) attach here too — never a parallel person record. |
+| `roleId` / `role` | lookup FK + joined ref | What the person *is* (player, coach, …). See lookups (BP-025A). |
+| `statusId` / `status` | lookup FK + joined ref | Coarse program lifecycle. |
 | `title` | `string?` | Job / coaching title when applicable (e.g. `Head Coach`). |
+| `fullLegalName` | `string?` | Legal name as on travel documents (BP-036A). |
 | `firstName` | `string` | Legal/given first name. |
 | `middleName` | `string?` | Legal middle name, if on file. |
+| `middleInitial` | `string?` | Middle initial; at most one character preferred (BP-036A). |
 | `lastName` | `string` | Legal last name. |
 | `preferredName` | `string?` | What the person goes by day-to-day, if different from `firstName`. |
-| `dateOfBirth` | `string?` | ISO date. |
 | `photoUrl` | `string?` | Optional headshot. Falls back to initials when absent. |
+
+### Personal Information
+| Field | Type | Notes |
+|---|---|---|
+| `dateOfBirth` | `string?` | ISO date. Canonical biographical DOB on the Person record — do not duplicate elsewhere (BP-036A). |
 
 ### Contact
 | Field | Type |
@@ -71,6 +85,19 @@ A `Person` is organized into seven groups of fields:
 | `heightInches` | `number?` | Total height in inches; formatted as feet/inches for display (e.g. `73` → `6'1"`). |
 | `weightLbs` | `number?` | Weight in pounds. |
 | `playerStatus` | `"active" \| "injured" \| "inactive" \| "graduated"` (optional) | See below. |
+
+### Travel
+Travel-identity fields live once on the Person record (BP-036A / BP-036E). The
+Travel Workspace, spreadsheet views, forms, and exports consume these later —
+they must not invent parallel copies.
+
+| Field | Type | Notes |
+|---|---|---|
+| `socialSecurityNumber` | `string?` | Catalog type `secureText`, `sensitive: true`. Keep out of directory / casual list surfaces. |
+| `tsaKnownTravelerNumber` | `string?` | TSA Known Traveler Number. |
+| `passportNumber` | `string?` | Catalog type `secureText`, `sensitive: true` (BP-036E). |
+| `passportExpirationDate` | `string?` | ISO date. |
+| `seatPreference` | `SeatPreference?` | `window` \| `aisle` \| `middle` \| `exit_row` \| `bulkhead` \| `no_preference`. |
 
 ### Relationships
 | Field | Type | Notes |

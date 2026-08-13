@@ -50,12 +50,14 @@ All profile fields in `IMPORTED_ONCE_COLUMNS` / `OS_MANAGED_COLUMNS`, including:
 
 | Domain | DB / future store |
 |---|---|
-| Identity | `first_name`, `middle_name`, `last_name`, `preferred_name`, `date_of_birth`, `photo_url` |
+| Identity | `full_legal_name`, `first_name`, `middle_name`, `middle_initial`, `last_name`, `preferred_name`, `photo_url` |
+| Personal Information | `date_of_birth` |
 | Role / lifecycle | `role_id`, `title`, `status_id`, `player_status` |
 | Contact | `cell_phone`, `personal_email`, `denison_email`, `preferred_contact_method` |
 | Hometown / address | `city`, `state`, `country`, `address_line1/2`, `zip_code` |
 | Denison | `class_year`, `major`, `minor`, `denison_id`, `dorm`, `room_number` |
 | Tennis | `utr`, `wtn`, `dominant_hand`, `height_inches`, `weight_lbs` |
+| Travel | `social_security_number`, `tsa_known_traveler_number`, `passport_number`, `passport_expiration_date`, `seat_preference` |
 | Notes / relationships | `notes`, `relationships` |
 | Evaluations / tags / tasks / communications | Future tables keyed by `person_id` — always OS Managed |
 

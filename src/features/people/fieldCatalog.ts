@@ -1,5 +1,5 @@
 /**
- * Centralized Person field catalog (BP-038B).
+ * Centralized Person field catalog (BP-036A / BP-036E / BP-037 / BP-038B).
  *
  * Single registration point for Person field metadata. Spreadsheet views,
  * column pickers, CSV export builders, Adaptive Workspaces, filters, search,
@@ -7,32 +7,15 @@
  * redefine Person fields.
  *
  * Shape of record values: `types.ts`. Persistence: `supabaseMapping.ts`
- * (row↔domain coercion).
+ * (row↔domain coercion). Rendering / edit: `src/features/field-engine`.
  */
 
-/**
- * Field types used by the Person Field Catalog and Spreadsheet projection.
- * Kept local so the catalog does not depend on Field Engine runtime modules.
- */
-export type PersonFieldType =
-  | "text"
-  | "longText"
-  | "date"
-  | "number"
-  | "boolean"
-  | "enum"
-  | "phone"
-  | "email"
-  | "url"
-  | "currency"
-  | "percentage"
-  | "relationship"
-  | "attachment"
-  | "secureText"
-  | "system"
-  | "json";
+import type { FieldType } from "@/features/field-engine/types";
 
-import type { Person } from "./types";
+import type { Person, SeatPreference } from "./types";
+
+/** Catalog field types — Universal Field Engine types. */
+export type PersonFieldType = FieldType;
 
 /**
  * Canonical Person sections. `personal` holds biographical facts (DOB).
@@ -110,6 +93,17 @@ export type PersonFieldDefinition = {
   /** Order within `workspaceGroup` (lower first). */
   workspaceOrder?: number;
 };
+
+export const SEAT_PREFERENCE_OPTIONS = [
+  { value: "window", label: "Window" },
+  { value: "aisle", label: "Aisle" },
+  { value: "middle", label: "Middle" },
+  { value: "exit_row", label: "Exit Row" },
+  { value: "bulkhead", label: "Bulkhead" },
+  { value: "no_preference", label: "No Preference" },
+] as const satisfies readonly PersonFieldEnumOption<SeatPreference>[];
+
+export const SEAT_PREFERENCE_VALUES = SEAT_PREFERENCE_OPTIONS.map((o) => o.value);
 
 /**
  * Canonical Person field registry. Order within a section is the preferred
@@ -203,6 +197,20 @@ export const PERSON_FIELD_CATALOG: readonly PersonFieldDefinition[] = [
     dbColumn: "title",
   },
   {
+    key: "fullLegalName",
+    label: "Full Legal Name",
+    section: "identity",
+    type: "text",
+    editable: true,
+    sortable: true,
+    filterable: true,
+    exportable: true,
+    dbColumn: "full_legal_name",
+    workspaces: ["travel"],
+    workspaceGroup: "travel.identity",
+    workspaceOrder: 100,
+  },
+  {
     key: "firstName",
     label: "First Name",
     section: "identity",
@@ -225,6 +233,24 @@ export const PERSON_FIELD_CATALOG: readonly PersonFieldDefinition[] = [
     filterable: true,
     exportable: true,
     dbColumn: "middle_name",
+    workspaces: ["travel"],
+    workspaceGroup: "travel.identity",
+    workspaceOrder: 110,
+  },
+  {
+    key: "middleInitial",
+    label: "Middle Initial",
+    section: "identity",
+    type: "text",
+    editable: true,
+    sortable: true,
+    filterable: true,
+    exportable: true,
+    maxLength: 1,
+    dbColumn: "middle_initial",
+    workspaces: ["travel"],
+    workspaceGroup: "travel.identity",
+    workspaceOrder: 120,
   },
   {
     key: "lastName",
@@ -273,6 +299,9 @@ export const PERSON_FIELD_CATALOG: readonly PersonFieldDefinition[] = [
     exportable: true,
     dbColumn: "date_of_birth",
     description: "Canonical Personal Information field; do not duplicate elsewhere.",
+    workspaces: ["travel"],
+    workspaceGroup: "travel.identity",
+    workspaceOrder: 130,
   },
 
   // Contact
@@ -537,6 +566,76 @@ export const PERSON_FIELD_CATALOG: readonly PersonFieldDefinition[] = [
     ],
   },
 
+  // Travel (BP-036A / BP-036E)
+  {
+    key: "socialSecurityNumber",
+    label: "Social Security Number",
+    section: "travel",
+    type: "secureText",
+    sensitive: true,
+    editable: true,
+    exportable: false,
+    dbColumn: "social_security_number",
+    workspaces: ["travel"],
+    workspaceGroup: "travel.government",
+    workspaceOrder: 400,
+  },
+  {
+    key: "tsaKnownTravelerNumber",
+    label: "TSA Known Traveler Number",
+    section: "travel",
+    type: "text",
+    editable: true,
+    sortable: true,
+    filterable: true,
+    exportable: true,
+    dbColumn: "tsa_known_traveler_number",
+    workspaces: ["travel"],
+    workspaceGroup: "travel.documents",
+    workspaceOrder: 220,
+  },
+  {
+    key: "passportNumber",
+    label: "Passport Number",
+    section: "travel",
+    type: "secureText",
+    sensitive: true,
+    editable: true,
+    exportable: false,
+    dbColumn: "passport_number",
+    workspaces: ["travel"],
+    workspaceGroup: "travel.documents",
+    workspaceOrder: 200,
+  },
+  {
+    key: "passportExpirationDate",
+    label: "Passport Expiration Date",
+    section: "travel",
+    type: "date",
+    editable: true,
+    sortable: true,
+    filterable: true,
+    exportable: true,
+    dbColumn: "passport_expiration_date",
+    workspaces: ["travel"],
+    workspaceGroup: "travel.documents",
+    workspaceOrder: 210,
+  },
+  {
+    key: "seatPreference",
+    label: "Seat Preference",
+    section: "travel",
+    type: "enum",
+    editable: true,
+    sortable: true,
+    filterable: true,
+    exportable: true,
+    dbColumn: "seat_preference",
+    enumValues: SEAT_PREFERENCE_OPTIONS,
+    workspaces: ["travel"],
+    workspaceGroup: "travel.air",
+    workspaceOrder: 300,
+  },
 
   // Relationships
   {

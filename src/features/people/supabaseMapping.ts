@@ -35,8 +35,10 @@ export type ProductionPersonRow = {
   title: string | null;
   first_name: string;
   middle_name: string | null;
+  middle_initial: string | null;
   last_name: string;
   preferred_name: string | null;
+  full_legal_name: string | null;
   date_of_birth: string | null;
   photo_url: string | null;
   cell_phone: string | null;
@@ -61,6 +63,11 @@ export type ProductionPersonRow = {
   height_inches: number | null;
   weight_lbs: number | null;
   player_status: string | null;
+  social_security_number: string | null;
+  tsa_known_traveler_number: string | null;
+  passport_number: string | null;
+  passport_expiration_date: string | null;
+  seat_preference: string | null;
   relationships: PersonRelationship[] | null;
   notes: string | null;
 };
@@ -106,10 +113,13 @@ export function rowToPerson(row: ProductionPersonRow): Person {
     title: undefinedIfNull(row.title),
     firstName: row.first_name,
     middleName: undefinedIfNull(row.middle_name),
+    middleInitial: undefinedIfNull(row.middle_initial),
     lastName: row.last_name,
     preferredName: undefinedIfNull(row.preferred_name),
-    dateOfBirth: undefinedIfNull(row.date_of_birth),
+    fullLegalName: undefinedIfNull(row.full_legal_name),
     photoUrl: undefinedIfNull(row.photo_url),
+
+    dateOfBirth: undefinedIfNull(row.date_of_birth),
 
     cellPhone: undefinedIfNull(row.cell_phone),
     personalEmail: undefinedIfNull(row.personal_email),
@@ -137,6 +147,12 @@ export function rowToPerson(row: ProductionPersonRow): Person {
     weightLbs: undefinedIfNull(row.weight_lbs),
     playerStatus: undefinedIfNull(row.player_status) as Person["playerStatus"],
 
+    socialSecurityNumber: undefinedIfNull(row.social_security_number),
+    tsaKnownTravelerNumber: undefinedIfNull(row.tsa_known_traveler_number),
+    passportNumber: undefinedIfNull(row.passport_number),
+    passportExpirationDate: undefinedIfNull(row.passport_expiration_date),
+    seatPreference: undefinedIfNull(row.seat_preference) as Person["seatPreference"],
+
     relationships: row.relationships ?? [],
 
     notes: undefinedIfNull(row.notes),
@@ -149,12 +165,10 @@ const WRITABLE_FIELD_MAP: Partial<Record<keyof Person, string>> =
 
 /**
  * Maps a Person write patch to a Supabase row fragment.
- * Present keys are written; `null` / missing optional values become SQL NULL.
- * Callers must include the key explicitly to clear a field.
+ * Present keys are written; `null` / missing optional values become SQL NULL
+ * (BP-037A). Callers must include the key explicitly to clear a field.
  */
-export function personPatchToRow(
-  patch: Partial<Record<keyof Person, Person[keyof Person] | null>>,
-): Record<string, unknown> {
+export function personPatchToRow(patch: Partial<Record<keyof Person, Person[keyof Person] | null>>): Record<string, unknown> {
   const row: Record<string, unknown> = {};
 
   for (const key of Object.keys(patch) as (keyof Person)[]) {

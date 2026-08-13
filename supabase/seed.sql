@@ -3,7 +3,7 @@
 -- GENERATED FILE — do not hand-edit. Produced by `npm run db:generate-seed`
 -- from src/features/people/data.ts (Airtable CSV bootstrap adapter).
 --
--- Generated: 2026-08-06T09:29:53.078Z
+-- Generated: 2026-08-07T10:56:26.926Z
 -- Records: 40
 --
 -- ON CONFLICT: coalesce(existing, excluded) for all importable profile fields.
@@ -11,16 +11,18 @@
 -- Apply with: npm run db:seed
 -- Airtable Force Refresh hard-replace is DISABLED (BP-029A).
 -- Full wipe only via: npm run db:reset
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-peter-berns', '2026-07-22T16:29:00.000Z', '2026-07-22T16:29:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Peter', NULL, 'Berns', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 2030, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-peter-berns', '2026-07-22T16:29:00.000Z', '2026-07-22T16:29:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Peter', NULL, NULL, 'Berns', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 2030, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -45,20 +47,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-aidan-borosko', '2026-07-30T14:29:00.000Z', '2026-07-30T14:29:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Aidan', NULL, 'Borosko', NULL, '2006-03-07', NULL, '(973) 722-8424', NULL, 'borosk_a1@denison.edu', NULL, NULL, NULL, 'Monclair', 'NJ', NULL, 'USA', 2029, NULL, NULL, 'D02008078', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-aidan-borosko', '2026-07-30T14:29:00.000Z', '2026-07-30T14:29:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Aidan', NULL, NULL, 'Borosko', NULL, NULL, '2006-03-07', NULL, '(973) 722-8424', NULL, 'borosk_a1@denison.edu', NULL, NULL, NULL, 'Monclair', 'NJ', NULL, 'USA', 2029, NULL, NULL, 'D02008078', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -83,20 +92,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-jp-boyle', '2023-01-01T08:47:00.000Z', '2023-01-01T08:47:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'JP', NULL, 'Boyle', NULL, '2003-11-28', NULL, '(631) 561-1552', NULL, 'boyle_j1@denison.edu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 2029, NULL, NULL, 'D01945130', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'inactive', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-jp-boyle', '2023-01-01T08:47:00.000Z', '2023-01-01T08:47:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'JP', NULL, NULL, 'Boyle', NULL, NULL, '2003-11-28', NULL, '(631) 561-1552', NULL, 'boyle_j1@denison.edu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 2029, NULL, NULL, 'D01945130', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'inactive', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -121,20 +137,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-jack-bulger', '2024-01-25T07:11:00.000Z', '2024-01-25T07:11:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Jack', NULL, 'Bulger', NULL, '2001-07-23', NULL, '(415) 745-5999', NULL, 'bulger_j1@denison.edu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Mathmatics', NULL, 'D01919515', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-jack-bulger', '2024-01-25T07:11:00.000Z', '2024-01-25T07:11:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Jack', NULL, NULL, 'Bulger', NULL, NULL, '2001-07-23', NULL, '(415) 745-5999', NULL, 'bulger_j1@denison.edu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Mathmatics', NULL, 'D01919515', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -159,20 +182,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-andreas-chapides', '2026-05-23T06:26:00.000Z', '2026-05-23T06:26:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Andreas', NULL, 'Chapides', NULL, '2003-03-21', NULL, '(614) 989-7544', NULL, 'chapid_a1@denison.edu', NULL, NULL, NULL, 'Limassol', NULL, NULL, 'Cyprus', NULL, 'HESS', 'Global Commerce', 'D01958406', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-andreas-chapides', '2026-05-23T06:26:00.000Z', '2026-05-23T06:26:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Andreas', NULL, NULL, 'Chapides', NULL, NULL, '2003-03-21', NULL, '(614) 989-7544', NULL, 'chapid_a1@denison.edu', NULL, NULL, NULL, 'Limassol', NULL, NULL, 'Cyprus', NULL, 'HESS', 'Global Commerce', 'D01958406', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -197,20 +227,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-luke-colson', '2026-07-22T16:28:00.000Z', '2026-07-22T16:28:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Luke', NULL, 'Colson', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 2030, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-luke-colson', '2026-07-22T16:28:00.000Z', '2026-07-22T16:28:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Luke', NULL, NULL, 'Colson', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 2030, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -235,20 +272,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-mason-conlin', '2026-07-22T10:00:00.000Z', '2026-07-22T10:00:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Mason', 'Jonathon Mason (Mason is middle name)', 'Conlin', NULL, '2005-12-24', NULL, '(510) 571-9884', NULL, 'conlin_m1@denison.edu', NULL, NULL, NULL, 'Almeda', 'CA', NULL, 'USA', 2028, NULL, NULL, 'D01992157', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-mason-conlin', '2026-07-22T10:00:00.000Z', '2026-07-22T10:00:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Mason', 'Jonathon Mason (Mason is middle name)', NULL, 'Conlin', NULL, NULL, '2005-12-24', NULL, '(510) 571-9884', NULL, 'conlin_m1@denison.edu', NULL, NULL, NULL, 'Almeda', 'CA', NULL, 'USA', 2028, NULL, NULL, 'D01992157', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -273,20 +317,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-blake-eason', '2023-02-06T10:14:00.000Z', '2023-02-06T10:14:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Blake', NULL, 'Eason', NULL, '2002-10-01', NULL, '(702) 249-9104', NULL, 'eason_b1@denison.edu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 2029, 'Economics', NULL, 'D01929597', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'inactive', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-blake-eason', '2023-02-06T10:14:00.000Z', '2023-02-06T10:14:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Blake', NULL, NULL, 'Eason', NULL, NULL, '2002-10-01', NULL, '(702) 249-9104', NULL, 'eason_b1@denison.edu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 2029, 'Economics', NULL, 'D01929597', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'inactive', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -311,20 +362,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-camden-french', '2024-01-25T07:12:00.000Z', '2024-01-25T07:12:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Camden', NULL, 'French', NULL, '2003-09-26', NULL, '(858) 281-8113', NULL, 'french_c1@denison.edu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 2029, NULL, NULL, 'D01958471', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'inactive', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-camden-french', '2024-01-25T07:12:00.000Z', '2024-01-25T07:12:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Camden', NULL, NULL, 'French', NULL, NULL, '2003-09-26', NULL, '(858) 281-8113', NULL, 'french_c1@denison.edu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 2029, NULL, NULL, 'D01958471', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'inactive', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -349,20 +407,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-arya-ganapathy-kallambella', '2026-07-23T09:39:00.000Z', '2026-07-23T09:39:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Arya', NULL, 'Ganapathy Kallambella', NULL, '2007-01-21', NULL, '(423) 309-1442', NULL, 'kallam_a1@denison.edu', NULL, NULL, NULL, NULL, NULL, NULL, 'India', 2029, NULL, NULL, 'D02012161', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-arya-ganapathy-kallambella', '2026-07-23T09:39:00.000Z', '2026-07-23T09:39:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Arya', NULL, NULL, 'Ganapathy Kallambella', NULL, NULL, '2007-01-21', NULL, '(423) 309-1442', NULL, 'kallam_a1@denison.edu', NULL, NULL, NULL, NULL, NULL, NULL, 'India', 2029, NULL, NULL, 'D02012161', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -387,20 +452,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-daniel-garcia', '2024-01-25T07:11:00.000Z', '2024-01-25T07:11:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Daniel', NULL, 'Garcia', NULL, '2001-07-16', NULL, '(740) 348-9088', NULL, 'garcia_d2@denison.edu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Economics', 'Global Commerce', 'D01936816', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-daniel-garcia', '2024-01-25T07:11:00.000Z', '2024-01-25T07:11:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Daniel', NULL, NULL, 'Garcia', NULL, NULL, '2001-07-16', NULL, '(740) 348-9088', NULL, 'garcia_d2@denison.edu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Economics', 'Global Commerce', 'D01936816', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -425,20 +497,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-milan-gonela', '2026-05-23T06:23:00.000Z', '2026-05-23T06:23:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Milan', NULL, 'Gonela', NULL, '2001-10-26', NULL, '(614) 558-6169', NULL, 'gonela_m1@denison.edu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'HESS', NULL, 'D01931296', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-milan-gonela', '2026-05-23T06:23:00.000Z', '2026-05-23T06:23:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Milan', NULL, NULL, 'Gonela', NULL, NULL, '2001-10-26', NULL, '(614) 558-6169', NULL, 'gonela_m1@denison.edu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'HESS', NULL, 'D01931296', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -463,20 +542,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-colin-gramley', '2025-07-16T14:24:00.000Z', '2025-07-16T14:24:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Colin', 'Connor', 'Gramley', NULL, '2002-07-09', NULL, '(724) 866-4008', NULL, 'gramle_c1@denison.edu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Economics', NULL, 'D01943275', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-colin-gramley', '2025-07-16T14:24:00.000Z', '2025-07-16T14:24:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Colin', 'Connor', NULL, 'Gramley', NULL, NULL, '2002-07-09', NULL, '(724) 866-4008', NULL, 'gramle_c1@denison.edu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Economics', NULL, 'D01943275', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -501,20 +587,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-ethan-green', '2026-05-23T06:26:00.000Z', '2026-05-23T06:26:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Ethan', 'Michael', 'Green', NULL, '2004-05-17', NULL, '(385) 441-2374', NULL, 'green_e1@denison.edu', NULL, NULL, NULL, 'Salt Lake City', 'UT', NULL, 'USA', NULL, 'Financial Economics', NULL, 'D01960444', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-ethan-green', '2026-05-23T06:26:00.000Z', '2026-05-23T06:26:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Ethan', 'Michael', NULL, 'Green', NULL, NULL, '2004-05-17', NULL, '(385) 441-2374', NULL, 'green_e1@denison.edu', NULL, NULL, NULL, 'Salt Lake City', 'UT', NULL, 'USA', NULL, 'Financial Economics', NULL, 'D01960444', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -539,20 +632,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-marc-lennart-harms', '2024-01-25T07:11:00.000Z', '2024-01-25T07:11:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Marc-Lennart', NULL, 'Harms', NULL, '2000-03-21', NULL, '(740) 405-8645', NULL, 'harms_m1@denison.edu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Economics', 'Global Commerce', 'D01936964', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-marc-lennart-harms', '2024-01-25T07:11:00.000Z', '2024-01-25T07:11:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Marc-Lennart', NULL, NULL, 'Harms', NULL, NULL, '2000-03-21', NULL, '(740) 405-8645', NULL, 'harms_m1@denison.edu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Economics', 'Global Commerce', 'D01936964', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -577,20 +677,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-wesley-huang', '2026-07-22T17:59:00.000Z', '2026-07-22T17:59:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Wesley', NULL, 'Huang', NULL, '2006-12-18', NULL, '(626) 714-9190', NULL, 'Huang_w1@denison.edu', NULL, NULL, NULL, 'Pasedena', 'CA', NULL, 'USA', 2029, NULL, NULL, 'D02009316', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-wesley-huang', '2026-07-22T17:59:00.000Z', '2026-07-22T17:59:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Wesley', NULL, NULL, 'Huang', NULL, NULL, '2006-12-18', NULL, '(626) 714-9190', NULL, 'Huang_w1@denison.edu', NULL, NULL, NULL, 'Pasedena', 'CA', NULL, 'USA', 2029, NULL, NULL, 'D02009316', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -615,20 +722,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-balraj-idnani', '2026-07-22T07:19:00.000Z', '2026-07-22T07:19:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Balraj', NULL, 'Idnani', NULL, '2006-07-20', NULL, '(551) 502-2612', NULL, 'idnani_b1@denison.edu', NULL, NULL, NULL, 'Park Ridge', 'NJ', NULL, 'USA', 2029, NULL, NULL, 'D02010280', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-balraj-idnani', '2026-07-22T07:19:00.000Z', '2026-07-22T07:19:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Balraj', NULL, NULL, 'Idnani', NULL, NULL, '2006-07-20', NULL, '(551) 502-2612', NULL, 'idnani_b1@denison.edu', NULL, NULL, NULL, 'Park Ridge', 'NJ', NULL, 'USA', 2029, NULL, NULL, 'D02010280', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -653,20 +767,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-ishwar-idnani', '2026-07-22T08:57:00.000Z', '2026-07-22T08:57:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Ishwar', NULL, 'Idnani', NULL, '2006-07-20', NULL, '(551) 502-3037', NULL, 'idnani_i1@denison.edu', NULL, NULL, NULL, 'Park Ridge', 'NJ', NULL, 'USA', 2029, NULL, NULL, 'D02010256', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-ishwar-idnani', '2026-07-22T08:57:00.000Z', '2026-07-22T08:57:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Ishwar', NULL, NULL, 'Idnani', NULL, NULL, '2006-07-20', NULL, '(551) 502-3037', NULL, 'idnani_i1@denison.edu', NULL, NULL, NULL, 'Park Ridge', 'NJ', NULL, 'USA', 2029, NULL, NULL, 'D02010256', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -691,20 +812,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-nadeem-jones', '2024-07-14T09:20:00.000Z', '2024-07-14T09:20:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Nadeem', NULL, 'Jones', NULL, '2002-08-08', NULL, '(304) 993-1347', NULL, 'jones_n1@denison.edu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Art Studio', 'Biology', 'D01929597', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-nadeem-jones', '2024-07-14T09:20:00.000Z', '2024-07-14T09:20:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Nadeem', NULL, NULL, 'Jones', NULL, NULL, '2002-08-08', NULL, '(304) 993-1347', NULL, 'jones_n1@denison.edu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Art Studio', 'Biology', 'D01929597', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -729,20 +857,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-aayush-kishore', '2025-02-05T19:29:00.000Z', '2025-02-05T19:29:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Aayush', NULL, 'Kishore', NULL, '2004-11-12', NULL, '(908) 848-7090', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 2029, 'Psychology', NULL, 'D02002741', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'inactive', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-aayush-kishore', '2025-02-05T19:29:00.000Z', '2025-02-05T19:29:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Aayush', NULL, NULL, 'Kishore', NULL, NULL, '2004-11-12', NULL, '(908) 848-7090', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 2029, 'Psychology', NULL, 'D02002741', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'inactive', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -767,20 +902,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-minato-koido', '2026-07-22T16:38:00.000Z', '2026-07-22T16:38:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Minato', NULL, 'Koido', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 2030, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-minato-koido', '2026-07-22T16:38:00.000Z', '2026-07-22T16:38:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Minato', NULL, NULL, 'Koido', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 2030, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -805,20 +947,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-chris-landauer', '2025-09-03T12:47:00.000Z', '2025-09-03T12:47:00.000Z', 'a1000000-0000-4000-8000-000000000002', 'b1000000-0000-4000-8000-000000000001', 'Coach', 'Chris', 'Neal', 'Landauer', NULL, '1981-07-10', NULL, '(614) 940-8985', NULL, 'Landauerc@denison.edu', NULL, NULL, NULL, 'Columbus', 'OH', NULL, 'USA', NULL, NULL, NULL, 'D01930462', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-chris-landauer', '2025-09-03T12:47:00.000Z', '2025-09-03T12:47:00.000Z', 'a1000000-0000-4000-8000-000000000002', 'b1000000-0000-4000-8000-000000000001', 'Coach', 'Chris', 'Neal', NULL, 'Landauer', NULL, NULL, '1981-07-10', NULL, '(614) 940-8985', NULL, 'Landauerc@denison.edu', NULL, NULL, NULL, 'Columbus', 'OH', NULL, 'USA', NULL, NULL, NULL, 'D01930462', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -843,20 +992,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('person-andy-mackler', '2026-01-08T06:43:00.000Z', '2026-07-22T20:10:00.000Z', 'a1000000-0000-4000-8000-000000000002', 'b1000000-0000-4000-8000-000000000002', 'Assistant Coach', 'Andy', NULL, 'Mackler', NULL, '2001-09-28', NULL, '(407) 994-3266', NULL, 'mackle_a1@denison.edu', NULL, NULL, NULL, 'Lake Mary', 'FL', NULL, 'USA', NULL, 'HESS', 'Global Health', 'D01926981', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('person-andy-mackler', '2026-01-08T06:43:00.000Z', '2026-07-22T20:10:00.000Z', 'a1000000-0000-4000-8000-000000000002', 'b1000000-0000-4000-8000-000000000002', 'Assistant Coach', 'Andy', NULL, NULL, 'Mackler', NULL, NULL, '2001-09-28', NULL, '(407) 994-3266', NULL, 'mackle_a1@denison.edu', NULL, NULL, NULL, 'Lake Mary', 'FL', NULL, 'USA', NULL, 'HESS', 'Global Health', 'D01926981', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -881,20 +1037,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-donald-macpherson', '2025-08-10T07:50:00.000Z', '2025-08-10T07:50:00.000Z', 'a1000000-0000-4000-8000-000000000002', 'b1000000-0000-4000-8000-000000000001', 'Coach', 'Donald', 'Grant', 'MacPherson', NULL, '1995-12-13', NULL, '(419) 351-6854', 'macphersong95@gmail.com', NULL, NULL, NULL, NULL, 'Columbus', 'OH', NULL, 'USA', NULL, NULL, NULL, 'D01653320', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-donald-macpherson', '2025-08-10T07:50:00.000Z', '2025-08-10T07:50:00.000Z', 'a1000000-0000-4000-8000-000000000002', 'b1000000-0000-4000-8000-000000000001', 'Coach', 'Donald', 'Grant', NULL, 'MacPherson', NULL, NULL, '1995-12-13', NULL, '(419) 351-6854', 'macphersong95@gmail.com', NULL, NULL, NULL, NULL, 'Columbus', 'OH', NULL, 'USA', NULL, NULL, NULL, 'D01653320', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -919,20 +1082,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-jackson-mactaggart', '2026-07-22T18:05:00.000Z', '2026-07-22T18:05:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Jackson', NULL, 'MacTaggart', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 2030, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-jackson-mactaggart', '2026-07-22T18:05:00.000Z', '2026-07-22T18:05:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Jackson', NULL, NULL, 'MacTaggart', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 2030, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -957,20 +1127,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-dimitrio-martinez', '2024-01-25T07:11:00.000Z', '2024-01-25T07:11:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Dimitrio', NULL, 'Martinez', NULL, '1982-10-04', NULL, '(305) 905-3427', NULL, 'martinezd@denison.edu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-dimitrio-martinez', '2024-01-25T07:11:00.000Z', '2024-01-25T07:11:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Dimitrio', NULL, NULL, 'Martinez', NULL, NULL, '1982-10-04', NULL, '(305) 905-3427', NULL, 'martinezd@denison.edu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -995,20 +1172,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-nick-meyers', '2026-07-22T16:54:00.000Z', '2026-07-22T16:54:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Nick', 'Petar', 'Meyers', NULL, '2005-10-11', NULL, '(513) 390-2678', NULL, 'meyers_n2@denison.edu', NULL, NULL, NULL, 'Cincinnati', 'OH', NULL, 'USA', 2028, 'Financial Economics', NULL, 'D01993403', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-nick-meyers', '2026-07-22T16:54:00.000Z', '2026-07-22T16:54:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Nick', 'Petar', NULL, 'Meyers', NULL, NULL, '2005-10-11', NULL, '(513) 390-2678', NULL, 'meyers_n2@denison.edu', NULL, NULL, NULL, 'Cincinnati', 'OH', NULL, 'USA', 2028, 'Financial Economics', NULL, 'D01993403', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -1033,20 +1217,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-nickawn-namdar', '2026-05-23T06:26:00.000Z', '2026-05-23T06:26:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Nickawn', NULL, 'Namdar', NULL, '2004-01-08', NULL, '(415) 910-2600', NULL, 'namdar_n1@denison.edu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Pre Med', NULL, 'D01959677', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-nickawn-namdar', '2026-05-23T06:26:00.000Z', '2026-05-23T06:26:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Nickawn', NULL, NULL, 'Namdar', NULL, NULL, '2004-01-08', NULL, '(415) 910-2600', NULL, 'namdar_n1@denison.edu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Pre Med', NULL, 'D01959677', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -1071,20 +1262,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-chika-nwaozuzu', '2026-07-30T14:29:00.000Z', '2026-07-30T14:29:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Chika', 'Janez Caleb', 'Nwaozuzu', NULL, '2006-10-25', NULL, '(216) 556-3220', NULL, 'nwaozu_c1@denison.edu', NULL, NULL, NULL, 'Cleveland', 'OH', NULL, 'USA', 2028, 'Economics', NULL, 'D01994492', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-chika-nwaozuzu', '2026-07-30T14:29:00.000Z', '2026-07-30T14:29:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Chika', 'Janez Caleb', NULL, 'Nwaozuzu', NULL, NULL, '2006-10-25', NULL, '(216) 556-3220', NULL, 'nwaozu_c1@denison.edu', NULL, NULL, NULL, 'Cleveland', 'OH', NULL, 'USA', 2028, 'Economics', NULL, 'D01994492', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -1109,20 +1307,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-tomer-ozmo', '2026-05-23T06:26:00.000Z', '2026-05-23T06:26:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Tomer', NULL, 'Ozmo', NULL, '2001-06-28', NULL, NULL, NULL, 'osmo_t1@denison.edu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Computer Science', NULL, 'D01958604', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-tomer-ozmo', '2026-05-23T06:26:00.000Z', '2026-05-23T06:26:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Tomer', NULL, NULL, 'Ozmo', NULL, NULL, '2001-06-28', NULL, NULL, NULL, 'osmo_t1@denison.edu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Computer Science', NULL, 'D01958604', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -1147,20 +1352,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-kyle-patrick', '2026-07-22T08:54:00.000Z', '2026-07-22T08:54:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Kyle', 'Liam', 'Patrick', NULL, '2004-09-02', NULL, '(203) 253-8758', NULL, 'patric_k1@denison.edu', NULL, NULL, NULL, 'Darien', 'CT', NULL, 'USA', 2027, 'Economics', NULL, 'D01976432', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-kyle-patrick', '2026-07-22T08:54:00.000Z', '2026-07-22T08:54:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Kyle', 'Liam', NULL, 'Patrick', NULL, NULL, '2004-09-02', NULL, '(203) 253-8758', NULL, 'patric_k1@denison.edu', NULL, NULL, NULL, 'Darien', 'CT', NULL, 'USA', 2027, 'Economics', NULL, 'D01976432', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -1185,20 +1397,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-ryan-patrick', '2025-07-16T14:24:00.000Z', '2025-07-16T14:24:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Ryan', 'Edward', 'Patrick', NULL, '2002-10-28', NULL, '(203) 858-5982', NULL, 'patric_r2@denison.edu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Economics', NULL, 'D01945494', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-ryan-patrick', '2025-07-16T14:24:00.000Z', '2025-07-16T14:24:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Ryan', 'Edward', NULL, 'Patrick', NULL, NULL, '2002-10-28', NULL, '(203) 858-5982', NULL, 'patric_r2@denison.edu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Economics', NULL, 'D01945494', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -1223,20 +1442,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-jake-patterson', '2026-05-23T06:26:00.000Z', '2026-05-23T06:26:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Jake', 'Robert', 'Patterson', NULL, '2004-02-03', NULL, '(412) 888-7114', NULL, 'patter_j2@denison.edu', NULL, NULL, NULL, 'Bridgeville', 'PA', NULL, 'USA', NULL, 'Global Commerce', NULL, 'D01958612', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-jake-patterson', '2026-05-23T06:26:00.000Z', '2026-05-23T06:26:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Jake', 'Robert', NULL, 'Patterson', NULL, NULL, '2004-02-03', NULL, '(412) 888-7114', NULL, 'patter_j2@denison.edu', NULL, NULL, NULL, 'Bridgeville', 'PA', NULL, 'USA', NULL, 'Global Commerce', NULL, 'D01958612', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -1261,20 +1487,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-anthony-payiavlas', '2026-05-23T06:26:00.000Z', '2026-05-23T06:26:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Anthony', 'John', 'Payiavlas', NULL, '2004-02-02', NULL, '(330) 646-9533', NULL, 'payiav_a1@denison.edu', NULL, NULL, NULL, 'Warren', 'OH', NULL, 'USA', NULL, 'Communication', NULL, 'D01959370', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-anthony-payiavlas', '2026-05-23T06:26:00.000Z', '2026-05-23T06:26:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Anthony', 'John', NULL, 'Payiavlas', NULL, NULL, '2004-02-02', NULL, '(330) 646-9533', NULL, 'payiav_a1@denison.edu', NULL, NULL, NULL, 'Warren', 'OH', NULL, 'USA', NULL, 'Communication', NULL, 'D01959370', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -1299,20 +1532,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-zach-portnoy', '2024-07-14T09:20:00.000Z', '2024-07-14T09:20:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Zach', NULL, 'Portnoy', NULL, '2001-01-09', NULL, '(347) 406-0819', NULL, 'portno_z1@denison.edu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'HESS', NULL, 'D01971136', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-zach-portnoy', '2024-07-14T09:20:00.000Z', '2024-07-14T09:20:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Zach', NULL, NULL, 'Portnoy', NULL, NULL, '2001-01-09', NULL, '(347) 406-0819', NULL, 'portno_z1@denison.edu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'HESS', NULL, 'D01971136', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -1337,20 +1577,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('person-david-schilling', '2026-07-22T07:11:00.000Z', '2026-07-22T07:11:00.000Z', 'a1000000-0000-4000-8000-000000000002', 'b1000000-0000-4000-8000-000000000001', 'Head Coach', 'David', NULL, 'Schilling', NULL, '1967-03-27', NULL, '(614) 886-3558', NULL, 'schillingd@denison.edu', NULL, NULL, NULL, 'Columbus', 'OH', NULL, 'USA', NULL, NULL, NULL, 'D01224395', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('person-david-schilling', '2026-07-22T07:11:00.000Z', '2026-07-22T07:11:00.000Z', 'a1000000-0000-4000-8000-000000000002', 'b1000000-0000-4000-8000-000000000001', 'Head Coach', 'David', NULL, NULL, 'Schilling', NULL, NULL, '1967-03-27', NULL, '(614) 886-3558', NULL, 'schillingd@denison.edu', NULL, NULL, NULL, 'Columbus', 'OH', NULL, 'USA', NULL, NULL, NULL, 'D01224395', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -1375,20 +1622,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-kael-shah', '2026-05-23T06:26:00.000Z', '2026-05-23T06:26:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Kael', 'Shalin', 'Shah', NULL, '2003-08-25', NULL, '(740) 403-6456', NULL, 'shah_k1@denison.edu', NULL, NULL, NULL, 'Nairobi', NULL, NULL, 'Kenya', NULL, NULL, NULL, 'D01975269', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-kael-shah', '2026-05-23T06:26:00.000Z', '2026-05-23T06:26:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Kael', 'Shalin', NULL, 'Shah', NULL, NULL, '2003-08-25', NULL, '(740) 403-6456', NULL, 'shah_k1@denison.edu', NULL, NULL, NULL, 'Nairobi', NULL, NULL, 'Kenya', NULL, NULL, NULL, 'D01975269', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -1413,20 +1667,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-tom-suedmeyer', '2026-07-22T14:36:00.000Z', '2026-07-22T14:36:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Tom', NULL, 'Suedmeyer', NULL, '2005-09-04', NULL, '(740) 323-7691', 'suedmeyer.tom@gmail.com', NULL, NULL, NULL, NULL, 'Dusseldorf', NULL, NULL, 'Germany', 2029, NULL, NULL, 'D01993999', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-tom-suedmeyer', '2026-07-22T14:36:00.000Z', '2026-07-22T14:36:00.000Z', 'a1000000-0000-4000-8000-000000000001', 'b1000000-0000-4000-8000-000000000001', NULL, 'Tom', NULL, NULL, 'Suedmeyer', NULL, NULL, '2005-09-04', NULL, '(740) 323-7691', 'suedmeyer.tom@gmail.com', NULL, NULL, NULL, NULL, 'Dusseldorf', NULL, NULL, 'Germany', 2029, NULL, NULL, 'D01993999', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -1451,20 +1712,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-archie-turner', '2025-07-16T14:24:00.000Z', '2025-07-16T14:24:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Archie', 'Joseph', 'Turner', NULL, '2002-05-12', NULL, NULL, NULL, 'graham_a2@denison.edu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Economics', NULL, 'D01943689', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-archie-turner', '2025-07-16T14:24:00.000Z', '2025-07-16T14:24:00.000Z', 'a1000000-0000-4000-8000-000000000004', 'b1000000-0000-4000-8000-000000000002', NULL, 'Archie', 'Joseph', NULL, 'Turner', NULL, NULL, '2002-05-12', NULL, NULL, NULL, 'graham_a2@denison.edu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Economics', NULL, 'D01943689', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'graduated', NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -1489,20 +1757,27 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
 
-insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, last_name, preferred_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, relationships, notes)
-values ('player-nick-williams', '2026-01-08T06:44:00.000Z', '2026-01-08T06:44:00.000Z', 'a1000000-0000-4000-8000-000000000002', 'b1000000-0000-4000-8000-000000000001', 'Coach', 'Nick', NULL, 'Williams', NULL, NULL, NULL, NULL, 'wi1895@osumc.edu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
+insert into public.production_people (id, created_at, updated_at, role_id, status_id, title, first_name, middle_name, middle_initial, last_name, preferred_name, full_legal_name, date_of_birth, photo_url, cell_phone, personal_email, denison_email, preferred_contact_method, address_line1, address_line2, city, state, zip_code, country, class_year, major, minor, denison_id, dorm, room_number, utr, wtn, dominant_hand, height_inches, weight_lbs, player_status, social_security_number, tsa_known_traveler_number, passport_number, passport_expiration_date, seat_preference, relationships, notes)
+values ('player-nick-williams', '2026-01-08T06:44:00.000Z', '2026-01-08T06:44:00.000Z', 'a1000000-0000-4000-8000-000000000002', 'b1000000-0000-4000-8000-000000000001', 'Coach', 'Nick', NULL, NULL, 'Williams', NULL, NULL, NULL, NULL, NULL, 'wi1895@osumc.edu', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '[]'::jsonb, NULL)
 on conflict (id) do update set
   role_id = coalesce(public.production_people.role_id, excluded.role_id),
     status_id = coalesce(public.production_people.status_id, excluded.status_id),
     title = coalesce(public.production_people.title, excluded.title),
     first_name = coalesce(public.production_people.first_name, excluded.first_name),
     middle_name = coalesce(public.production_people.middle_name, excluded.middle_name),
+    middle_initial = coalesce(public.production_people.middle_initial, excluded.middle_initial),
     last_name = coalesce(public.production_people.last_name, excluded.last_name),
     preferred_name = coalesce(public.production_people.preferred_name, excluded.preferred_name),
+    full_legal_name = coalesce(public.production_people.full_legal_name, excluded.full_legal_name),
     date_of_birth = coalesce(public.production_people.date_of_birth, excluded.date_of_birth),
     photo_url = coalesce(public.production_people.photo_url, excluded.photo_url),
     cell_phone = coalesce(public.production_people.cell_phone, excluded.cell_phone),
@@ -1527,6 +1802,11 @@ on conflict (id) do update set
     height_inches = coalesce(public.production_people.height_inches, excluded.height_inches),
     weight_lbs = coalesce(public.production_people.weight_lbs, excluded.weight_lbs),
     player_status = coalesce(public.production_people.player_status, excluded.player_status),
+    social_security_number = coalesce(public.production_people.social_security_number, excluded.social_security_number),
+    tsa_known_traveler_number = coalesce(public.production_people.tsa_known_traveler_number, excluded.tsa_known_traveler_number),
+    passport_number = coalesce(public.production_people.passport_number, excluded.passport_number),
+    passport_expiration_date = coalesce(public.production_people.passport_expiration_date, excluded.passport_expiration_date),
+    seat_preference = coalesce(public.production_people.seat_preference, excluded.seat_preference),
     relationships = coalesce(public.production_people.relationships, excluded.relationships),
     notes = coalesce(public.production_people.notes, excluded.notes),
     created_at = coalesce(public.production_people.created_at, excluded.created_at);
