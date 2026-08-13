@@ -14,11 +14,11 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 import { PeopleRepositoryError, updatePerson } from "./repository";
-import type { Person } from "./types";
+import type { Person, PersonWritePatch } from "./types";
 
 export type UpdatePersonResult = { success: true; person: Person } | { success: false; error: string };
 
-export async function updatePersonAction(id: string, patch: Partial<Person>): Promise<UpdatePersonResult> {
+export async function updatePersonAction(id: string, patch: PersonWritePatch): Promise<UpdatePersonResult> {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },

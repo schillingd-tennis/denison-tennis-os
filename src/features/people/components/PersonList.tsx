@@ -57,6 +57,7 @@ import {
   TEAM_FOUND_SET_FILENAME_BASE,
   TEAM_FOUND_SET_MODULE_KEY,
 } from "@/features/people/foundSet";
+import { toPersonWritePatch } from "@/features/people/personWritePatch";
 import type { Person } from "@/features/people/types";
 import {
   getDisplayName,
@@ -364,7 +365,7 @@ export default function PersonList({ people }: { people: Person[] }) {
       }
 
       const ok = await runSave(async () => {
-        const result = await updatePersonAction(personId, patch);
+        const result = await updatePersonAction(personId, toPersonWritePatch(patch));
         if (!result.success) {
           throw new Error(result.error);
         }

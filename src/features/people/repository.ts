@@ -7,7 +7,7 @@
 import { supabase } from "@/lib/supabase";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-import type { Person } from "./types";
+import type { Person, PersonWritePatch } from "./types";
 import { personPatchToRow, rowToPerson, type ProductionPersonRow } from "./supabaseMapping";
 
 const TABLE = "production_people";
@@ -53,8 +53,10 @@ export async function getPersonById(id: string): Promise<Person | null> {
 
 /**
  * Updates a single person, writing only the fields present on `patch`.
+ * Pass `null` to clear a nullable column (BP-037A). `undefined` keys are not
+ * reliable across the Server Action boundary and must not mean "clear".
  */
-export async function updatePerson(id: string, patch: Partial<Person>): Promise<Person> {
+export async function updatePerson(id: string, patch: PersonWritePatch): Promise<Person> {
   const patchRow = personPatchToRow(patch);
 
   if (Object.keys(patchRow).length === 0) {

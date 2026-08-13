@@ -20,7 +20,8 @@ import {
 import type { InlineCommitReason } from "@/components/inline-edit";
 import { updatePersonAction } from "@/features/people/actions";
 import { getPersonField } from "@/features/people/fieldCatalog";
-import type { Person } from "@/features/people/types";
+import { toPersonWritePatch } from "@/features/people/personWritePatch";
+import type { Person, PersonWritePatch } from "@/features/people/types";
 
 import { parseFieldValue } from "./parseValue";
 
@@ -119,9 +120,10 @@ export function PersonFieldSession({
 
       setFieldError(undefined);
 
-      // parseValue emits null for clears (wire-safe). Commit 2 may wrap this
-      // with toPersonWritePatch for shared clear normalization across call sites.
-      const persistPatch = { [field]: parsed.value } as Partial<Person>;
+      // Normalize clears through the shared write-patch helper (BP-037A).
+      const persistPatch = toPersonWritePatch({
+        [field]: parsed.value,
+      } as PersonWritePatch);
       const unchanged = valuesEqual(person[field], parsed.value);
 
       if (unchanged) {
