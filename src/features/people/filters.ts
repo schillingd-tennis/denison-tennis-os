@@ -13,7 +13,7 @@ import { ROLE_KEYS, STATUS_KEYS } from "@/features/lookups/seed";
 import type { LookupRecord } from "@/features/lookups/types";
 
 import type { Person } from "./types";
-import { hasRole, matchesSearch } from "./utils";
+import { hasRole, isTeamDirectoryPerson, matchesSearch } from "./utils";
 
 /** Build filter definitions from live lookup tables (labels from DB). */
 export function buildPeopleFilterDefinitions(
@@ -104,14 +104,14 @@ export const PEOPLE_FILTER_DEFINITIONS: FilterDefinition<Person>[] = [
 export const PEOPLE_FILTER_CLEAR_ID = "all";
 
 /**
- * Team toolbar: Current | Players | Coaches | Alumni | All.
- * Current = status; Players/Coaches/Alumni = role. Never infer status from role.
+ * Team toolbar facets within Team membership: Current | Players | Coaches | All.
+ * Membership (player|coach) is applied before facets — All = all Team members,
+ * not every Person in the database. Never infer status from role.
  */
 export const TEAM_PHASE1_FILTER_IDS = [
   STATUS_KEYS.current,
   "players",
   "coaches",
-  ROLE_KEYS.alumni,
 ] as const;
 
 export type TeamPhase1FilterId = (typeof TEAM_PHASE1_FILTER_IDS)[number];
@@ -213,8 +213,10 @@ export function getPeopleFilterVisualSelection(
 }
 
 /**
- * Facet filters first (OR within category, AND across), then search, then sort.
- * Cards and List must share this result set (BP-025D).
+ * Team membership first, then facet filters (OR within category, AND across),
+ * then search, then sort. Cards and List must share this result set (BP-025D).
+ *
+ * Empty `activeFilterIds` ("All") means all Team members, not all People.
  */
 export function filterPeople(
   people: Person[],
@@ -228,7 +230,8 @@ export function filterPeople(
     definitions?: readonly FilterDefinition<Person>[];
   },
 ): Person[] {
-  return applyFilters(people, definitions, activeFilterIds)
+  const teamMembers = people.filter(isTeamDirectoryPerson);
+  return applyFilters(teamMembers, definitions, activeFilterIds)
     .filter((person) => matchesSearch(person, query))
     .sort((a, b) => a.lastName.localeCompare(b.lastName));
 }

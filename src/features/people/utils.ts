@@ -135,6 +135,17 @@ export function isCoach(person: Person): boolean {
 }
 
 /**
+ * Team module membership (BP-039A).
+ *
+ * Team is not an all-People directory — only Players and Coaches belong.
+ * Parents (`family`), Recruits, Alumni, and Staff are excluded unless they
+ * also hold a player or coach role (single `role_id` today).
+ */
+export function isTeamDirectoryPerson(person: Person): boolean {
+  return hasRole(person, ROLE_KEYS.player) || hasRole(person, ROLE_KEYS.coach);
+}
+
+/**
  * Coach-oriented directory presentation: role is Coach (or Staff).
  * Status is never inferred from role.
  */

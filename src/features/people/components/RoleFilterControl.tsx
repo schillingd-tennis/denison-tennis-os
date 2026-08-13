@@ -9,15 +9,15 @@ import {
 } from "@/features/people/filters";
 
 /**
- * Team faceted filter chips (BP-024G / BP-025D).
+ * Team faceted filter chips (BP-024G / BP-025D / BP-039A).
  * Within a category → OR; across categories → AND.
- * All clears every facet; clearing the last facet returns to All.
+ * All clears every facet → all Team members (players + coaches), not all People.
  */
 export default function RoleFilterControl({
   value,
   onChange,
 }: {
-  /** Active facet ids; empty means All. */
+  /** Active facet ids; empty means All Team members. */
   value: readonly string[];
   onChange: (activeIds: string[]) => void;
 }) {

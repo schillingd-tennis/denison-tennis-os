@@ -36,6 +36,7 @@ import RoleFilterControl from "./RoleFilterControl";
 /**
  * Team directory surface for the People domain.
  * Nav label and `/team` routes stay "Team"; data model is People.
+ * Base set is Team membership only (players + coaches) — not all People.
  * BP-031A: search + view persist in sessionStorage so Workspace Back restores them.
  */
 export default function PeopleDirectory({ people }: { people: Person[] }) {
@@ -90,7 +91,7 @@ export default function PeopleDirectory({ people }: { people: Person[] }) {
     <div className="flex flex-col gap-7">
       <PageHeader
         title="Team"
-        subtitle="People in the Denison Tennis program"
+        subtitle="Players and coaches on the Denison Tennis team"
         meta={`${filtered.length} ${filtered.length === 1 ? "person" : "people"}`}
       />
 
