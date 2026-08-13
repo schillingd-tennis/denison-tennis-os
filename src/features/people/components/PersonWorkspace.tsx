@@ -59,7 +59,7 @@ import { ROLE_KEYS, STATUS_KEYS } from "@/features/lookups/seed";
 import { useRoles, useStatuses } from "@/features/lookups/useLookups";
 import { updatePersonAction } from "@/features/people/actions";
 import { TEAM_FOUND_SET_MODULE_KEY } from "@/features/people/foundSet";
-import { listRelationshipsForPerson } from "@/features/people/personRelationships";
+import { listRelationshipsForPersonAction } from "@/features/people/peopleReadActions";
 import { toPersonWritePatch } from "@/features/people/personWritePatch";
 import type { Person, PlayerStatus } from "@/features/people/types";
 import {
@@ -230,20 +230,13 @@ export default function PersonWorkspace({ person }: { person: Person }) {
   // Family nav summary from real relationships (FamilyWorkspace may be unmounted).
   useEffect(() => {
     let cancelled = false;
-    void listRelationshipsForPerson(record.id)
-      .then((relationships) => {
-        if (cancelled) return;
-        setFamilySummary({
-          parentCount: relationships.length,
-          hasEmergencyContact: relationships.some(
-            (edge) => edge.isEmergencyContact,
-          ),
-        });
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setFamilySummary({ parentCount: 0, hasEmergencyContact: false });
+    void listRelationshipsForPersonAction(record.id).then((relationships) => {
+      if (cancelled) return;
+      setFamilySummary({
+        parentCount: relationships.length,
+        hasEmergencyContact: relationships.some((edge) => edge.isEmergencyContact),
       });
+    });
     return () => {
       cancelled = true;
     };

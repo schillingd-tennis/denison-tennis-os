@@ -1,62 +1,34 @@
 /**
- * Person↔Person relationships (B2A read / B2B write).
+ * Person↔Person relationships repository (B2A read / B2B write).
  *
- * Edge store for Parents/Guardians and future relationship types.
- * Distinct from the unused `Person.relationships` jsonb stub and from
- * demo `FamilyContact` data — those remain until a later UI cutover.
- *
- * Direction: `personId` = source (player in B2B), `relatedPersonId` = related
- * (parent/guardian). Inverse: list by related person.
- *
- * Link Existing (Option A): insert edge only — never updates Person.role_id.
- * Create New Parent: atomic RPC `create_parent_for_player`.
+ * Types/labels: `personRelationshipTypes.ts` (client-safe).
+ * Client Components must not import this module — use peopleReadActions /
+ * parentActions instead (server action boundary).
  */
 
 import { supabase } from "@/lib/supabase";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-/** Stable storage keys; UI labels are Mother / Father / Guardian / Other. */
-export type PersonRelationshipType = "mother" | "father" | "guardian" | "other";
+import {
+  isPersonRelationshipType,
+  type CreateParentForPlayerInput,
+  type CreateParentForPlayerResult,
+  type LinkPersonAsParentInput,
+  type PersonRelationshipRecord,
+  type PersonRelationshipType,
+} from "./personRelationshipTypes";
 
-export const PERSON_RELATIONSHIP_TYPE_LABELS: Record<PersonRelationshipType, string> = {
-  mother: "Mother",
-  father: "Father",
-  guardian: "Guardian",
-  other: "Other",
-};
-
-export type PersonRelationshipRecord = {
-  id: string;
-  /** Source person (player in B2B). */
-  personId: string;
-  /** Related person (parent/guardian). */
-  relatedPersonId: string;
-  relationshipType: PersonRelationshipType;
-  isPrimaryContact: boolean;
-  isEmergencyContact: boolean;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type CreateParentForPlayerInput = {
-  playerId: string;
-  firstName: string;
-  lastName: string;
-  relationshipType: PersonRelationshipType;
-  email?: string;
-  phone?: string;
-};
-
-export type CreateParentForPlayerResult = {
-  parentId: string;
-  relationshipId: string;
-};
-
-export type LinkPersonAsParentInput = {
-  playerId: string;
-  relatedPersonId: string;
-  relationshipType: PersonRelationshipType;
-};
+export type {
+  CreateParentForPlayerInput,
+  CreateParentForPlayerResult,
+  LinkPersonAsParentInput,
+  PersonRelationshipRecord,
+  PersonRelationshipType,
+} from "./personRelationshipTypes";
+export {
+  isPersonRelationshipType,
+  PERSON_RELATIONSHIP_TYPE_LABELS,
+} from "./personRelationshipTypes";
 
 type PersonRelationshipRow = {
   id: string;
@@ -71,18 +43,7 @@ type PersonRelationshipRow = {
 
 const TABLE = "person_relationships";
 
-const RELATIONSHIP_TYPE_SET = new Set<string>([
-  "mother",
-  "father",
-  "guardian",
-  "other",
-]);
-
 export class PersonRelationshipsRepositoryError extends Error {}
-
-export function isPersonRelationshipType(value: string): value is PersonRelationshipType {
-  return RELATIONSHIP_TYPE_SET.has(value);
-}
 
 function asRelationshipType(value: string): PersonRelationshipType {
   if (!isPersonRelationshipType(value)) {

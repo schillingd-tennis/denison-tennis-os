@@ -12,23 +12,20 @@ import {
   linkPersonAsParentAction,
 } from "@/features/people/parentActions";
 import {
-  listRelationshipsForPerson,
+  listPeopleAction,
+  loadFamilyParentsForPlayerAction,
+  type FamilyParentRowDto,
+} from "@/features/people/peopleReadActions";
+import {
   PERSON_RELATIONSHIP_TYPE_LABELS,
-  type PersonRelationshipRecord,
   type PersonRelationshipType,
-} from "@/features/people/personRelationships";
-import { listPeople, getPersonById } from "@/features/people/repository";
+} from "@/features/people/personRelationshipTypes";
 import type { Person } from "@/features/people/types";
 import { getDisplayName, matchesSearch } from "@/features/people/utils";
 
 export type FamilyWorkspaceSummary = {
   parentCount: number;
   hasEmergencyContact: boolean;
-};
-
-type FamilyParentRow = {
-  relationship: PersonRelationshipRecord;
-  person: Person;
 };
 
 const RELATIONSHIP_OPTIONS: { value: PersonRelationshipType; label: string }[] = [
@@ -47,25 +44,11 @@ const primaryButtonClass =
 const secondaryButtonClass =
   "inline-flex h-10 w-full items-center justify-center rounded-control border border-border px-4 text-sm font-medium text-text-primary transition-colors hover:border-text-secondary/60";
 
-function summarize(rows: FamilyParentRow[]): FamilyWorkspaceSummary {
+function summarize(rows: FamilyParentRowDto[]): FamilyWorkspaceSummary {
   return {
     parentCount: rows.length,
     hasEmergencyContact: rows.some((row) => row.relationship.isEmergencyContact),
   };
-}
-
-async function loadFamilyParentRows(playerId: string): Promise<FamilyParentRow[]> {
-  const relationships = await listRelationshipsForPerson(playerId);
-  const rows: FamilyParentRow[] = [];
-
-  for (const relationship of relationships) {
-    const person = await getPersonById(relationship.relatedPersonId);
-    if (person) {
-      rows.push({ relationship, person });
-    }
-  }
-
-  return rows;
 }
 
 function AddParentFlow({
@@ -97,7 +80,7 @@ function AddParentFlow({
   useEffect(() => {
     if (step !== "link") return;
     let cancelled = false;
-    void listPeople()
+    void listPeopleAction()
       .then((people) => {
         if (cancelled) return;
         setCandidates(
@@ -371,7 +354,7 @@ function AddParentFlow({
   );
 }
 
-function ParentRow({ row }: { row: FamilyParentRow }) {
+function ParentRow({ row }: { row: FamilyParentRowDto }) {
   const { person, relationship } = row;
   const name = getDisplayName(person);
   const relationshipLabel = PERSON_RELATIONSHIP_TYPE_LABELS[relationship.relationshipType];
@@ -421,11 +404,11 @@ export default function FamilyWorkspace({
   onSummaryChange: (summary: FamilyWorkspaceSummary) => void;
 }) {
   const { openDrawer, closeDrawer } = useDrawerManager();
-  const [rows, setRows] = useState<FamilyParentRow[] | null>(null);
+  const [rows, setRows] = useState<FamilyParentRowDto[] | null>(null);
   const [loadError, setLoadError] = useState<string | undefined>();
 
   const applyRows = useCallback(
-    (next: FamilyParentRow[]) => {
+    (next: FamilyParentRowDto[]) => {
       setRows(next);
       onSummaryChange(summarize(next));
     },
@@ -433,29 +416,18 @@ export default function FamilyWorkspace({
   );
 
   const refresh = useCallback(async () => {
-    try {
-      const next = await loadFamilyParentRows(player.id);
-      applyRows(next);
-      setLoadError(undefined);
-    } catch {
-      applyRows([]);
-      setLoadError("Could not load family relationships.");
-    }
+    const next = await loadFamilyParentsForPlayerAction(player.id);
+    applyRows(next);
+    setLoadError(undefined);
   }, [applyRows, player.id]);
 
   useEffect(() => {
     let cancelled = false;
-    void loadFamilyParentRows(player.id)
-      .then((next) => {
-        if (cancelled) return;
-        applyRows(next);
-        setLoadError(undefined);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        applyRows([]);
-        setLoadError("Could not load family relationships.");
-      });
+    void loadFamilyParentsForPlayerAction(player.id).then((next) => {
+      if (cancelled) return;
+      applyRows(next);
+      setLoadError(undefined);
+    });
     return () => {
       cancelled = true;
     };
