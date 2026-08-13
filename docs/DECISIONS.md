@@ -341,6 +341,129 @@ build on this baseline without relaxing these rules.
 - Person Header no longer duplicates Call / Text / Email / Add Note / Schedule;
   the page-level sticky toolbar is the single action source for Person Workspaces.
 
+## BP-038A — Spreadsheet Engine Foundation
+
+- Architecture only: `src/features/spreadsheet-engine/` +
+  `docs/SPREADSHEET_ENGINE.md`. **No spreadsheet UI, route, or navigation.**
+- Person Field Catalog remains the sole source of column title, field id,
+  type, formatter/editor mapping, CSV label, search/sort/filter/export flags,
+  sensitivity, default width, and alignment.
+- Models: `ColumnDefinition`, `SpreadsheetColumn`, `ColumnGroup`, `SavedView`,
+  `SpreadsheetView`, `ExportDefinition`, filters, sorts.
+- Built-in Person view presets (code constants): Roster, Recruiting, Travel
+  Manifest, Admissions, Academics; custom via `createCustomPersonView`.
+- Existing Team / Travel / Adaptive Workspace behavior unchanged.
+
+## BP-037A — NULL Persistence for Field Clears
+
+- Clearing an editable Person field must persist SQL `NULL` via
+  `updatePersonAction` / `personPatchToRow`.
+- Root cause: clears used `undefined`; Next.js Server Action serialization
+  drops `undefined` keys, so the repository received `{}` and returned the
+  unchanged person (previous value restored). Editing still worked because
+  non-empty strings survive serialization.
+- Canonical clear on the write path is `null` (`PersonWritePatch`). Domain
+  reads still normalize DB `NULL` → `undefined` via `rowToPerson`.
+- Class repair: `toPersonWritePatch()` normalizes every Person write call site
+  (Field Engine, Person Workspace header, Team Directory) before the action.
+
+## BP-037 — Universal Field Engine
+
+- Field metadata (name, label, type, required, sensitive, editable, sortable,
+  filterable, exportable, validation constraints, default, placeholder) lives
+  once in domain catalogs; Person: `src/features/people/fieldCatalog.ts`.
+- Universal Field Engine (`src/features/field-engine`) owns display formatting,
+  editor widget selection, parse/validation, and Person persistence wiring via
+  `updatePersonAction` / Person repository. No duplicate save path.
+- Supported types: text, longText, date, number, boolean, enum, phone, email,
+  url, currency, percentage, relationship, attachment (future), secureText,
+  system, json.
+- `<FieldRenderer field="…" />` is the single editable-field surface. Travel
+  Workspace is the first consumer; layout/spacing/typography unchanged from
+  BP-036G (implementation refactor only).
+- Sensitive fields keep BP-036G convention: masked at rest, plain text while
+  editing, remask after save.
+- Screenshot (local only): `tmp/screenshots/bp-037-field-engine-travel.png`.
+
+## BP-036G — Editable Travel Workspace Fields
+
+- Travel fields edit in place via existing `InlineEditCell` + `updatePersonAction`
+  (canonical Person / Supabase path). No second persistence mechanism.
+- Sensitive fields (SSN, Passport Number): masked at rest; plain text while
+  editing; remask after save (approved BP-036G convention).
+- Seat Preference uses catalog enum options including `bulkhead`.
+- Layout / section order / Adaptive Workspace shell unchanged from BP-036F.
+- Screenshot (local only): `tmp/screenshots/bp-036g-travel-editable.png`.
+
+## BP-036F — Build Initial Travel Workspace
+
+- Travel Adaptive Workspace replaces the placeholder with read-only sections:
+  Identity, Travel Documents, Air Travel, Government ID.
+- Values come from the Person record; empty → `—` (`EMPTY_VALUE`).
+- SSN is masked for display; DOB and Full Legal Name are canonical Person fields
+  (read-only references — not duplicated).
+- Styling matches Tennis Performance label/value rows (`TravelWorkspace.tsx`).
+- No Adaptive Workspace shell / navigation / data-model changes.
+- Screenshot (local only): `tmp/screenshots/bp-036f-travel-workspace.png`.
+
+## BP-036E — Person Data Model Expansion (Travel & Identity Fields)
+
+- Completes / extends the BP-036A Person travel-identity set:
+  confirms `fullLegalName`, `middleName`, `middleInitial`, `dateOfBirth`,
+  `socialSecurityNumber`, `tsaKnownTravelerNumber`, `passportExpirationDate`;
+  adds `passportNumber` (`secureText`, sensitive); expands `seatPreference`
+  with `bulkhead`.
+- All fields registered once in `src/features/people/fieldCatalog.ts` for
+  future spreadsheet columns, saved views, CSV export, search, filters,
+  Adaptive Workspaces, forms, and AI.
+- Persistence: migration `0008_person_passport_number_and_bulkhead.sql`.
+- **No UI** — Person Workspace / Travel Workspace / directory unchanged.
+
+## BP-036D — Adaptive Workspace Desktop Split Layout
+
+- Adaptive Workspace is a **permanent two-pane desktop split**: left =
+  Workspace Navigation, right = Active Workspace. Both remain visible.
+- Selecting a workspace updates **only** the right pane. No vertical stacking,
+  drawers, or accordions for module selection.
+- Single shared shell (`rounded-card` + divider); nav/adaptive use `framed={false}`
+  inside the split. Layout is always `grid-cols-[nav_1fr]` (not `lg:`-gated).
+- Player Header, Executive Overview, Tennis Performance unchanged.
+- Screenshot (local only): `tmp/screenshots/bp-036d-desktop-split.png`.
+
+## BP-036C — Restore Approved Adaptive Workspace from Git Baseline
+
+- Canonical Person Workspace UI reference: Git commit `32fd0f8`
+  (“Adaptive Workspace foundation and Person Workspace UI polish”).
+- Restored by comparing the working tree to `32fd0f8` and confirming UI sources
+  match that commit exactly (no post-commit layout diffs to revert).
+- **Design Freeze** rule added to project standards
+  (`.cursor/rules/design-freeze.mdc`, `docs/DESIGN_SYSTEM.md`).
+- Data model / Person fields / BP-036A catalog unchanged.
+- Screenshot (local only): `tmp/screenshots/bp-036c-restored-from-32fd0f8.png`.
+
+## BP-036B — Restore Approved Adaptive Workspace UI
+
+- Confirmed Adaptive Workspace UI matched the approved BP-035C/D baseline;
+  no layout component diffs vs the Adaptive Workspace commit.
+- Superseded for the Git baseline reference by BP-036C (`32fd0f8`).
+
+## BP-036A — Person Data Model Expansion (Travel Identity Fields)
+
+- Person gains travel / identity fields once on the canonical record:
+  `fullLegalName`, `middleInitial`, `socialSecurityNumber` (secureText,
+  sensitive), `tsaKnownTravelerNumber`, `passportExpirationDate`,
+  `seatPreference` (`window` \| `aisle` \| `middle` \| `exit_row` \|
+  `no_preference`).
+- `middleName` already existed — not duplicated.
+- `dateOfBirth` remains a single Person field; catalog section is
+  **Personal Information** (not Identity / Travel).
+- Centralized field catalog: `src/features/people/fieldCatalog.ts`. Modules
+  must not redefine these fields (workspaces, spreadsheets, exports, filters,
+  search, AI, forms consume the catalog later).
+- Persistence: migration `0007_person_travel_identity_fields.sql` + mapping /
+  ownership / seed column lists. No Travel Workspace, forms, or export UI in
+  this milestone.
+
 ## BP-035D — Adaptive Workspace Top Alignment
 
 - Shared **Workspaces** section title sits above the two-column layout.

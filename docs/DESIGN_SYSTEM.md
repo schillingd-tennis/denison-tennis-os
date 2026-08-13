@@ -84,6 +84,18 @@ Reusable shell in `src/components/toolbar/`:
 Modules (Team, Recruiting, Operations, …) compose these slots. Do not invent
 Team-specific toolbar chrome.
 
+## Design Freeze (BP-036C)
+
+Once a UI milestone has been approved and committed, that Git commit becomes
+the **canonical design reference**.
+
+- Future milestones may **not** modify approved layouts unless the milestone
+  explicitly authorizes UI work.
+- Any unrelated UI modification is a **regression**.
+- Person Workspace / Adaptive Workspace canonical commit: **`32fd0f8`**,
+  as amended by explicit UI milestones (**BP-036D** permanent desktop split).
+- Agent rule: `.cursor/rules/design-freeze.mdc`.
+
 ## Rule for future work
 
 **Future features must use these shared design tokens rather than arbitrary

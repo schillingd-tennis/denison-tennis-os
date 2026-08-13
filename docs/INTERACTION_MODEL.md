@@ -151,7 +151,9 @@ Host primary modules on the current object page without leaving context.
 
 - The object page (Person Header, Executive Overview, Tennis Performance) stays
   fixed.
-- Workspace navigation selects focus; only the Adaptive Workspace panel changes.
+- **Desktop split (BP-036D):** Workspace Navigation (left) and Active Workspace
+  (right) are permanent side-by-side panes. Both stay visible.
+- Workspace navigation selects focus; only the right pane content changes.
 - Prefer a short crossfade (≈150–200ms) over page navigation or drawers for
   whole modules.
 - Each workspace uses one shell: title, optional subtitle, optional toolbar,
@@ -159,13 +161,16 @@ Host primary modules on the current object page without leaving context.
 
 **Anti-patterns**
 
+- Stacking the active workspace below the navigation list
 - Opening an entire module in a drawer
+- Accordions or card stacks for module selection
 - Navigating to a separate route for every secondary module
 - Reloading the page when switching focus
 
 **Implementation**
 
 `src/components/adaptive-workspace/` + `WorkspaceNavigation` for selection.
+Person Workspace composes them in a permanent two-column split shell.
 
 ---
 

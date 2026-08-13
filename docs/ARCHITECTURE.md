@@ -227,13 +227,12 @@ Roles describe what a Person is. Relationships describe how one Person
 connects to another Person. These are deliberately separate concepts —
 a role is a property of one person; a relationship links two people.
 
-> **Note on today's implementation (BP-021):** `Person.roles` is a
-> Postgres `text[]` / TypeScript `PersonRole[]` on the same Person row
-> (`player` | `coach` | `alumni` | `staff`). That is the smallest clean
-> multi-role model without a join table or duplicate Person records.
-> Parent/guardian contacts remain the lighter `FamilyContact` shape
-> linked by `personId` until a workflow needs them as full `Person`
-> records. See `docs/DATA_MODEL.md`.
+> **Note on today's implementation (BP-021 / BP-025A / BP-036A):** Role and
+> status are lookup FKs on the Person row. Field metadata (labels, sections,
+> sensitivity, enums) lives in `src/features/people/fieldCatalog.ts` —
+> modules must not redefine Person fields. Parent/guardian contacts remain
+> the lighter `FamilyContact` shape linked by `personId` until a workflow
+> needs them as full `Person` records. See `docs/DATA_MODEL.md`.
 
 ## 6. Module Architecture
 
@@ -565,6 +564,9 @@ Intended testing levels (not added in this sprint):
 - **Ownership Lock (BP-029A) — COMPLETED / BASELINE:** Supabase SoR;
   Airtable bootstrap/fill-null only; Force Refresh disabled; validated
   2026-08-06. Not an active work item.
+- Universal Field Engine (BP-037) + NULL clear repair (BP-037A)
+- Spreadsheet Engine foundation (BP-038A) — architecture only; see
+  [`SPREADSHEET_ENGINE.md`](./SPREADSHEET_ENGINE.md). No grid UI yet.
 
 **Direction (not a feature checklist):**
 
