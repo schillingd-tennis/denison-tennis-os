@@ -191,24 +191,7 @@ export function getPersonRoleLabel(person: Person): string {
   return getPersonRoleDisplay(person);
 }
 
-export function matchesSearch(person: Person, query: string): boolean {
-  const q = query.trim().toLowerCase();
-  if (!q) return true;
-
-  const haystack = [
-    person.firstName,
-    person.lastName,
-    person.preferredName,
-    person.title,
-    person.city,
-    person.major,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-
-  return haystack.includes(q);
-}
+export { matchesSearch } from "./personSearch";
 
 export function getPersonById(people: Person[], id: string): Person | undefined {
   return people.find((person) => person.id === id);

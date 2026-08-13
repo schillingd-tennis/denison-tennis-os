@@ -4,6 +4,7 @@ import { formatPhoneDisplay } from "@/components/inline-edit/formatters";
 import { listPeople } from "@/features/people/repository";
 import { ROLE_KEYS } from "@/features/lookups/seed";
 import type { Person } from "@/features/people/types";
+import { personPaletteKeywords } from "@/features/people/personSearch";
 import {
   formatDenisonIdDisplay,
   getDisplayName,
@@ -63,27 +64,14 @@ export async function listPalettePeople(): Promise<PalettePersonItem[]> {
       roleLabel,
       roles: [person.role.key],
       initials,
-      keywords: [
+      keywords: personPaletteKeywords(person, [
         displayName,
         fullName,
-        person.firstName,
-        person.lastName,
-        person.preferredName ?? "",
-        person.title ?? "",
-        person.role.key,
-        person.role.label,
-        person.status.key,
-        person.status.label,
         roleLabel,
         initials,
         hometown ?? "",
-        person.city ?? "",
-        person.state ?? "",
-        person.major ?? "",
-        formatDenisonIdDisplay(person.denisonId),
-        person.denisonId ?? "",
         email ?? "",
-      ].filter(Boolean),
+      ]),
       preview: {
         kind: "person",
         photoUrl: person.photoUrl,

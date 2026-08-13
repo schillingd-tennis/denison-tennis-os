@@ -14,6 +14,7 @@ import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { people } from "../src/features/people/data";
+import { listPersonDbColumns } from "../src/features/people/fieldCatalog";
 import { personToRow } from "../src/features/people/supabaseMapping";
 
 import {
@@ -25,44 +26,8 @@ import {
 const SEED_PATH = resolve(process.cwd(), "supabase/seed.sql");
 const FORCE_PATH = resolve(process.cwd(), "supabase/seed-force-refresh.sql");
 
-const COLUMNS = [
-  "id",
-  "created_at",
-  "updated_at",
-  "role_id",
-  "status_id",
-  "title",
-  "first_name",
-  "middle_name",
-  "last_name",
-  "preferred_name",
-  "date_of_birth",
-  "photo_url",
-  "cell_phone",
-  "personal_email",
-  "denison_email",
-  "preferred_contact_method",
-  "address_line1",
-  "address_line2",
-  "city",
-  "state",
-  "zip_code",
-  "country",
-  "class_year",
-  "major",
-  "minor",
-  "denison_id",
-  "dorm",
-  "room_number",
-  "utr",
-  "wtn",
-  "dominant_hand",
-  "height_inches",
-  "weight_lbs",
-  "player_status",
-  "relationships",
-  "notes",
-] as const;
+/** Insert column list — derived from Field Catalog `dbColumn` (BP-038B). */
+const COLUMNS = listPersonDbColumns();
 
 function sqlLiteral(value: unknown): string {
   if (value === null || value === undefined) return "NULL";

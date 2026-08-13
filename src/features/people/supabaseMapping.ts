@@ -1,10 +1,18 @@
 /**
  * Boundary mapping between the `production_people` Supabase table and the
- * internal `Person` domain object (BP-015 / BP-021 / BP-025A).
+ * internal `Person` domain object (BP-015 / BP-021 / BP-025A / BP-038B).
+ *
+ * Writable column maps and `personToRow` keys derive from Field Catalog
+ * `dbColumn` metadata. `rowToPerson` / `ProductionPersonRow` stay explicit
+ * because they encode join shape and type coercion.
  */
 import { ROLE_SEED, STATUS_SEED, roleSeedByKey, statusSeedByKey } from "@/features/lookups/seed";
 import type { LookupRef } from "@/features/lookups/types";
 
+import {
+  getPersonFieldsWithDbColumn,
+  getWritablePersonFieldMap,
+} from "./fieldCatalog";
 import type { Person, PersonRelationship } from "./types";
 
 type NestedLookup = {
@@ -135,55 +143,25 @@ export function rowToPerson(row: ProductionPersonRow): Person {
   };
 }
 
-const WRITABLE_FIELD_MAP: Partial<Record<keyof Person, string>> = {
-  roleId: "role_id",
-  statusId: "status_id",
-  title: "title",
-  firstName: "first_name",
-  middleName: "middle_name",
-  lastName: "last_name",
-  preferredName: "preferred_name",
-  dateOfBirth: "date_of_birth",
-  photoUrl: "photo_url",
+/** Domain key → Postgres column; derived from Field Catalog `dbColumn`. */
+const WRITABLE_FIELD_MAP: Partial<Record<keyof Person, string>> =
+  getWritablePersonFieldMap();
 
-  cellPhone: "cell_phone",
-  personalEmail: "personal_email",
-  denisonEmail: "denison_email",
-  preferredContactMethod: "preferred_contact_method",
-
-  addressLine1: "address_line1",
-  addressLine2: "address_line2",
-  city: "city",
-  state: "state",
-  zipCode: "zip_code",
-  country: "country",
-
-  classYear: "class_year",
-  major: "major",
-  minor: "minor",
-  denisonId: "denison_id",
-  dorm: "dorm",
-  roomNumber: "room_number",
-
-  utr: "utr",
-  wtn: "wtn",
-  dominantHand: "dominant_hand",
-  heightInches: "height_inches",
-  weightLbs: "weight_lbs",
-  playerStatus: "player_status",
-
-  relationships: "relationships",
-
-  notes: "notes",
-};
-
-export function personPatchToRow(patch: Partial<Person>): Record<string, unknown> {
+/**
+ * Maps a Person write patch to a Supabase row fragment.
+ * Present keys are written; `null` / missing optional values become SQL NULL.
+ * Callers must include the key explicitly to clear a field.
+ */
+export function personPatchToRow(
+  patch: Partial<Record<keyof Person, Person[keyof Person] | null>>,
+): Record<string, unknown> {
   const row: Record<string, unknown> = {};
 
   for (const key of Object.keys(patch) as (keyof Person)[]) {
     const rowKey = WRITABLE_FIELD_MAP[key];
     if (!rowKey) continue;
 
+    // Key is present on the patch (including explicit null). Do not skip nulls.
     const value = patch[key];
     if (key === "relationships") {
       row[rowKey] = value ?? [];
@@ -197,51 +175,33 @@ export function personPatchToRow(patch: Partial<Person>): Record<string, unknown
 
 /** Maps a `Person` into a `production_people` row for inserts/upserts. */
 export function personToRow(person: Person): Record<string, unknown> {
-  return {
-    id: person.id,
-    created_at: person.createdAt,
-    updated_at: person.updatedAt,
+  const row: Record<string, unknown> = {};
 
-    role_id: person.roleId,
-    status_id: person.statusId,
-    title: person.title ?? null,
-    first_name: person.firstName,
-    middle_name: person.middleName ?? null,
-    last_name: person.lastName,
-    preferred_name: person.preferredName ?? null,
-    date_of_birth: person.dateOfBirth ?? null,
-    photo_url: person.photoUrl ?? null,
+  for (const field of getPersonFieldsWithDbColumn()) {
+    const dbColumn = field.dbColumn;
+    if (!dbColumn) continue;
 
-    cell_phone: person.cellPhone ?? null,
-    personal_email: person.personalEmail ?? null,
-    denison_email: person.denisonEmail ?? null,
-    preferred_contact_method: person.preferredContactMethod ?? null,
+    const value = person[field.key];
+    if (field.key === "relationships") {
+      row[dbColumn] = value ?? [];
+      continue;
+    }
+    if (
+      field.key === "id" ||
+      field.key === "createdAt" ||
+      field.key === "updatedAt" ||
+      field.key === "firstName" ||
+      field.key === "lastName" ||
+      field.key === "roleId" ||
+      field.key === "statusId"
+    ) {
+      row[dbColumn] = value;
+      continue;
+    }
+    row[dbColumn] = value ?? null;
+  }
 
-    address_line1: person.addressLine1 ?? null,
-    address_line2: person.addressLine2 ?? null,
-    city: person.city ?? null,
-    state: person.state ?? null,
-    zip_code: person.zipCode ?? null,
-    country: person.country ?? null,
-
-    class_year: person.classYear ?? null,
-    major: person.major ?? null,
-    minor: person.minor ?? null,
-    denison_id: person.denisonId ?? null,
-    dorm: person.dorm ?? null,
-    room_number: person.roomNumber ?? null,
-
-    utr: person.utr ?? null,
-    wtn: person.wtn ?? null,
-    dominant_hand: person.dominantHand ?? null,
-    height_inches: person.heightInches ?? null,
-    weight_lbs: person.weightLbs ?? null,
-    player_status: person.playerStatus ?? null,
-
-    relationships: person.relationships,
-
-    notes: person.notes ?? null,
-  };
+  return row;
 }
 
 /** Build Person role/status refs from seed keys (for data.ts / import). */

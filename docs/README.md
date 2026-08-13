@@ -8,7 +8,8 @@ Canonical architecture and product documentation for Denison Tennis OS.
 | [`ARCHITECTURE.md`](./ARCHITECTURE.md) | Technical layers, boundaries, and object model |
 | [`INTERACTION_MODEL.md`](./INTERACTION_MODEL.md) | How users interact with the OS (BP-033) |
 | [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) | Visual tokens and shell |
-| [`DATA_MODEL.md`](./DATA_MODEL.md) | Person / roles and domain shape |
+| [`DATA_MODEL.md`](./DATA_MODEL.md) | Person / roles and domain shape (+ field catalog pointer) |
+| [`SPREADSHEET_ENGINE.md`](./SPREADSHEET_ENGINE.md) | Spreadsheet / grid / CSV / saved-view architecture (BP-038A) |
 | [`SYSTEM_OF_RECORD.md`](./SYSTEM_OF_RECORD.md) | Long-term SoR architecture |
 | [`DATA_OWNERSHIP.md`](./DATA_OWNERSHIP.md) | Provider vs application field ownership |
 | [`DATABASE_WORKFLOW.md`](./DATABASE_WORKFLOW.md) | Database workflow quick reference |

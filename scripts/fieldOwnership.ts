@@ -1,8 +1,9 @@
 /**
- * BP-029A — People field ownership (system of record lock).
+ * BP-029A / BP-038B — People field ownership (system of record lock).
  *
- * STATUS: COMPLETED / BASELINE (accepted 2026-08-06). Not an active work item.
- * Do not change these rules unless a bug is discovered.
+ * Ownership *rules* are baseline (accepted 2026-08-06). Column membership is
+ * derived from Field Catalog `dbColumn` metadata (BP-038B) so new Person
+ * fields do not require a parallel ownership list.
  *
  * Supabase `production_people` is the permanent system of record.
  * Airtable (CSV) is an **import / bootstrap source only**.
@@ -21,49 +22,17 @@
  * Keep in sync with `docs/DATA_OWNERSHIP.md` and `docs/SYSTEM_OF_RECORD.md`.
  */
 
+import { listImportedOnceDbColumns } from "../src/features/people/fieldCatalog";
+
 /**
  * Profile columns Airtable/bootstrap may supply on INSERT or when the live
  * column is NULL. Immediately afterward they are OS Managed — imports must
  * never overwrite a populated value.
  *
- * Includes former “provider-import” and “app-authoritative” profile fields.
+ * Derived from Field Catalog (excludes id / created_at / updated_at).
  * `created_at` is listed separately for fill-null on conflict only.
  */
-export const IMPORTED_ONCE_COLUMNS = [
-  "role_id",
-  "status_id",
-  "title",
-  "first_name",
-  "middle_name",
-  "last_name",
-  "preferred_name",
-  "date_of_birth",
-  "photo_url",
-  "cell_phone",
-  "personal_email",
-  "denison_email",
-  "preferred_contact_method",
-  "address_line1",
-  "address_line2",
-  "city",
-  "state",
-  "zip_code",
-  "country",
-  "class_year",
-  "major",
-  "minor",
-  "denison_id",
-  "dorm",
-  "room_number",
-  "utr",
-  "wtn",
-  "dominant_hand",
-  "height_inches",
-  "weight_lbs",
-  "player_status",
-  "relationships",
-  "notes",
-] as const;
+export const IMPORTED_ONCE_COLUMNS = listImportedOnceDbColumns() as readonly string[];
 
 /**
  * Columns OS owns after bootstrap. Same set as Imported Once for Person
@@ -114,8 +83,8 @@ export const AIRTABLE_OWNED_COLUMNS = IMPORTED_ONCE_COLUMNS;
  */
 export const APP_OWNED_COLUMNS = OS_MANAGED_COLUMNS;
 
-export type ImportedOnceColumn = (typeof IMPORTED_ONCE_COLUMNS)[number];
-export type OsManagedColumn = (typeof OS_MANAGED_COLUMNS)[number];
+export type ImportedOnceColumn = string;
+export type OsManagedColumn = string;
 /** @deprecated */
 export type ProviderImportColumn = ImportedOnceColumn;
 /** @deprecated */
@@ -123,7 +92,7 @@ export type ExternalSyncColumn = ImportedOnceColumn;
 /** @deprecated */
 export type AirtableOwnedColumn = ImportedOnceColumn;
 /** @deprecated */
-export type AppAuthoritativeColumn = (typeof APP_AUTHORITATIVE_COLUMNS)[number];
+export type AppAuthoritativeColumn = string;
 /** @deprecated */
 export type AppOwnedColumn = OsManagedColumn;
 

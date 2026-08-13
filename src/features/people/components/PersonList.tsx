@@ -20,7 +20,7 @@ import {
   stickyTrailingTdClass,
   stickyTrailingThClass,
 } from "@/components/data-table/stickyColumns";
-import type { ColumnDef, SortState } from "@/components/data-table/types";
+import type { SortState } from "@/components/data-table/types";
 import { useSortableData } from "@/components/data-table/useSortableData";
 import {
   isValidUtr,
@@ -43,6 +43,10 @@ import { StickyProductivityActionBar } from "@/components/productivity";
 
 import { updatePersonAction } from "@/features/people/actions";
 import {
+  TEAM_DIRECTORY_TABLE_COLUMNS,
+  type TeamDirectoryColumnId,
+} from "@/features/people/directoryColumns";
+import {
   TEAM_DIRECTORY_EMPTY,
   TEAM_DIRECTORY_META,
   TEAM_DIRECTORY_NAME,
@@ -55,7 +59,6 @@ import {
 } from "@/features/people/foundSet";
 import type { Person } from "@/features/people/types";
 import {
-  getDisplayFirstName,
   getDisplayName,
   getHometown,
   getInitials,
@@ -68,13 +71,7 @@ import PlayerAvatar from "@/components/PlayerAvatar";
 import QuickActionButton from "@/components/QuickActionButton";
 import { typeClass, typeRole } from "@/components/typography";
 
-type PersonColumnKey =
-  | "name"
-  | "role"
-  | "hometown"
-  | "classYear"
-  | "utr"
-  | "wtn";
+type PersonColumnKey = TeamDirectoryColumnId;
 
 /** Fields that support double-click inline editing in the Team List (BP-019A / BP-025F). */
 type EditableField = Exclude<PersonColumnKey, "name" | "role">;
@@ -92,26 +89,13 @@ const ROW_CLICK_DELAY_MS = 250;
 /** Session-only persistence so returning from a workspace keeps the sort. */
 const TEAM_LIST_SORT_STORAGE_KEY = "denison-tennis-os:team-list-sort";
 
-const PERSON_COLUMN_KEYS: readonly PersonColumnKey[] = [
-  "name",
-  "role",
-  "hometown",
-  "classYear",
-  "utr",
-  "wtn",
-];
+const PERSON_COLUMN_KEYS: readonly PersonColumnKey[] = TEAM_DIRECTORY_TABLE_COLUMNS.map(
+  (column) => column.id,
+);
+
+const columns = TEAM_DIRECTORY_TABLE_COLUMNS;
 
 type EditingCell = { personId: string; field: EditableField };
-
-/**
- * Sort key for the Name column: last name primary, first/preferred name as
- * a stable tiebreaker. Display remains "First Last" via `getDisplayName`.
- */
-function nameSortKey(person: Person): string {
-  const last = person.lastName?.trim() || "";
-  const first = getDisplayFirstName(person).trim();
-  return `${last}\u0000${first}`;
-}
 
 function readStoredTeamListSort(): SortState<PersonColumnKey> {
   if (typeof window === "undefined") return null;
@@ -145,65 +129,6 @@ function writeStoredTeamListSort(sort: SortState<PersonColumnKey>) {
     // Private mode / quota — sort still works for this mount; persistence is best-effort.
   }
 }
-
-/**
- * Column definitions for the Team List view — directory facts only (BP-025F).
- * Administrative fields (D#, phone, email) live in Person Workspace.
- */
-const columns: ColumnDef<Person, PersonColumnKey>[] = [
-  {
-    id: "name",
-    title: "Name",
-    sortable: true,
-    sortType: "text",
-    // Always sort by last name (A→Z first click); display stays First Last.
-    accessor: nameSortKey,
-    defaultSort: "asc",
-  },
-  {
-    id: "role",
-    title: "Role",
-    sortable: true,
-    sortType: "text",
-    accessor: (person) => getPersonRoleDisplay(person),
-    defaultSort: "asc",
-  },
-  {
-    id: "hometown",
-    title: "Hometown",
-    sortable: true,
-    sortType: "text",
-    accessor: (person) => getHometown(person),
-    defaultSort: "asc",
-  },
-  {
-    id: "classYear",
-    title: "Class",
-    sortable: true,
-    sortType: "number",
-    align: "right",
-    accessor: (person) => person.classYear,
-    defaultSort: "asc",
-  },
-  {
-    id: "utr",
-    title: "UTR",
-    sortable: true,
-    sortType: "number",
-    align: "right",
-    accessor: (person) => person.utr,
-    defaultSort: "desc",
-  },
-  {
-    id: "wtn",
-    title: "WTN",
-    sortable: true,
-    sortType: "number",
-    align: "right",
-    accessor: (person) => person.wtn,
-    defaultSort: "desc",
-  },
-];
 
 /**
  * Parse free-text "City, ST" into a patch.
