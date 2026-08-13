@@ -58,8 +58,8 @@ import {
 import { ROLE_KEYS, STATUS_KEYS } from "@/features/lookups/seed";
 import { useRoles, useStatuses } from "@/features/lookups/useLookups";
 import { updatePersonAction } from "@/features/people/actions";
-import type { FamilyContact } from "@/features/people/family";
 import { TEAM_FOUND_SET_MODULE_KEY } from "@/features/people/foundSet";
+import { listRelationshipsForPerson } from "@/features/people/personRelationships";
 import { toPersonWritePatch } from "@/features/people/personWritePatch";
 import type { Person, PlayerStatus } from "@/features/people/types";
 import {
@@ -73,6 +73,7 @@ import {
 } from "@/features/people/utils";
 import { formatDate, parseDisplayDate } from "@/lib/formatting";
 
+import FamilyWorkspace, { type FamilyWorkspaceSummary } from "./FamilyWorkspace";
 import PersonStatusLabel from "./PersonStatusLabel";
 import TravelWorkspace from "./TravelWorkspace";
 
@@ -181,19 +182,17 @@ function noteStatusLine(communications: Communication[]): string {
  * Person Workspace — executive dashboard + Adaptive Workspace (BP-035C).
  * Header / overview / performance stay fixed; only the workspace surface changes.
  */
-export default function PersonWorkspace({
-  person,
-  familyContacts,
-}: {
-  person: Person;
-  familyContacts: FamilyContact[];
-}) {
+export default function PersonWorkspace({ person }: { person: Person }) {
   const [record, setRecord] = useState(person);
   const [trackedPerson, setTrackedPerson] = useState(person);
   const [editing, setEditing] = useState<HeaderEditableField | null>(null);
   const [fieldError, setFieldError] = useState<string | undefined>(undefined);
   const [copyFeedback, setCopyFeedback] = useState<string | undefined>(undefined);
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
+  const [familySummary, setFamilySummary] = useState<FamilyWorkspaceSummary>({
+    parentCount: 0,
+    hasEmergencyContact: false,
+  });
   const { status: saveStatus, error: saveError, runSave } = useSaveIndicator();
   const roles = useRoles();
   const statuses = useStatuses();
@@ -227,6 +226,28 @@ export default function PersonWorkspace({
       href: `/team/${record.id}`,
     });
   }, [displayName, favoriteObjectType, record.id]);
+
+  // Family nav summary from real relationships (FamilyWorkspace may be unmounted).
+  useEffect(() => {
+    let cancelled = false;
+    void listRelationshipsForPerson(record.id)
+      .then((relationships) => {
+        if (cancelled) return;
+        setFamilySummary({
+          parentCount: relationships.length,
+          hasEmergencyContact: relationships.some(
+            (edge) => edge.isEmergencyContact,
+          ),
+        });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setFamilySummary({ parentCount: 0, hasEmergencyContact: false });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [record.id]);
 
   const email = record.denisonEmail ?? record.personalEmail;
   const communications = usePersonCommunications(record.id);
@@ -399,8 +420,8 @@ export default function PersonWorkspace({
     const hasPhone = Boolean(record.cellPhone);
     const hasEmail = Boolean(record.personalEmail || record.denisonEmail);
     const preferred = getPreferredContactLabel(record.preferredContactMethod);
-    const parentCount = familyContacts.length;
-    const hasEmergency = familyContacts.some((contact) => contact.isEmergencyContact);
+    const parentCount = familySummary.parentCount;
+    const hasEmergency = familySummary.hasEmergencyContact;
 
     const contactLines = [
       hasPhone ? "Phone available" : "No phone number",
@@ -472,7 +493,8 @@ export default function PersonWorkspace({
     ];
   }, [
     communications,
-    familyContacts,
+    familySummary.hasEmergencyContact,
+    familySummary.parentCount,
     record.cellPhone,
     record.classYear,
     record.denisonEmail,
@@ -523,7 +545,11 @@ export default function PersonWorkspace({
         title: "Family",
         subtitle: displayName,
         content: (
-          <AdaptiveWorkspacePlaceholder message="Family contacts coming soon." />
+          <FamilyWorkspace
+            key={record.id}
+            player={record}
+            onSummaryChange={setFamilySummary}
+          />
         ),
       },
       {
