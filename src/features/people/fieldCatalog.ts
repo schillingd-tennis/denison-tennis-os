@@ -34,7 +34,7 @@ export type PersonFieldSection =
   | "notes";
 
 /** Adaptive Workspace ids that may include a field (membership, not layout). */
-export type PersonWorkspaceId = "travel";
+export type PersonWorkspaceId = "travel" | "contact";
 
 /**
  * Grouping within a workspace. Titles/layout live in the workspace component;
@@ -44,7 +44,10 @@ export type PersonWorkspaceGroupId =
   | "travel.identity"
   | "travel.documents"
   | "travel.air"
-  | "travel.government";
+  | "travel.government"
+  | "contact.email"
+  | "contact.phone"
+  | "contact.preferences";
 
 export type PersonFieldEnumOption<T extends string = string> = {
   value: T;
@@ -306,17 +309,6 @@ export const PERSON_FIELD_CATALOG: readonly PersonFieldDefinition[] = [
 
   // Contact
   {
-    key: "cellPhone",
-    label: "Cell Phone",
-    section: "contact",
-    type: "phone",
-    editable: true,
-    sortable: true,
-    filterable: true,
-    exportable: true,
-    dbColumn: "cell_phone",
-  },
-  {
     key: "personalEmail",
     label: "Personal Email",
     section: "contact",
@@ -327,6 +319,9 @@ export const PERSON_FIELD_CATALOG: readonly PersonFieldDefinition[] = [
     exportable: true,
     searchable: true,
     dbColumn: "personal_email",
+    workspaces: ["contact"],
+    workspaceGroup: "contact.email",
+    workspaceOrder: 10,
   },
   {
     key: "denisonEmail",
@@ -339,6 +334,23 @@ export const PERSON_FIELD_CATALOG: readonly PersonFieldDefinition[] = [
     exportable: true,
     searchable: true,
     dbColumn: "denison_email",
+    workspaces: ["contact"],
+    workspaceGroup: "contact.email",
+    workspaceOrder: 20,
+  },
+  {
+    key: "cellPhone",
+    label: "Mobile Phone",
+    section: "contact",
+    type: "phone",
+    editable: true,
+    sortable: true,
+    filterable: true,
+    exportable: true,
+    dbColumn: "cell_phone",
+    workspaces: ["contact"],
+    workspaceGroup: "contact.phone",
+    workspaceOrder: 10,
   },
   {
     key: "preferredContactMethod",
@@ -355,6 +367,9 @@ export const PERSON_FIELD_CATALOG: readonly PersonFieldDefinition[] = [
       { value: "text", label: "Text" },
       { value: "email", label: "Email" },
     ],
+    workspaces: ["contact"],
+    workspaceGroup: "contact.preferences",
+    workspaceOrder: 10,
   },
 
   // Permanent Address

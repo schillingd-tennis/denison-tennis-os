@@ -104,3 +104,35 @@ export async function loadFamilyParentsForPlayerAction(
     return [];
   }
 }
+
+export type RelatedPlayerRowDto = {
+  relationship: PersonRelationshipRecord;
+  person: Person;
+};
+
+/** Related Players workspace: inverse edges + player Person rows. */
+export async function loadRelatedPlayersForFamilyPersonAction(
+  familyPersonId: string,
+): Promise<RelatedPlayerRowDto[]> {
+  try {
+    const relationships = await listRelationshipsByRelatedPerson(familyPersonId);
+    const rows: RelatedPlayerRowDto[] = [];
+    for (const relationship of relationships) {
+      const person = await getPersonById(relationship.personId);
+      if (person) {
+        rows.push({ relationship, person });
+      }
+    }
+    return rows;
+  } catch (error) {
+    if (
+      error instanceof PersonRelationshipsRepositoryError ||
+      error instanceof PeopleRepositoryError
+    ) {
+      console.error(`[loadRelatedPlayersForFamilyPersonAction] ${error.message}`);
+    } else {
+      console.error("[loadRelatedPlayersForFamilyPersonAction] Unexpected error", error);
+    }
+    return [];
+  }
+}

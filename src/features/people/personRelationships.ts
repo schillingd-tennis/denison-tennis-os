@@ -206,3 +206,34 @@ export async function createPersonRelationship(
 
   return rowToPersonRelationship(data as PersonRelationshipRow);
 }
+
+/**
+ * Delete a relationship edge by id (BP-040E Remove from Family).
+ * Does not delete either Person — only the person_relationships row.
+ */
+export async function deletePersonRelationship(relationshipId: string): Promise<void> {
+  const trimmed = relationshipId.trim();
+  if (!trimmed) {
+    throw new PersonRelationshipsRepositoryError("Relationship id is required.");
+  }
+
+  const client = await createSupabaseServerClient();
+  const { data, error } = await client
+    .from(TABLE)
+    .delete()
+    .eq("id", trimmed)
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    throw new PersonRelationshipsRepositoryError(
+      `Failed to delete relationship "${trimmed}": ${error.message}`,
+    );
+  }
+
+  if (!data) {
+    throw new PersonRelationshipsRepositoryError(
+      `Relationship "${trimmed}" was not found.`,
+    );
+  }
+}

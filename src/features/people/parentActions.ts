@@ -16,6 +16,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   createParentForPlayer,
   createPersonRelationship,
+  deletePersonRelationship,
   isPersonRelationshipType,
   listRelationshipsForPerson,
   PersonRelationshipsRepositoryError,
@@ -55,6 +56,15 @@ export type LinkParentActionResult =
       relatedPerson: Person;
       relationship: PersonRelationshipRecord;
     }
+  | { success: false; error: string };
+
+export type RemoveParentFromFamilyInput = {
+  playerId: string;
+  relationshipId: string;
+};
+
+export type RemoveParentFromFamilyResult =
+  | { success: true }
   | { success: false; error: string };
 
 async function requireAuthenticatedUser(): Promise<{ ok: true } | { ok: false; error: string }> {
@@ -255,6 +265,47 @@ export async function linkPersonAsParentAction(
     return {
       success: false,
       error: "We couldn't link that person. Please try again.",
+    };
+  }
+}
+
+/**
+ * Remove from Family (BP-040E): delete the relationship edge only.
+ * Does not delete the parent Person or any other relationships.
+ */
+export async function removeParentFromFamilyAction(
+  input: RemoveParentFromFamilyInput,
+): Promise<RemoveParentFromFamilyResult> {
+  const auth = await requireAuthenticatedUser();
+  if (!auth.ok) return { success: false, error: auth.error };
+
+  if (!input.relationshipId?.trim()) {
+    return { success: false, error: "Relationship is required." };
+  }
+
+  const source = await requirePlayerSource(input.playerId);
+  if (!source.ok) return { success: false, error: source.error };
+
+  const relationships = await listRelationshipsForPerson(input.playerId);
+  const edge = relationships.find((row) => row.id === input.relationshipId);
+  if (!edge) {
+    return { success: false, error: "That parent is not linked to this player." };
+  }
+
+  try {
+    await deletePersonRelationship(edge.id);
+    revalidatePlayerPaths(input.playerId);
+    revalidatePath(`/team/${edge.relatedPersonId}`);
+    return { success: true };
+  } catch (error) {
+    if (error instanceof PersonRelationshipsRepositoryError) {
+      console.error(`[removeParentFromFamilyAction] ${error.message}`);
+    } else {
+      console.error("[removeParentFromFamilyAction] Unexpected error", error);
+    }
+    return {
+      success: false,
+      error: "We couldn't remove that parent. Please try again.",
     };
   }
 }

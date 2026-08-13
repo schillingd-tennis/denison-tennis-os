@@ -59,7 +59,10 @@ import { ROLE_KEYS, STATUS_KEYS } from "@/features/lookups/seed";
 import { useRoles, useStatuses } from "@/features/lookups/useLookups";
 import { updatePersonAction } from "@/features/people/actions";
 import { TEAM_FOUND_SET_MODULE_KEY } from "@/features/people/foundSet";
-import { listRelationshipsForPersonAction } from "@/features/people/peopleReadActions";
+import {
+  listRelationshipsForPersonAction,
+  loadRelatedPlayersForFamilyPersonAction,
+} from "@/features/people/peopleReadActions";
 import { toPersonWritePatch } from "@/features/people/personWritePatch";
 import type { Person, PlayerStatus } from "@/features/people/types";
 import {
@@ -70,11 +73,14 @@ import {
   getStatusLabel,
   hasRole,
   isCoachDirectoryPerson,
+  isFamilyPerson,
 } from "@/features/people/utils";
 import { formatDate, parseDisplayDate } from "@/lib/formatting";
 
+import ContactInformationWorkspace from "./ContactInformationWorkspace";
 import FamilyWorkspace, { type FamilyWorkspaceSummary } from "./FamilyWorkspace";
 import PersonStatusLabel from "./PersonStatusLabel";
+import RelatedPlayersWorkspace from "./RelatedPlayersWorkspace";
 import TravelWorkspace from "./TravelWorkspace";
 
 function favoriteObjectTypeForPerson(person: Person): SearchObjectType {
@@ -193,11 +199,21 @@ export default function PersonWorkspace({ person }: { person: Person }) {
     parentCount: 0,
     hasEmergencyContact: false,
   });
+  const [relatedPlayerCount, setRelatedPlayerCount] = useState(0);
   const { status: saveStatus, error: saveError, runSave } = useSaveIndicator();
   const roles = useRoles();
   const statuses = useStatuses();
 
-  if (person !== trackedPerson) {
+  // Only fully reset workspace chrome when navigating to a different Person.
+  // After revalidatePath, the same person arrives as a new object reference —
+  // update the record, but keep the active workspace and family summary.
+  if (person.id !== trackedPerson.id) {
+    setTrackedPerson(person);
+    setRecord(person);
+    setActiveWorkspaceId(null);
+    setRelatedPlayerCount(0);
+    setFamilySummary({ parentCount: 0, hasEmergencyContact: false });
+  } else if (person !== trackedPerson) {
     setTrackedPerson(person);
     setRecord(person);
   }
@@ -214,6 +230,7 @@ export default function PersonWorkspace({ person }: { person: Person }) {
   const displayName = getDisplayName(record);
   const address = getPermanentAddress(record);
   const coachDirectory = isCoachDirectoryPerson(record);
+  const familyPerson = isFamilyPerson(record);
   const favoriteObjectType = favoriteObjectTypeForPerson(record);
 
   useEffect(() => {
@@ -229,6 +246,7 @@ export default function PersonWorkspace({ person }: { person: Person }) {
 
   // Family nav summary from real relationships (FamilyWorkspace may be unmounted).
   useEffect(() => {
+    if (familyPerson) return;
     let cancelled = false;
     void listRelationshipsForPersonAction(record.id).then((relationships) => {
       if (cancelled) return;
@@ -240,7 +258,20 @@ export default function PersonWorkspace({ person }: { person: Person }) {
     return () => {
       cancelled = true;
     };
-  }, [record.id]);
+  }, [familyPerson, record.id]);
+
+  // Related Players nav summary for family people.
+  useEffect(() => {
+    if (!familyPerson) return;
+    let cancelled = false;
+    void loadRelatedPlayersForFamilyPersonAction(record.id).then((rows) => {
+      if (cancelled) return;
+      setRelatedPlayerCount(rows.length);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [familyPerson, record.id]);
 
   const email = record.denisonEmail ?? record.personalEmail;
   const communications = usePersonCommunications(record.id);
@@ -424,23 +455,65 @@ export default function PersonWorkspace({ person }: { person: Person }) {
       contactLines.push(`Preferred: ${preferred}`);
     }
 
+    const communicationItem: WorkspaceNavItem = {
+      id: "communication",
+      title: "Communication",
+      icon: MessageSquare,
+      lines: [
+        formatRelativeDay(latest?.createdAt),
+        followUpStatusLine(communications),
+        noteStatusLine(communications),
+      ],
+    };
+    const contactItem: WorkspaceNavItem = {
+      id: "contact",
+      title: "Contact Information",
+      icon: UserRound,
+      lines: contactLines,
+    };
+    const documentsItem: WorkspaceNavItem = {
+      id: "documents",
+      title: "Documents",
+      icon: FileText,
+      lines: ["No documents yet", "Uploads coming soon"],
+    };
+    const denisonItem: WorkspaceNavItem = {
+      id: "denison",
+      title: "Denison Information",
+      icon: School,
+      lines: [
+        record.classYear !== undefined
+          ? `Class ${record.classYear}`
+          : "Class year not set",
+        record.major?.trim() || "Major not set",
+      ],
+    };
+
+    // BP-040E — Family Person navigation (no Academics / Family / Travel).
+    if (familyPerson) {
+      return [
+        contactItem,
+        {
+          id: "related-players",
+          title: "Related Players",
+          icon: Users,
+          lines: [
+            relatedPlayerCount === 0
+              ? "No related players"
+              : relatedPlayerCount === 1
+                ? "1 related player"
+                : `${relatedPlayerCount} related players`,
+          ],
+        },
+        communicationItem,
+        documentsItem,
+        denisonItem,
+      ];
+    }
+
     return [
-      {
-        id: "communication",
-        title: "Communication",
-        icon: MessageSquare,
-        lines: [
-          formatRelativeDay(latest?.createdAt),
-          followUpStatusLine(communications),
-          noteStatusLine(communications),
-        ],
-      },
-      {
-        id: "contact",
-        title: "Contact Information",
-        icon: UserRound,
-        lines: contactLines,
-      },
+      communicationItem,
+      contactItem,
       {
         id: "academics",
         title: "Academics",
@@ -466,26 +539,12 @@ export default function PersonWorkspace({ person }: { person: Person }) {
         icon: Plane,
         lines: ["No upcoming travel", "Travel details coming soon"],
       },
-      {
-        id: "documents",
-        title: "Documents",
-        icon: FileText,
-        lines: ["No documents yet", "Uploads coming soon"],
-      },
-      {
-        id: "denison",
-        title: "Denison Information",
-        icon: School,
-        lines: [
-          record.classYear !== undefined
-            ? `Class ${record.classYear}`
-            : "Class year not set",
-          record.major?.trim() || "Major not set",
-        ],
-      },
+      documentsItem,
+      denisonItem,
     ];
   }, [
     communications,
+    familyPerson,
     familySummary.hasEmergencyContact,
     familySummary.parentCount,
     record.cellPhone,
@@ -494,37 +553,78 @@ export default function PersonWorkspace({ person }: { person: Person }) {
     record.major,
     record.personalEmail,
     record.preferredContactMethod,
+    relatedPlayerCount,
   ]);
 
   const adaptiveWorkspaces = useMemo((): AdaptiveWorkspaceDefinition[] => {
+    const communicationWorkspace: AdaptiveWorkspaceDefinition = {
+      id: "communication",
+      title: "Communication",
+      subtitle: displayName,
+      content: (
+        <AdaptiveWorkspacePlaceholder
+          message="Timeline coming soon."
+          action={
+            <button
+              type="button"
+              disabled
+              className="inline-flex h-9 items-center justify-center rounded-control bg-denison-red px-3.5 text-sm font-semibold text-surface opacity-40"
+            >
+              Add Communication
+            </button>
+          }
+        />
+      ),
+    };
+    const contactWorkspace: AdaptiveWorkspaceDefinition = {
+      id: "contact",
+      title: "Contact Information",
+      subtitle: displayName,
+      content: (
+        <ContactInformationWorkspace
+          key={record.id}
+          person={record}
+          onPersonChange={setRecord}
+          runSave={runSave}
+        />
+      ),
+    };
+    const documentsWorkspace: AdaptiveWorkspaceDefinition = {
+      id: "documents",
+      title: "Documents",
+      subtitle: displayName,
+      content: (
+        <AdaptiveWorkspacePlaceholder message="Documents workspace coming soon." />
+      ),
+    };
+    const denisonWorkspace: AdaptiveWorkspaceDefinition = {
+      id: "denison",
+      title: "Denison Information",
+      subtitle: displayName,
+      content: (
+        <AdaptiveWorkspacePlaceholder message="Denison information coming soon." />
+      ),
+    };
+
+    // BP-040E — Family Person Adaptive bodies (no Academics / Family / Travel).
+    if (familyPerson) {
+      return [
+        contactWorkspace,
+        {
+          id: "related-players",
+          title: "Related Players",
+          subtitle: displayName,
+          content: <RelatedPlayersWorkspace key={record.id} person={record} />,
+        },
+        communicationWorkspace,
+        documentsWorkspace,
+        denisonWorkspace,
+      ];
+    }
+
     return [
-      {
-        id: "communication",
-        title: "Communication",
-        subtitle: displayName,
-        content: (
-          <AdaptiveWorkspacePlaceholder
-            message="Timeline coming soon."
-            action={
-              <button
-                type="button"
-                disabled
-                className="inline-flex h-9 items-center justify-center rounded-control bg-denison-red px-3.5 text-sm font-semibold text-surface opacity-40"
-              >
-                Add Communication
-              </button>
-            }
-          />
-        ),
-      },
-      {
-        id: "contact",
-        title: "Contact Information",
-        subtitle: displayName,
-        content: (
-          <AdaptiveWorkspacePlaceholder message="Contact details coming soon." />
-        ),
-      },
+      communicationWorkspace,
+      contactWorkspace,
       {
         id: "academics",
         title: "Academics",
@@ -557,24 +657,10 @@ export default function PersonWorkspace({ person }: { person: Person }) {
           />
         ),
       },
-      {
-        id: "documents",
-        title: "Documents",
-        subtitle: displayName,
-        content: (
-          <AdaptiveWorkspacePlaceholder message="Documents workspace coming soon." />
-        ),
-      },
-      {
-        id: "denison",
-        title: "Denison Information",
-        subtitle: displayName,
-        content: (
-          <AdaptiveWorkspacePlaceholder message="Denison information coming soon." />
-        ),
-      },
+      documentsWorkspace,
+      denisonWorkspace,
     ];
-  }, [displayName, record, runSave]);
+  }, [displayName, familyPerson, record, runSave]);
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
@@ -696,7 +782,7 @@ export default function PersonWorkspace({ person }: { person: Person }) {
           />
         }
         playerStatusSlot={
-          !coachDirectory ? (
+          !coachDirectory && !familyPerson ? (
             <InlineEditCell
               label="Player Status"
               value={record.playerStatus ?? ""}
@@ -729,7 +815,7 @@ export default function PersonWorkspace({ person }: { person: Person }) {
         }
       />
 
-      <OverviewPanel person={record} />
+      {!familyPerson ? <OverviewPanel person={record} /> : null}
 
       {/*
         BP-036D — Permanent desktop split: Workspace Navigation (left) +
@@ -747,14 +833,22 @@ export default function PersonWorkspace({ person }: { person: Person }) {
                 showTitle={false}
                 framed={false}
                 items={workspaceItems}
-                activeId={activeWorkspaceId}
+                activeId={
+                  workspaceItems.some((item) => item.id === activeWorkspaceId)
+                    ? activeWorkspaceId
+                    : null
+                }
                 onSelect={setActiveWorkspaceId}
               />
             </div>
           </aside>
           <AdaptiveWorkspace
             framed={false}
-            activeId={activeWorkspaceId}
+            activeId={
+              workspaceItems.some((item) => item.id === activeWorkspaceId)
+                ? activeWorkspaceId
+                : null
+            }
             workspaces={adaptiveWorkspaces}
           />
         </div>

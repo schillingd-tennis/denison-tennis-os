@@ -11,6 +11,7 @@ import {
   getPlayerStatusLabel,
   getStatusLabel,
   isCoachDirectoryPerson,
+  isFamilyPerson,
 } from "@/features/people/utils";
 import {
   EMPTY_VALUE,
@@ -69,6 +70,7 @@ function IdentityFact({
 /**
  * Executive Person header (BP-031E / BP-031G).
  * Identity + Executive Overview. Page actions live in the workspace toolbar only.
+ * Family people (BP-040E): no Class/Major, no Executive Overview.
  */
 export default function PersonHeader({
   person,
@@ -92,6 +94,7 @@ export default function PersonHeader({
       : undefined;
   const hometown = getHometown(person);
   const coachDirectory = isCoachDirectoryPerson(person);
+  const familyPerson = isFamilyPerson(person);
   const roleDisplay = getPersonRoleDisplay(person);
 
   const classYear =
@@ -151,7 +154,7 @@ export default function PersonHeader({
                   <span className="text-sm font-medium text-text-primary">
                     {formatDisplay(roleDisplay)}
                   </span>
-                  {!coachDirectory ? (
+                  {!coachDirectory && !familyPerson ? (
                     <>
                       <span className="text-text-secondary/40" aria-hidden>
                         ·
@@ -177,34 +180,38 @@ export default function PersonHeader({
             className="flex min-w-0 flex-1 flex-col justify-center gap-2 border-border lg:border-l lg:pl-6"
             aria-label="Primary identity"
           >
-            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2">
-              <IdentityFact label="Class" value={classYear} />
-              <span className="hidden text-text-secondary/35 sm:inline" aria-hidden>
-                ·
-              </span>
-              <IdentityFact label="Major" value={major} />
-            </div>
+            {!familyPerson ? (
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2">
+                <IdentityFact label="Class" value={classYear} />
+                <span className="hidden text-text-secondary/35 sm:inline" aria-hidden>
+                  ·
+                </span>
+                <IdentityFact label="Major" value={major} />
+              </div>
+            ) : null}
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2">
               <IdentityFact label="Hometown" value={hometownDisplay} />
             </div>
           </div>
         </div>
 
-        {/* Executive Overview */}
-        <div aria-label="Executive Overview">
-          <p className={`${typeRole.sectionTitle} mb-3`}>Executive Overview</p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            <SnapshotMetric label="UTR" value={utr} />
-            <SnapshotMetric label="WTN" value={wtn} />
-            <SnapshotMetric label="Team Record" value={COMING_SOON} />
-            <SnapshotMetric label="GPA" value={COMING_SOON} />
-            <SnapshotMetric
-              label="Player Status"
-              value={coachDirectory ? NO_DATA : playerStatus}
-            />
-            <SnapshotMetric label="Next Follow-up" value={COMING_SOON} />
+        {/* Executive Overview — players/coaches only (BP-040E: omit for family) */}
+        {!familyPerson ? (
+          <div aria-label="Executive Overview">
+            <p className={`${typeRole.sectionTitle} mb-3`}>Executive Overview</p>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+              <SnapshotMetric label="UTR" value={utr} />
+              <SnapshotMetric label="WTN" value={wtn} />
+              <SnapshotMetric label="Team Record" value={COMING_SOON} />
+              <SnapshotMetric label="GPA" value={COMING_SOON} />
+              <SnapshotMetric
+                label="Player Status"
+                value={coachDirectory ? NO_DATA : playerStatus}
+              />
+              <SnapshotMetric label="Next Follow-up" value={COMING_SOON} />
+            </div>
           </div>
-        </div>
+        ) : null}
       </div>
     </section>
   );

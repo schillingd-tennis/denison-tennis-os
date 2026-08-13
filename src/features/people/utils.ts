@@ -153,6 +153,11 @@ export function isCoachDirectoryPerson(person: Person): boolean {
   return hasRole(person, ROLE_KEYS.coach) || hasRole(person, ROLE_KEYS.staff);
 }
 
+/** Family / parent Person — no player dashboard chrome (BP-040E). */
+export function isFamilyPerson(person: Person): boolean {
+  return hasRole(person, ROLE_KEYS.family);
+}
+
 export type PersonRoleBadgeInfo = {
   label: string;
   /** Always neutral — identity metadata, never a notification tone. */

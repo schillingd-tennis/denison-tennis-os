@@ -1,15 +1,17 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { Trash2 } from "lucide-react";
 
 import { formatPhoneDisplay } from "@/components/inline-edit";
-import RoleBadge from "@/components/RoleBadge";
+import OpenPersonAction from "@/components/OpenPersonAction";
+import QuickActionButton from "@/components/QuickActionButton";
 import { typeClass, typeRole } from "@/components/typography";
 import { useDrawerManager } from "@/components/workspace-drawer";
 import {
   createParentForPlayerAction,
   linkPersonAsParentAction,
+  removeParentFromFamilyAction,
 } from "@/features/people/parentActions";
 import {
   listPeopleAction,
@@ -354,40 +356,72 @@ function AddParentFlow({
   );
 }
 
-function ParentRow({ row }: { row: FamilyParentRowDto }) {
+function ParentRow({
+  row,
+  playerId,
+  onRemoved,
+}: {
+  row: FamilyParentRowDto;
+  playerId: string;
+  onRemoved: () => void;
+}) {
   const { person, relationship } = row;
   const name = getDisplayName(person);
   const relationshipLabel = PERSON_RELATIONSHIP_TYPE_LABELS[relationship.relationshipType];
-  const phoneDisplay = formatPhoneDisplay(person.cellPhone);
   const email = person.personalEmail?.trim() || person.denisonEmail?.trim();
-  const flags = [
-    relationship.isPrimaryContact ? "Primary" : null,
-    relationship.isEmergencyContact ? "Emergency" : null,
-  ].filter(Boolean);
+  const phoneDisplay = formatPhoneDisplay(person.cellPhone);
+  const contactParts = [email, phoneDisplay].filter(Boolean);
+  const [removing, setRemoving] = useState(false);
+  const [removeError, setRemoveError] = useState<string | undefined>();
+
+  async function handleRemove() {
+    if (removing) return;
+    const confirmed = window.confirm(
+      `Remove ${name} from this player's family?\n\nThis removes the family relationship but does not delete the person's record.`,
+    );
+    if (!confirmed) return;
+
+    setRemoving(true);
+    setRemoveError(undefined);
+    try {
+      const result = await removeParentFromFamilyAction({
+        playerId,
+        relationshipId: relationship.id,
+      });
+      if (!result.success) {
+        setRemoveError(result.error);
+        return;
+      }
+      onRemoved();
+    } finally {
+      setRemoving(false);
+    }
+  }
 
   return (
-    <div className="flex flex-col gap-3 rounded-control border border-border p-4">
+    <div className="flex flex-col gap-1 py-3.5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className={typeRole.personName}>{name}</p>
           <p className={typeClass("metadataSm", "mt-0.5")}>{relationshipLabel}</p>
+          {contactParts.length > 0 ? (
+            <p className={typeClass("metadataSm", "mt-0.5 truncate")}>
+              {contactParts.join(" · ")}
+            </p>
+          ) : null}
         </div>
-        <Link
-          href={`/team/${person.id}`}
-          className="shrink-0 text-sm font-medium text-denison-red hover:opacity-90"
-        >
-          Open Person
-        </Link>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <OpenPersonAction href={`/team/${person.id}`} label="Open Parent" />
+          <QuickActionButton
+            onAction={removing ? undefined : () => void handleRemove()}
+            icon={Trash2}
+            label="Remove from Family"
+            tone="denison"
+            unavailableTitle="Removing…"
+          />
+        </div>
       </div>
-      {flags.length > 0 ? (
-        <RoleBadge label={flags.join(" · ")} className="self-start" />
-      ) : null}
-      {phoneDisplay || email ? (
-        <div className={`flex flex-col gap-1 ${typeRole.metadata}`}>
-          {phoneDisplay ? <p>{phoneDisplay}</p> : null}
-          {email ? <p className="truncate">{email}</p> : null}
-        </div>
-      ) : null}
+      {removeError ? <p className="text-sm text-danger">{removeError}</p> : null}
     </div>
   );
 }
@@ -489,9 +523,14 @@ export default function FamilyWorkspace({
           </button>
         </div>
       ) : (
-        <div className="flex max-w-xl flex-col gap-3">
+        <div className="max-w-xl divide-y divide-border/60 border-y border-border/60">
           {rows.map((row) => (
-            <ParentRow key={row.relationship.id} row={row} />
+            <ParentRow
+              key={row.relationship.id}
+              row={row}
+              playerId={player.id}
+              onRemoved={() => void refresh()}
+            />
           ))}
         </div>
       )}
