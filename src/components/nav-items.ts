@@ -1,6 +1,7 @@
 import {
   BookOpen,
   ClipboardList,
+  Contact,
   FlaskConical,
   Home,
   Settings,
@@ -22,6 +23,7 @@ export const primaryNavItems: NavItem[] = [
   { label: "Operations", href: "/operations", icon: ClipboardList },
   { label: "Research Lab", href: "/research", icon: FlaskConical },
   { label: "Knowledge", href: "/knowledge", icon: BookOpen },
+  { label: "People", href: "/people", icon: Contact },
 ];
 
 export const settingsNavItem: NavItem = {
