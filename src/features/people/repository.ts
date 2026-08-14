@@ -39,6 +39,8 @@ export type CreatePersonInput = {
   statusKey?: StatusKey;
   classYear?: number;
   playerStatus?: PlayerStatus;
+  /** Job / coaching title (e.g. "Head Coach") — maps to production_people.title. */
+  title?: string;
 };
 
 const PLAYER_STATUS_VALUES = new Set<PlayerStatus>([
@@ -163,6 +165,10 @@ export async function createPerson(input: CreatePersonInput): Promise<Person> {
   }
   if (input.playerStatus !== undefined) {
     row.player_status = input.playerStatus;
+  }
+  if (input.title !== undefined) {
+    const title = input.title.trim();
+    if (title) row.title = title;
   }
 
   const client = await createSupabaseServerClient();

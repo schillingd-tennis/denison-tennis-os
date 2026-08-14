@@ -1,9 +1,10 @@
 "use server";
 
 /**
- * Person lifecycle Server Actions (BP-041).
+ * Person lifecycle Server Actions (BP-041 / BP-042).
  *
  * createPlayerAction — Team directory Add Player (role=player, status=current).
+ * createCoachAction — Team directory Add Coach (role=coach, status=current).
  * deletePersonAction — hard-delete a Person record (cascades relationship edges only).
  *
  * Distinct from Remove from Family (parentActions.removeParentFromFamilyAction),
@@ -21,7 +22,11 @@ import {
   getPersonById,
   PeopleRepositoryError,
 } from "./repository";
-import type { PlayerStatus } from "./types";
+import {
+  COACH_DESIGNATIONS,
+  type CoachDesignation,
+  type PlayerStatus,
+} from "./types";
 
 export type CreatePlayerActionInput = {
   firstName: string;
@@ -30,9 +35,20 @@ export type CreatePlayerActionInput = {
   playerStatus?: PlayerStatus;
 };
 
-export type CreatePlayerActionResult =
+export type CreatePersonLifecycleResult =
   | { success: true; personId: string }
   | { success: false; error: string };
+
+export type CreatePlayerActionResult = CreatePersonLifecycleResult;
+
+export type CreateCoachActionInput = {
+  firstName: string;
+  lastName: string;
+  /** Stored on production_people.title — drives Team Role display. */
+  title: CoachDesignation;
+};
+
+export type CreateCoachActionResult = CreatePersonLifecycleResult;
 
 export type DeletePersonActionResult =
   | { success: true }
@@ -125,6 +141,54 @@ export async function createPlayerAction(
     return {
       success: false,
       error: "We couldn't create the player. Please try again.",
+    };
+  }
+}
+
+/** Create a Coach Person for the Team directory (BP-042). */
+export async function createCoachAction(
+  input: CreateCoachActionInput,
+): Promise<CreateCoachActionResult> {
+  const auth = await requireAuthenticatedUser();
+  if (!auth.ok) return { success: false, error: auth.error };
+
+  const firstName = normalizeRequiredName(input.firstName, "First name");
+  if (typeof firstName === "object") return { success: false, error: firstName.error };
+
+  const lastName = normalizeRequiredName(input.lastName, "Last name");
+  if (typeof lastName === "object") return { success: false, error: lastName.error };
+
+  const titleTrimmed = input.title?.trim() ?? "";
+  if (!titleTrimmed) {
+    return { success: false, error: "Coach designation is required." };
+  }
+  if (!(COACH_DESIGNATIONS as readonly string[]).includes(titleTrimmed)) {
+    return { success: false, error: "Coach designation is invalid." };
+  }
+  const title = titleTrimmed as CoachDesignation;
+
+  try {
+    const person = await createPerson({
+      firstName,
+      lastName,
+      roleKey: ROLE_KEYS.coach,
+      statusKey: STATUS_KEYS.current,
+      title,
+    });
+
+    revalidatePath("/team");
+    revalidatePath(`/team/${person.id}`);
+    revalidatePath("/people");
+    return { success: true, personId: person.id };
+  } catch (error) {
+    if (error instanceof PeopleRepositoryError) {
+      console.error(`[createCoachAction] ${error.message}`);
+    } else {
+      console.error("[createCoachAction] Unexpected error", error);
+    }
+    return {
+      success: false,
+      error: "We couldn't create the coach. Please try again.",
     };
   }
 }

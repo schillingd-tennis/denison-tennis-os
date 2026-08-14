@@ -10,6 +10,7 @@ import SearchInput from "@/components/SearchInput";
 import { Toolbar } from "@/components/toolbar";
 import ViewToggle, { type ViewMode } from "@/components/ViewToggle";
 import { useDrawerManager } from "@/components/workspace-drawer";
+import { ROLE_KEYS } from "@/features/lookups/seed";
 import type { Person } from "@/features/people/types";
 import {
   readStoredDirectoryQuery,
@@ -31,7 +32,7 @@ import {
   TEAM_FOUND_SET_MODULE_KEY,
 } from "@/features/people/foundSet";
 
-import AddPlayerFlow from "./AddPlayerFlow";
+import AddPersonFlow from "./AddPersonFlow";
 import PersonCard from "./PersonCard";
 import PersonList from "./PersonList";
 import RoleFilterControl from "./RoleFilterControl";
@@ -44,7 +45,7 @@ const primaryButtonClass =
  * Nav label and `/team` routes stay "Team"; data model is People.
  * Base set is Team membership only (players + coaches) — not all People.
  * BP-031A: search + view persist in sessionStorage so Workspace Back restores them.
- * BP-041: + ADD PLAYER creates a Player Person via DrawerManager.
+ * BP-041 / BP-042: + ADD PLAYER / + ADD COACH via shared AddPersonFlow.
  */
 export default function PeopleDirectory({ people }: { people: Person[] }) {
   const router = useRouter();
@@ -96,17 +97,22 @@ export default function PeopleDirectory({ people }: { people: Person[] }) {
     writeStoredDirectoryView(next);
   }
 
+  function handleCreated(personId: string) {
+    closeDrawer();
+    router.push(`/team/${personId}`);
+  }
+
   function openAddPlayerDrawer() {
     openDrawer({
       id: "team-add-player",
       title: "Add Player",
       subtitle: "Team",
       content: (
-        <AddPlayerFlow
-          onSuccess={() => {
-            closeDrawer();
-            router.refresh();
-          }}
+        <AddPersonFlow
+          roleKey={ROLE_KEYS.player}
+          description="Creates a new Player on the Team. Required fields only — more details can be edited after opening the record."
+          submitLabel="Create Player"
+          onSuccess={handleCreated}
         />
       ),
       cancelAction: {
@@ -116,6 +122,42 @@ export default function PeopleDirectory({ people }: { people: Person[] }) {
     });
   }
 
+  function openAddCoachDrawer() {
+    openDrawer({
+      id: "team-add-coach",
+      title: "Add Coach",
+      subtitle: "Team",
+      content: (
+        <AddPersonFlow
+          roleKey={ROLE_KEYS.coach}
+          description="Creates a new Coach on the Team. Required fields only — more details can be edited after opening the record."
+          submitLabel="Create Coach"
+          onSuccess={handleCreated}
+        />
+      ),
+      cancelAction: {
+        label: "Cancel",
+        onClick: () => closeDrawer(),
+      },
+    });
+  }
+
+  // Coaches filter: lead with + ADD COACH so the primary action matches the section.
+  // All / Current / Players / mixed: keep both, Player-first action group.
+  const coachesSectionActive =
+    activeFilterIds.includes("coaches") && !activeFilterIds.includes("players");
+
+  const addPlayerButton = (
+    <button type="button" className={primaryButtonClass} onClick={openAddPlayerDrawer}>
+      + ADD PLAYER
+    </button>
+  );
+  const addCoachButton = (
+    <button type="button" className={primaryButtonClass} onClick={openAddCoachDrawer}>
+      + ADD COACH
+    </button>
+  );
+
   return (
     <div className="flex flex-col gap-7">
       <PageHeader
@@ -123,9 +165,19 @@ export default function PeopleDirectory({ people }: { people: Person[] }) {
         subtitle="Players and coaches on the Denison Tennis team"
         meta={`${filtered.length} ${filtered.length === 1 ? "person" : "people"}`}
         actions={
-          <button type="button" className={primaryButtonClass} onClick={openAddPlayerDrawer}>
-            + ADD PLAYER
-          </button>
+          <div className="flex items-center gap-2">
+            {coachesSectionActive ? (
+              <>
+                {addCoachButton}
+                {addPlayerButton}
+              </>
+            ) : (
+              <>
+                {addPlayerButton}
+                {addCoachButton}
+              </>
+            )}
+          </div>
         }
       />
 

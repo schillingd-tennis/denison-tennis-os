@@ -17,6 +17,18 @@ export type PlayerStatus = "active" | "injured" | "inactive" | "graduated";
 export type ContactMethod = "phone" | "text" | "email";
 
 /**
+ * Coach designations stored on production_people.title (Team Role column).
+ * Not Person roles — role stays `coach`; title is the display designation.
+ */
+export const COACH_DESIGNATIONS = [
+  "Head Coach",
+  "Coach",
+  "Assistant Coach",
+] as const;
+
+export type CoachDesignation = (typeof COACH_DESIGNATIONS)[number];
+
+/**
  * Preferred aircraft seat when traveling with the program (BP-036A / BP-036E).
  * Stable storage keys; display labels live in the field catalog.
  */
