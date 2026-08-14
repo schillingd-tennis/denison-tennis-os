@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useRouter } from "next/navigation";
 
 import { publishFoundSet } from "@/components/found-set";
 import EmptyState from "@/components/EmptyState";
@@ -8,6 +9,7 @@ import PageHeader from "@/components/PageHeader";
 import SearchInput from "@/components/SearchInput";
 import { Toolbar } from "@/components/toolbar";
 import ViewToggle, { type ViewMode } from "@/components/ViewToggle";
+import { useDrawerManager } from "@/components/workspace-drawer";
 import type { Person } from "@/features/people/types";
 import {
   readStoredDirectoryQuery,
@@ -29,17 +31,24 @@ import {
   TEAM_FOUND_SET_MODULE_KEY,
 } from "@/features/people/foundSet";
 
+import AddPlayerFlow from "./AddPlayerFlow";
 import PersonCard from "./PersonCard";
 import PersonList from "./PersonList";
 import RoleFilterControl from "./RoleFilterControl";
+
+const primaryButtonClass =
+  "inline-flex h-10 items-center justify-center rounded-control bg-denison-red px-4 text-sm font-semibold text-surface transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40";
 
 /**
  * Team directory surface for the People domain.
  * Nav label and `/team` routes stay "Team"; data model is People.
  * Base set is Team membership only (players + coaches) — not all People.
  * BP-031A: search + view persist in sessionStorage so Workspace Back restores them.
+ * BP-041: + ADD PLAYER creates a Player Person via DrawerManager.
  */
 export default function PeopleDirectory({ people }: { people: Person[] }) {
+  const router = useRouter();
+  const { openDrawer, closeDrawer } = useDrawerManager();
   const query = useSyncExternalStore(
     subscribeDirectoryQuery,
     readStoredDirectoryQuery,
@@ -87,12 +96,37 @@ export default function PeopleDirectory({ people }: { people: Person[] }) {
     writeStoredDirectoryView(next);
   }
 
+  function openAddPlayerDrawer() {
+    openDrawer({
+      id: "team-add-player",
+      title: "Add Player",
+      subtitle: "Team",
+      content: (
+        <AddPlayerFlow
+          onSuccess={() => {
+            closeDrawer();
+            router.refresh();
+          }}
+        />
+      ),
+      cancelAction: {
+        label: "Cancel",
+        onClick: () => closeDrawer(),
+      },
+    });
+  }
+
   return (
     <div className="flex flex-col gap-7">
       <PageHeader
         title="Team"
         subtitle="Players and coaches on the Denison Tennis team"
         meta={`${filtered.length} ${filtered.length === 1 ? "person" : "people"}`}
+        actions={
+          <button type="button" className={primaryButtonClass} onClick={openAddPlayerDrawer}>
+            + ADD PLAYER
+          </button>
+        }
       />
 
       <Toolbar

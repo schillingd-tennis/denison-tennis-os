@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
@@ -14,6 +15,7 @@ import {
   Phone,
   Plane,
   School,
+  Trash2,
   UserRound,
   Users,
 } from "lucide-react";
@@ -40,6 +42,7 @@ import { StickyProductivityActionBar } from "@/components/productivity";
 import QuickActionButton from "@/components/QuickActionButton";
 import type { StatusDotTone } from "@/components/StatusDot";
 import { typeRole } from "@/components/typography";
+import { useDrawerManager } from "@/components/workspace-drawer";
 import {
   AdaptiveWorkspace,
   AdaptiveWorkspacePlaceholder,
@@ -78,6 +81,7 @@ import {
 import { formatDate, parseDisplayDate } from "@/lib/formatting";
 
 import ContactInformationWorkspace from "./ContactInformationWorkspace";
+import DeletePersonConfirm from "./DeletePersonConfirm";
 import FamilyWorkspace, { type FamilyWorkspaceSummary } from "./FamilyWorkspace";
 import PersonStatusLabel from "./PersonStatusLabel";
 import RelatedPlayersWorkspace from "./RelatedPlayersWorkspace";
@@ -210,6 +214,8 @@ export default function PersonWorkspace({
   const { status: saveStatus, error: saveError, runSave } = useSaveIndicator();
   const roles = useRoles();
   const statuses = useStatuses();
+  const router = useRouter();
+  const { openDrawer, closeDrawer } = useDrawerManager();
 
   // Only fully reset workspace chrome when navigating to a different Person.
   // After revalidatePath, the same person arrives as a new object reference —
@@ -237,6 +243,29 @@ export default function PersonWorkspace({
   const displayName = getDisplayName(record);
   const address = getPermanentAddress(record);
   const coachDirectory = isCoachDirectoryPerson(record);
+
+  function openDeletePersonDrawer() {
+    const name = getDisplayName(record);
+    openDrawer({
+      id: "delete-person",
+      title: `Delete ${name}?`,
+      content: (
+        <DeletePersonConfirm
+          personId={record.id}
+          personName={name}
+          onSuccess={() => {
+            closeDrawer();
+            router.push("/team");
+            router.refresh();
+          }}
+        />
+      ),
+      cancelAction: {
+        label: "Cancel",
+        onClick: () => closeDrawer(),
+      },
+    });
+  }
   const familyPerson = isFamilyPerson(record);
   const favoriteObjectType = favoriteObjectTypeForPerson(record);
 
@@ -753,6 +782,12 @@ export default function PersonWorkspace({
               icon={Download}
               label="Export Found Set"
               tone="neutral"
+            />
+            <QuickActionButton
+              onAction={openDeletePersonDrawer}
+              icon={Trash2}
+              label="Delete Person"
+              tone="denison"
             />
           </>
         }
