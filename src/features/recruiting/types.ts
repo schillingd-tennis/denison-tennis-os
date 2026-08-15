@@ -38,6 +38,12 @@ export type RecruitProfile = {
   getability?: LookupRef;
   focus?: boolean;
 
+  /**
+   * High school graduation / recruiting class (Coda Class Year).
+   * Distinct from Person.classYear (Denison college graduation). BP-043E.
+   */
+  recruitClassYear?: number;
+
   gpa?: string;
   sat?: number;
   act?: number;

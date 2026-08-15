@@ -37,7 +37,9 @@ On `production_people` / `Person` (current facts; not Coda calculated ranks):
 | `videoUrl` | `video_url` | |
 | `highSchool` | `high_school` | Origin school; **not** duplicated on Recruit Profile |
 
-**Not added (already on Person):** UTR, WTN, name, email, phone, hometown/address, class year.
+**Not added (already on Person):** UTR, WTN, name, email, phone, hometown/address, **Denison** class year (`classYear`). Coda Class Year is **not** this field.
+
+**Added on Recruit Profile (BP-043E):** `recruitClassYear` / `recruit_class_year` — high school graduation / recruiting class. Migration `0015_recruit_class_year.sql`. Do not copy onto `Person.classYear`.
 
 **Not added:** Coda `International` (always `0` in the export). International remains a Recruit Type lookup value for future use, not a Person boolean.
 
@@ -45,7 +47,17 @@ On `production_people` / `Person` (current facts; not Coda calculated ranks):
 
 ---
 
-## 3. Lookup / reference values added
+## 3. Recruit Profile columns (academic year)
+
+| Domain | Column | Notes |
+|---|---|---|
+| `recruitClassYear` | `recruit_class_year` | HS graduation / recruiting class (Coda Class Year). BP-043E. Not `Person.classYear`. |
+
+GPA / SAT / ACT / academic interests remain on Recruit Profile as in BP-043C.
+
+---
+
+## 4. Lookup / reference values added
 
 Fixed UUIDs live in `src/features/recruiting/lookupSeed.ts` and migration `0014`.
 
@@ -60,7 +72,7 @@ Fixed UUIDs live in `src/features/recruiting/lookupSeed.ts` and migration `0014`
 
 ---
 
-## 4. Relationships
+## 5. Relationships
 
 ```
 production_people.id  (text PK)
@@ -75,17 +87,17 @@ Recruit Profile is not a second identity. Role `recruit` remains on Person.
 
 ---
 
-## 5. Nullability
+## 6. Nullability
 
 All new Person columns are nullable (existing roster rows unchanged).
 
-Recruit Profile: `id`, `person_id`, `created_at`, `updated_at` NOT NULL. Classification, evaluation, academics, admissions, notes, and Coda source columns are nullable.
+Recruit Profile: `id`, `person_id`, `created_at`, `updated_at` NOT NULL. Classification, evaluation, academics (including `recruit_class_year`), admissions, notes, and Coda source columns are nullable.
 
 `focus` is nullable boolean (unset ≠ false).
 
 ---
 
-## 6. Indexes
+## 7. Indexes
 
 - `recruit_profiles.person_id` UNIQUE (1:1)  
 - `recruit_profiles.coda_row_id` UNIQUE (NULLs allowed)  
@@ -95,7 +107,7 @@ No extra secondary indexes.
 
 ---
 
-## 7. codaRowId / codaExport strategy
+## 8. codaRowId / codaExport strategy
 
 | Column | Purpose |
 |---|---|
@@ -108,7 +120,7 @@ No extra secondary indexes.
 
 ---
 
-## 8. Analytics intentionally deferred
+## 9. Analytics intentionally deferred
 
 Compatibility rules (document only; **not** schema or code):
 
@@ -125,19 +137,19 @@ These are computed later. They are not Person or Recruit Profile columns.
 
 ---
 
-## 9. Import intentionally deferred
+## 10. Import intentionally deferred
 
 No Coda Excel/CSV load. No recruit seed. No production People rows created or updated by this milestone. Duplicate audit is a later BP.
 
 ---
 
-## 10. Validation results
+## 11. Validation results
 
 See the BP-043C implementation report (tsc, ESLint, `npm run build`). Existing Player / Coach / Family workspaces and Team directory were not given new Recruiting UI; new Person tennis/school fields are catalog-registered without Adaptive Workspace membership, so Travel / Contact / Family layouts are unchanged.
 
 ---
 
-## 11. Files changed
+## 12. Files changed
 
 See implementation report file list.
 
@@ -146,3 +158,5 @@ See implementation report file list.
 ## Architecture note (High School)
 
 BP-043C’s prompt listed High School under both Person and Recruit Profile Academic. BP-043B places High School on **Person only**. Implementation follows BP-043B to avoid duplicating the field. GPA / SAT / ACT / academic interests remain on Recruit Profile.
+
+**BP-043E:** Coda Class Year is HS recruiting class (`RecruitProfile.recruitClassYear`), not Denison `Person.classYear`. See [`BP-043E_CLASS_YEAR_SEMANTICS.md`](./BP-043E_CLASS_YEAR_SEMANTICS.md).

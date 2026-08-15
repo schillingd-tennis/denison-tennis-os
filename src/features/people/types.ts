@@ -98,6 +98,7 @@ export type Person = {
   country?: string;
 
   // Denison Information
+  /** Denison college graduation year. Not Coda HS recruiting class (BP-043E). */
   classYear?: number;
   major?: string;
   minor?: string;

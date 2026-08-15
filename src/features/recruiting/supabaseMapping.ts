@@ -37,6 +37,7 @@ export type RecruitProfileRow = {
   priority_id: string | null;
   getability_id: string | null;
   focus: boolean | null;
+  recruit_class_year: number | null;
   gpa: string | null;
   sat: number | null;
   act: number | null;
@@ -121,6 +122,7 @@ export function rowToRecruitProfile(row: RecruitProfileRow): RecruitProfile {
     getability: lookupRef(row.getability, row.getability_id, RECRUIT_GETABILITY_SEED),
     focus: undefinedIfNull(row.focus),
 
+    recruitClassYear: asNumber(row.recruit_class_year),
     gpa: undefinedIfNull(row.gpa),
     sat: asNumber(row.sat),
     act: asNumber(row.act),

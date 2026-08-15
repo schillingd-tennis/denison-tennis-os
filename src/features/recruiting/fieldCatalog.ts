@@ -175,6 +175,19 @@ export const RECRUIT_PROFILE_FIELD_CATALOG: readonly RecruitProfileFieldDefiniti
   },
 
   {
+    key: "recruitClassYear",
+    label: "Recruit Class Year",
+    section: "academic",
+    type: "number",
+    editable: true,
+    sortable: true,
+    filterable: true,
+    exportable: true,
+    dbColumn: "recruit_class_year",
+    description:
+      "High school graduation / recruiting class (Coda Class Year). Not Person.classYear (Denison college graduation).",
+  },
+  {
     key: "gpa",
     label: "GPA",
     section: "academic",

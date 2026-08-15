@@ -67,14 +67,14 @@ A `Person` is organized into these groups of fields:
 | `country` | `string?` |
 
 ### Denison Information
-| Field | Type |
-|---|---|
-| `classYear` | `number?` |
-| `major` | `string?` |
-| `minor` | `string?` |
-| `denisonId` | `string?` |
-| `dorm` | `string?` |
-| `roomNumber` | `string?` |
+| Field | Type | Notes |
+|---|---|---|
+| `classYear` | `number?` | Denison **college** graduation year. Not Coda HS recruiting class (BP-043E). |
+| `major` | `string?` | |
+| `minor` | `string?` | |
+| `denisonId` | `string?` | |
+| `dorm` | `string?` | |
+| `roomNumber` | `string?` | |
 
 ### Tennis Information
 | Field | Type |

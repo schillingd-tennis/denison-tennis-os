@@ -452,6 +452,8 @@ export const PERSON_FIELD_CATALOG: readonly PersonFieldDefinition[] = [
     filterable: true,
     exportable: true,
     dbColumn: "class_year",
+    description:
+      "Denison college graduation year. High-school recruiting class lives on RecruitProfile.recruitClassYear (BP-043E).",
   },
   {
     key: "major",
