@@ -59,6 +59,13 @@ export type ProductionPersonRow = {
   room_number: string | null;
   utr: number | null;
   wtn: number | null;
+  trn_rank: number | null;
+  trn_star_rating: number | null;
+  trn_url: string | null;
+  utr_url: string | null;
+  utr_matches_played: number | null;
+  video_url: string | null;
+  high_school: string | null;
   dominant_hand: string | null;
   height_inches: number | null;
   weight_lbs: number | null;
@@ -143,6 +150,13 @@ export function rowToPerson(row: ProductionPersonRow): Person {
 
     utr: undefinedIfNull(row.utr),
     wtn: undefinedIfNull(row.wtn),
+    trnRank: undefinedIfNull(row.trn_rank),
+    trnStarRating: undefinedIfNull(row.trn_star_rating) as Person["trnStarRating"],
+    trnUrl: undefinedIfNull(row.trn_url),
+    utrUrl: undefinedIfNull(row.utr_url),
+    utrMatchesPlayed: undefinedIfNull(row.utr_matches_played),
+    videoUrl: undefinedIfNull(row.video_url),
+    highSchool: undefinedIfNull(row.high_school),
     dominantHand: undefinedIfNull(row.dominant_hand) as Person["dominantHand"],
     heightInches: undefinedIfNull(row.height_inches),
     weightLbs: undefinedIfNull(row.weight_lbs),

@@ -15,6 +15,8 @@ import type { LookupRef } from "@/features/lookups/types";
 export type DominantHand = "right" | "left";
 export type PlayerStatus = "active" | "injured" | "inactive" | "graduated";
 export type ContactMethod = "phone" | "text" | "email";
+/** TennisRecruiting.net star rating (BP-043C). */
+export type TrnStarRating = 3 | 4 | 5;
 
 /**
  * Coach designations stored on production_people.title (Team Role column).
@@ -106,10 +108,21 @@ export type Person = {
   // Tennis Information
   utr?: number;
   wtn?: number;
+  /** Raw TennisRecruiting.net ranking (lower is better). Not calculated TR Rank. */
+  trnRank?: number;
+  trnStarRating?: TrnStarRating;
+  trnUrl?: string;
+  utrUrl?: string;
+  /** UTR match volume. Analytics input later; not Reliability. */
+  utrMatchesPlayed?: number;
+  videoUrl?: string;
   dominantHand?: DominantHand;
   heightInches?: number;
   weightLbs?: number;
   playerStatus?: PlayerStatus;
+
+  /** Origin high school (BP-043C). Not a Recruit Profile column. */
+  highSchool?: string;
 
   // Travel — identity / preference fields on Person (BP-036A / BP-036E). UI later.
   /** Sensitive; catalog type secureText. */

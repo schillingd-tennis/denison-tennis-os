@@ -28,6 +28,7 @@ export type PersonFieldSection =
   | "contact"
   | "permanentAddress"
   | "denison"
+  | "school"
   | "tennis"
   | "travel"
   | "relationships"
@@ -507,6 +508,21 @@ export const PERSON_FIELD_CATALOG: readonly PersonFieldDefinition[] = [
     dbColumn: "room_number",
   },
 
+  // School (origin HS; not Denison campus fields)
+  {
+    key: "highSchool",
+    label: "High School",
+    section: "school",
+    type: "text",
+    editable: true,
+    sortable: true,
+    filterable: true,
+    exportable: true,
+    searchable: true,
+    dbColumn: "high_school",
+    description: "Origin high school. Lives on Person for all roles (BP-043C).",
+  },
+
   // Tennis Information
   {
     key: "utr",
@@ -529,6 +545,73 @@ export const PERSON_FIELD_CATALOG: readonly PersonFieldDefinition[] = [
     filterable: true,
     exportable: true,
     dbColumn: "wtn",
+  },
+  {
+    key: "trnRank",
+    label: "TRN Rank",
+    section: "tennis",
+    type: "number",
+    editable: true,
+    sortable: true,
+    filterable: true,
+    exportable: true,
+    dbColumn: "trn_rank",
+    description:
+      "Raw TennisRecruiting.net ranking (lower is better). Not calculated TR Rank (BP-043C).",
+  },
+  {
+    key: "trnStarRating",
+    label: "TR Star Rating",
+    section: "tennis",
+    type: "enum",
+    editable: true,
+    sortable: true,
+    filterable: true,
+    exportable: true,
+    dbColumn: "trn_star_rating",
+    enumValues: [
+      { value: "3", label: "3 Star" },
+      { value: "4", label: "4 Star" },
+      { value: "5", label: "5 Star" },
+    ] as const satisfies readonly PersonFieldEnumOption[],
+  },
+  {
+    key: "trnUrl",
+    label: "TRN URL",
+    section: "tennis",
+    type: "url",
+    editable: true,
+    exportable: true,
+    dbColumn: "trn_url",
+  },
+  {
+    key: "utrUrl",
+    label: "UTR URL",
+    section: "tennis",
+    type: "url",
+    editable: true,
+    exportable: true,
+    dbColumn: "utr_url",
+  },
+  {
+    key: "utrMatchesPlayed",
+    label: "Matches Played",
+    section: "tennis",
+    type: "number",
+    editable: true,
+    sortable: true,
+    exportable: true,
+    dbColumn: "utr_matches_played",
+    description: "UTR match volume. Analytics input later; not Reliability.",
+  },
+  {
+    key: "videoUrl",
+    label: "Video URL",
+    section: "tennis",
+    type: "url",
+    editable: true,
+    exportable: true,
+    dbColumn: "video_url",
   },
   {
     key: "dominantHand",
