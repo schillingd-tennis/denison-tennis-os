@@ -1,19 +1,19 @@
 "use server";
 
 /**
- * Person lifecycle Server Actions (BP-041 / BP-042).
+ * Person lifecycle Server Actions (BP-041 / BP-042 / BP-045).
  *
  * createPlayerAction — Team directory Add Player (role=player, status=current).
  * createCoachAction — Team directory Add Coach (role=coach, status=current).
- * deletePersonAction — hard-delete a Person record (cascades relationship edges only).
- *
- * Distinct from Remove from Family (parentActions.removeParentFromFamilyAction),
- * which deletes only a person_relationships edge.
+ * createRecruitAction — Recruiting directory Add Recruit (role=recruit + RecruitProfile).
+ * deletePersonAction — hard-delete a Person record (cascades relationship edges
+ * and Recruit Profile).
  */
 
 import { revalidatePath } from "next/cache";
 
 import { ROLE_KEYS, STATUS_KEYS } from "@/features/lookups/seed";
+import { createRecruitProfile } from "@/features/recruiting/repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 import {
@@ -49,6 +49,15 @@ export type CreateCoachActionInput = {
 };
 
 export type CreateCoachActionResult = CreatePersonLifecycleResult;
+
+export type CreateRecruitActionInput = {
+  firstName: string;
+  lastName: string;
+  /** HS recruiting class — RecruitProfile.recruitClassYear, not Person.classYear. */
+  recruitClassYear?: number;
+};
+
+export type CreateRecruitActionResult = CreatePersonLifecycleResult;
 
 export type DeletePersonActionResult =
   | { success: true }
@@ -179,6 +188,7 @@ export async function createCoachAction(
     revalidatePath("/team");
     revalidatePath(`/team/${person.id}`);
     revalidatePath("/people");
+    revalidatePath("/recruiting");
     return { success: true, personId: person.id };
   } catch (error) {
     if (error instanceof PeopleRepositoryError) {
@@ -193,9 +203,60 @@ export async function createCoachAction(
   }
 }
 
+/** Create a Recruit Person plus Recruit Profile (BP-045). */
+export async function createRecruitAction(
+  input: CreateRecruitActionInput,
+): Promise<CreateRecruitActionResult> {
+  const auth = await requireAuthenticatedUser();
+  if (!auth.ok) return { success: false, error: auth.error };
+
+  const firstName = normalizeRequiredName(input.firstName, "First name");
+  if (typeof firstName === "object") return { success: false, error: firstName.error };
+
+  const lastName = normalizeRequiredName(input.lastName, "Last name");
+  if (typeof lastName === "object") return { success: false, error: lastName.error };
+
+  let recruitClassYear: number | undefined;
+  if (input.recruitClassYear !== undefined && input.recruitClassYear !== null) {
+    if (
+      !Number.isInteger(input.recruitClassYear) ||
+      input.recruitClassYear < 1900 ||
+      input.recruitClassYear > 2200
+    ) {
+      return { success: false, error: "Recruit class year must be a valid year." };
+    }
+    recruitClassYear = input.recruitClassYear;
+  }
+
+  try {
+    const person = await createPerson({
+      firstName,
+      lastName,
+      roleKey: ROLE_KEYS.recruit,
+      statusKey: STATUS_KEYS.current,
+    });
+
+    await createRecruitProfile({
+      personId: person.id,
+      recruitClassYear,
+    });
+
+    revalidatePath("/recruiting");
+    revalidatePath(`/recruiting/${person.id}`);
+    revalidatePath("/people");
+    return { success: true, personId: person.id };
+  } catch (error) {
+    console.error("[createRecruitAction] Unexpected error", error);
+    return {
+      success: false,
+      error: "We couldn't create the recruit. Please try again.",
+    };
+  }
+}
+
 /**
  * Permanently delete a Person record (BP-041).
- * Cascades family relationship edges only; other People are preserved.
+ * Cascades family relationship edges and Recruit Profile; other People are preserved.
  */
 export async function deletePersonAction(
   personId: string,
@@ -218,6 +279,8 @@ export async function deletePersonAction(
     revalidatePath("/team");
     revalidatePath(`/team/${trimmed}`);
     revalidatePath("/people");
+    revalidatePath("/recruiting");
+    revalidatePath(`/recruiting/${trimmed}`);
     return { success: true };
   } catch (error) {
     if (error instanceof PeopleRepositoryError) {

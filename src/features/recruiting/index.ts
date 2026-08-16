@@ -14,9 +14,12 @@ export {
 export {
   createRecruitProfile,
   getRecruitProfileByPersonId,
+  listRecruitProfiles,
   RecruitingRepositoryError,
   updateRecruitProfile,
 } from "./repository";
+export { listRecruitDirectoryRows, getRecruitWorkspaceRecord, type RecruitDirectoryRow } from "./directory";
+export { updateRecruitProfileAction } from "./actions";
 export {
   computeRecruitingAnalytics,
   buildPoolStats,

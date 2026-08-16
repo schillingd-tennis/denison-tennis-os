@@ -29,6 +29,20 @@ const RECRUIT_PROFILE_SELECT = `
 
 export class RecruitingRepositoryError extends Error {}
 
+export async function listRecruitProfiles(): Promise<RecruitProfile[]> {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select(RECRUIT_PROFILE_SELECT)
+    .order("created_at", { ascending: true })
+    .limit(2000);
+
+  if (error) {
+    throw new RecruitingRepositoryError(`Failed to load recruit profiles: ${error.message}`);
+  }
+
+  return (data as RecruitProfileRow[] | null ?? []).map(rowToRecruitProfile);
+}
+
 export async function getRecruitProfileByPersonId(
   personId: string,
 ): Promise<RecruitProfile | null> {

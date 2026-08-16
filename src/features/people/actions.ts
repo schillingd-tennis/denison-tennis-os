@@ -31,8 +31,9 @@ export async function updatePersonAction(id: string, patch: PersonWritePatch): P
   try {
     const person = await updatePerson(id, patch);
     revalidatePath(`/team/${id}`);
-    // List views (Team Directory inline edits, filters) must refresh too.
     revalidatePath("/team");
+    revalidatePath(`/recruiting/${id}`);
+    revalidatePath("/recruiting");
     return { success: true, person };
   } catch (error) {
     if (error instanceof PeopleRepositoryError) {

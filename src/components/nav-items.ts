@@ -48,5 +48,8 @@ export function getPageTitle(pathname: string): string {
   if (pathname === "/settings/developer" || pathname.startsWith("/settings/developer/")) {
     return "Developer";
   }
+  if (pathname.startsWith("/recruiting")) {
+    return "Recruiting";
+  }
   return allNavItems.find((item) => item.href === pathname)?.label ?? "Denison Tennis OS";
 }

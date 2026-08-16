@@ -1,10 +1,9 @@
-import PagePlaceholder from "@/components/PagePlaceholder";
+import { listRecruitDirectoryRows } from "@/features/recruiting/directory";
+import RecruitingDirectory from "@/features/recruiting/components/RecruitingDirectory";
 
-export default function RecruitingPage() {
-  return (
-    <PagePlaceholder
-      title="Recruiting"
-      description="Track prospects and manage the recruiting pipeline."
-    />
-  );
+export const dynamic = "force-dynamic";
+
+export default async function RecruitingPage() {
+  const rows = await listRecruitDirectoryRows();
+  return <RecruitingDirectory rows={rows} />;
 }

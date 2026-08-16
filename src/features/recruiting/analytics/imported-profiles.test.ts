@@ -39,15 +39,21 @@ describe("imported RecruitProfile tennis facts", () => {
 
     const { data: people, error: peopleError } = await supabase
       .from("production_people")
-      .select("id, trn_rank, utr, wtn, utr_matches_played")
+      .select("id, trn_rank, utr, wtn, utr_matches_played, roles!role_id ( key )")
       .in("id", personIds);
     if (peopleError || !people) {
       return;
     }
 
     assert.equal(people.length, 461);
+    const currentRecruits = (people as (PersonRow & { roles: { key: string } | { key: string }[] | null })[]).filter(
+      (row) => {
+        const role = Array.isArray(row.roles) ? row.roles[0] : row.roles;
+        return role?.key === "recruit";
+      },
+    );
     const results = computeRecruitingAnalytics(
-      (people as PersonRow[]).map((row) =>
+      currentRecruits.map((row) =>
         subjectFromPerson({
           id: row.id,
           trnRank: row.trn_rank,

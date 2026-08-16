@@ -7,6 +7,7 @@ import { ROLE_KEYS } from "@/features/lookups/seed";
 import {
   createCoachAction,
   createPlayerAction,
+  createRecruitAction,
 } from "@/features/people/personLifecycleActions";
 import {
   COACH_DESIGNATIONS,
@@ -27,10 +28,11 @@ const PLAYER_STATUS_OPTIONS: { value: PlayerStatus; label: string }[] = [
   { value: "graduated", label: "Graduated" },
 ];
 
-/** Team directory create roles supported by AddPersonFlow (BP-042). */
+/** Shared Add Person drawer (BP-041 / BP-042 / BP-045). */
 export type AddPersonFlowRoleKey =
   | typeof ROLE_KEYS.player
-  | typeof ROLE_KEYS.coach;
+  | typeof ROLE_KEYS.coach
+  | typeof ROLE_KEYS.recruit;
 
 export type AddPersonFlowProps = {
   roleKey: AddPersonFlowRoleKey;
@@ -59,11 +61,13 @@ export default function AddPersonFlow({
   const [coachDesignation, setCoachDesignation] = useState<CoachDesignation | "">(
     "",
   );
+  const [recruitClassYear, setRecruitClassYear] = useState("");
   const [error, setError] = useState<string | undefined>();
   const [saving, setSaving] = useState(false);
 
   const showPlayerFields = roleKey === ROLE_KEYS.player;
   const showCoachFields = roleKey === ROLE_KEYS.coach;
+  const showRecruitFields = roleKey === ROLE_KEYS.recruit;
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -82,6 +86,19 @@ export default function AddPersonFlow({
       }
     }
 
+    let parsedRecruitClassYear: number | undefined;
+    if (showRecruitFields) {
+      const classYearTrimmed = recruitClassYear.trim();
+      if (classYearTrimmed) {
+        const value = Number(classYearTrimmed);
+        if (!Number.isInteger(value)) {
+          setError("Recruit class year must be a whole number.");
+          return;
+        }
+        parsedRecruitClassYear = value;
+      }
+    }
+
     if (showCoachFields && !coachDesignation) {
       setError("Coach designation is required.");
       return;
@@ -97,11 +114,17 @@ export default function AddPersonFlow({
               classYear: parsedClassYear,
               playerStatus: playerStatus || undefined,
             })
-          : await createCoachAction({
-              firstName,
-              lastName,
-              title: coachDesignation as CoachDesignation,
-            });
+          : roleKey === ROLE_KEYS.coach
+            ? await createCoachAction({
+                firstName,
+                lastName,
+                title: coachDesignation as CoachDesignation,
+              })
+            : await createRecruitAction({
+                firstName,
+                lastName,
+                recruitClassYear: parsedRecruitClassYear,
+              });
 
       if (!result.success) {
         setError(result.error);
@@ -193,6 +216,20 @@ export default function AddPersonFlow({
               </option>
             ))}
           </select>
+        </label>
+      ) : null}
+
+      {showRecruitFields ? (
+        <label className="flex flex-col gap-1.5">
+          <span className={typeRole.sectionLabel}>Recruit Class Year</span>
+          <input
+            className={fieldClass}
+            inputMode="numeric"
+            placeholder="Optional HS / recruiting class"
+            value={recruitClassYear}
+            onChange={(event) => setRecruitClassYear(event.target.value)}
+            autoComplete="off"
+          />
         </label>
       ) : null}
 
