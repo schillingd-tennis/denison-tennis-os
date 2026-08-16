@@ -20,7 +20,8 @@
     "db:lint": "supabase db lint",
     "db:push": "supabase db push",
     "db:link": "supabase link",
-    "db:env": "tsx scripts/print-local-supabase-env.ts"
+    "db:env": "tsx scripts/print-local-supabase-env.ts",
+    "test:recruiting-analytics": "tsx --test src/features/recruiting/analytics/*.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

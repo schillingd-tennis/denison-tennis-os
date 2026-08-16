@@ -18,6 +18,17 @@ export {
   updateRecruitProfile,
 } from "./repository";
 export {
+  computeRecruitingAnalytics,
+  buildPoolStats,
+  subjectFromPerson,
+  subjectsFromPeople,
+  ADJUSTED_TR_RANK_CENTER,
+  type RecruitAnalyticsResult,
+  type RecruitAnalyticsSubject,
+  type RecruitAnalyticsPersonInput,
+  type RecruitTier,
+} from "./analytics";
+export {
   RECRUIT_GETABILITY_KEYS,
   RECRUIT_GETABILITY_SEED,
   RECRUIT_INTEREST_KEYS,
