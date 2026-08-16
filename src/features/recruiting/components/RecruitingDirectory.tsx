@@ -31,6 +31,7 @@ import {
   buildRecruitingFilterDefinitions,
   filterRecruitDirectoryRows,
   normalizeActiveRecruitingFilters,
+  readServerActiveRecruitingFilters,
   readStoredActiveRecruitingFilters,
   subscribeRecruitingFilters,
   writeStoredActiveRecruitingFilters,
@@ -58,7 +59,7 @@ export default function RecruitingDirectory({ rows }: { rows: RecruitDirectoryRo
   const storedFilterIds = useSyncExternalStore(
     subscribeRecruitingFilters,
     readStoredActiveRecruitingFilters,
-    () => [] as string[],
+    readServerActiveRecruitingFilters,
   );
 
   const definitions = useMemo(() => buildRecruitingFilterDefinitions(rows), [rows]);

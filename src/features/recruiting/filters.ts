@@ -24,7 +24,8 @@ import {
 
 export const RECRUITING_FILTER_CLEAR_ID = "all";
 
-export const DEFAULT_ACTIVE_RECRUITING_FILTERS: string[] = [];
+/** Stable empty snapshot for useSyncExternalStore (must be referentially equal). */
+export const DEFAULT_ACTIVE_RECRUITING_FILTERS: readonly string[] = Object.freeze([]);
 
 export const RECRUITING_FILTER_STORAGE_KEY = "denison-tennis-os:recruiting-filter";
 
@@ -112,17 +113,44 @@ export function normalizeActiveRecruitingFilters(
   return [...new Set(raw.filter((id): id is string => typeof id === "string" && allowed.has(id)))];
 }
 
-export function readStoredActiveRecruitingFilters(): string[] {
-  if (typeof window === "undefined") return [...DEFAULT_ACTIVE_RECRUITING_FILTERS];
+/** Cached snapshot — getSnapshot must return the same reference until data changes. */
+let snapshot: readonly string[] = DEFAULT_ACTIVE_RECRUITING_FILTERS;
+let hydrated = false;
+
+function parseStoredFilters(raw: string | null): readonly string[] {
+  if (raw === null) return DEFAULT_ACTIVE_RECRUITING_FILTERS;
   try {
-    const raw = window.localStorage.getItem(RECRUITING_FILTER_STORAGE_KEY);
-    if (raw === null) return [...DEFAULT_ACTIVE_RECRUITING_FILTERS];
     const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [...DEFAULT_ACTIVE_RECRUITING_FILTERS];
-    return [...new Set(parsed.filter((id): id is string => typeof id === "string"))];
+    if (!Array.isArray(parsed)) return DEFAULT_ACTIVE_RECRUITING_FILTERS;
+    const ids = [...new Set(parsed.filter((id): id is string => typeof id === "string"))];
+    return ids.length === 0 ? DEFAULT_ACTIVE_RECRUITING_FILTERS : Object.freeze(ids);
   } catch {
-    return [...DEFAULT_ACTIVE_RECRUITING_FILTERS];
+    return DEFAULT_ACTIVE_RECRUITING_FILTERS;
   }
+}
+
+function ensureHydrated(): void {
+  if (hydrated) return;
+  if (typeof window === "undefined") {
+    snapshot = DEFAULT_ACTIVE_RECRUITING_FILTERS;
+    hydrated = true;
+    return;
+  }
+  try {
+    snapshot = parseStoredFilters(window.localStorage.getItem(RECRUITING_FILTER_STORAGE_KEY));
+  } catch {
+    snapshot = DEFAULT_ACTIVE_RECRUITING_FILTERS;
+  }
+  hydrated = true;
+}
+
+export function readStoredActiveRecruitingFilters(): readonly string[] {
+  ensureHydrated();
+  return snapshot;
+}
+
+export function readServerActiveRecruitingFilters(): readonly string[] {
+  return DEFAULT_ACTIVE_RECRUITING_FILTERS;
 }
 
 const filterListeners = new Set<() => void>();
@@ -136,8 +164,14 @@ export function subscribeRecruitingFilters(onStoreChange: () => void): () => voi
 
 export function writeStoredActiveRecruitingFilters(activeIds: readonly string[]): void {
   if (typeof window === "undefined") return;
+  const next =
+    activeIds.length === 0
+      ? DEFAULT_ACTIVE_RECRUITING_FILTERS
+      : Object.freeze([...activeIds]);
+  snapshot = next;
+  hydrated = true;
   try {
-    window.localStorage.setItem(RECRUITING_FILTER_STORAGE_KEY, JSON.stringify([...activeIds]));
+    window.localStorage.setItem(RECRUITING_FILTER_STORAGE_KEY, JSON.stringify([...next]));
   } catch {
     // Private mode / quota.
   }
