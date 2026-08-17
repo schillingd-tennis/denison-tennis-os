@@ -12,14 +12,37 @@ export {
   RECRUIT_PROFILE_FIELD_CATALOG,
 } from "./fieldCatalog";
 export {
+  addUnrankedToCoachRank,
+  applyCoachRankOrder,
   createRecruitProfile,
+  getCoachRankBoard,
   getRecruitProfileByPersonId,
   listRecruitProfiles,
+  moveCoachRank,
   RecruitingRepositoryError,
   updateRecruitProfile,
+  type CoachRankBoard,
 } from "./repository";
-export { listRecruitDirectoryRows, getRecruitWorkspaceRecord, type RecruitDirectoryRow } from "./directory";
-export { updateRecruitProfileAction } from "./actions";
+export {
+  appendUnranked,
+  applyCoachRanksToCohort,
+  applyVisibleOrderToMaster,
+  densifyCoachRanks,
+  insertUnrankedAt,
+  insertUnrankedIntoVisible,
+  moveByRank,
+  moveVisibleByRank,
+  removeFromRanked,
+  reorderFilteredMaster,
+} from "./coachRank";
+export { listRecruitDirectoryRows, loadRecruitingDirectory, getRecruitWorkspaceRecord, type RecruitDirectoryRow } from "./directory";
+export {
+  addUnrankedToCoachRankAction,
+  applyCoachRankOrderAction,
+  getCoachRankBoardAction,
+  moveCoachRankAction,
+  updateRecruitProfileAction,
+} from "./actions";
 export {
   computeRecruitingAnalytics,
   buildPoolStats,

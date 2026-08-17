@@ -17,7 +17,7 @@ export default function SettingsPage() {
         </h2>
         <Link
           href="/settings/developer"
-          className="mt-3 flex items-center justify-between gap-4 rounded-card border border-border bg-surface px-5 py-4 transition-colors hover:border-text-secondary/30 hover:bg-app-background/60"
+          className="mt-3 flex items-center justify-between gap-4 rounded-card border border-[var(--module-border)] bg-surface px-5 py-4 shadow-[0_8px_24px_rgba(17,24,39,0.04)] transition-colors hover:border-[var(--module-accent)]/40 hover:bg-[var(--module-tint)]/50"
         >
           <div className="flex items-start gap-3">
             <span className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-control bg-app-background text-text-secondary">

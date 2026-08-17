@@ -26,7 +26,7 @@ export default function Toolbar({
   return (
     <div
       className={[
-        "flex flex-col gap-3.5 sm:flex-row sm:items-center sm:gap-4",
+        "rounded-card border border-[var(--module-border)] bg-[var(--module-tint)]/45 p-3 sm:flex sm:flex-row sm:items-center sm:gap-4",
         className,
       ]
         .filter(Boolean)

@@ -10,10 +10,14 @@ export default function EmptyState({
 }) {
   return (
     <div
-      className={`flex flex-col items-center justify-center rounded-card border border-dashed border-border text-center ${
-        compact ? "px-4 py-8" : "px-6 py-20"
+      className={`relative overflow-hidden rounded-card border border-[var(--module-border)] bg-[var(--module-tint)] text-center ${
+        compact ? "px-4 py-8" : "px-6 py-16"
       }`}
     >
+      <span
+        aria-hidden="true"
+        className="absolute inset-x-0 top-0 h-0.5 bg-[var(--module-accent)]"
+      />
       <p
         className={`font-medium text-text-primary ${compact ? "text-sm" : "text-base"}`}
       >
@@ -21,7 +25,7 @@ export default function EmptyState({
       </p>
       {description ? (
         <p
-          className={`max-w-sm text-text-secondary ${
+          className={`mx-auto max-w-sm text-text-secondary ${
             compact ? "mt-1.5 text-xs" : "mt-2.5 text-sm"
           }`}
         >

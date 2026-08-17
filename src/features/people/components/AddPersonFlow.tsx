@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 
+import { moduleFieldClass, modulePrimaryButtonClass } from "@/components/module-theme";
 import { typeRole } from "@/components/typography";
 import { ROLE_KEYS } from "@/features/lookups/seed";
 import {
@@ -15,11 +16,8 @@ import {
   type PlayerStatus,
 } from "@/features/people/types";
 
-const fieldClass =
-  "w-full rounded-control border border-border bg-surface px-3 py-2 text-sm text-text-primary outline-none focus:border-denison-red focus:ring-1 focus:ring-denison-red";
-
-const primaryButtonClass =
-  "inline-flex h-10 items-center justify-center rounded-control bg-denison-red px-4 text-sm font-semibold text-surface transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40";
+const fieldClass = moduleFieldClass;
+const primaryButtonClass = modulePrimaryButtonClass;
 
 const PLAYER_STATUS_OPTIONS: { value: PlayerStatus; label: string }[] = [
   { value: "active", label: "Active" },

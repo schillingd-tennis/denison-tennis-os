@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { modulePrimaryButtonClass } from "@/components/module-theme";
+
 /**
  * BP-034A — Sticky footer for Cancel + primary action.
  * Always visible at the bottom of the drawer panel.
@@ -39,7 +41,7 @@ export function DrawerFooterActions({
           type="button"
           onClick={onPrimary}
           disabled={primaryDisabled}
-          className="inline-flex h-10 items-center justify-center rounded-control bg-denison-red px-4 text-sm font-medium text-surface transition-opacity duration-150 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+          className={modulePrimaryButtonClass}
         >
           {primaryLabel}
         </button>

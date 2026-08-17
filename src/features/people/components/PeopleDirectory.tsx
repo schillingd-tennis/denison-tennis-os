@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { publishFoundSet } from "@/components/found-set";
 import EmptyState from "@/components/EmptyState";
+import { modulePrimaryButtonClass } from "@/components/module-theme";
 import PageHeader from "@/components/PageHeader";
 import SearchInput from "@/components/SearchInput";
 import { Toolbar } from "@/components/toolbar";
@@ -32,18 +33,18 @@ import {
   TEAM_FOUND_SET_MODULE_KEY,
 } from "@/features/people/foundSet";
 
+import {
+  PLAYERS_COACHES_ROUTE,
+  playersCoachesPersonPath,
+} from "@/lib/module-routes";
 import AddPersonFlow from "./AddPersonFlow";
 import PersonCard from "./PersonCard";
 import PersonList from "./PersonList";
 import RoleFilterControl from "./RoleFilterControl";
 
-const primaryButtonClass =
-  "inline-flex h-10 items-center justify-center rounded-control bg-denison-red px-4 text-sm font-semibold text-surface transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40";
-
 /**
- * Team directory surface for the People domain.
- * Nav label and `/team` routes stay "Team"; data model is People.
- * Base set is Team membership only (players + coaches) — not all People.
+ * Players/Coaches directory surface for the People domain.
+ * Base set is program membership only (players + coaches) — not all People.
  * BP-031A: search + view persist in sessionStorage so Workspace Back restores them.
  * BP-041 / BP-042: + ADD PLAYER / + ADD COACH via shared AddPersonFlow.
  */
@@ -64,12 +65,24 @@ export default function PeopleDirectory({ people }: { people: Person[] }) {
   const [activeFilterIds, setActiveFilterIds] = useState<string[]>(() =>
     readStoredActivePeopleFilters(),
   );
+  const [livePeople, setLivePeople] = useState(people);
+  const [serverPeople, setServerPeople] = useState(people);
+  if (people !== serverPeople) {
+    setServerPeople(people);
+    setLivePeople(people);
+  }
 
   // Facets first, then search — Cards and List share `filtered`.
   const filtered = useMemo(
-    () => filterPeople(people, { activeFilterIds, query }),
-    [people, activeFilterIds, query],
+    () => filterPeople(livePeople, { activeFilterIds, query }),
+    [livePeople, activeFilterIds, query],
   );
+
+  function replacePerson(person: Person) {
+    setLivePeople((current) =>
+      current.map((row) => (row.id === person.id ? person : row)),
+    );
+  }
 
   useEffect(() => {
     writeStoredActivePeopleFilters(activeFilterIds);
@@ -99,14 +112,14 @@ export default function PeopleDirectory({ people }: { people: Person[] }) {
 
   function handleCreated(personId: string) {
     closeDrawer();
-    router.push(`/team/${personId}`);
+    router.push(playersCoachesPersonPath(personId));
   }
 
   function openAddPlayerDrawer() {
     openDrawer({
       id: "team-add-player",
       title: "Add Player",
-      subtitle: "Team",
+      subtitle: "Players/Coaches",
       content: (
         <AddPersonFlow
           roleKey={ROLE_KEYS.player}
@@ -126,7 +139,7 @@ export default function PeopleDirectory({ people }: { people: Person[] }) {
     openDrawer({
       id: "team-add-coach",
       title: "Add Coach",
-      subtitle: "Team",
+      subtitle: "Players/Coaches",
       content: (
         <AddPersonFlow
           roleKey={ROLE_KEYS.coach}
@@ -148,12 +161,12 @@ export default function PeopleDirectory({ people }: { people: Person[] }) {
     activeFilterIds.includes("coaches") && !activeFilterIds.includes("players");
 
   const addPlayerButton = (
-    <button type="button" className={primaryButtonClass} onClick={openAddPlayerDrawer}>
+    <button type="button" className={modulePrimaryButtonClass} onClick={openAddPlayerDrawer}>
       + ADD PLAYER
     </button>
   );
   const addCoachButton = (
-    <button type="button" className={primaryButtonClass} onClick={openAddCoachDrawer}>
+    <button type="button" className={modulePrimaryButtonClass} onClick={openAddCoachDrawer}>
       + ADD COACH
     </button>
   );
@@ -161,7 +174,7 @@ export default function PeopleDirectory({ people }: { people: Person[] }) {
   return (
     <div className="flex flex-col gap-7">
       <PageHeader
-        title="Team"
+        title="Players/Coaches"
         subtitle="Players and coaches on the Denison Tennis team"
         meta={`${filtered.length} ${filtered.length === 1 ? "person" : "people"}`}
         actions={
@@ -203,11 +216,11 @@ export default function PeopleDirectory({ people }: { people: Person[] }) {
       ) : view === "cards" ? (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((person) => (
-            <PersonCard key={person.id} person={person} />
+            <PersonCard key={person.id} person={person} onPersonCommit={replacePerson} />
           ))}
         </div>
       ) : (
-        <PersonList people={filtered} />
+        <PersonList people={filtered} onPersonCommit={replacePerson} />
       )}
     </div>
   );

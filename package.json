@@ -21,7 +21,9 @@
     "db:push": "supabase db push",
     "db:link": "supabase link",
     "db:env": "tsx scripts/print-local-supabase-env.ts",
-    "test:recruiting-analytics": "tsx --test src/features/recruiting/analytics/*.test.ts"
+    "test:recruiting-analytics": "tsx --test src/features/recruiting/analytics/*.test.ts",
+    "test:recruiting-coach-rank": "tsx --test src/features/recruiting/coachRank/*.test.ts",
+    "test:recruiting": "tsx --test src/features/recruiting/analytics/*.test.ts src/features/recruiting/coachRank/*.test.ts src/features/recruiting/directoryInline.test.ts src/features/recruiting/rankViewSort.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

@@ -612,3 +612,16 @@ build on this baseline without relaxing these rules.
 - Persisted in `localStorage` (`denison-tennis-os:people-filter`). Legacy
   value `"players"` migrates to `"current"` on read so obsolete Players
   never resurfaces after refresh or re-login.
+
+## Directory lists — working vs depth
+
+- **Lists are for working. Workspaces are for depth.**
+- Default interaction for future directory/list surfaces:
+  1. Clicking an **editable field** edits that field inline (shared `InlineEditCell`).
+  2. Clicking **name / avatar** opens the Person (or Recruit) workspace.
+  3. Clicking a **computed or read-only** field does not enter edit mode.
+  4. **Action buttons** keep their own actions (Call / Text / Email, etc.).
+  5. The **row is not a navigation target**.
+- Recruit Class Year follows the same rule wherever it is presented as a field; it is not a separate Recruiting list column today (it lives on the Name summary line).
+- First implementation: Recruiting List (`/recruiting`). Team / Players still uses whole-row click + double-click-to-edit (BP-019A) and was not retrofitted in this milestone.
+- Persistence stays on existing Server Actions / repositories. Calculated analytics are never stored to support list editing; Recruiting recomputes BP-044 in memory after Person tennis facts change.

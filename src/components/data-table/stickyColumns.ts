@@ -35,10 +35,13 @@ const stickyCellHoverSelected = [
   "group-data-[selected=true]/row:bg-app-background",
 ].join(" ");
 
-/** Leading (Name) header cell. */
+/** Leading (Name) header cell.
+ * Solid background only — no backdrop-filter. Blur promotes a compositor layer
+ * that can paint over portaled fixed menus (Recruiting filter dropdowns).
+ */
 export const stickyLeadingThClass = [
   "sticky left-0 z-30",
-  "bg-app-background/95 backdrop-blur-[2px]",
+  "bg-app-background",
   LEADING_SHADOW,
   DIRECTORY_NAME_WIDTH_CLASS,
 ].join(" ");
@@ -52,10 +55,10 @@ export const stickyLeadingTdClass = [
   DIRECTORY_NAME_WIDTH_CLASS,
 ].join(" ");
 
-/** Trailing (Actions) header cell. */
+/** Trailing (Actions) header cell — solid bg; see stickyLeadingThClass note. */
 export const stickyTrailingThClass = [
   "sticky right-0 z-30",
-  "bg-app-background/95 backdrop-blur-[2px]",
+  "bg-app-background",
   "border-l border-border/70",
   TRAILING_SHADOW,
   DIRECTORY_ACTIONS_WIDTH_CLASS,

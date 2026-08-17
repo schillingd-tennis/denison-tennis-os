@@ -23,7 +23,11 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
   });
 
   return (
-    <header className="flex min-h-[var(--header-height)] items-center justify-between gap-4 border-b border-border bg-surface px-6 md:px-10">
+    <header className="relative flex min-h-[var(--header-height)] items-center justify-between gap-4 border-b border-[var(--module-border)] bg-surface px-6 md:px-10">
+      <span
+        aria-hidden="true"
+        className="absolute inset-x-0 top-0 h-0.5 bg-[var(--module-accent)]"
+      />
       <div className="flex min-w-0 items-center gap-4">
         <button
           type="button"

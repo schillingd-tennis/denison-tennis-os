@@ -6,12 +6,14 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   BarChart3,
+  GraduationCap,
   Mail,
+  Medal,
   MessageSquare,
+  NotebookPen,
   Phone,
   Trash2,
   UserRound,
-  Users,
 } from "lucide-react";
 
 import {
@@ -22,27 +24,60 @@ import {
   FavoriteToggleButton,
   recordRecentOpen,
 } from "@/components/command-palette/favorites";
-import { OverviewPanel, PersonHeader } from "@/components/person";
 import { StickyProductivityActionBar } from "@/components/productivity";
 import QuickActionButton from "@/components/QuickActionButton";
 import { typeRole } from "@/components/typography";
 import { useDrawerManager } from "@/components/workspace-drawer";
-import {
-  WorkspaceNavigation,
-  type WorkspaceNavItem,
-} from "@/components/workspace-navigation";
 import { createCommunicationActions } from "@/features/communication";
-import ContactInformationWorkspace from "@/features/people/components/ContactInformationWorkspace";
 import DeletePersonConfirm from "@/features/people/components/DeletePersonConfirm";
-import PersonStatusLabel from "@/features/people/components/PersonStatusLabel";
 import { SaveIndicator, useSaveIndicator } from "@/components/inline-edit";
 import type { Person } from "@/features/people/types";
-import { getDisplayName, getPersonRoleDisplay, getStatusLabel } from "@/features/people/utils";
+import {
+  getDisplayName,
+  getStatusLabel,
+} from "@/features/people/utils";
 import { STATUS_KEYS } from "@/features/lookups/seed";
+import {
+  EMPTY_VALUE,
+  formatDisplay,
+  formatUtr,
+  formatWtn,
+} from "@/lib/formatting";
 
 import type { RecruitAnalyticsResult } from "../analytics/types";
 import type { RecruitProfile } from "../types";
-import { RecruitingAnalyticsWorkspace, RecruitingProfileWorkspace } from "./RecruitingWorkspaces";
+import {
+  RecruitWorkspaceNav,
+  RecruitWorkspaceProfile,
+  WorkspaceEditHint,
+  type RecruitWorkspaceNavItem,
+} from "./RecruitWorkspaceChrome";
+import {
+  RecruitingAcademicsWorkspace,
+  RecruitingAnalyticsWorkspace,
+  RecruitingCommunicationsWorkspace,
+  RecruitingNotesWorkspace,
+  RecruitingPersonalInfoWorkspace,
+  RecruitingRankingsWorkspace,
+  RecruitWorkspaceFieldSessions,
+} from "./RecruitingWorkspaces";
+
+const NO_DATA = "No data";
+const WORKSPACE_EDIT_HINT = <WorkspaceEditHint />;
+
+function metricOrNoData(value: string): string {
+  if (!value.trim() || value === EMPTY_VALUE) return NO_DATA;
+  return value;
+}
+
+function notesWorkspaceDescriptor(profile: RecruitProfile): string {
+  const parts = [
+    profile.notes?.trim() ? "Coach notes" : null,
+    profile.gameNotes?.trim() ? "Game notes" : null,
+    profile.keyPitchAngle?.trim() ? "Pitch angle" : null,
+  ].filter((part): part is string => Boolean(part));
+  return parts.length > 0 ? parts.join(" · ") : "Coach notes · Game notes · Pitch angle";
+}
 
 export default function RecruitingPersonWorkspace({
   person,
@@ -58,7 +93,7 @@ export default function RecruitingPersonWorkspace({
   const [record, setRecord] = useState(person);
   const [trackedPerson, setTrackedPerson] = useState(person);
   const [profileRecord, setProfileRecord] = useState(profile);
-  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>("recruiting");
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>("personal-info");
   const { status: saveStatus, error: saveError, runSave } = useSaveIndicator();
   const router = useRouter();
   const { openDrawer, closeDrawer } = useDrawerManager();
@@ -67,7 +102,7 @@ export default function RecruitingPersonWorkspace({
     setTrackedPerson(person);
     setRecord(person);
     setProfileRecord(profile);
-    setActiveWorkspaceId("recruiting");
+    setActiveWorkspaceId("personal-info");
   } else if (person !== trackedPerson) {
     setTrackedPerson(person);
     setRecord(person);
@@ -114,81 +149,116 @@ export default function RecruitingPersonWorkspace({
     });
   }
 
-  const workspaceItems: WorkspaceNavItem[] = useMemo(
+  const workspaceItems: RecruitWorkspaceNavItem[] = useMemo(
     () => [
       {
-        id: "recruiting",
-        title: "Recruiting",
-        icon: Users,
-        lines: [
-          profileRecord.pipelineStage?.label ?? "No pipeline",
-          profileRecord.priority?.label ?? "No priority",
-        ],
+        id: "personal-info",
+        title: "Personal Info",
+        icon: UserRound,
+        descriptor: [
+          profileRecord.recruitClassYear !== undefined
+            ? `Class ${profileRecord.recruitClassYear}`
+            : "Class year not set",
+          profileRecord.recruitType?.label,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+      },
+      {
+        id: "academics",
+        title: "Academics",
+        icon: GraduationCap,
+        descriptor: profileRecord.academicInterests?.trim()
+          ? profileRecord.academicInterests
+          : "No academic interests",
+      },
+      {
+        id: "rankings",
+        title: "Rankings",
+        icon: Medal,
+        descriptor:
+          profileRecord.coachRank !== undefined
+            ? `Coach Rank #${profileRecord.coachRank}`
+            : record.utr !== undefined
+              ? `UTR ${formatUtr(record.utr)}`
+              : "Unranked",
       },
       {
         id: "analytics",
         title: "Analytics",
         icon: BarChart3,
-        lines: inCurrentCohort
-          ? [
-              analytics?.tier ?? "Outside WTN pool",
-              analytics?.compositeRank !== undefined
-                ? `Composite Rank ${analytics.compositeRank}`
-                : "No composite rank",
-            ]
-          : ["Historical profile", "Not in current cohort"],
+        descriptor: inCurrentCohort
+          ? (analytics?.tier ?? "No analytics tier")
+          : "Historical profile",
       },
       {
-        id: "contact",
-        title: "Contact Information",
-        icon: UserRound,
-        lines: [email ?? "No email", record.cellPhone ?? "No phone"],
+        id: "notes",
+        title: "Notes",
+        icon: NotebookPen,
+        descriptor: notesWorkspaceDescriptor(profileRecord),
+      },
+      {
+        id: "communications",
+        title: "Communications / Interactions",
+        icon: MessageSquare,
+        descriptor: "No interaction history",
       },
     ],
-    [analytics, email, inCurrentCohort, profileRecord, record.cellPhone],
+    [analytics?.tier, inCurrentCohort, profileRecord, record.utr],
   );
 
   const adaptiveWorkspaces: AdaptiveWorkspaceDefinition[] = useMemo(
     () => [
       {
-        id: "recruiting",
-        title: "Recruiting",
-        subtitle: displayName,
+        id: "personal-info",
+        title: "Personal Info",
+        subtitle: "Identity & Contact",
+        toolbar: WORKSPACE_EDIT_HINT,
+        content: <RecruitingPersonalInfoWorkspace />,
+      },
+      {
+        id: "academics",
+        title: "Academics",
+        subtitle: "School & Admissions",
+        toolbar: WORKSPACE_EDIT_HINT,
+        content: <RecruitingAcademicsWorkspace />,
+      },
+      {
+        id: "rankings",
+        title: "Rankings",
+        subtitle: "Ratings & Sources",
+        toolbar: WORKSPACE_EDIT_HINT,
         content: (
-          <RecruitingProfileWorkspace
-            profile={profileRecord}
-            onProfileChange={setProfileRecord}
-            runSave={runSave}
-          />
+          <RecruitingRankingsWorkspace coachRank={profileRecord.coachRank} />
         ),
       },
       {
         id: "analytics",
         title: "Analytics",
-        subtitle: displayName,
+        subtitle: "Computed recruiting scores",
         content: (
           <RecruitingAnalyticsWorkspace analytics={analytics} inCurrentCohort={inCurrentCohort} />
         ),
       },
       {
-        id: "contact",
-        title: "Contact Information",
-        subtitle: displayName,
-        content: (
-          <ContactInformationWorkspace
-            key={record.id}
-            person={record}
-            onPersonChange={setRecord}
-            runSave={runSave}
-          />
-        ),
+        id: "notes",
+        title: "Notes",
+        subtitle: "Coach notes, game notes, and pitch",
+        toolbar: WORKSPACE_EDIT_HINT,
+        content: <RecruitingNotesWorkspace />,
+      },
+      {
+        id: "communications",
+        title: "Communications / Interactions",
+        subtitle: "Calls, texts, and follow-ups",
+        content: <RecruitingCommunicationsWorkspace />,
       },
     ],
-    [analytics, displayName, inCurrentCohort, profileRecord, record, runSave],
+    [analytics, inCurrentCohort, profileRecord.coachRank],
   );
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
       <StickyProductivityActionBar
         leading={
           <>
@@ -246,52 +316,71 @@ export default function RecruitingPersonWorkspace({
         }
       />
 
-      <PersonHeader
+      <RecruitWorkspaceFieldSessions
         person={record}
-        statusSlot={
-          <PersonStatusLabel
-            tone={record.status.key === STATUS_KEYS.former ? "alumni" : "active"}
-            label={getStatusLabel(record)}
-          />
-        }
-        roleSlot={
-          <span className="text-sm font-medium text-text-primary">{getPersonRoleDisplay(record)}</span>
-        }
+        profile={profileRecord}
+        onPersonChange={setRecord}
+        onProfileChange={setProfileRecord}
+        runSave={runSave}
+      >
+      <RecruitWorkspaceProfile
+        person={record}
+        statusLabel={getStatusLabel(record)}
+        statusTone={record.status.key === STATUS_KEYS.former ? "alumni" : "active"}
+        metrics={{
+          utr: metricOrNoData(formatUtr(record.utr)),
+          wtn: metricOrNoData(formatWtn(record.wtn)),
+          trnRank:
+            record.trnRank !== undefined ? String(record.trnRank) : NO_DATA,
+          coachRank:
+            profileRecord.coachRank !== undefined
+              ? `#${profileRecord.coachRank}`
+              : NO_DATA,
+          pipeline: metricOrNoData(formatDisplay(profileRecord.pipelineStage?.label)),
+          priority: metricOrNoData(formatDisplay(profileRecord.priority?.label)),
+        }}
       />
 
-      <OverviewPanel person={record} />
-
       <section aria-label="Workspaces">
-        <div className="grid min-h-[420px] grid-cols-[minmax(260px,320px)_minmax(0,1fr)] items-stretch overflow-hidden rounded-card border border-border/70 bg-surface">
-          <aside className="flex min-h-0 flex-col border-r border-border/50">
-            <div className="shrink-0 border-b border-border/50 px-3.5 py-2">
-              <h2 className={typeRole.sectionTitle}>Workspaces</h2>
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              <WorkspaceNavigation
-                showTitle={false}
+          {/*
+            BP-036D split: narrow workspace rail LEFT, selected content RIGHT.
+            Inline columns keep the two-pane layout even if Tailwind arbitrary
+            grid tracks fail to generate.
+          */}
+          <div
+            className="grid min-h-[420px] w-full grid-cols-[minmax(260px,320px)_minmax(0,1fr)] grid-rows-1 items-stretch overflow-hidden rounded-card border border-[var(--module-border)] bg-surface shadow-[0_8px_24px_rgba(17,24,39,0.04)]"
+            style={{ gridTemplateColumns: "minmax(260px, 320px) minmax(0, 1fr)" }}
+          >
+            <aside className="flex min-h-0 min-w-0 flex-col border-r border-[var(--module-border)]">
+              <div className="shrink-0 border-b border-[var(--module-border)] px-3.5 py-2">
+                <h2 className={typeRole.sectionTitle}>Workspaces</h2>
+              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                <RecruitWorkspaceNav
+                  items={workspaceItems}
+                  activeId={
+                    workspaceItems.some((item) => item.id === activeWorkspaceId)
+                      ? activeWorkspaceId
+                      : null
+                  }
+                  onSelect={setActiveWorkspaceId}
+                />
+              </div>
+            </aside>
+            <div className="min-h-0 min-w-0">
+              <AdaptiveWorkspace
                 framed={false}
-                items={workspaceItems}
                 activeId={
                   workspaceItems.some((item) => item.id === activeWorkspaceId)
                     ? activeWorkspaceId
                     : null
                 }
-                onSelect={setActiveWorkspaceId}
+                workspaces={adaptiveWorkspaces}
               />
             </div>
-          </aside>
-          <AdaptiveWorkspace
-            framed={false}
-            activeId={
-              workspaceItems.some((item) => item.id === activeWorkspaceId)
-                ? activeWorkspaceId
-                : null
-            }
-            workspaces={adaptiveWorkspaces}
-          />
-        </div>
+          </div>
       </section>
+      </RecruitWorkspaceFieldSessions>
     </div>
   );
 }

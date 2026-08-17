@@ -1,14 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useSyncExternalStore } from "react";
+import { GraduationCap, LayoutGrid, List, ListOrdered } from "lucide-react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 
 import { publishFoundSet } from "@/components/found-set";
 import EmptyState from "@/components/EmptyState";
-import PageHeader from "@/components/PageHeader";
 import SearchInput from "@/components/SearchInput";
-import { Toolbar } from "@/components/toolbar";
-import ViewToggle, { type ViewMode } from "@/components/ViewToggle";
+import ViewToggle from "@/components/ViewToggle";
 import { useDrawerManager } from "@/components/workspace-drawer";
 import { ROLE_KEYS } from "@/features/lookups/seed";
 import AddPersonFlow from "@/features/people/components/AddPersonFlow";
@@ -19,6 +18,7 @@ import {
   RECRUITING_FOUND_SET_FILENAME_BASE,
   RECRUITING_FOUND_SET_MODULE_KEY,
 } from "../directoryColumns";
+import { computeRecruitingDirectoryKpis } from "../directorySummary";
 import {
   readStoredRecruitingDirectoryQuery,
   readStoredRecruitingDirectoryView,
@@ -26,6 +26,7 @@ import {
   subscribeRecruitingDirectoryView,
   writeStoredRecruitingDirectoryQuery,
   writeStoredRecruitingDirectoryView,
+  type RecruitingViewMode,
 } from "../directorySessionState";
 import {
   buildRecruitingFilterDefinitions,
@@ -37,15 +38,34 @@ import {
   writeStoredActiveRecruitingFilters,
 } from "../filters";
 import RecruitCard from "./RecruitCard";
+import RecruitCommitView from "./RecruitCommitView";
 import RecruitList from "./RecruitList";
+import RecruitRankView from "./RecruitRankView";
 import RecruitingFilterControl from "./RecruitingFilterControl";
+import RecruitingKpiRow from "./RecruitingKpiRow";
 
-const primaryButtonClass =
-  "inline-flex h-10 items-center justify-center rounded-control bg-denison-red px-4 text-sm font-semibold text-surface transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40";
+const RECRUITING_VIEW_OPTIONS = [
+  { value: "cards" as const, label: "Cards", icon: LayoutGrid },
+  { value: "list" as const, label: "List", icon: List },
+  { value: "rank" as const, label: "Rank", icon: ListOrdered },
+  { value: "commit" as const, label: "Commit", icon: GraduationCap },
+];
 
-export default function RecruitingDirectory({ rows }: { rows: RecruitDirectoryRow[] }) {
+export default function RecruitingDirectory({
+  rows,
+  denisonCommits,
+}: {
+  rows: RecruitDirectoryRow[];
+  denisonCommits: number;
+}) {
   const router = useRouter();
   const { openDrawer, closeDrawer } = useDrawerManager();
+  const [liveRows, setLiveRows] = useState(rows);
+  const [serverRows, setServerRows] = useState(rows);
+  if (rows !== serverRows) {
+    setServerRows(rows);
+    setLiveRows(rows);
+  }
   const query = useSyncExternalStore(
     subscribeRecruitingDirectoryQuery,
     readStoredRecruitingDirectoryQuery,
@@ -54,7 +74,7 @@ export default function RecruitingDirectory({ rows }: { rows: RecruitDirectoryRo
   const view = useSyncExternalStore(
     subscribeRecruitingDirectoryView,
     readStoredRecruitingDirectoryView,
-    () => "list" as ViewMode,
+    () => "list" as RecruitingViewMode,
   );
   const storedFilterIds = useSyncExternalStore(
     subscribeRecruitingFilters,
@@ -62,7 +82,7 @@ export default function RecruitingDirectory({ rows }: { rows: RecruitDirectoryRo
     readServerActiveRecruitingFilters,
   );
 
-  const definitions = useMemo(() => buildRecruitingFilterDefinitions(rows), [rows]);
+  const definitions = useMemo(() => buildRecruitingFilterDefinitions(liveRows), [liveRows]);
   const allowedIds = useMemo(() => definitions.map((definition) => definition.id), [definitions]);
   const activeFilterIds = useMemo(
     () => normalizeActiveRecruitingFilters(storedFilterIds, allowedIds),
@@ -70,8 +90,12 @@ export default function RecruitingDirectory({ rows }: { rows: RecruitDirectoryRo
   );
 
   const filtered = useMemo(
-    () => filterRecruitDirectoryRows(rows, { activeFilterIds, query, definitions }),
-    [rows, activeFilterIds, query, definitions],
+    () => filterRecruitDirectoryRows(liveRows, { activeFilterIds, query, definitions }),
+    [liveRows, activeFilterIds, query, definitions],
+  );
+  const kpis = useMemo(
+    () => computeRecruitingDirectoryKpis(liveRows, denisonCommits),
+    [liveRows, denisonCommits],
   );
 
   useEffect(() => {
@@ -113,49 +137,97 @@ export default function RecruitingDirectory({ rows }: { rows: RecruitDirectoryRo
   }
 
   return (
-    <div className="flex flex-col gap-7">
-      <PageHeader
-        title="Recruiting"
-        subtitle="Current recruits (role Recruit + Recruit Profile)"
-        meta={`${filtered.length} ${filtered.length === 1 ? "recruit" : "recruits"}`}
-        actions={
-          <button type="button" className={primaryButtonClass} onClick={openAddRecruitDrawer}>
-            + ADD RECRUIT
-          </button>
-        }
-      />
-
-      <Toolbar
-        primary={
-          <SearchInput
-            value={query}
-            onChange={writeStoredRecruitingDirectoryQuery}
-            placeholder="Search by name, school, or recruiting fields"
+    <div className="flex flex-col gap-3.5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="relative pl-4">
+          <span
+            aria-hidden="true"
+            className="absolute top-1 bottom-1 left-0 w-[3px] rounded-full bg-[var(--module-accent)]"
           />
-        }
-        tertiary={<ViewToggle value={view} onChange={writeStoredRecruitingDirectoryView} />}
-      />
-
-      <RecruitingFilterControl
-        value={activeFilterIds}
-        onChange={handleFilterChange}
-        definitions={definitions}
-      />
-
-      {filtered.length === 0 ? (
-        <EmptyState
-          title="No recruits found"
-          description="Try a different search term or filter."
-        />
-      ) : view === "cards" ? (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((row) => (
-            <RecruitCard key={row.person.id} row={row} />
-          ))}
+          <h1 className="text-3xl font-semibold tracking-tight text-text-primary">Recruiting</h1>
+          <p className="mt-1 text-sm text-text-secondary">Current recruits</p>
         </div>
-      ) : (
-        <RecruitList rows={filtered} />
-      )}
+        <button
+          type="button"
+          className="inline-flex h-11 items-center justify-center rounded-control bg-denison-red px-5 text-sm font-semibold tracking-wide text-white shadow-[0_8px_18px_rgba(200,16,46,0.28)] transition-opacity hover:opacity-90"
+          onClick={openAddRecruitDrawer}
+        >
+          + ADD RECRUIT
+        </button>
+      </div>
+
+      <RecruitingKpiRow kpis={kpis} />
+
+      <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="min-w-0 flex-1 sm:max-w-xl">
+            <SearchInput
+              value={query}
+              onChange={writeStoredRecruitingDirectoryQuery}
+              placeholder="Search by name, school, or recruiting fields"
+            />
+          </div>
+          <div className="sm:ml-auto">
+            <ViewToggle
+              value={view}
+              onChange={writeStoredRecruitingDirectoryView}
+              options={RECRUITING_VIEW_OPTIONS}
+              ariaLabel="Change recruiting view"
+            />
+          </div>
+        </div>
+        <RecruitingFilterControl
+          value={activeFilterIds}
+          onChange={handleFilterChange}
+          definitions={definitions}
+        />
+      </div>
+
+      {/*
+        Shared content stacking context for Cards / List / Rank / Commit.
+        `isolate` + `z-0` traps descendant z-index (card z-10 links, sticky
+        table headers) so the body-portaled filter menu always paints above.
+      */}
+      <div data-recruiting-content="" className="relative z-0 isolate">
+        {filtered.length === 0 && (view === "cards" || view === "list") ? (
+          <EmptyState
+            title="No recruits found"
+            description="Try a different search term or filter."
+          />
+        ) : view === "cards" ? (
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            {filtered.map((row) => (
+              <RecruitCard
+                key={row.person.id}
+                row={row}
+                cohort={liveRows}
+                onCohortChange={setLiveRows}
+              />
+            ))}
+          </div>
+        ) : view === "rank" ? (
+          <RecruitRankView
+            rows={liveRows}
+            filteredRows={filtered}
+            activeFilterIds={activeFilterIds}
+            onCohortChange={setLiveRows}
+          />
+        ) : view === "commit" ? (
+          <RecruitCommitView
+            filteredRows={filtered}
+            cohort={liveRows}
+            activeFilterIds={activeFilterIds}
+            onCohortChange={setLiveRows}
+          />
+        ) : (
+          <RecruitList
+            rows={filtered}
+            cohort={liveRows}
+            activeFilterIds={activeFilterIds}
+            onCohortChange={setLiveRows}
+          />
+        )}
+      </div>
     </div>
   );
 }

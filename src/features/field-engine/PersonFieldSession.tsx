@@ -47,6 +47,7 @@ type PersonFieldSessionValue = {
     raw: string,
     reason: InlineCommitReason,
   ) => Promise<void>;
+  commitPatch: (patch: PersonWritePatch, reason: InlineCommitReason) => Promise<void>;
 };
 
 const PersonFieldSessionContext = createContext<PersonFieldSessionValue | null>(null);
@@ -160,6 +161,42 @@ export function PersonFieldSession({
     [moveEditing, onPersonChange, person, runSave],
   );
 
+  const commitPatch = useCallback(
+    async (patch: PersonWritePatch, reason: InlineCommitReason) => {
+      const persistPatch = toPersonWritePatch(patch);
+      const localNext: Person = { ...person };
+      for (const key of Object.keys(patch) as (keyof Person)[]) {
+        const value = patch[key];
+        (localNext[key] as Person[typeof key]) =
+          value === null || value === undefined
+            ? (undefined as Person[typeof key])
+            : (value as Person[typeof key]);
+      }
+
+      const unchanged = Object.keys(persistPatch).every((key) =>
+        valuesEqual(person[key as keyof Person], localNext[key as keyof Person]),
+      );
+      if (unchanged) {
+        if (reason !== "tab" && reason !== "shift-tab") setEditing(null);
+        return;
+      }
+
+      const previous = person;
+      onPersonChange(localNext);
+      if (reason !== "tab" && reason !== "shift-tab") setEditing(null);
+
+      const ok = await runSave(async () => {
+        const result = await updatePersonAction(person.id, persistPatch);
+        if (!result.success) {
+          throw new Error(result.error);
+        }
+        onPersonChange(result.person);
+      });
+      if (!ok) onPersonChange(previous);
+    },
+    [onPersonChange, person, runSave],
+  );
+
   const value = useMemo<PersonFieldSessionValue>(
     () => ({
       person,
@@ -168,8 +205,9 @@ export function PersonFieldSession({
       startEdit,
       cancelEdit,
       commit,
+      commitPatch,
     }),
-    [cancelEdit, commit, editing, fieldError, person, startEdit],
+    [cancelEdit, commit, commitPatch, editing, fieldError, person, startEdit],
   );
 
   return (

@@ -42,6 +42,22 @@ export function getHometown(person: Person): string | undefined {
   return person.city ?? person.state;
 }
 
+/** Parse a "City, ST" hometown string into Person city / state fields. */
+export function parseHometown(raw: string): { city?: string; state?: string } {
+  const trimmed = raw.trim();
+  if (!trimmed) return { city: undefined, state: undefined };
+  const comma = trimmed.lastIndexOf(",");
+  if (comma === -1) {
+    return { city: trimmed, state: undefined };
+  }
+  const city = trimmed.slice(0, comma).trim();
+  const state = trimmed.slice(comma + 1).trim();
+  return {
+    city: city || undefined,
+    state: state || undefined,
+  };
+}
+
 export function getPermanentAddress(person: Person): string | undefined {
   const cityState = [person.city, person.state].filter(Boolean).join(", ");
   const zipCountry = [person.zipCode, person.country].filter(Boolean).join(" ");

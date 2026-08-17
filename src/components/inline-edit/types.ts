@@ -26,5 +26,11 @@ export type InlineSaveStatus = "idle" | "saving" | "saved" | "error";
 
 export type InlineSelectOption = { value: string; label: string };
 
+/** Display weight for the resting cell value. `workspace` is Adaptive Workspace content. */
+export type InlineEmphasis = "default" | "metadata" | "directory" | "workspace";
+
+/** Editor chrome. `compact` matches displayed Adaptive Workspace values. */
+export type InlineDensity = "default" | "compact";
+
 /** Why a cell is committing its draft — drives post-save focus movement. */
 export type InlineCommitReason = "enter" | "tab" | "shift-tab" | "blur" | "select";

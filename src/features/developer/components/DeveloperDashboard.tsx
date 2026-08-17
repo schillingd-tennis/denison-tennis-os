@@ -166,7 +166,13 @@ export default function DeveloperDashboard({ snapshot }: { snapshot: DeveloperSn
           <ArrowLeft className="h-4 w-4" strokeWidth={2} />
           Settings
         </Link>
-        <h1 className="mt-4 text-3xl font-semibold tracking-tight text-text-primary">Developer</h1>
+        <h1 className="relative mt-4 pl-4 text-3xl font-semibold tracking-tight text-text-primary">
+          <span
+            aria-hidden="true"
+            className="absolute top-1 bottom-1 left-0 w-[3px] rounded-full bg-[var(--module-accent)]"
+          />
+          Developer
+        </h1>
         <p className="mt-2.5 text-base text-text-secondary">
           Local diagnostics for the Denison Tennis OS development environment.
         </p>
@@ -194,7 +200,7 @@ export default function DeveloperDashboard({ snapshot }: { snapshot: DeveloperSn
         </p>
       </div>
 
-      <section className="rounded-card border border-border bg-surface px-5 py-2">
+      <section className="rounded-card border border-[var(--module-border)] bg-surface px-5 py-2">
         <dl>
           <MetaRow label="Current environment" value={isLocal ? "Local" : "Hosted"} />
           <MetaRow label="Supabase URL" value={<span className="font-mono text-xs">{snapshot.supabaseUrl}</span>} />
@@ -341,7 +347,7 @@ export default function DeveloperDashboard({ snapshot }: { snapshot: DeveloperSn
       </section>
 
       {showMigrations ? (
-        <section className="rounded-card border border-border bg-surface px-5 py-4">
+        <section className="rounded-card border border-[var(--module-border)] bg-surface px-5 py-4">
           <div className="flex items-center gap-2">
             <Database className="h-4 w-4 text-text-secondary" strokeWidth={2} />
             <h2 className="text-sm font-semibold text-text-primary">Migration history</h2>

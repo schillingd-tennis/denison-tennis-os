@@ -92,7 +92,7 @@ function PinToggleControl({
       title={pinned ? "Unpin" : "Pin"}
       className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-control transition-colors ${
         pinned
-          ? "text-denison-red hover:bg-denison-red/10"
+          ? "text-[var(--module-accent)] hover:bg-[var(--module-tint)]"
           : "text-text-secondary/50 hover:bg-app-background hover:text-text-secondary"
       }`}
     >
@@ -391,8 +391,10 @@ function CommandPaletteDialog({
                           <div
                             role="option"
                             aria-selected={active}
-                            className={`flex w-full items-center gap-2 px-3 py-2 transition-colors ${
-                              active ? "bg-app-background" : "hover:bg-app-background/70"
+                            className={`flex w-full items-center gap-2 border-l-[3px] px-3 py-2 transition-colors ${
+                              active
+                                ? "border-[var(--module-accent)] bg-[var(--module-tint)]"
+                                : "border-transparent hover:bg-app-background/70"
                             }`}
                             onMouseEnter={() => setActiveIndex(index)}
                           >

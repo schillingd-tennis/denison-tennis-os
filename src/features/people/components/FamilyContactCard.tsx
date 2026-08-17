@@ -1,13 +1,10 @@
-import { Mail, MessageSquare, Phone } from "lucide-react";
-
+import ContactActionSlots from "@/components/ContactActionSlots";
 import { formatPhoneDisplay, phoneHrefDigits } from "@/components/inline-edit";
+import PlayerAvatar from "@/components/PlayerAvatar";
+import RoleBadge from "@/components/RoleBadge";
 import { typeClass, typeRole } from "@/components/typography";
 import type { FamilyContact } from "@/features/people/family";
 import { getPreferredContactLabel } from "@/features/people/utils";
-
-import PlayerAvatar from "@/components/PlayerAvatar";
-import QuickActionButton from "@/components/QuickActionButton";
-import RoleBadge from "@/components/RoleBadge";
 
 export default function FamilyContactCard({ contact }: { contact: FamilyContact }) {
   const initials = `${contact.firstName.charAt(0)}${contact.lastName.charAt(0)}`.toUpperCase();
@@ -49,24 +46,11 @@ export default function FamilyContactCard({ contact }: { contact: FamilyContact 
         </div>
       ) : null}
 
-      <div className="flex items-center gap-2">
-        <QuickActionButton
-          href={phoneDigits ? `sms:${phoneDigits}` : undefined}
-          icon={MessageSquare}
-          label="Text"
-          tone="denison"
-        />
-        <QuickActionButton
-          href={phoneDigits ? `tel:${phoneDigits}` : undefined}
-          icon={Phone}
-          label="Call"
-          tone="success"
-        />
-        <QuickActionButton
-          href={contact.email ? `mailto:${contact.email}` : undefined}
-          icon={Mail}
-          label="Email"
-          tone="info"
+      <div className="flex items-center">
+        <ContactActionSlots
+          tel={phoneDigits ? `tel:${phoneDigits}` : undefined}
+          sms={phoneDigits ? `sms:${phoneDigits}` : undefined}
+          mailto={contact.email ? `mailto:${contact.email}` : undefined}
         />
       </div>
     </div>

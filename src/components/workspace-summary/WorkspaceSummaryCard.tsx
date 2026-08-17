@@ -27,7 +27,7 @@ export default function WorkspaceSummaryCard({
 }) {
   return (
     <section
-      className={`flex flex-col rounded-card border border-border bg-surface px-5 py-4 ${className ?? ""}`}
+      className={`flex flex-col rounded-card border border-[var(--module-border)] bg-surface px-5 py-4 shadow-[0_8px_24px_rgba(17,24,39,0.04)] ${className ?? ""}`}
     >
       <h2 className={typeRole.sectionTitle}>{title}</h2>
 
@@ -51,7 +51,7 @@ export default function WorkspaceSummaryCard({
       <button
         type="button"
         onClick={onOpen}
-        className="mt-4 inline-flex h-9 w-full items-center justify-center rounded-control border border-border bg-surface text-sm font-medium text-text-primary transition-colors duration-150 hover:border-text-secondary/50 hover:bg-app-background focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-denison-red"
+        className="mt-4 inline-flex h-9 w-full items-center justify-center rounded-control border border-[var(--module-border)] bg-surface text-sm font-medium text-text-primary transition-colors duration-150 hover:border-[var(--module-accent)]/50 hover:bg-[var(--module-tint)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--module-accent)]"
       >
         {actionLabel}
       </button>

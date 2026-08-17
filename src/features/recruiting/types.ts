@@ -44,6 +44,13 @@ export type RecruitProfile = {
    */
   recruitClassYear?: number;
 
+  /**
+   * Coach Rank — manual preference order within recruitClassYear.
+   * NULL / undefined = unranked. Dense 1…N when ranked.
+   * Independent of Priority, Analytics Tier, TRN, UTR, WTN, Pipeline.
+   */
+  coachRank?: number;
+
   gpa?: string;
   sat?: number;
   act?: number;

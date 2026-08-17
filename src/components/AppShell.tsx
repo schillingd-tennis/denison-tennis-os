@@ -11,6 +11,19 @@ import { DrawerManagerProvider } from "@/components/workspace-drawer";
 
 import Header from "./Header";
 import Sidebar from "./Sidebar";
+import { PLAYERS_COACHES_ROUTE } from "@/lib/module-routes";
+
+function moduleForPath(pathname: string) {
+  if (pathname.startsWith(PLAYERS_COACHES_ROUTE)) return "team";
+  if (pathname.startsWith("/team")) return "team";
+  if (pathname.startsWith("/recruiting")) return "recruiting";
+  if (pathname.startsWith("/operations")) return "operations";
+  if (pathname.startsWith("/research")) return "research";
+  if (pathname.startsWith("/knowledge")) return "knowledge";
+  if (pathname.startsWith("/people")) return "people";
+  if (pathname.startsWith("/settings")) return "settings";
+  return "home";
+}
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -25,7 +38,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <CommandPaletteProvider>
       <DrawerManagerProvider>
-        <div className="min-h-screen overflow-x-hidden bg-app-background">
+        <div
+          className="app-shell min-h-screen overflow-x-hidden bg-app-background"
+          data-module={moduleForPath(pathname)}
+        >
           <Sidebar
             isOpen={mobileNavOpen}
             onClose={() => setMobileNavOpen(false)}

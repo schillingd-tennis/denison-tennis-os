@@ -13,7 +13,7 @@ export default function WorkspaceSection({
 }) {
   return (
     <section
-      className={`rounded-card border border-border bg-surface px-5 py-5 ${className ?? ""}`}
+      className={`rounded-card border border-[var(--module-border)] bg-surface px-5 py-5 shadow-[0_8px_24px_rgba(17,24,39,0.04)] ${className ?? ""}`}
     >
       <div className="flex items-center justify-between gap-3">
         <h2 className={typeRole.sectionTitle}>{title}</h2>

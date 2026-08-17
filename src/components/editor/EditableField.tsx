@@ -57,13 +57,13 @@ export default function EditableField({
   }
 
   const inputClassName =
-    "-mx-2 w-full rounded-control border border-transparent bg-transparent px-2 py-1.5 text-sm text-text-primary transition-colors duration-150 placeholder:text-text-secondary hover:border-border hover:bg-app-background focus:border-denison-red focus:bg-surface focus:ring-1 focus:ring-denison-red focus:outline-none";
+    "-mx-2 w-full rounded-control border border-transparent bg-transparent px-2 py-1.5 text-sm text-text-primary transition-colors duration-150 placeholder:text-text-secondary hover:border-border hover:bg-app-background focus:border-[var(--module-accent)] focus:bg-surface focus:ring-1 focus:ring-[var(--module-accent)] focus:outline-none";
 
   return (
     <div className={className}>
       <label className={typeRole.sectionLabel}>
         {label}
-        {required ? <span className="text-denison-red"> *</span> : null}
+        {required ? <span className="text-danger"> *</span> : null}
       </label>
       {type === "textarea" ? (
         <textarea

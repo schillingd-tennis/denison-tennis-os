@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react
 import { Trash2 } from "lucide-react";
 
 import { formatPhoneDisplay } from "@/components/inline-edit";
+import { moduleFieldClass, modulePrimaryButtonClass } from "@/components/module-theme";
 import OpenPersonAction from "@/components/OpenPersonAction";
 import QuickActionButton from "@/components/QuickActionButton";
 import { typeClass, typeRole } from "@/components/typography";
@@ -38,11 +39,8 @@ const RELATIONSHIP_OPTIONS: { value: PersonRelationshipType; label: string }[] =
   { value: "other", label: PERSON_RELATIONSHIP_TYPE_LABELS.other },
 ];
 
-const fieldClass =
-  "w-full rounded-control border border-border bg-surface px-3 py-2 text-sm text-text-primary outline-none focus:border-denison-red focus:ring-1 focus:ring-denison-red";
-
-const primaryButtonClass =
-  "inline-flex h-10 items-center justify-center rounded-control bg-denison-red px-4 text-sm font-semibold text-surface transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40";
+const fieldClass = moduleFieldClass;
+const primaryButtonClass = modulePrimaryButtonClass;
 
 const secondaryButtonClass =
   "inline-flex h-10 w-full items-center justify-center rounded-control border border-border px-4 text-sm font-medium text-text-primary transition-colors hover:border-text-secondary/60";
@@ -309,7 +307,7 @@ function AddParentFlow({
                     role="option"
                     aria-selected={selected}
                     className={`flex w-full flex-col items-start gap-0.5 border-b border-border/40 px-3 py-2.5 text-left last:border-b-0 ${
-                      selected ? "bg-denison-red/10" : "hover:bg-app-background"
+                      selected ? "bg-[var(--module-tint)]" : "hover:bg-app-background"
                     }`}
                     onClick={() => setSelectedPersonId(person.id)}
                   >

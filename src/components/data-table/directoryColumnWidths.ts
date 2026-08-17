@@ -19,8 +19,8 @@ export const DIRECTORY_NAME_WIDTH_CLASS =
 export const DIRECTORY_NAME_MIN_CLASS = DIRECTORY_NAME_WIDTH_CLASS;
 
 /**
- * Actions: 3 × 40px icon buttons + 2 × 4px gaps + px-3 cell padding.
- * Never shrink / wrap / clip; never grow.
+ * Actions: ContactActionSlots (3 × 40px + 2 × 4px gap = 128px) + px-3 padding.
+ * Never shrink / wrap / clip; never grow. Slots stay Call | Text | Email.
  */
 export const DIRECTORY_ACTIONS_WIDTH_CLASS =
   "w-[152px] min-w-[152px] max-w-[152px] shrink-0";

@@ -28,7 +28,7 @@ export default function EditorToolbar({
       <button
         type="button"
         onClick={onEdit}
-        className="flex h-10 items-center justify-center gap-2 rounded-control border border-border px-4 text-sm font-medium text-text-primary transition-colors duration-150 hover:border-denison-red hover:text-denison-red"
+        className="flex h-10 items-center justify-center gap-2 rounded-control border border-border px-4 text-sm font-medium text-text-primary transition-colors duration-150 hover:border-[var(--module-accent)] hover:text-[var(--module-accent)]"
       >
         <Pencil className="h-4 w-4" strokeWidth={1.75} />
         Edit
@@ -41,12 +41,12 @@ export default function EditorToolbar({
   let statusMessage: ReactNode = null;
   if (saveStatus === "error") {
     statusMessage = (
-      <span className="text-xs font-medium text-denison-red">{saveError ?? "Save failed. Please try again."}</span>
+      <span className="text-xs font-medium text-danger">{saveError ?? "Save failed. Please try again."}</span>
     );
   } else if (isSaving) {
     statusMessage = <span className="text-xs text-text-secondary">Saving…</span>;
   } else if (saveStatus === "saved") {
-    statusMessage = <span className="text-xs font-medium text-green-600">Saved</span>;
+    statusMessage = <span className="text-xs font-medium text-success">Saved</span>;
   } else if (isDirty) {
     statusMessage = <span className="text-xs text-text-secondary">You have unsaved changes.</span>;
   }
@@ -66,7 +66,7 @@ export default function EditorToolbar({
           type="button"
           onClick={onSave}
           disabled={!isDirty || isSaving}
-          className="flex h-10 items-center justify-center rounded-control bg-denison-red px-4 text-sm font-medium text-surface transition-opacity duration-150 disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex h-10 items-center justify-center rounded-control bg-[var(--module-accent)] px-4 text-sm font-medium text-surface transition-opacity duration-150 disabled:cursor-not-allowed disabled:opacity-40"
         >
           {isSaving ? "Saving…" : "Save"}
         </button>

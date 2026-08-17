@@ -37,13 +37,13 @@ export default function SortableColumnHeader({
       <button
         type="button"
         onClick={onSort}
-        className={`inline-flex items-center gap-1 rounded-control transition-colors duration-150 hover:text-text-primary focus-visible:ring-2 focus-visible:ring-denison-red focus-visible:ring-offset-2 focus-visible:outline-none ${
+        className={`inline-flex items-center gap-1 rounded-control transition-colors duration-150 hover:text-text-primary focus-visible:ring-2 focus-visible:ring-[var(--module-accent)] focus-visible:ring-offset-2 focus-visible:outline-none ${
           align === "right" ? "flex-row-reverse" : ""
         } ${isActive ? "text-text-primary" : "text-text-secondary"}`}
       >
         {label}
         <Icon
-          className={`h-3.5 w-3.5 ${isActive ? "text-denison-red" : "text-text-secondary/60"}`}
+          className={`h-3.5 w-3.5 ${isActive ? "text-[var(--module-accent)]" : "text-text-secondary/60"}`}
           strokeWidth={2}
         />
       </button>

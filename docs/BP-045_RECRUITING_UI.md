@@ -20,13 +20,19 @@ Team (`/team`, `/team/[id]`) is unchanged aside from shared lifecycle revalidati
 
 ## 2. Directory
 
-Copied Team directory shell (`PageHeader`, `Toolbar`, `SearchInput`, `ViewToggle`, `DirectoryTable`, found-set copy/export).
+Copied Team directory shell (`SearchInput`, `ViewToggle`, `DirectoryTable`, found-set copy/export). Recruiting directory chrome is **local** (not Team’s `Toolbar` + `FilterChipGroup`).
 
 **Membership:** Person role `recruit` **and** a Recruit Profile. Historical profiles on Players are not listed here; open `/recruiting/[id]` (or Team) to see them.
 
-**Columns:** Name, Recruit Class Year, Type, Pipeline, Priority, UTR, WTN, Tier, Composite Rank, Composite Z. UTR/WTN are Person tennis **facts**. Tier / ranks / Z are engine **outputs**.
+**Page hierarchy:** title + “Current recruits” + Add Recruit → four KPI cards → search/view row → compact facet menus → directory table.
 
-**Filters** (OR within a category, AND across): Recruit Type, Pipeline Stage, Interest, Outcome, Priority, Getability, Recruit Class Year. Stacked chip rows under the toolbar because seven facets do not fit the Team single-row chip group.
+**KPI cards** (cohort + history, not the found-set): Total Recruits (current role=recruit + profile), Priority 1 Recruits (coach Priority Elite / `1 - Elite`), Commits (Outcome = Committed to Denison, including historical profiles on Players), Need Attention (`—` until Communication exists). Analytics Tier is not a directory KPI.
+
+**Columns:** Name (primary + Class of year · hometown), Pipeline, Priority, Interest, UTR, TRN, WTN, Actions. UTR / WTN / TRN are Person tennis **facts**. Pipeline / Priority / Interest are Recruit Profile lookups. Analytics Tier is not a list column.
+
+**List interaction** (OS directory standard): the row is not a navigation target. Name/avatar opens the Recruit workspace. Pipeline, Priority, Interest, UTR, TRN, and WTN edit inline (`InlineEditCell`, click to edit). Actions keep Call / Text / Email. Tennis-fact edits persist on Person and recompute BP-044 analytics in memory for the cohort; lookup edits persist on Recruit Profile.
+
+**Filters** (OR within a category, AND across; persisted; All clears every facet): Recruit Type, Pipeline, Interest, Outcome, Priority, Getability, Recruit Class Year. Each facet is a compact dropdown button on one row. No Board view.
 
 **Add Recruit:** shared `AddPersonFlow` with `role=recruit`. Creates Person + empty Recruit Profile. Optional Recruit Class Year (not Denison `Person.classYear`).
 
@@ -52,8 +58,9 @@ Default selected workspace is **Recruiting**.
 
 ## 4. UX / design decisions
 
-- Follow Team tokens (directory name/meta, sticky Name/Actions, red primary button).
-- Do not inline-edit the recruiting list (461 rows, many lookup fields). Edits live in the workspace.
+- Recruiting directory chrome is local: KPI summary row, compact facet menus, semantic pills. Do not push that treatment into Team.
+- Recruiting filters are compact and local. Do not change Team’s filter chip tracks to fit Recruiting’s seven facets.
+- Recruiting List follows the OS directory interaction standard (lists work in place; workspaces are for depth). See `docs/DECISIONS.md`.
 - Do not add Recruiting nav items to Team Person Workspace.
 - Header status/role are display-only here so Team remains the place for Player/Coach header editing.
 

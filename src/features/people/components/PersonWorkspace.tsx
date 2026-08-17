@@ -613,7 +613,7 @@ export default function PersonWorkspace({
             <button
               type="button"
               disabled
-              className="inline-flex h-9 items-center justify-center rounded-control bg-denison-red px-3.5 text-sm font-semibold text-surface opacity-40"
+              className="inline-flex h-9 items-center justify-center rounded-control bg-[var(--module-accent)] px-3.5 text-sm font-semibold text-surface opacity-40"
             >
               Add Communication
             </button>
@@ -876,9 +876,9 @@ export default function PersonWorkspace({
         the right pane. Not stacked, not drawers, not accordions.
       */}
       <section aria-label="Workspaces">
-        <div className="grid min-h-[420px] grid-cols-[minmax(260px,320px)_minmax(0,1fr)] items-stretch overflow-hidden rounded-card border border-border/70 bg-surface">
-          <aside className="flex min-h-0 flex-col border-r border-border/50">
-            <div className="shrink-0 border-b border-border/50 px-3.5 py-2">
+        <div className="grid min-h-[420px] grid-cols-[minmax(260px,320px)_minmax(0,1fr)] items-stretch overflow-hidden rounded-card border border-[var(--module-border)] bg-surface shadow-[0_8px_24px_rgba(17,24,39,0.04)]">
+          <aside className="flex min-h-0 flex-col border-r border-[var(--module-border)]">
+            <div className="shrink-0 border-b border-[var(--module-border)] px-3.5 py-2">
               <h2 className={typeRole.sectionTitle}>Workspaces</h2>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto">

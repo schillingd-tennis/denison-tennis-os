@@ -1,33 +1,44 @@
 "use client";
 
-import { LayoutGrid, List } from "lucide-react";
+import { LayoutGrid, List, type LucideIcon } from "lucide-react";
 
 import { SegmentedControl } from "@/components/toolbar";
 
 export type ViewMode = "cards" | "list";
 
-const options = [
+const defaultOptions = [
   { value: "cards" as const, label: "Cards", icon: LayoutGrid },
   { value: "list" as const, label: "List", icon: List },
 ];
 
 /**
  * Cards / List view toggle — standard tertiary toolbar control.
- * Visual language comes from `SegmentedControl`; behavior is unchanged.
+ * Pass `options` to extend the segments (Recruiting: Cards | List | Rank).
+ * Team continues to use the default two-segment control.
  */
-export default function ViewToggle({
+export default function ViewToggle<T extends string = ViewMode>({
   value,
   onChange,
+  options,
+  ariaLabel = "Change view",
 }: {
-  value: ViewMode;
-  onChange: (value: ViewMode) => void;
+  value: T;
+  onChange: (value: T) => void;
+  options?: readonly { value: T; label: string; icon?: LucideIcon }[];
+  ariaLabel?: string;
 }) {
+  const resolved = (options ?? defaultOptions) as readonly {
+    value: T;
+    label: string;
+    icon?: LucideIcon;
+  }[];
+
   return (
     <SegmentedControl
       value={value}
       onChange={onChange}
-      options={options}
-      ariaLabel="Change view"
+      options={[...resolved]}
+      ariaLabel={ariaLabel}
       equalWidth
     />
   );

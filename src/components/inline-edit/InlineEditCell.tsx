@@ -14,7 +14,13 @@ import { typeRole } from "@/components/typography";
 import { EMPTY_VALUE } from "@/lib/formatting";
 
 import { normalizeEmail, normalizePhone, normalizeUrl } from "./formatters";
-import type { InlineCommitReason, InlineFieldType, InlineSelectOption } from "./types";
+import type {
+  InlineCommitReason,
+  InlineDensity,
+  InlineEmphasis,
+  InlineFieldType,
+  InlineSelectOption,
+} from "./types";
 
 /** Apply type-aware normalization immediately before a commit reaches the parent. */
 function normalizeForCommit(raw: string, type: InlineFieldType): string {
@@ -25,7 +31,24 @@ function normalizeForCommit(raw: string, type: InlineFieldType): string {
 }
 
 const inputClassName =
-  "w-full min-w-0 rounded-control border border-denison-red bg-surface px-2 py-1.5 text-sm text-text-primary shadow-sm focus:outline-none focus:ring-1 focus:ring-denison-red";
+  "w-full min-w-0 rounded-control border border-[var(--module-accent)] bg-surface px-2 py-1.5 text-sm text-text-primary shadow-sm focus:outline-none focus:ring-1 focus:ring-[var(--module-accent)]";
+
+const compactInputClassName =
+  "w-full min-w-0 rounded-control border border-[var(--module-accent)] bg-surface px-1.5 py-0.5 text-[15px] leading-snug text-text-primary focus:outline-none focus:ring-1 focus:ring-[var(--module-accent)]";
+
+function displayClassName(emphasis: InlineEmphasis, hasValue: boolean): string {
+  if (emphasis === "directory" || emphasis === "metadata") {
+    return typeRole.directoryMeta;
+  }
+  if (emphasis === "workspace") {
+    return hasValue
+      ? `whitespace-pre-wrap ${typeRole.workspaceFieldValue}`
+      : `whitespace-pre-wrap ${typeRole.workspaceFieldValue} ${typeRole.metadataEmpty}`;
+  }
+  return hasValue
+    ? `whitespace-pre-wrap ${typeRole.fieldValue}`
+    : `whitespace-pre-wrap text-sm ${typeRole.metadataEmpty}`;
+}
 
 /**
  * Mounted only while a cell is being edited — owns draft state so entering
@@ -38,6 +61,8 @@ function InlineEditInput({
   options,
   step,
   error,
+  density,
+  rows,
   onCancel,
   onCommit,
   onExitFocus,
@@ -48,10 +73,13 @@ function InlineEditInput({
   options?: InlineSelectOption[];
   step?: number;
   error?: string;
+  density: InlineDensity;
+  rows?: number;
   onCancel: () => void;
   onCommit: (nextRaw: string, reason: InlineCommitReason) => void | Promise<void>;
   onExitFocus: () => void;
 }) {
+  const editorClass = density === "compact" ? compactInputClassName : inputClassName;
   const [draft, setDraft] = useState(initialValue);
   const inputRef = useRef<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null>(null);
   const ignoreBlurRef = useRef(false);
@@ -139,7 +167,7 @@ function InlineEditInput({
           }}
           onKeyDown={handleInputKeyDown}
           onBlur={handleBlur}
-          className={inputClassName}
+          className={editorClass}
         >
           <option value="">—</option>
           {options?.map((option) => (
@@ -155,11 +183,11 @@ function InlineEditInput({
           }}
           aria-label={label}
           value={draft}
-          rows={4}
+          rows={rows ?? (density === "compact" ? 3 : 4)}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={handleInputKeyDown}
           onBlur={handleBlur}
-          className={`${inputClassName} resize-y`}
+          className={`${editorClass} resize-y`}
         />
       ) : (
         <input
@@ -185,7 +213,7 @@ function InlineEditInput({
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={handleInputKeyDown}
           onBlur={handleBlur}
-          className={inputClassName}
+          className={editorClass}
         />
       )}
       <ValidationMessage message={error} />
@@ -197,7 +225,8 @@ function InlineEditInput({
  * A single spreadsheet-style editable cell.
  *
  * - Double click / Enter / F2 → enter edit mode (stops row-level click handlers)
- * - Single click bubbles so parent rows can navigate on click
+ * - Default: double-click (or Enter / F2) enters edit; single click bubbles
+ * - Optional `editOn="click"`: a click on the cell enters edit (directory standard)
  * - Enter → commit + exit (⌘/Ctrl+Enter for textarea)
  * - Tab / Shift+Tab → commit + ask parent to move focus
  * - Escape → cancel, restore original
@@ -217,12 +246,16 @@ export default function InlineEditCell({
   editing,
   disabled,
   error,
+  editOn = "double-click",
   align = "left",
   /**
    * `directory` / `metadata` = Team directory secondary token (BP-025H);
-   * `default` = workspace field values.
+   * `workspace` = Adaptive Workspace content values;
+   * `default` = generic field values.
    */
   emphasis = "default",
+  density = "default",
+  rows,
   className,
   emptyDisplay = EMPTY_VALUE,
   onRequestEdit,
@@ -243,8 +276,16 @@ export default function InlineEditCell({
   editing: boolean;
   disabled?: boolean;
   error?: string;
+  /**
+   * How the resting cell enters edit. Team List keeps `double-click` so a
+   * row click can still open the workspace. Recruiting List uses `click`
+   * because the row is not a navigation target (name/avatar opens instead).
+   */
+  editOn?: "click" | "double-click";
   align?: "left" | "right";
-  emphasis?: "default" | "metadata" | "directory";
+  emphasis?: InlineEmphasis;
+  density?: InlineDensity;
+  rows?: number;
   className?: string;
   emptyDisplay?: string;
   onRequestEdit: () => void;
@@ -261,10 +302,9 @@ export default function InlineEditCell({
   const shown = displayValue !== undefined && displayValue !== "" ? displayValue : value || emptyDisplay;
   const alignClass = align === "right" ? "text-right" : "text-left";
 
-  function handleDoubleClick(event: MouseEvent) {
+  function enterEdit(event: MouseEvent) {
     if (disabled) return;
     event.preventDefault();
-    // Stop the row's single-click navigation; parent also cancels any pending timer.
     event.stopPropagation();
     onRequestEdit();
   }
@@ -286,10 +326,17 @@ export default function InlineEditCell({
       // hydration mismatches in Next's table markup.
       tabIndex={editing || disabled ? -1 : 0}
       aria-label={`${label}: ${shown}`}
-      onDoubleClick={editing ? undefined : handleDoubleClick}
+      onClick={editing || editOn !== "click" ? undefined : enterEdit}
+      onDoubleClick={editing || editOn !== "double-click" ? undefined : enterEdit}
       onKeyDown={editing ? undefined : handleCellKeyDown}
-      className={`${editing ? "rounded-control ring-1 ring-denison-red/30" : `-mx-1 cursor-cell rounded-control px-1 py-0.5 outline-none transition-colors duration-150 hover:bg-denison-red/[0.04] focus-visible:ring-2 focus-visible:ring-denison-red/40 ${disabled ? "cursor-default hover:bg-transparent" : ""}`} ${alignClass} ${className ?? ""}`}
-      title={editing || disabled ? undefined : `Double-click to edit ${label}`}
+      className={`${editing ? "rounded-control ring-1 ring-[var(--module-accent)]/30" : `-mx-1 cursor-cell rounded-control px-1 py-0.5 outline-none transition-colors duration-150 hover:bg-[var(--module-tint)] focus-visible:ring-2 focus-visible:ring-[var(--module-accent)]/40 ${disabled ? "cursor-default hover:bg-transparent" : ""}`} ${alignClass} ${className ?? ""}`}
+      title={
+        editing || disabled
+          ? undefined
+          : editOn === "click"
+            ? `Click to edit ${label}`
+            : `Double-click to edit ${label}`
+      }
     >
       {editing ? (
         <InlineEditInput
@@ -299,22 +346,15 @@ export default function InlineEditCell({
           options={options}
           step={step}
           error={error}
+          density={density}
+          rows={rows}
           onCancel={onCancel}
           onCommit={onCommit}
           onExitFocus={() => cellRef.current?.focus()}
         />
       ) : (
         (renderDisplay ?? (
-          <span
-            className={
-              emphasis === "directory" || emphasis === "metadata"
-                ? // Same token for filled and empty — directory hierarchy (BP-025H).
-                  typeRole.directoryMeta
-                : value
-                  ? `whitespace-pre-wrap ${typeRole.fieldValue}`
-                  : `whitespace-pre-wrap text-sm ${typeRole.metadataEmpty}`
-            }
-          >
+          <span className={displayClassName(emphasis, Boolean(value))}>
             {shown}
           </span>
         ))

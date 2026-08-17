@@ -39,7 +39,7 @@ export default function WorkspaceNavigation({
     <div
       className={
         framed
-          ? "overflow-hidden rounded-card border border-border/70 bg-surface"
+          ? "overflow-hidden rounded-card border border-[var(--module-border)] bg-surface"
           : undefined
       }
     >
@@ -52,16 +52,16 @@ export default function WorkspaceNavigation({
               <button
                 type="button"
                 onClick={() => onSelect(item.id)}
-                className={`group flex w-full cursor-pointer items-center gap-3 border-l-[3px] px-3.5 py-2 text-left transition-[background-color,border-color,box-shadow,color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-denison-red/35 ${
+                className={`group flex w-full cursor-pointer items-center gap-3 border-l-[3px] px-3.5 py-2 text-left transition-[background-color,border-color,box-shadow,color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--module-accent)]/35 ${
                   active
-                    ? "border-denison-red bg-app-background"
+                    ? "border-[var(--module-accent)] bg-[var(--module-tint)]"
                     : "border-transparent hover:bg-app-background hover:shadow-[inset_0_0_0_1px_rgba(17,24,39,0.03)]"
                 }`}
               >
                 <span
                   className={`inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-control transition-colors duration-150 ${
                     active
-                      ? "bg-denison-red/10 text-denison-red"
+                      ? "bg-[var(--module-tint)] text-[var(--module-accent)]"
                       : "bg-app-background text-text-secondary group-hover:text-text-primary"
                   }`}
                 >
@@ -89,7 +89,7 @@ export default function WorkspaceNavigation({
                 <ChevronRight
                   className={`h-4 w-4 shrink-0 transition-colors duration-150 ${
                     active
-                      ? "text-denison-red/70"
+                      ? "text-[var(--module-accent)]/70"
                       : "text-text-secondary/40 group-hover:text-text-secondary/70"
                   }`}
                   strokeWidth={1.75}

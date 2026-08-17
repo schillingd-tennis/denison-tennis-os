@@ -6,7 +6,7 @@ import type { MouseEvent } from "react";
  * Outline accent icons on a white surface with a thin matching border;
  * hover adds a light tint, soft shadow, and slight scale.
  */
-export type QuickActionTone = "success" | "info" | "denison" | "neutral";
+export type QuickActionTone = "success" | "info" | "denison" | "module" | "neutral";
 
 const toneClasses: Record<QuickActionTone, string> = {
   success:
@@ -14,6 +14,8 @@ const toneClasses: Record<QuickActionTone, string> = {
   info: "border-info/35 text-info/90 hover:border-info/50 hover:bg-info/10 hover:text-info hover:shadow-[0_2px_8px_rgba(37,99,235,0.18)] focus-visible:border-info/50 focus-visible:bg-info/10 focus-visible:text-info active:scale-[0.97] active:bg-info/15 active:shadow-none",
   denison:
     "border-denison-red/35 text-denison-red/90 hover:border-denison-red/50 hover:bg-denison-red/10 hover:text-denison-red hover:shadow-[0_2px_8px_rgba(200,16,46,0.18)] focus-visible:border-denison-red/50 focus-visible:bg-denison-red/10 focus-visible:text-denison-red active:scale-[0.97] active:bg-denison-red/15 active:shadow-none",
+  module:
+    "border-[var(--module-border)] text-[var(--module-accent)] hover:border-[var(--module-accent)]/50 hover:bg-[var(--module-tint)] hover:text-[var(--module-accent)] focus-visible:border-[var(--module-accent)]/50 focus-visible:bg-[var(--module-tint)] focus-visible:text-[var(--module-accent)] active:scale-[0.97] active:bg-[var(--module-tint)] active:shadow-none",
   neutral:
     "border-border text-text-secondary hover:bg-app-background hover:shadow-sm focus-visible:bg-app-background active:scale-[0.97] active:shadow-none",
 };
@@ -24,13 +26,24 @@ const toneClasses: Record<QuickActionTone, string> = {
  * activating the action never triggers a parent row/card navigation
  * target. Renders disabled (with an optional tooltip) when neither `href`
  * nor `onAction` is provided.
+ *
+ * `size="compact"` (32px) is opt-in for denser surfaces (e.g. Rank View).
+ * Default remains 40px for directory / card Actions.
  */
+export type QuickActionSize = "default" | "compact";
+
+const sizeClasses: Record<QuickActionSize, { button: string; icon: string }> = {
+  default: { button: "h-10 w-10", icon: "h-[17px] w-[17px]" },
+  compact: { button: "h-8 w-8", icon: "h-3.5 w-3.5" },
+};
+
 export default function QuickActionButton({
   href,
   onAction,
   icon: Icon,
   label,
   tone,
+  size = "default",
   className = "",
   unavailableTitle,
   openInNewTab = false,
@@ -41,14 +54,16 @@ export default function QuickActionButton({
   icon: LucideIcon;
   label: string;
   tone: QuickActionTone;
+  size?: QuickActionSize;
   className?: string;
   /** Tooltip when the control is disabled (defaults to `${label} unavailable`). */
   unavailableTitle?: string;
   /** When true and `href` is set, open in a new tab. */
   openInNewTab?: boolean;
 }) {
+  const dims = sizeClasses[size];
   const baseClassName =
-    "inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border bg-surface select-none transition-[color,background-color,border-color,box-shadow,transform] duration-150 hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-denison-red";
+    `inline-flex ${dims.button} shrink-0 cursor-pointer items-center justify-center rounded-full border bg-surface select-none transition-[color,background-color,border-color,box-shadow,transform] duration-150 hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--module-accent)]`;
 
   function stopParentNavigation(event: MouseEvent) {
     // Sit above a full-card / row click target — never let the gesture bubble
@@ -68,7 +83,7 @@ export default function QuickActionButton({
         onMouseDown={stopParentNavigation}
         className={`${baseClassName} cursor-not-allowed border-border text-text-secondary/35 hover:scale-100 hover:shadow-none ${className}`}
       >
-        <Icon className="h-[17px] w-[17px]" strokeWidth={2} aria-hidden />
+        <Icon className={dims.icon} strokeWidth={2} aria-hidden />
       </button>
     );
   }
@@ -86,7 +101,7 @@ export default function QuickActionButton({
         onMouseDown={stopParentNavigation}
         className={`${baseClassName} ${toneClasses[tone]} ${className}`}
       >
-        <Icon className="h-[17px] w-[17px]" strokeWidth={2} aria-hidden />
+        <Icon className={dims.icon} strokeWidth={2} aria-hidden />
       </button>
     );
   }
@@ -102,7 +117,7 @@ export default function QuickActionButton({
       onMouseDown={stopParentNavigation}
       className={`${baseClassName} ${toneClasses[tone]} ${className}`}
     >
-      <Icon className="h-[17px] w-[17px]" strokeWidth={2} aria-hidden />
+      <Icon className={dims.icon} strokeWidth={2} aria-hidden />
     </a>
   );
 }

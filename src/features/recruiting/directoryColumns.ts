@@ -4,7 +4,7 @@
  */
 import type { ColumnDef } from "@/components/data-table/types";
 import type { FoundSetColumn } from "@/components/found-set";
-import { getDisplayFirstName, getDisplayName } from "@/features/people/utils";
+import { getDisplayFirstName, getDisplayName, getHometown } from "@/features/people/utils";
 import { EMPTY_VALUE, formatDisplay, formatUtr, formatWtn } from "@/lib/formatting";
 
 import type { RecruitDirectoryRow } from "./directory";
@@ -12,19 +12,37 @@ import type { RecruitDirectoryRow } from "./directory";
 export type RecruitDirectoryColumnId =
   | "name"
   | "recruitClassYear"
-  | "recruitType"
   | "pipelineStage"
   | "priority"
+  | "interest"
+  | "outcome"
   | "utr"
-  | "wtn"
-  | "tier"
-  | "compositeRank"
-  | "compositeZ";
+  | "trnRank"
+  | "wtn";
+
+export type RecruitCommitColumnId =
+  | "name"
+  | "recruitClassYear"
+  | "pipelineStage"
+  | "priority"
+  | "outcome"
+  | "schoolChosen"
+  | "utr"
+  | "trnRank"
+  | "wtn";
 
 function nameSortKey(row: RecruitDirectoryRow): string {
   const last = row.person.lastName?.trim() || "";
   const first = getDisplayFirstName(row.person).trim();
   return `${last}\u0000${first}`;
+}
+
+/**
+ * Name-cell secondary line for mobile / found-set summary.
+ * Class lives in its own table column — identity line is hometown only.
+ */
+export function recruitListSummaryLine(row: RecruitDirectoryRow): string {
+  return getHometown(row.person) || "";
 }
 
 export const RECRUITING_DIRECTORY_TABLE_COLUMNS: ColumnDef<
@@ -33,7 +51,7 @@ export const RECRUITING_DIRECTORY_TABLE_COLUMNS: ColumnDef<
 >[] = [
   {
     id: "name",
-    title: "Name",
+    title: "Recruit",
     sortable: true,
     sortType: "text",
     accessor: nameSortKey,
@@ -44,16 +62,7 @@ export const RECRUITING_DIRECTORY_TABLE_COLUMNS: ColumnDef<
     title: "Class",
     sortable: true,
     sortType: "number",
-    align: "right",
     accessor: (row) => row.profile.recruitClassYear,
-    defaultSort: "asc",
-  },
-  {
-    id: "recruitType",
-    title: "Type",
-    sortable: true,
-    sortType: "text",
-    accessor: (row) => row.profile.recruitType?.label,
     defaultSort: "asc",
   },
   {
@@ -73,6 +82,22 @@ export const RECRUITING_DIRECTORY_TABLE_COLUMNS: ColumnDef<
     defaultSort: "asc",
   },
   {
+    id: "interest",
+    title: "Interest",
+    sortable: true,
+    sortType: "text",
+    accessor: (row) => row.profile.interest?.label,
+    defaultSort: "asc",
+  },
+  {
+    id: "outcome",
+    title: "Outcome",
+    sortable: true,
+    sortType: "text",
+    accessor: (row) => row.profile.outcome?.label,
+    defaultSort: "asc",
+  },
+  {
     id: "utr",
     title: "UTR",
     sortable: true,
@@ -80,6 +105,15 @@ export const RECRUITING_DIRECTORY_TABLE_COLUMNS: ColumnDef<
     align: "right",
     accessor: (row) => row.person.utr,
     defaultSort: "desc",
+  },
+  {
+    id: "trnRank",
+    title: "TRN",
+    sortable: true,
+    sortType: "number",
+    align: "right",
+    accessor: (row) => row.person.trnRank,
+    defaultSort: "asc",
   },
   {
     id: "wtn",
@@ -90,45 +124,103 @@ export const RECRUITING_DIRECTORY_TABLE_COLUMNS: ColumnDef<
     accessor: (row) => row.person.wtn,
     defaultSort: "asc",
   },
-  {
-    id: "tier",
-    title: "Tier",
-    sortable: true,
-    sortType: "text",
-    accessor: (row) => row.analytics.tier,
-    defaultSort: "asc",
-  },
-  {
-    id: "compositeRank",
-    title: "Comp Rank",
-    sortable: true,
-    sortType: "number",
-    align: "right",
-    accessor: (row) => row.analytics.compositeRank,
-    defaultSort: "asc",
-  },
-  {
-    id: "compositeZ",
-    title: "Comp Z",
-    sortable: true,
-    sortType: "number",
-    align: "right",
-    accessor: (row) => row.analytics.compositeZ,
-    defaultSort: "desc",
-  },
 ];
 
-export const RECRUITING_FOUND_SET_COLUMNS: FoundSetColumn<RecruitDirectoryRow>[] = [
-  { id: "name", title: "Name", accessor: (row) => getDisplayName(row.person) },
+export const RECRUITING_COMMIT_TABLE_COLUMNS: ColumnDef<
+  RecruitDirectoryRow,
+  RecruitCommitColumnId
+>[] = [
+  {
+    id: "name",
+    title: "Recruit",
+    sortable: true,
+    sortType: "text",
+    accessor: nameSortKey,
+    defaultSort: "asc",
+  },
   {
     id: "recruitClassYear",
     title: "Class",
-    accessor: (row) => formatDisplay(row.profile.recruitClassYear),
+    sortable: true,
+    sortType: "number",
+    accessor: (row) => row.profile.recruitClassYear,
+    defaultSort: "asc",
   },
   {
-    id: "recruitType",
-    title: "Type",
-    accessor: (row) => row.profile.recruitType?.label ?? EMPTY_VALUE,
+    id: "pipelineStage",
+    title: "Pipeline",
+    sortable: true,
+    sortType: "text",
+    accessor: (row) => row.profile.pipelineStage?.label,
+    defaultSort: "asc",
+  },
+  {
+    id: "priority",
+    title: "Priority",
+    sortable: true,
+    sortType: "text",
+    accessor: (row) => row.profile.priority?.label,
+    defaultSort: "asc",
+  },
+  {
+    id: "outcome",
+    title: "Outcome",
+    sortable: true,
+    sortType: "text",
+    accessor: (row) => row.profile.outcome?.label,
+    defaultSort: "asc",
+  },
+  {
+    id: "schoolChosen",
+    title: "School Chosen",
+    sortable: true,
+    sortType: "text",
+    accessor: (row) => row.profile.schoolChosen,
+    defaultSort: "asc",
+  },
+  {
+    id: "utr",
+    title: "UTR",
+    sortable: true,
+    sortType: "number",
+    align: "right",
+    accessor: (row) => row.person.utr,
+    defaultSort: "desc",
+  },
+  {
+    id: "trnRank",
+    title: "TRN",
+    sortable: true,
+    sortType: "number",
+    align: "right",
+    accessor: (row) => row.person.trnRank,
+    defaultSort: "asc",
+  },
+  {
+    id: "wtn",
+    title: "WTN",
+    sortable: true,
+    sortType: "number",
+    align: "right",
+    accessor: (row) => row.person.wtn,
+    defaultSort: "asc",
+  },
+];
+
+export const RECRUITING_COMMIT_FOUND_SET_COLUMNS: FoundSetColumn<RecruitDirectoryRow>[] = [
+  { id: "name", title: "Name", accessor: (row) => getDisplayName(row.person) },
+  {
+    id: "hometown",
+    title: "Hometown",
+    accessor: (row) => recruitListSummaryLine(row) || EMPTY_VALUE,
+  },
+  {
+    id: "recruitClassYear",
+    title: "Class",
+    accessor: (row) =>
+      row.profile.recruitClassYear !== undefined
+        ? String(row.profile.recruitClassYear)
+        : EMPTY_VALUE,
   },
   {
     id: "pipelineStage",
@@ -140,19 +232,67 @@ export const RECRUITING_FOUND_SET_COLUMNS: FoundSetColumn<RecruitDirectoryRow>[]
     title: "Priority",
     accessor: (row) => row.profile.priority?.label ?? EMPTY_VALUE,
   },
+  {
+    id: "outcome",
+    title: "Outcome",
+    accessor: (row) => row.profile.outcome?.label ?? EMPTY_VALUE,
+  },
+  {
+    id: "schoolChosen",
+    title: "School Chosen",
+    accessor: (row) => row.profile.schoolChosen ?? EMPTY_VALUE,
+  },
   { id: "utr", title: "UTR", accessor: (row) => formatUtr(row.person.utr) },
+  {
+    id: "trnRank",
+    title: "TRN",
+    accessor: (row) => formatDisplay(row.person.trnRank),
+  },
   { id: "wtn", title: "WTN", accessor: (row) => formatWtn(row.person.wtn) },
-  { id: "tier", title: "Tier", accessor: (row) => row.analytics.tier ?? EMPTY_VALUE },
+];
+
+export const RECRUITING_FOUND_SET_COLUMNS: FoundSetColumn<RecruitDirectoryRow>[] = [
+  { id: "name", title: "Name", accessor: (row) => getDisplayName(row.person) },
   {
-    id: "compositeRank",
-    title: "Comp Rank",
-    accessor: (row) => formatDisplay(row.analytics.compositeRank),
+    id: "hometown",
+    title: "Hometown",
+    accessor: (row) => recruitListSummaryLine(row) || EMPTY_VALUE,
   },
   {
-    id: "compositeZ",
-    title: "Comp Z",
-    accessor: (row) => formatDisplay(row.analytics.compositeZ),
+    id: "recruitClassYear",
+    title: "Class",
+    accessor: (row) =>
+      row.profile.recruitClassYear !== undefined
+        ? String(row.profile.recruitClassYear)
+        : EMPTY_VALUE,
   },
+  {
+    id: "pipelineStage",
+    title: "Pipeline",
+    accessor: (row) => row.profile.pipelineStage?.label ?? EMPTY_VALUE,
+  },
+  {
+    id: "priority",
+    title: "Priority",
+    accessor: (row) => row.profile.priority?.label ?? EMPTY_VALUE,
+  },
+  {
+    id: "interest",
+    title: "Interest",
+    accessor: (row) => row.profile.interest?.label ?? EMPTY_VALUE,
+  },
+  {
+    id: "outcome",
+    title: "Outcome",
+    accessor: (row) => row.profile.outcome?.label ?? EMPTY_VALUE,
+  },
+  { id: "utr", title: "UTR", accessor: (row) => formatUtr(row.person.utr) },
+  {
+    id: "trnRank",
+    title: "TRN",
+    accessor: (row) => formatDisplay(row.person.trnRank),
+  },
+  { id: "wtn", title: "WTN", accessor: (row) => formatWtn(row.person.wtn) },
 ];
 
 export const RECRUITING_FOUND_SET_MODULE_KEY = "recruiting";

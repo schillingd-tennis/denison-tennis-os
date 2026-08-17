@@ -20,7 +20,7 @@ export default function StickyProductivityActionBar({
 }) {
   return (
     <div
-      className={`sticky top-0 z-20 -mx-1 border-b border-border/80 bg-app-background/95 px-1 py-3 backdrop-blur-sm ${className ?? ""}`}
+      className={`sticky top-0 z-20 -mx-1 border-b border-[var(--module-border)] bg-app-background px-1 py-3 ${className ?? ""}`}
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 flex-wrap items-center gap-3">{leading}</div>

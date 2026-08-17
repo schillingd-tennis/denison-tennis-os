@@ -12,6 +12,7 @@ import { getDisplayName, hasRole } from "@/features/people/utils";
 
 import { computeRecruitingAnalytics, subjectsFromPeople } from "./analytics";
 import type { RecruitAnalyticsResult } from "./analytics/types";
+import { countDenisonCommitProfiles } from "./directorySummary";
 import { getRecruitProfileByPersonId, listRecruitProfiles } from "./repository";
 import type { RecruitProfile } from "./types";
 
@@ -59,7 +60,10 @@ function sortJoined(
   });
 }
 
-export async function listRecruitDirectoryRows(): Promise<RecruitDirectoryRow[]> {
+export async function loadRecruitingDirectory(): Promise<{
+  rows: RecruitDirectoryRow[];
+  denisonCommits: number;
+}> {
   const [profiles, people] = await Promise.all([listRecruitProfiles(), listPeople()]);
   const peopleById = new Map(people.map((person) => [person.id, person]));
 
@@ -70,7 +74,15 @@ export async function listRecruitDirectoryRows(): Promise<RecruitDirectoryRow[]>
     joined.push({ person, profile });
   }
 
-  return attachAnalytics(sortJoined(joined));
+  return {
+    rows: attachAnalytics(sortJoined(joined)),
+    denisonCommits: countDenisonCommitProfiles(profiles),
+  };
+}
+
+export async function listRecruitDirectoryRows(): Promise<RecruitDirectoryRow[]> {
+  const { rows } = await loadRecruitingDirectory();
+  return rows;
 }
 
 export async function getRecruitWorkspaceRecord(

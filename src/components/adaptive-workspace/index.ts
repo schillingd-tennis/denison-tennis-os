@@ -7,4 +7,15 @@
 
 export { default as AdaptiveWorkspace, AdaptiveWorkspacePlaceholder } from "./AdaptiveWorkspace";
 export { default as AdaptiveWorkspaceHeader } from "./AdaptiveWorkspaceHeader";
+export {
+  WorkspaceContent,
+  WorkspaceField,
+  WorkspaceFieldGrid,
+  WorkspaceFieldGroup,
+  WorkspaceMutedNote,
+  WorkspaceReadOnlyValue,
+  WorkspaceSection,
+  WorkspaceSplit,
+  WorkspaceStack,
+} from "./WorkspaceContent";
 export type { AdaptiveWorkspaceDefinition } from "./types";

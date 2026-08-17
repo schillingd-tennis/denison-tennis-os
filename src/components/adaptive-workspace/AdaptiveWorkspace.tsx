@@ -32,7 +32,7 @@ export default function AdaptiveWorkspace({
   return (
     <section
       className={`flex h-full min-h-[280px] flex-col overflow-hidden ${
-        framed ? "rounded-card border border-border/70 bg-surface" : "bg-surface"
+        framed ? "rounded-card border border-[var(--module-border)] bg-surface" : "bg-surface"
       } ${className ?? ""}`}
       aria-label="Adaptive workspace"
       aria-live="polite"
@@ -40,7 +40,7 @@ export default function AdaptiveWorkspace({
       {!active ? (
         <div
           key="empty"
-          className="flex flex-1 animate-[adaptive-workspace-enter_160ms_ease-out] items-center justify-center px-6 py-16"
+          className="flex flex-1 animate-[adaptive-workspace-enter_160ms_ease-out] items-center justify-center bg-[var(--module-tint)]/60 px-6 py-16"
         >
           <p className="text-sm text-text-secondary">{emptyLabel}</p>
         </div>

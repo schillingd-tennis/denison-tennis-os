@@ -18,6 +18,8 @@ export {
 } from "./formatters";
 export type {
   InlineCommitReason,
+  InlineDensity,
+  InlineEmphasis,
   InlineFieldType,
   InlineSaveStatus,
   InlineSelectOption,

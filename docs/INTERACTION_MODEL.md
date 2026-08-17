@@ -355,6 +355,28 @@ endlessly stacking sections vertically.
 
 ---
 
+## 9b. Directory lists
+
+**Purpose**
+
+Work the found set in place. Open a workspace only when you need depth.
+
+**Rule**
+
+Lists are for working. Workspaces are for depth.
+
+**Behavior**
+
+- Click an **editable field** → inline edit (`InlineEditCell`).
+- Click **name / avatar** → open that Person/Recruit workspace.
+- Click a **computed or read-only** field → no edit mode.
+- **Action buttons** keep their own actions.
+- The **row is not a navigation target**.
+
+**First surface:** Recruiting List. Future directories should follow this unless a milestone explicitly keeps an older pattern (Team List today: whole-row open + double-click edit).
+
+---
+
 ## 10. Design Philosophy
 
 The Denison Tennis OS should feel closer to:
@@ -383,7 +405,8 @@ than a traditional CRM or database.
 | “What’s going on in this module?” | Summary Card |
 | Occasional extra detail in place | Expandable Section |
 | Create / edit / focused work without leaving | Right-side Drawer |
-| Confirm or tiny edit | Modal |
+| Edit a directory cell without leaving the list | Inline edit on that field |
+| Open the record from a directory | Name / avatar, not the whole row |
 | Major independent workflow | Full Workspace |
 
 When unsure: **stay in the workspace, use a drawer, keep the page short.**

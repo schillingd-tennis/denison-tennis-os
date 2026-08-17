@@ -188,6 +188,19 @@ export const RECRUIT_PROFILE_FIELD_CATALOG: readonly RecruitProfileFieldDefiniti
       "High school graduation / recruiting class (Coda Class Year). Not Person.classYear (Denison college graduation).",
   },
   {
+    key: "coachRank",
+    label: "Coach Rank",
+    section: "evaluation",
+    type: "number",
+    editable: false,
+    sortable: true,
+    filterable: false,
+    exportable: true,
+    dbColumn: "coach_rank",
+    description:
+      "Manual preference order within recruit class year. NULL = unranked. Not Priority or Analytics Tier. Mutations use Coach Rank APIs only.",
+  },
+  {
     key: "gpa",
     label: "GPA",
     section: "academic",
@@ -344,7 +357,13 @@ export function getWritableRecruitProfileFieldMap(): Partial<
 > {
   const map: Partial<Record<keyof RecruitProfile, string>> = {};
   for (const field of getRecruitProfileFieldsWithDbColumn()) {
-    if (field.key === "id" || field.key === "createdAt" || field.key === "updatedAt") {
+    if (
+      field.key === "id" ||
+      field.key === "createdAt" ||
+      field.key === "updatedAt" ||
+      // Coach Rank mutations go through apply_recruit_class_coach_ranks only.
+      field.key === "coachRank"
+    ) {
       continue;
     }
     map[field.key] = field.dbColumn;

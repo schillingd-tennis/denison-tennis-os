@@ -21,6 +21,11 @@
   --color-warning: #f59e0b;
   --color-danger: #dc2626;
   --color-info: #2563eb;
+  --color-team: #2563eb;
+  --color-operations: #b45309;
+  --color-research: #7c3aed;
+  --color-knowledge: #0f766e;
+  --color-settings: #475569;
 
   --radius-card: 12px;
   --radius-control: 10px;
@@ -38,8 +43,63 @@
   --header-height: 88px;
 }
 
+/* Module color is a navigation and hierarchy signal, not a replacement for
+   semantic status colors. AppShell selects one of these palettes per route. */
+.app-shell {
+  --module-accent: var(--color-denison-red);
+  --module-tint: #fff1f2;
+  --module-border: #fecdd3;
+}
+
+.app-shell[data-module="home"] {
+  --module-accent: var(--color-denison-red);
+  --module-tint: #fff1f2;
+  --module-border: #fecdd3;
+}
+
+.app-shell[data-module="team"] {
+  --module-accent: var(--color-team);
+  --module-tint: #eff6ff;
+  --module-border: #bfdbfe;
+}
+
+.app-shell[data-module="recruiting"] {
+  --module-accent: var(--color-denison-red);
+  --module-tint: #fff1f2;
+  --module-border: #fecdd3;
+}
+
+.app-shell[data-module="operations"] {
+  --module-accent: var(--color-operations);
+  --module-tint: #fffbeb;
+  --module-border: #fde68a;
+}
+
+.app-shell[data-module="research"] {
+  --module-accent: var(--color-research);
+  --module-tint: #f5f3ff;
+  --module-border: #ddd6fe;
+}
+
+.app-shell[data-module="knowledge"] {
+  --module-accent: var(--color-knowledge);
+  --module-tint: #f0fdfa;
+  --module-border: #99f6e4;
+}
+
+.app-shell[data-module="people"] {
+  --module-accent: var(--color-knowledge);
+  --module-tint: #f0fdfa;
+  --module-border: #99f6e4;
+}
+
+.app-shell[data-module="recruiting"] main {
+  padding-top: 1.75rem;
+  padding-bottom: 2.5rem;
+}
+
 body {
-  background: var(--color-app-background);
+  background: #f8f8f7;
   color: var(--color-text-primary);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }

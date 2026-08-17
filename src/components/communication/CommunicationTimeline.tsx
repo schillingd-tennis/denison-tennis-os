@@ -88,7 +88,7 @@ export default function CommunicationTimeline({
           disabled={!canAdd}
           aria-disabled={!canAdd}
           title={canAdd ? "Add Communication" : "Coming soon"}
-          className="inline-flex h-9 shrink-0 items-center justify-center rounded-control bg-denison-red px-3.5 text-sm font-semibold text-surface transition-opacity duration-150 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-100"
+          className="inline-flex h-9 shrink-0 items-center justify-center rounded-control bg-[var(--module-accent)] px-3.5 text-sm font-semibold text-surface transition-opacity duration-150 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-100"
         >
           Add Communication
         </button>

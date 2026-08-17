@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { typeClass, typeRole } from "@/components/typography";
@@ -32,7 +32,7 @@ function SnapshotMetric({ label, value }: { label: string; value: string }) {
   const empty =
     value === NO_DATA || value === COMING_SOON || value === EMPTY_VALUE;
   return (
-    <div className="min-w-0 rounded-control border border-border/80 bg-app-background/60 px-3 py-3">
+    <div className="min-w-0 rounded-control border border-[var(--module-border)] bg-[var(--module-tint)]/55 px-3 py-3">
       <p className={typeRole.sectionLabel}>{label}</p>
       <p
         className={`mt-1.5 truncate text-base font-semibold tracking-tight ${
@@ -48,15 +48,18 @@ function SnapshotMetric({ label, value }: { label: string; value: string }) {
 function IdentityFact({
   label,
   value,
+  className,
 }: {
   label: string;
   value: string;
+  className?: string;
 }) {
   const empty = !value.trim() || value === NO_DATA || value === EMPTY_VALUE;
   return (
-    <span className="inline-flex min-w-0 items-baseline gap-1.5">
+    <span className={`inline-flex min-w-0 items-baseline gap-1.5 ${className ?? ""}`}>
       <span className={`shrink-0 ${typeRole.sectionLabel}`}>{label}</span>
       <span
+        title={empty ? undefined : value}
         className={`truncate text-sm font-medium ${
           empty ? typeRole.metadataEmpty : "text-text-primary"
         }`}
@@ -64,6 +67,33 @@ function IdentityFact({
         {empty ? NO_DATA : value}
       </span>
     </span>
+  );
+}
+
+function IdentityFactRow({
+  facts,
+  constrainValue,
+}: {
+  facts: { label: string; value: string }[];
+  constrainValue?: boolean;
+}) {
+  return (
+    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2">
+      {facts.map((fact, index) => (
+        <Fragment key={fact.label}>
+          {index > 0 ? (
+            <span className="hidden text-text-secondary/35 sm:inline" aria-hidden>
+              ·
+            </span>
+          ) : null}
+          <IdentityFact
+            label={fact.label}
+            value={fact.value}
+            className={constrainValue ? "max-w-[min(100%,22rem)]" : undefined}
+          />
+        </Fragment>
+      ))}
+    </div>
   );
 }
 
@@ -77,6 +107,8 @@ export default function PersonHeader({
   statusSlot,
   roleSlot,
   playerStatusSlot,
+  identityFacts,
+  overviewMetrics,
   className,
 }: {
   person: Person;
@@ -84,6 +116,10 @@ export default function PersonHeader({
   statusSlot?: ReactNode;
   roleSlot?: ReactNode;
   playerStatusSlot?: ReactNode;
+  /** When set, replaces Class / Major / Hometown (recruit workspace). */
+  identityFacts?: { label: string; value: string }[];
+  /** When set, replaces the default Executive Overview tiles. */
+  overviewMetrics?: { label: string; value: string }[];
   className?: string;
 }) {
   const fullName = getFullDisplayName(person);
@@ -119,7 +155,7 @@ export default function PersonHeader({
 
   return (
     <section
-      className={`rounded-card border border-border bg-surface px-6 py-6 ${className ?? ""}`}
+      className={`rounded-card border border-[var(--module-border)] bg-surface px-6 py-6 shadow-[0_8px_24px_rgba(17,24,39,0.04)] ${className ?? ""}`}
       aria-label="Person header"
     >
       <div className="flex flex-col gap-5">
@@ -180,18 +216,28 @@ export default function PersonHeader({
             className="flex min-w-0 flex-1 flex-col justify-center gap-2 border-border lg:border-l lg:pl-6"
             aria-label="Primary identity"
           >
-            {!familyPerson ? (
-              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2">
-                <IdentityFact label="Class" value={classYear} />
-                <span className="hidden text-text-secondary/35 sm:inline" aria-hidden>
-                  ·
-                </span>
-                <IdentityFact label="Major" value={major} />
+            {identityFacts ? (
+              <div className="flex flex-col gap-2">
+                <IdentityFactRow facts={identityFacts.slice(0, 2)} constrainValue />
+                {identityFacts.length > 2 ? (
+                  <IdentityFactRow facts={identityFacts.slice(2)} constrainValue />
+                ) : null}
               </div>
-            ) : null}
-            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2">
-              <IdentityFact label="Hometown" value={hometownDisplay} />
-            </div>
+            ) : (
+              <>
+                {!familyPerson ? (
+                  <IdentityFactRow
+                    facts={[
+                      { label: "Class", value: classYear },
+                      { label: "Major", value: major },
+                    ]}
+                  />
+                ) : null}
+                <IdentityFactRow
+                  facts={[{ label: "Hometown", value: hometownDisplay }]}
+                />
+              </>
+            )}
           </div>
         </div>
 
@@ -199,16 +245,26 @@ export default function PersonHeader({
         {!familyPerson ? (
           <div aria-label="Executive Overview">
             <p className={`${typeRole.sectionTitle} mb-3`}>Executive Overview</p>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-              <SnapshotMetric label="UTR" value={utr} />
-              <SnapshotMetric label="WTN" value={wtn} />
-              <SnapshotMetric label="Team Record" value={COMING_SOON} />
-              <SnapshotMetric label="GPA" value={COMING_SOON} />
-              <SnapshotMetric
-                label="Player Status"
-                value={coachDirectory ? NO_DATA : playerStatus}
-              />
-              <SnapshotMetric label="Next Follow-up" value={COMING_SOON} />
+            <div
+              className={`grid grid-cols-2 gap-3 sm:grid-cols-3 ${
+                overviewMetrics && overviewMetrics.length < 6
+                  ? "lg:grid-cols-4"
+                  : "lg:grid-cols-6"
+              }`}
+            >
+              {(overviewMetrics ?? [
+                { label: "UTR", value: utr },
+                { label: "WTN", value: wtn },
+                { label: "Team Record", value: COMING_SOON },
+                { label: "GPA", value: COMING_SOON },
+                {
+                  label: "Player Status",
+                  value: coachDirectory ? NO_DATA : playerStatus,
+                },
+                { label: "Next Follow-up", value: COMING_SOON },
+              ]).map((metric) => (
+                <SnapshotMetric key={metric.label} label={metric.label} value={metric.value} />
+              ))}
             </div>
           </div>
         ) : null}

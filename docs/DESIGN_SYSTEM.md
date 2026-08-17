@@ -9,16 +9,52 @@ classes (e.g. `bg-denison-red`) or, for non-color tokens, via `var(...)`
 
 ## Official brand color
 
-**Denison Red is exactly `#C8102E`.** No other red should appear anywhere in
-the application. Use the `denison-red` token (`bg-denison-red`,
-`text-denison-red`, `border-denison-red`) — never an approximate or
-hand-picked red.
+**Denison Red is exactly `#C8102E`.** Use the `denison-red` token for brand
+chrome: sidebar wordmark, login, coach avatar, and the Recruiting module
+accent. Do not invent a second brand red.
+
+**Danger / risk uses `--color-danger` (`#DC2626`).** That is a semantic
+status color, not a substitute for Denison Red.
+
+## Module identity
+
+AppShell sets `data-module` from the route. CSS variables
+`--module-accent`, `--module-tint`, and `--module-border` follow the
+active module. Shared chrome (nav, page header, toolbar, tables, primary
+actions, empty states) should use these variables via
+`src/components/module-theme.ts` — not a hard-coded crimson button in
+every module.
+
+| Module | Accent | Notes |
+|---|---|---|
+| Home / Recruiting | Denison Red `#C8102E` | Recruiting is the crimson product surface |
+| Team | `--color-team` `#2563EB` | |
+| Operations | `--color-operations` `#B45309` | Distinct from warning amber |
+| Research Lab | `--color-research` `#7C3AED` | |
+| Knowledge / People | `--color-knowledge` `#0F766E` | Same teal family |
+| Settings | `--color-settings` `#475569` | |
+
+Treatments: active nav fill + soft accent shadow; slim page-header bar;
+tinted count badge; toolbar panel with matching border; white tables/cards
+with a quiet module border and light elevation; empty states with a solid
+module panel (not dashed placeholders).
+
+Recruiting directory (module-local, not Team): KPI summary cards, compact
+facet menus, and semantic status badges (Pipeline / Interest / Priority /
+Getability / analytics Tier). Crimson establishes identity; semantic colors
+carry meaning. List interaction: lists are for working; name/avatar opens
+the workspace; editable cells edit in place (`docs/DECISIONS.md`).
 
 ## Color palette
 
 | Token | Value | Tailwind utility (examples) | Usage |
 |---|---|---|---|
-| `--color-denison-red` | `#C8102E` | `bg-denison-red`, `text-denison-red` | Brand accent, active nav item, avatar, "TENNIS" wordmark |
+| `--color-denison-red` | `#C8102E` | `bg-denison-red`, `text-denison-red` | Brand (wordmark, login, avatar) and Recruiting/Home module accent |
+| `--color-team` | `#2563EB` | `bg-team` | Team module accent |
+| `--color-operations` | `#B45309` | `bg-operations` | Operations module accent |
+| `--color-research` | `#7C3AED` | `bg-research` | Research Lab module accent |
+| `--color-knowledge` | `#0F766E` | `bg-knowledge` | Knowledge / People module accent |
+| `--color-settings` | `#475569` | `bg-settings` | Settings module accent |
 | `--color-sidebar` | `#16161A` | `bg-sidebar` | Sidebar background (softened off-black, BP-008) |
 | `--color-sidebar-hover` | `#232328` | `bg-sidebar-hover` | Sidebar item hover state |
 | `--color-app-background` | `#F7F8FA` | `bg-app-background` | Outer app canvas background |
@@ -26,10 +62,10 @@ hand-picked red.
 | `--color-border` | `#E5E7EB` | `border-border` | Dividers, outlines |
 | `--color-text-primary` | `#111827` | `text-text-primary` | Primary body/heading text |
 | `--color-text-secondary` | `#6B7280` | `text-text-secondary` | Muted/secondary text (descriptions, subtext, inactive nav labels) |
-| `--color-success` | `#16A34A` | `bg-success`, `text-success` | Positive/success states (e.g. the "Call" quick action on team cards) |
-| `--color-warning` | `#F59E0B` | `bg-warning`, `text-warning` | Reserved for future warning states |
-| `--color-danger` | `#DC2626` | `bg-danger`, `text-danger` | Reserved for future destructive/error states |
-| `--color-info` | `#2563EB` | `bg-info`, `text-info` | Informational accent, restrained (e.g. the "Text" quick action on team cards) |
+| `--color-success` | `#16A34A` | `bg-success`, `text-success` | Positive / strong (not a module color) |
+| `--color-warning` | `#F59E0B` | `bg-warning`, `text-warning` | Watch / priority |
+| `--color-danger` | `#DC2626` | `bg-danger`, `text-danger` | Risk / error / destructive |
+| `--color-info` | `#2563EB` | `bg-info`, `text-info` | Active / information (status, not Team chrome) |
 
 ## Shell sizing
 
@@ -83,6 +119,28 @@ Reusable shell in `src/components/toolbar/`:
 
 Modules (Team, Recruiting, Operations, …) compose these slots. Do not invent
 Team-specific toolbar chrome.
+
+## Contact action slot order
+
+Compact directory / list / card **Actions** regions always use three **fixed
+positional slots**, left to right:
+
+**Call | Text | Email**
+
+Implementation: `src/components/ContactActionSlots.tsx`.
+
+- Each slot has identical dimensions (40px circular `QuickActionButton`).
+- Missing actions leave their assigned slot **empty**. Do not render a
+  disabled / ghost button in an empty slot.
+- Remaining actions **never shift** left, right, or to the center of the
+  column. Call is always slot 1, Text slot 2, Email slot 3.
+- The three-slot region is centered in the table Actions column. When no
+  contact methods exist, show the existing centered empty glyph (`—`).
+- This rule is OS-wide (Recruiting, Team, People, Family compact groups, and
+  future modules). Do not invent per-module spacing for Call / Text / Email.
+
+Workspace toolbars that mix Call / Text / Email with unrelated actions
+(favorites, copy, delete) are not this compact Actions pattern.
 
 ## Design Freeze (BP-036C)
 

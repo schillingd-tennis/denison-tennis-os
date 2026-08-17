@@ -1,11 +1,14 @@
-import { listPeople } from "@/features/people/repository";
-import PeopleDirectory from "@/features/people/components/PeopleDirectory";
+import EmptyState from "@/components/EmptyState";
+import PageHeader from "@/components/PageHeader";
 
-// People live in Supabase (BP-015) — always render with the current table
-// contents rather than a build-time snapshot. Route stays /team (BP-021).
-export const dynamic = "force-dynamic";
-
-export default async function TeamPage() {
-  const people = await listPeople();
-  return <PeopleDirectory people={people} />;
+export default function TeamPage() {
+  return (
+    <div className="flex flex-col gap-7">
+      <PageHeader title="Team" subtitle="Current team" />
+      <EmptyState
+        title="Team Overview"
+        description="This area will eventually contain team-wide information including schedule, results, academics, development, and records."
+      />
+    </div>
+  );
 }

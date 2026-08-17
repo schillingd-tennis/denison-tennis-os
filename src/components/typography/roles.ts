@@ -8,6 +8,9 @@
  *   personName / personNameHero  → strongest
  *   directoryMeta                → Team directory secondary (BP-025H)
  *   fieldValue                   → readable content under labels
+ *   workspaceFieldValue          → Adaptive Workspace content values
+ *   workspaceFieldLabel          → quiet Adaptive Workspace field labels
+ *   workspaceGroupTitle          → understated Adaptive Workspace group headings
  *   metadata / metadataSm        → quieter supporting facts
  *   sectionTitle / sectionLabel / tableHeader → structure, not content
  */
@@ -50,6 +53,21 @@ export const typeRole = {
 
   /** Primary field values under a section label. */
   fieldValue: "text-sm text-text-primary",
+
+  /**
+   * Adaptive Workspace group heading. Sentence case, quiet — organizes
+   * content without competing with field values.
+   */
+  workspaceGroupTitle: "text-xs font-medium tracking-tight text-text-secondary",
+
+  /**
+   * Adaptive Workspace field label. Sentence case metadata, substantially
+   * smaller than the value.
+   */
+  workspaceFieldLabel: "text-[11px] font-medium text-text-secondary",
+
+  /** Adaptive Workspace field value — the visual focus of the content pane. */
+  workspaceFieldValue: "text-[15px] font-medium leading-snug text-text-primary",
 } as const;
 
 export type TypeRole = keyof typeof typeRole;

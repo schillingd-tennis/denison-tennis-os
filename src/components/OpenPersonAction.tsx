@@ -26,6 +26,6 @@ export default function OpenPersonAction({
       : href;
 
   return (
-    <QuickActionButton href={destination} icon={UserRound} label={label} tone="denison" />
+    <QuickActionButton href={destination} icon={UserRound} label={label} tone="module" />
   );
 }

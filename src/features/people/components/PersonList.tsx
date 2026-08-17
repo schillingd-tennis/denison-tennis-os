@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
-import { ClipboardList, Download, Mail, MessageSquare, Phone } from "lucide-react";
+import { ClipboardList, Download } from "lucide-react";
 
+import ContactActionSlots from "@/components/ContactActionSlots";
 import DirectoryTable from "@/components/data-table/DirectoryTable";
 import {
   DIRECTORY_CELL_CLIP,
@@ -167,7 +168,13 @@ function contactHrefs(person: Person) {
   };
 }
 
-export default function PersonList({ people }: { people: Person[] }) {
+export default function PersonList({
+  people,
+  onPersonCommit,
+}: {
+  people: Person[];
+  onPersonCommit?: (person: Person) => void;
+}) {
   const router = useRouter();
   const [rows, setRows] = useState(people);
   const [trackedPeople, setTrackedPeople] = useState(people);
@@ -372,13 +379,14 @@ export default function PersonList({ people }: { people: Person[] }) {
         setRows((current) =>
           current.map((row) => (row.id === personId ? result.person : row)),
         );
+        onPersonCommit?.(result.person);
       });
 
       if (!ok) {
         setRows(previousRows);
       }
     },
-    [rows, buildPatch, isPatchUnchanged, moveEditing, runSave],
+    [rows, buildPatch, isPatchUnchanged, moveEditing, onPersonCommit, runSave],
   );
 
   const editingKey = useMemo(
@@ -521,7 +529,7 @@ export default function PersonList({ people }: { people: Person[] }) {
               ))}
               <th
                 scope="col"
-                className={`px-3 py-3 text-right align-middle ${typeRole.tableHeader} ${stickyTrailingThClass}`}
+                className={`px-3 py-3 text-center align-middle ${typeRole.tableHeader} ${stickyTrailingThClass}`}
               >
                 Actions
               </th>
@@ -644,38 +652,12 @@ export default function PersonList({ people }: { people: Person[] }) {
                     )}
                   </td>
                   <td
-                    className={`${cellPad} text-right ${stickyTrailingTdClass}`}
+                    className={`${cellPad} ${stickyTrailingTdClass}`}
                     onClick={stopRowNavigation}
                     onMouseDown={stopRowNavigation}
                   >
-                    <div className="inline-flex h-10 shrink-0 items-center justify-end gap-1">
-                      {hrefs.tel ? (
-                        <QuickActionButton
-                          href={hrefs.tel}
-                          icon={Phone}
-                          label="Call"
-                          tone="success"
-                        />
-                      ) : null}
-                      {hrefs.sms ? (
-                        <QuickActionButton
-                          href={hrefs.sms}
-                          icon={MessageSquare}
-                          label="Text"
-                          tone="denison"
-                        />
-                      ) : null}
-                      {hrefs.mailto ? (
-                        <QuickActionButton
-                          href={hrefs.mailto}
-                          icon={Mail}
-                          label="Email"
-                          tone="info"
-                        />
-                      ) : null}
-                      {!hrefs.tel && !hrefs.sms && !hrefs.mailto ? (
-                        <span className={TEAM_DIRECTORY_META}>{TEAM_DIRECTORY_EMPTY}</span>
-                      ) : null}
+                    <div className="flex w-full justify-center">
+                      <ContactActionSlots tel={hrefs.tel} sms={hrefs.sms} mailto={hrefs.mailto} />
                     </div>
                   </td>
                 </tr>

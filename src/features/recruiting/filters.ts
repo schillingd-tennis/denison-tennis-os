@@ -84,18 +84,19 @@ export function buildRecruitingFilterDefinitions(
   ];
 }
 
-export const RECRUITING_FILTER_GROUPS: readonly {
+export const RECRUITING_TOOLBAR_FILTER_GROUPS: readonly {
   category: string;
   label: string;
 }[] = [
-  { category: "recruitType", label: "Recruit Type" },
-  { category: "pipelineStage", label: "Pipeline Stage" },
+  { category: "recruitClassYear", label: "Class Year" },
+  { category: "pipelineStage", label: "Pipeline" },
+  { category: "priority", label: "Priority" },
   { category: "interest", label: "Interest" },
   { category: "outcome", label: "Outcome" },
-  { category: "priority", label: "Priority" },
   { category: "getability", label: "Getability" },
-  { category: "recruitClassYear", label: "Recruit Class Year" },
 ];
+
+export const RECRUITING_FILTER_GROUPS = RECRUITING_TOOLBAR_FILTER_GROUPS;
 
 export function recruitingFilterIdsForCategory(
   definitions: readonly FilterDefinition<RecruitDirectoryRow>[],
@@ -211,7 +212,6 @@ export function filterRecruitDirectoryRows(
       row.profile.priority?.label,
       row.profile.getability?.label,
       row.profile.recruitClassYear,
-      row.analytics.tier,
     ]
       .filter(Boolean)
       .join(" ")

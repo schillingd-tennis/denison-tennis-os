@@ -4,10 +4,18 @@
  * Add new tones here as future card types (Recruit, Coach, Parent, etc.)
  * need their own colors — the card itself only needs to pick a tone.
  */
-export type CardAccentTone = "denison" | "neutral" | "success" | "warning" | "danger" | "info";
+export type CardAccentTone =
+  | "denison"
+  | "module"
+  | "neutral"
+  | "success"
+  | "warning"
+  | "danger"
+  | "info";
 
 const toneClasses: Record<CardAccentTone, string> = {
   denison: "bg-denison-red",
+  module: "bg-[var(--module-accent)]",
   neutral: "bg-text-secondary/40",
   success: "bg-success",
   warning: "bg-warning",
