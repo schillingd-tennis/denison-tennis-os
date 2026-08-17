@@ -2,16 +2,14 @@
 
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
-import { ClipboardList, GraduationCap, Megaphone, NotebookPen, type LucideIcon } from "lucide-react";
+import { ClipboardList, Megaphone, NotebookPen, type LucideIcon } from "lucide-react";
 
 import {
   WorkspaceField,
   WorkspaceFieldGrid,
-  WorkspaceFieldGroup,
   WorkspaceMutedNote,
   WorkspaceReadOnlyValue,
   WorkspaceSection,
-  WorkspaceSplit,
   WorkspaceStack,
 } from "@/components/adaptive-workspace";
 import { InlineEditCell } from "@/components/inline-edit";
@@ -145,6 +143,35 @@ function RecruitClassYearBadgeField() {
   );
 }
 
+function PersonalInfoSectionHeading({ children }: { children: string }) {
+  return (
+    <h3 className="flex items-center gap-1.5 text-[13px] font-semibold leading-none text-[var(--module-accent)]">
+      <span
+        className="inline-block h-4 w-[3px] shrink-0 rounded-[1px] bg-[var(--module-accent)]"
+        aria-hidden
+      />
+      {children}
+    </h3>
+  );
+}
+
+function PersonalInfoFieldGrid({
+  columns,
+  children,
+}: {
+  columns: 3;
+  children: ReactNode;
+}) {
+  return (
+    <dl
+      className="mt-[5px] grid gap-x-6 gap-y-[7px]"
+      style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+    >
+      {children}
+    </dl>
+  );
+}
+
 function StatusStripItem({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex w-max max-w-full shrink-0 flex-col items-start">
@@ -174,12 +201,8 @@ function CoachNotesCallout() {
   }, [editing, expanded, notes]);
 
   return (
-    <section
-      aria-label="Coach notes"
-      className="rounded-control border-l-[3px] border-[var(--module-accent)]/35 bg-[var(--module-tint)]/70 px-3.5 py-2.5"
-    >
-      <p className={typeRole.workspaceFieldLabel}>Coach notes</p>
-      <div ref={displayRef} className="mt-1 min-w-0">
+    <div className="rounded-control bg-[var(--module-tint)]/70 px-3 py-1.5">
+      <div ref={displayRef} className="min-w-0">
         <RecruitProfileField
           field="notes"
           label="Coach notes"
@@ -206,12 +229,12 @@ function CoachNotesCallout() {
             event.stopPropagation();
             setExpanded((open) => !open);
           }}
-          className="mt-1.5 text-[11px] font-medium text-text-secondary transition-colors hover:text-text-primary"
+          className="mt-1 text-[11px] font-medium text-text-secondary transition-colors hover:text-text-primary"
         >
           {expanded ? "Show less" : "Show more"}
         </button>
       ) : null}
-    </section>
+    </div>
   );
 }
 
@@ -266,18 +289,18 @@ function PersonSourceLinkField({
 
 export function RecruitingPersonalInfoWorkspace() {
   return (
-    <div className="space-y-5">
+    <div className="space-y-[14px]">
       <section aria-label="Recruiting status">
-        <h3 className={typeRole.workspaceGroupTitle}>Recruiting status</h3>
+        <PersonalInfoSectionHeading>Recruiting status</PersonalInfoSectionHeading>
         <div
-          className="mt-2 w-full"
+          className="mt-[5px] w-full"
           style={{
             display: "flex",
             width: "100%",
             justifyContent: "space-between",
             alignItems: "flex-start",
-            flexWrap: "wrap",
-            rowGap: 10,
+            flexWrap: "nowrap",
+            columnGap: 12,
           }}
         >
           <StatusStripItem label="Class year">
@@ -321,48 +344,56 @@ export function RecruitingPersonalInfoWorkspace() {
         </div>
       </section>
 
-      <div className="border-t border-border/50 pt-5">
-        <WorkspaceFieldGroup title="Identity" columns={2}>
-          <WorkspaceField label="First name">
-            <RecruitPersonField field="firstName" />
-          </WorkspaceField>
-          <WorkspaceField label="Preferred name">
-            <RecruitPersonField field="preferredName" />
-          </WorkspaceField>
-          <WorkspaceField label="Last name">
-            <RecruitPersonField field="lastName" />
-          </WorkspaceField>
-          <WorkspaceField label="Recruit type">
-            <RecruitProfileField field="recruitTypeId" label="Recruit type" align="left" />
-          </WorkspaceField>
-        </WorkspaceFieldGroup>
+      <div className="border-t border-border/50 pt-[14px]">
+        <section aria-label="Identity">
+          <PersonalInfoSectionHeading>Identity</PersonalInfoSectionHeading>
+          <PersonalInfoFieldGrid columns={3}>
+            <WorkspaceField label="First name">
+              <RecruitPersonField field="firstName" />
+            </WorkspaceField>
+            <WorkspaceField label="Last name">
+              <RecruitPersonField field="lastName" />
+            </WorkspaceField>
+            <WorkspaceField label="Preferred name">
+              <RecruitPersonField field="preferredName" />
+            </WorkspaceField>
+          </PersonalInfoFieldGrid>
+        </section>
       </div>
 
-      <div className="border-t border-border/50 pt-5">
-        <WorkspaceFieldGroup title="Contact & location" columns={3}>
-          <WorkspaceField label="Hometown">
-            <RecruitHometownField />
-          </WorkspaceField>
-          <WorkspaceField label="City">
-            <RecruitPersonField field="city" />
-          </WorkspaceField>
-          <WorkspaceField label="State">
-            <RecruitPersonField field="state" />
-          </WorkspaceField>
-          <WorkspaceField label="Country">
-            <RecruitPersonField field="country" />
-          </WorkspaceField>
-          <WorkspaceField label="Personal email">
-            <RecruitPersonField field="personalEmail" />
-          </WorkspaceField>
-          <WorkspaceField label="Cell phone">
-            <RecruitPersonField field="cellPhone" />
-          </WorkspaceField>
-        </WorkspaceFieldGroup>
+      <div className="border-t border-border/50 pt-[14px]">
+        <section aria-label="Contact & location">
+          <PersonalInfoSectionHeading>Contact & location</PersonalInfoSectionHeading>
+          <PersonalInfoFieldGrid columns={3}>
+            <WorkspaceField label="Hometown">
+              <RecruitHometownField />
+            </WorkspaceField>
+            <WorkspaceField label="City">
+              <RecruitPersonField field="city" />
+            </WorkspaceField>
+            <WorkspaceField label="State">
+              <RecruitPersonField field="state" />
+            </WorkspaceField>
+            <WorkspaceField label="Country">
+              <RecruitPersonField field="country" />
+            </WorkspaceField>
+            <WorkspaceField label="Personal email">
+              <RecruitPersonField field="personalEmail" />
+            </WorkspaceField>
+            <WorkspaceField label="Cell phone">
+              <RecruitPersonField field="cellPhone" />
+            </WorkspaceField>
+          </PersonalInfoFieldGrid>
+        </section>
       </div>
 
-      <div className="border-t border-border/50 pt-5">
-        <CoachNotesCallout />
+      <div className="border-t border-border/50 pt-4">
+        <section aria-label="Coach notes">
+          <PersonalInfoSectionHeading>Coach notes</PersonalInfoSectionHeading>
+          <div className="mt-1.5">
+            <CoachNotesCallout />
+          </div>
+        </section>
       </div>
     </div>
   );
@@ -382,37 +413,49 @@ function RecruitPrereadBadgeField() {
   );
 }
 
-const academicsSectionAccent = (
-  <span className="inline-block h-3 w-0.5 shrink-0 rounded-full bg-success/70" aria-hidden />
-);
+function AcademicsSectionHeading({ children }: { children: string }) {
+  return (
+    <h3 className="flex items-center gap-1.5 text-[13px] font-semibold leading-none text-[var(--module-accent)]">
+      <span
+        className="inline-block h-4 w-[3px] shrink-0 rounded-[1px] bg-[var(--module-accent)]"
+        aria-hidden
+      />
+      {children}
+    </h3>
+  );
+}
 
 export function RecruitingAcademicsWorkspace() {
   return (
-    <WorkspaceStack>
-      <WorkspaceFieldGroup
-        title="Academic profile"
-        columns={4}
-        leading={
-          <GraduationCap className="h-3.5 w-3.5 text-success" strokeWidth={1.75} aria-hidden />
-        }
-      >
-        <WorkspaceField label="High school">
-          <RecruitPersonField field="highSchool" />
-        </WorkspaceField>
-        <WorkspaceField label="Grades">
-          <RecruitProfileField field="gpa" label="Grades" align="left" />
-        </WorkspaceField>
-        <WorkspaceField label="SAT">
-          <RecruitProfileField field="sat" label="SAT" type="number" align="left" />
-        </WorkspaceField>
-        <WorkspaceField label="ACT">
-          <RecruitProfileField field="act" label="ACT" type="number" align="left" />
-        </WorkspaceField>
-      </WorkspaceFieldGroup>
+    <div className="space-y-[14px]">
+      <section aria-label="Academic Profile">
+        <AcademicsSectionHeading>Academic Profile</AcademicsSectionHeading>
+        <dl
+          className="mt-[5px] grid gap-x-6 gap-y-[7px]"
+          style={{ gridTemplateColumns: "repeat(4, minmax(0, 1fr))" }}
+        >
+          <WorkspaceField label="High School">
+            <RecruitPersonField field="highSchool" />
+          </WorkspaceField>
+          <WorkspaceField label="Grades">
+            <RecruitProfileField field="gpa" label="Grades" align="left" />
+          </WorkspaceField>
+          <WorkspaceField label="SAT">
+            <RecruitProfileField field="sat" label="SAT" type="number" align="left" />
+          </WorkspaceField>
+          <WorkspaceField label="ACT">
+            <RecruitProfileField field="act" label="ACT" type="number" align="left" />
+          </WorkspaceField>
+        </dl>
+      </section>
 
-      <WorkspaceSection title="College interests" leading={academicsSectionAccent}>
-        <WorkspaceSplit
-          left={
+      <div className="border-t border-border/50 pt-[14px]">
+        <section aria-label="Academic Interests">
+          <AcademicsSectionHeading>Academic Interests</AcademicsSectionHeading>
+          <div
+            className="mt-[5px] grid gap-x-6 gap-y-[7px]"
+            style={{ gridTemplateColumns: "minmax(0, 0.38fr) minmax(0, 0.62fr)" }}
+          >
             <WorkspaceField label="Academic interests">
               <RecruitProfileField
                 field="academicInterests"
@@ -423,40 +466,42 @@ export function RecruitingAcademicsWorkspace() {
                 className="[&>span]:whitespace-pre-wrap [&>span]:break-normal"
               />
             </WorkspaceField>
-          }
-          right={
             <WorkspaceField label="Schools of interest">
               <RecruitProfileField
                 field="schoolsOfInterest"
                 label="Schools of interest"
                 type="textarea"
                 align="left"
-                rows={3}
+                rows={4}
                 className="[&>span]:whitespace-pre-wrap [&>span]:break-normal"
               />
             </WorkspaceField>
-          }
-        />
-      </WorkspaceSection>
+          </div>
+        </section>
+      </div>
 
-      <WorkspaceFieldGroup
-        title="Admissions / Preread"
-        columns={2}
-        leading={academicsSectionAccent}
-      >
-        <WorkspaceField label="Preread">
-          <RecruitPrereadBadgeField />
-        </WorkspaceField>
-        <WorkspaceField label="Preread $">
-          <RecruitProfileField
-            field="prereadScholarshipAmount"
-            label="Preread $"
-            type="number"
-            align="left"
-          />
-        </WorkspaceField>
-      </WorkspaceFieldGroup>
-    </WorkspaceStack>
+      <div className="border-t border-border/50 pt-[14px]">
+        <section aria-label="Admissions / Pre-Read">
+          <AcademicsSectionHeading>Admissions / Pre-Read</AcademicsSectionHeading>
+          <dl
+            className="mt-[5px] grid gap-x-6 gap-y-[7px]"
+            style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}
+          >
+            <WorkspaceField label="Pre Read">
+              <RecruitPrereadBadgeField />
+            </WorkspaceField>
+            <WorkspaceField label="Pre Read $">
+              <RecruitProfileField
+                field="prereadScholarshipAmount"
+                label="Pre Read $"
+                type="number"
+                align="left"
+              />
+            </WorkspaceField>
+          </dl>
+        </section>
+      </div>
+    </div>
   );
 }
 

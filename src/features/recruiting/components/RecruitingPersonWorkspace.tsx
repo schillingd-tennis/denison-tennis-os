@@ -213,14 +213,12 @@ export default function RecruitingPersonWorkspace({
         id: "personal-info",
         title: "Personal Info",
         subtitle: "Identity & Contact",
-        toolbar: WORKSPACE_EDIT_HINT,
         content: <RecruitingPersonalInfoWorkspace />,
       },
       {
         id: "academics",
         title: "Academics",
         subtitle: "School & Admissions",
-        toolbar: WORKSPACE_EDIT_HINT,
         content: <RecruitingAcademicsWorkspace />,
       },
       {
