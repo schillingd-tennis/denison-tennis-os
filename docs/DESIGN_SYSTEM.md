@@ -73,6 +73,10 @@ the workspace; editable cells edit in place (`docs/DECISIONS.md`).
 |---|---|---|
 | `--sidebar-width` | `260px` | `w-[var(--sidebar-width)]` / `md:pl-[var(--sidebar-width)]` |
 | `--header-height` | `88px` | `min-h-[var(--header-height)]` |
+| `--module-page-padding-top` | `1.75rem` | Top-level module `main` (Recruiting List geometry) |
+| `--module-page-padding-bottom` | `2.5rem` | Top-level module `main` |
+
+Top-level module pages (Team, Recruiting, Team Operations, Fundraising, Research Lab, Knowledge, Home) use `ModulePageShell` for title / accent-line / subtitle / action-row geometry. Do not add per-module max-width, extra top margin, or a second title stack. Person / Recruit workspaces are not this shell.
 
 ## Corner radii
 

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { publishFoundSet } from "@/components/found-set";
 import EmptyState from "@/components/EmptyState";
+import ModulePageShell from "@/components/ModulePageShell";
 import SearchInput from "@/components/SearchInput";
 import ViewToggle from "@/components/ViewToggle";
 import { useDrawerManager } from "@/components/workspace-drawer";
@@ -141,16 +142,10 @@ export default function RecruitingDirectory({
   }
 
   return (
-    <div className="flex flex-col gap-3.5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="relative pl-4">
-          <span
-            aria-hidden="true"
-            className="absolute top-1 bottom-1 left-0 w-[3px] rounded-full bg-[var(--module-accent)]"
-          />
-          <h1 className="text-3xl font-semibold tracking-tight text-text-primary">Recruiting</h1>
-          <p className="mt-1 text-sm text-text-secondary">Current recruits</p>
-        </div>
+    <ModulePageShell
+      title="Recruiting"
+      subtitle="Current recruits"
+      actions={
         <button
           type="button"
           className="inline-flex h-11 items-center justify-center rounded-control bg-denison-red px-5 text-sm font-semibold tracking-wide text-white shadow-[0_8px_18px_rgba(200,16,46,0.28)] transition-opacity hover:opacity-90"
@@ -158,8 +153,8 @@ export default function RecruitingDirectory({
         >
           + ADD RECRUIT
         </button>
-      </div>
-
+      }
+    >
       <RecruitingKpiRow kpis={kpis} />
 
       <div className="flex flex-col gap-2.5">
@@ -235,6 +230,6 @@ export default function RecruitingDirectory({
           />
         )}
       </div>
-    </div>
+    </ModulePageShell>
   );
 }

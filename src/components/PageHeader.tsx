@@ -1,3 +1,7 @@
+/**
+ * Settings and similar non-directory pages.
+ * Top-level OS modules use ModulePageShell (Recruiting List geometry).
+ */
 export default function PageHeader({
   title,
   subtitle,

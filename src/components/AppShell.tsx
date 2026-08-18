@@ -11,7 +11,7 @@ import { DrawerManagerProvider } from "@/components/workspace-drawer";
 
 import Header from "./Header";
 import Sidebar from "./Sidebar";
-import { PLAYERS_COACHES_ROUTE } from "@/lib/module-routes";
+import { isTopLevelModulePage, PLAYERS_COACHES_ROUTE } from "@/lib/module-routes";
 
 function moduleForPath(pathname: string) {
   if (pathname.startsWith(PLAYERS_COACHES_ROUTE)) return "team";
@@ -42,6 +42,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div
           className="app-shell min-h-screen overflow-x-hidden bg-app-background"
           data-module={moduleForPath(pathname)}
+          data-page={isTopLevelModulePage(pathname) ? "module" : undefined}
         >
           <Sidebar
             isOpen={mobileNavOpen}
