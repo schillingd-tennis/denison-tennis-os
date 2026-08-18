@@ -28,6 +28,7 @@ import {
   isCoachDirectoryPerson,
 } from "@/features/people/utils";
 import { EMPTY_VALUE, formatDisplay, formatUtr, formatWtn } from "@/lib/formatting";
+import { playersCoachesPersonPath } from "@/lib/module-routes";
 
 type CardEditableField = "hometown" | "classYear" | "utr" | "wtn";
 
@@ -136,7 +137,7 @@ export default function PersonCard({
   return (
     <div className={moduleDirectoryCardClass}>
       <Link
-        href={`/team/${person.id}`}
+        href={playersCoachesPersonPath(person.id)}
         className="relative z-10 flex min-w-0 items-center gap-2.5 rounded-control outline-none focus-visible:ring-2 focus-visible:ring-[var(--module-accent)]/40"
         aria-label={`Open workspace for ${getDisplayFirstName(person)} ${person.lastName}`}
       >

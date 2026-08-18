@@ -18,12 +18,17 @@ import {
 } from "react";
 
 import type { InlineCommitReason } from "@/components/inline-edit";
+import { useRoles, useStatuses } from "@/features/lookups/useLookups";
 import { updatePersonAction } from "@/features/people/actions";
 import { getPersonField } from "@/features/people/fieldCatalog";
 import { toPersonWritePatch } from "@/features/people/personWritePatch";
 import type { Person, PersonWritePatch } from "@/features/people/types";
 
 import { parseFieldValue } from "./parseValue";
+import {
+  isPersonLookupField,
+  personLookupJoinPatch,
+} from "./personLookupInlineEdit";
 
 function isEmptyValue(value: unknown): boolean {
   return value === undefined || value === null || value === "";
@@ -76,6 +81,8 @@ export function PersonFieldSession({
 }) {
   const [editing, setEditing] = useState<PersonFieldKey | null>(null);
   const [fieldError, setFieldError] = useState<string | undefined>(undefined);
+  const roles = useRoles();
+  const statuses = useStatuses();
 
   const moveEditing = useCallback(
     (from: PersonFieldKey, direction: "next" | "prev") => {
@@ -135,11 +142,16 @@ export function PersonFieldSession({
       }
 
       const previous = person;
-      // Local Person model uses undefined for empty (matches rowToPerson).
-      const localNext: Person = {
-        ...person,
-        [field]: parsed.value === null ? undefined : parsed.value,
-      };
+      const localNext: Person =
+        isPersonLookupField(field) && typeof parsed.value === "string"
+          ? {
+              ...person,
+              ...personLookupJoinPatch(field, parsed.value, roles, statuses),
+            }
+          : {
+              ...person,
+              [field]: parsed.value === null ? undefined : parsed.value,
+            };
       onPersonChange(localNext);
 
       if (reason === "tab") moveEditing(field, "next");
@@ -158,7 +170,7 @@ export function PersonFieldSession({
         onPersonChange(previous);
       }
     },
-    [moveEditing, onPersonChange, person, runSave],
+    [moveEditing, onPersonChange, person, roles, runSave, statuses],
   );
 
   const commitPatch = useCallback(

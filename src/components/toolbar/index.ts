@@ -7,3 +7,17 @@ export {
   default as FilterChipGroup,
   type FilterChipOption,
 } from "./FilterChipGroup";
+export {
+  default as FilterTrigger,
+  FilterMenuOption,
+  filterChipIdleClass,
+  filterChipSelectedClass,
+  filterMenuOptionBaseClass,
+  filterMenuOptionIdleClass,
+  filterMenuOptionSelectedClass,
+  filterTriggerBadgeClass,
+  filterTriggerIdleClass,
+  filterTriggerIconIdleClass,
+  filterTriggerIconSelectedClass,
+  filterTriggerSelectedClass,
+} from "./FilterTrigger";

@@ -19,6 +19,11 @@ export function toInlineFieldType(def: FieldDefinition): InlineFieldType {
     case "enum":
     case "boolean":
       return "select";
+    case "relationship":
+      if (def.key === "roleId" || def.key === "statusId") {
+        return "select";
+      }
+      return "text";
     case "phone":
       return "tel";
     case "email":
@@ -27,7 +32,6 @@ export function toInlineFieldType(def: FieldDefinition): InlineFieldType {
       return "url";
     case "text":
     case "secureText":
-    case "relationship":
     case "attachment":
     case "json":
     case "system":

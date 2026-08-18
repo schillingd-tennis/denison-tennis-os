@@ -2,9 +2,13 @@
 
 import { useMemo, type ReactNode } from "react";
 
-import { typeRole } from "@/components/typography";
+import {
+  WorkspaceAccentHeading,
+  WorkspaceField,
+} from "@/components/adaptive-workspace";
 import { FieldRenderer, PersonFieldSession } from "@/features/field-engine";
 import {
+  getPersonField,
   getPersonFieldsForWorkspace,
   type PersonFieldDefinition,
   type PersonWorkspaceGroupId,
@@ -12,58 +16,81 @@ import {
 import type { Person } from "@/features/people/types";
 import { isFamilyPerson } from "@/features/people/utils";
 
+import PersonStatusRoleStrip from "./PersonStatusRoleStrip";
+
 /**
- * Contact Information Adaptive Workspace body.
- *
- * Field Engine + catalog membership. Role filtering:
- * - Family: Personal Email, Mobile Phone, Preferred Contact, Notes (no Denison Email)
- * - Player / other: Personal Email, Denison Email, Mobile Phone, Preferred Contact
+ * Personal Info adaptive body (formerly Contact Information).
+ * Section chrome matches Recruit Personal Info; field membership from catalog.
  */
 
 const CONTACT_WORKSPACE_SECTIONS: readonly {
   group: PersonWorkspaceGroupId;
   title: string;
+  layout?: "grid" | "homeAddress" | "notes";
 }[] = [
-  { group: "contact.email", title: "Email" },
-  { group: "contact.phone", title: "Phone" },
-  { group: "contact.preferences", title: "Preferences" },
-  { group: "contact.notes", title: "Notes" },
+  { group: "contact.identity", title: "Identity", layout: "grid" },
+  { group: "contact.homeAddress", title: "Home Address", layout: "homeAddress" },
+  { group: "contact.email", title: "Email", layout: "grid" },
+  { group: "contact.phone", title: "Phone", layout: "grid" },
+  { group: "contact.preferences", title: "Preferences", layout: "grid" },
+  { group: "contact.notes", title: "Notes", layout: "notes" },
 ];
 
 function isContactFieldVisible(field: PersonFieldDefinition, familyPerson: boolean): boolean {
   if (familyPerson) {
     return field.key !== "denisonEmail";
   }
-  // Notes in Contact are Family-Person-only for this milestone.
   return field.key !== "notes";
 }
 
-function FieldRow({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
+function PersonalInfoFieldGrid({ children }: { children: ReactNode }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 border-b border-border/60 py-2.5 last:border-b-0">
-      <dt className={typeRole.sectionLabel}>{label}</dt>
-      <dd className="min-w-0 max-w-[60%] text-right">{children}</dd>
-    </div>
+    <dl
+      className="mt-[5px] grid gap-x-6 gap-y-[7px]"
+      style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}
+    >
+      {children}
+    </dl>
   );
 }
 
-function FieldSection({
-  title,
-  children,
+function PersonalInfoField({
+  field,
+  label,
 }: {
-  title: string;
-  children: ReactNode;
+  field: keyof Person;
+  label?: string;
 }) {
+  const resolvedLabel = label ?? getPersonField(field)?.label ?? String(field);
+
   return (
-    <section aria-label={title}>
-      <h3 className={typeRole.sectionTitle}>{title}</h3>
-      <dl className="mt-3 max-w-xl">{children}</dl>
+    <WorkspaceField label={resolvedLabel}>
+      <FieldRenderer
+        field={field}
+        align="left"
+        editOn="click"
+        emphasis="workspace"
+        density="compact"
+      />
+    </WorkspaceField>
+  );
+}
+
+function HomeAddressSection() {
+  return (
+    <section aria-label="Home Address">
+      <WorkspaceAccentHeading>Home Address</WorkspaceAccentHeading>
+      <dl
+        className="mt-[5px] grid gap-x-6 gap-y-[7px]"
+        style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}
+      >
+        <div className="min-w-0" style={{ gridColumn: "1 / -1" }}>
+          <PersonalInfoField field="addressLine1" label="Address" />
+        </div>
+        <PersonalInfoField field="city" label="City" />
+        <PersonalInfoField field="state" label="State" />
+        <PersonalInfoField field="zipCode" label="Zip" />
+      </dl>
     </section>
   );
 }
@@ -80,10 +107,45 @@ export default function ContactInformationWorkspace({
   const familyPerson = isFamilyPerson(person);
 
   const fields = useMemo(() => {
-    return getPersonFieldsForWorkspace("contact")
+    const contactFields = getPersonFieldsForWorkspace("contact")
       .filter((field) => isContactFieldVisible(field, familyPerson))
       .map((field) => field.key);
+    return ["statusId", "roleId", ...contactFields] as const;
   }, [familyPerson]);
+
+  function renderSectionBody(
+    sectionFields: PersonFieldDefinition[],
+    layout: "grid" | "homeAddress" | "notes",
+  ) {
+    if (layout === "homeAddress") {
+      return <HomeAddressSection />;
+    }
+
+    if (layout === "notes") {
+      return (
+        <div className="mt-1.5 min-h-[5.5rem]">
+          {sectionFields.map((field) => (
+            <FieldRenderer
+              key={field.key}
+              field={field.key}
+              align="left"
+              editOn="click"
+              emphasis="workspace"
+              density="compact"
+            />
+          ))}
+        </div>
+      );
+    }
+
+    return (
+      <PersonalInfoFieldGrid>
+        {sectionFields.map((field) => (
+          <PersonalInfoField key={field.key} field={field.key} label={field.label} />
+        ))}
+      </PersonalInfoFieldGrid>
+    );
+  }
 
   return (
     <PersonFieldSession
@@ -92,35 +154,28 @@ export default function ContactInformationWorkspace({
       runSave={runSave}
       fields={fields}
     >
-      <div className="space-y-6">
+      <div className="space-y-[14px]">
+        <PersonStatusRoleStrip />
+
         {CONTACT_WORKSPACE_SECTIONS.map((section) => {
           const sectionFields = getPersonFieldsForWorkspace("contact", section.group).filter(
             (field) => isContactFieldVisible(field, familyPerson),
           );
-          if (sectionFields.length === 0) return null;
+          if (section.layout !== "homeAddress" && sectionFields.length === 0) return null;
 
-          // Notes: section title is enough — avoid a cramped duplicate field label.
-          if (section.group === "contact.notes") {
-            return (
-              <section key={section.group} aria-label={section.title}>
-                <h3 className={typeRole.sectionTitle}>{section.title}</h3>
-                <div className="mt-3 max-w-xl min-h-[5.5rem]">
-                  {sectionFields.map((field) => (
-                    <FieldRenderer key={field.key} field={field.key} align="left" />
-                  ))}
-                </div>
-              </section>
-            );
-          }
+          const block = (
+            <section aria-label={section.title}>
+              {section.layout === "homeAddress" ? null : (
+                <WorkspaceAccentHeading>{section.title}</WorkspaceAccentHeading>
+              )}
+              {renderSectionBody(sectionFields, section.layout ?? "grid")}
+            </section>
+          );
 
           return (
-            <FieldSection key={section.group} title={section.title}>
-              {sectionFields.map((field) => (
-                <FieldRow key={field.key} label={field.label}>
-                  <FieldRenderer field={field.key} />
-                </FieldRow>
-              ))}
-            </FieldSection>
+            <div key={section.group} className="border-t border-border/50 pt-[14px]">
+              {block}
+            </div>
           );
         })}
       </div>

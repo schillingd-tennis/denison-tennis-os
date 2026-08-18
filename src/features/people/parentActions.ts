@@ -113,6 +113,8 @@ async function requirePlayerSource(
 }
 
 function revalidatePlayerPaths(playerId: string) {
+  revalidatePath(`/players-coaches/${playerId}`);
+  revalidatePath("/players-coaches");
   revalidatePath(`/team/${playerId}`);
   revalidatePath("/team");
   revalidatePath("/people");
@@ -295,6 +297,7 @@ export async function removeParentFromFamilyAction(
   try {
     await deletePersonRelationship(edge.id);
     revalidatePlayerPaths(input.playerId);
+    revalidatePath(`/players-coaches/${edge.relatedPersonId}`);
     revalidatePath(`/team/${edge.relatedPersonId}`);
     return { success: true };
   } catch (error) {

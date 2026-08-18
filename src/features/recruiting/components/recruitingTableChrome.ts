@@ -28,6 +28,52 @@ export const RECRUITING_TABLE_COLUMNS = {
 /** @deprecated Prefer RECRUITING_TABLE_COLUMNS — kept for any external Rank imports. */
 export const RECRUIT_RANK_COLUMNS = RECRUITING_TABLE_COLUMNS;
 
+/**
+ * Metrics View column widths only. Do not reuse for List / Rank / Commit —
+ * those views keep RECRUITING_TABLE_COLUMNS unchanged.
+ *
+ * Recruit is a fixed width (not leftover flex) so Class starts farther left
+ * and more metric columns fit before horizontal scroll.
+ */
+export const RECRUITING_METRICS_COLUMN_WIDTHS = {
+  rank: 48,
+  recruit: 228,
+  classYear: 64,
+  matchesPlayed: 120,
+  utr: 62,
+  wtn: 62,
+  trn: 58,
+  z: 74,
+  compositeZ: 102,
+  weightedScore: 120,
+  reliability: 96,
+  reliabilityScore: 136,
+} as const;
+
+const METRICS_W = RECRUITING_METRICS_COLUMN_WIDTHS;
+
+export const RECRUITING_METRICS_TABLE_WIDTH =
+  METRICS_W.rank +
+  METRICS_W.recruit +
+  METRICS_W.classYear +
+  METRICS_W.matchesPlayed +
+  METRICS_W.utr +
+  METRICS_W.wtn +
+  METRICS_W.trn +
+  METRICS_W.z * 3 +
+  METRICS_W.compositeZ +
+  METRICS_W.weightedScore +
+  METRICS_W.reliability +
+  METRICS_W.reliabilityScore;
+
+/** Sized to the Metrics colgroup so Recruit cannot absorb leftover viewport. */
+export const RECRUITING_METRICS_TABLE_CLASS =
+  "table-fixed border-collapse text-left";
+
+/** Metrics numeric cells only — centered scan columns, not List/Rank/Commit metrics. */
+export const RECRUITING_METRICS_METRIC =
+  "text-center tabular-nums text-[13px] leading-none font-normal text-text-secondary";
+
 export const RECRUITING_TABLE_AVATAR_SIZE = 32;
 
 export const RECRUITING_TABLE = {

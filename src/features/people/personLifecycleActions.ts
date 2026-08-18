@@ -276,6 +276,8 @@ export async function deletePersonAction(
 
   try {
     await deletePerson(trimmed);
+    revalidatePath("/players-coaches");
+    revalidatePath(`/players-coaches/${trimmed}`);
     revalidatePath("/team");
     revalidatePath(`/team/${trimmed}`);
     revalidatePath("/people");

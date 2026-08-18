@@ -8,6 +8,7 @@ import {
   Users,
 } from "lucide-react";
 
+import { playersCoachesPersonPath } from "@/lib/module-routes";
 import type { CommandDefinition, SearchObjectType } from "@/components/command-palette/types";
 
 import type { PinnedFavorite } from "./types";
@@ -65,7 +66,9 @@ export function hrefFromCommand(command: CommandDefinition): string | undefined 
     const path = command.id.slice("page:".length);
     return path.length > 0 ? path : "/";
   }
-  if (command.id.startsWith("person:")) return `/team/${command.id.slice("person:".length)}`;
+  if (command.id.startsWith("person:")) {
+    return playersCoachesPersonPath(command.id.slice("person:".length));
+  }
   return undefined;
 }
 
@@ -86,7 +89,7 @@ export function hrefFromFavorite(favorite: PinnedFavorite): string | undefined {
     case "people":
     case "coaches":
     case "staff":
-      return `/team/${favorite.objectId}`;
+      return playersCoachesPersonPath(favorite.objectId);
     case "pages":
       return favorite.objectId || "/";
     default:

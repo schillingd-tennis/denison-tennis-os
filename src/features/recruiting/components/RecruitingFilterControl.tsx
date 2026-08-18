@@ -12,6 +12,7 @@ import {
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ComponentType } from "react";
 import { createPortal } from "react-dom";
 
+import { FilterMenuOption, FilterTrigger } from "@/components/toolbar";
 import type { FilterDefinition } from "@/lib/filtering";
 
 import type { RecruitDirectoryRow } from "../directory";
@@ -80,7 +81,11 @@ function FacetMenu({
 }) {
   const panelId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
+  const [coords, setCoords] = useState<{
+    top: number;
+    left: number;
+    moduleAccent: string;
+  } | null>(null);
   const ids = recruitingFilterIdsForCategory(definitions, category);
   const options = optionsForCategory(definitions, category);
   const selected = value.filter((id) => ids.includes(id));
@@ -91,9 +96,13 @@ function FacetMenu({
     if (!open || options.length === 0) return;
 
     function place() {
-      const rect = buttonRef.current?.getBoundingClientRect();
+      const button = buttonRef.current;
+      const rect = button?.getBoundingClientRect();
       if (!rect) return;
-      setCoords({ top: rect.bottom + 6, left: rect.left });
+      const moduleAccent =
+        (button && getComputedStyle(button).getPropertyValue("--module-accent").trim()) ||
+        "var(--color-denison-red)";
+      setCoords({ top: rect.bottom + 6, left: rect.left, moduleAccent });
     }
 
     place();
@@ -121,28 +130,22 @@ function FacetMenu({
               zIndex: RECRUITING_FILTER_MENU_Z_INDEX,
               // Explicit opaque fill — prevents content bleed-through under the popover.
               backgroundColor: "var(--color-surface)",
+              // Portaled to body — copy accent so selected options resolve.
+              ["--module-accent" as string]: coords.moduleAccent,
             }}
             className="fixed isolate min-w-[13rem] rounded-card p-2 shadow-[0_10px_28px_rgba(17,24,39,0.08)] ring-1 ring-black/[0.06]"
           >
             <div className="flex flex-col gap-0.5">
               {options.map((option) => {
-                const pressed = selected.includes(option.value);
+                const selectedOption = selected.includes(option.value);
                 return (
-                  <button
+                  <FilterMenuOption
                     key={option.value}
-                    type="button"
-                    role="option"
-                    aria-selected={pressed}
+                    selected={selectedOption}
                     onClick={() => onSelect(option.value)}
-                    className={[
-                      "flex w-full items-center rounded-[8px] px-2.5 py-2 text-left text-[13px] font-medium",
-                      pressed
-                        ? "bg-[var(--module-tint)] text-[var(--module-accent)]"
-                        : "text-text-secondary hover:bg-app-background hover:text-text-primary",
-                    ].join(" ")}
                   >
                     {option.label}
-                  </button>
+                  </FilterMenuOption>
                 );
               })}
             </div>
@@ -153,29 +156,24 @@ function FacetMenu({
 
   return (
     <div className="relative">
-      <button
+      <FilterTrigger
         ref={buttonRef}
-        type="button"
+        active={active}
+        icon={Icon}
+        label={label}
+        count={selected.length}
+        trailing={
+          <ChevronDown
+            className="h-3.5 w-3.5 shrink-0 text-text-secondary opacity-50"
+            strokeWidth={1.75}
+            aria-hidden
+          />
+        }
         aria-expanded={open}
         aria-controls={panelId}
         aria-haspopup="listbox"
         onClick={onToggle}
-        className={[
-          "inline-flex h-10 items-center gap-2 rounded-control px-3.5 text-[13px] font-medium transition-colors duration-150",
-          active
-            ? "bg-[var(--module-tint)]/80 text-[var(--module-accent)] ring-1 ring-[var(--module-accent)]/20"
-            : "bg-surface text-text-secondary ring-1 ring-black/[0.06] hover:text-text-primary",
-        ].join(" ")}
-      >
-        {Icon ? <Icon className="h-3.5 w-3.5 shrink-0 opacity-70" strokeWidth={1.75} /> : null}
-        {label}
-        {active ? (
-          <span className="inline-flex min-w-4 items-center justify-center rounded-full bg-[var(--module-accent)] px-1 text-[10px] font-semibold text-surface">
-            {selected.length}
-          </span>
-        ) : null}
-        <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-50" strokeWidth={1.75} aria-hidden />
-      </button>
+      />
       {menu}
     </div>
   );

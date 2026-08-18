@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { WorkspaceAccentHeading } from "@/components/adaptive-workspace";
 import OpenPersonAction from "@/components/OpenPersonAction";
 import { typeClass, typeRole } from "@/components/typography";
 import {
@@ -11,6 +12,7 @@ import {
 import { PERSON_RELATIONSHIP_TYPE_LABELS } from "@/features/people/personRelationshipTypes";
 import type { Person } from "@/features/people/types";
 import { getDisplayName } from "@/features/people/utils";
+import { playersCoachesPersonPath } from "@/lib/module-routes";
 
 function PlayerRow({ row }: { row: RelatedPlayerRowDto }) {
   const { person, relationship } = row;
@@ -25,7 +27,7 @@ function PlayerRow({ row }: { row: RelatedPlayerRowDto }) {
           <p className={typeClass("metadataSm", "mt-0.5")}>{relationshipLabel}</p>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
-          <OpenPersonAction href={`/team/${person.id}`} label="Open Player" />
+          <OpenPersonAction href={playersCoachesPersonPath(person.id)} label="Open Player" />
         </div>
       </div>
     </div>
@@ -52,9 +54,9 @@ export default function RelatedPlayersWorkspace({ person }: { person: Person }) 
   }, [person.id]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-[14px]">
       <div>
-        <h3 className={typeRole.sectionTitle}>Related Players</h3>
+        <WorkspaceAccentHeading>Related Players</WorkspaceAccentHeading>
         <p className={`mt-1 ${typeRole.metadata}`}>
           Players connected to this person through family relationships.
         </p>

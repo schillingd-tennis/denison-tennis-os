@@ -20,6 +20,10 @@ import { commandRegistry } from "@/components/command-palette/registry";
 import type { CommandContext, CommandDefinition } from "@/components/command-palette/types";
 import { primaryNavItems, settingsNavItem } from "@/components/nav-items";
 import {
+  PLAYERS_COACHES_ROUTE,
+  playersCoachesPersonPath,
+} from "@/lib/module-routes";
+import {
   forceRefreshFromProviderAction,
   rerunSeedAction,
   resetLocalDatabaseAction,
@@ -35,29 +39,27 @@ function developerToolsEnabled(): boolean {
 }
 
 function pageCommands(): CommandDefinition[] {
-  const fromNav: CommandDefinition[] = primaryNavItems.map((item) => {
-    const isPeople = item.href === "/team";
-    return {
-      id: `page:${item.href}`,
-      objectType: "pages",
-      label: isPeople ? "Go to People" : `Go to ${item.label}`,
-      subtitle: item.href === "/" ? "Home" : item.href,
-      keywords: isPeople
-        ? ["team", "people", "directory", "current", "coaches", "alumni"]
+  const fromNav: CommandDefinition[] = primaryNavItems.map((item) => ({
+    id: `page:${item.href}`,
+    objectType: "pages",
+    label: `Go to ${item.label}`,
+    subtitle: item.href === "/" ? "Home" : item.href,
+    keywords:
+      item.href === PLAYERS_COACHES_ROUTE
+        ? ["team", "players", "coaches", "directory", "roster"]
         : [item.label, item.href.replace(/^\//, "")],
-      icon: item.icon,
-      preview: {
-        kind: "generic",
-        title: isPeople ? "People" : item.label,
-        body: `Navigate to ${isPeople ? "People" : item.label}.`,
-        lines: [{ label: "Path", value: item.href }],
-      },
-      perform: ({ navigate, close }: CommandContext) => {
-        navigate(item.href);
-        close();
-      },
-    };
-  });
+    icon: item.icon,
+    preview: {
+      kind: "generic",
+      title: item.label,
+      body: `Navigate to ${item.label}.`,
+      lines: [{ label: "Path", value: item.href }],
+    },
+    perform: ({ navigate, close }: CommandContext) => {
+      navigate(item.href);
+      close();
+    },
+  }));
 
   return [
     ...fromNav,
@@ -106,17 +108,17 @@ function actionCommands(): CommandDefinition[] {
       id: "action:new-person",
       objectType: "actions",
       label: "New Person",
-      subtitle: "Coming soon — opens People",
-      keywords: ["add", "create", "player", "person"],
+      subtitle: "Coming soon — opens Team",
+      keywords: ["add", "create", "player", "person", "team"],
       icon: UserPlus,
       preview: {
         kind: "action",
         explanation:
-          "Opens People. Creating a new person record is not available yet — this is a placeholder until the create flow ships.",
+          "Opens Team. Creating a new person record is not available yet — this is a placeholder until the create flow ships.",
       },
       perform: ({ navigate, close, notify }) => {
         notify("New Person is coming soon");
-        navigate("/team");
+        navigate(PLAYERS_COACHES_ROUTE);
         close();
       },
     },
@@ -130,12 +132,12 @@ function actionCommands(): CommandDefinition[] {
       preview: {
         kind: "action",
         explanation:
-          "Downloads a CSV of the current found set (the last filtered People list published this session).",
+          "Downloads a CSV of the current found set (the last filtered Team list published this session).",
       },
       perform: ({ close, notify }) => {
         const snapshot = readCurrentFoundSetSnapshot(TEAM_FOUND_SET_MODULE_KEY);
         if (!snapshot || snapshot.rows.length === 0) {
-          notify("No found set — open People and apply a filter first");
+          notify("No found set — open Team and apply a filter first");
           return;
         }
         exportFoundSetSnapshotCsv(snapshot);
@@ -158,7 +160,7 @@ function actionCommands(): CommandDefinition[] {
       perform: async ({ close, notify }) => {
         const snapshot = readCurrentFoundSetSnapshot(TEAM_FOUND_SET_MODULE_KEY);
         if (!snapshot || snapshot.rows.length === 0) {
-          notify("No found set — open People and apply a filter first");
+          notify("No found set — open Team and apply a filter first");
           return;
         }
         try {
@@ -296,7 +298,7 @@ export function registerDefaultCommands(): void {
           icon: Users,
           preview: person.preview,
           perform: ({ navigate, close }: CommandContext) => {
-            navigate(`/team/${person.id}`);
+            navigate(playersCoachesPersonPath(person.id));
             close();
           },
         }));

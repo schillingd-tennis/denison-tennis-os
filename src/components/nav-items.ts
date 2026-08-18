@@ -1,11 +1,10 @@
 import {
   BookOpen,
   ClipboardList,
-  Contact,
   FlaskConical,
+  HandCoins,
   Home,
   Settings,
-  Trophy,
   UserPlus,
   Users,
   type LucideIcon,
@@ -21,13 +20,12 @@ export type NavItem = {
 
 export const primaryNavItems: NavItem[] = [
   { label: "Home", href: "/", icon: Home },
-  { label: "Players/Coaches", href: PLAYERS_COACHES_ROUTE, icon: Users },
-  { label: "Team", href: TEAM_ROUTE, icon: Trophy },
+  { label: "Team", href: PLAYERS_COACHES_ROUTE, icon: Users },
+  { label: "Team Operations", href: "/operations", icon: ClipboardList },
   { label: "Recruiting", href: "/recruiting", icon: UserPlus },
-  { label: "Operations", href: "/operations", icon: ClipboardList },
+  { label: "Fundraising", href: "/fundraising", icon: HandCoins },
   { label: "Research Lab", href: "/research", icon: FlaskConical },
   { label: "Knowledge", href: "/knowledge", icon: BookOpen },
-  { label: "People", href: "/people", icon: Contact },
 ];
 
 export const settingsNavItem: NavItem = {
@@ -56,10 +54,16 @@ export function getPageTitle(pathname: string): string {
     return "Recruiting";
   }
   if (pathname.startsWith(PLAYERS_COACHES_ROUTE)) {
-    return "Players/Coaches";
+    return "Team";
   }
   if (pathname === TEAM_ROUTE || pathname.startsWith(`${TEAM_ROUTE}/`)) {
     return "Team";
+  }
+  if (pathname.startsWith("/operations")) {
+    return "Team Operations";
+  }
+  if (pathname.startsWith("/fundraising")) {
+    return "Fundraising";
   }
   return allNavItems.find((item) => item.href === pathname)?.label ?? "Denison Tennis OS";
 }

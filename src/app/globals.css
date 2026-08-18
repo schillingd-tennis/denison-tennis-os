@@ -25,6 +25,7 @@
   --color-operations: #b45309;
   --color-research: #7c3aed;
   --color-knowledge: #0f766e;
+  --color-fundraising: #059669;
   --color-settings: #475569;
 
   --radius-card: 12px;
@@ -41,6 +42,10 @@
 :root {
   --sidebar-width: 260px;
   --header-height: 88px;
+  /* Fallbacks for chrome portaled to document.body (filter menus). */
+  --module-accent: var(--color-denison-red);
+  --module-tint: #fff1f2;
+  --module-border: #fecdd3;
 }
 
 /* Module color is a navigation and hierarchy signal, not a replacement for
@@ -85,6 +90,12 @@
   --module-accent: var(--color-knowledge);
   --module-tint: #f0fdfa;
   --module-border: #99f6e4;
+}
+
+.app-shell[data-module="fundraising"] {
+  --module-accent: var(--color-fundraising);
+  --module-tint: #ecfdf5;
+  --module-border: #a7f3d0;
 }
 
 .app-shell[data-module="people"] {

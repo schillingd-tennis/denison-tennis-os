@@ -5,10 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { publishFoundSet } from "@/components/found-set";
 import EmptyState from "@/components/EmptyState";
-import { modulePrimaryButtonClass } from "@/components/module-theme";
-import PageHeader from "@/components/PageHeader";
 import SearchInput from "@/components/SearchInput";
-import { Toolbar } from "@/components/toolbar";
 import ViewToggle, { type ViewMode } from "@/components/ViewToggle";
 import { useDrawerManager } from "@/components/workspace-drawer";
 import { ROLE_KEYS } from "@/features/lookups/seed";
@@ -21,6 +18,7 @@ import {
   writeStoredDirectoryQuery,
   writeStoredDirectoryView,
 } from "@/features/people/directorySessionState";
+import { computePeopleDirectoryKpis } from "@/features/people/directorySummary";
 import {
   filterPeople,
   normalizeActivePeopleFilters,
@@ -33,20 +31,24 @@ import {
   TEAM_FOUND_SET_MODULE_KEY,
 } from "@/features/people/foundSet";
 
-import {
-  PLAYERS_COACHES_ROUTE,
-  playersCoachesPersonPath,
-} from "@/lib/module-routes";
+import { playersCoachesPersonPath } from "@/lib/module-routes";
 import AddPersonFlow from "./AddPersonFlow";
+import PeopleDirectoryKpiRow from "./PeopleDirectoryKpiRow";
 import PersonCard from "./PersonCard";
 import PersonList from "./PersonList";
 import RoleFilterControl from "./RoleFilterControl";
 
 /**
+ * Same geometry as Recruiting Rank's + ADD RECRUIT, using the Players/Coaches
+ * module accent instead of recruiting red.
+ */
+const addButtonClass =
+  "inline-flex h-11 items-center justify-center rounded-control bg-[var(--module-accent)] px-5 text-sm font-semibold tracking-wide text-white shadow-[0_8px_18px_rgba(17,24,39,0.12)] transition-opacity hover:opacity-90";
+
+/**
  * Players/Coaches directory surface for the People domain.
  * Base set is program membership only (players + coaches) — not all People.
- * BP-031A: search + view persist in sessionStorage so Workspace Back restores them.
- * BP-041 / BP-042: + ADD PLAYER / + ADD COACH via shared AddPersonFlow.
+ * Visual shell matches Recruiting Rank (page rhythm, KPIs, search/views/filters).
  */
 export default function PeopleDirectory({ people }: { people: Person[] }) {
   const router = useRouter();
@@ -77,6 +79,7 @@ export default function PeopleDirectory({ people }: { people: Person[] }) {
     () => filterPeople(livePeople, { activeFilterIds, query }),
     [livePeople, activeFilterIds, query],
   );
+  const kpis = useMemo(() => computePeopleDirectoryKpis(livePeople), [livePeople]);
 
   function replacePerson(person: Person) {
     setLivePeople((current) =>
@@ -119,7 +122,7 @@ export default function PeopleDirectory({ people }: { people: Person[] }) {
     openDrawer({
       id: "team-add-player",
       title: "Add Player",
-      subtitle: "Players/Coaches",
+      subtitle: "Team",
       content: (
         <AddPersonFlow
           roleKey={ROLE_KEYS.player}
@@ -139,7 +142,7 @@ export default function PeopleDirectory({ people }: { people: Person[] }) {
     openDrawer({
       id: "team-add-coach",
       title: "Add Coach",
-      subtitle: "Players/Coaches",
+      subtitle: "Team",
       content: (
         <AddPersonFlow
           roleKey={ROLE_KEYS.coach}
@@ -161,67 +164,84 @@ export default function PeopleDirectory({ people }: { people: Person[] }) {
     activeFilterIds.includes("coaches") && !activeFilterIds.includes("players");
 
   const addPlayerButton = (
-    <button type="button" className={modulePrimaryButtonClass} onClick={openAddPlayerDrawer}>
+    <button type="button" className={addButtonClass} onClick={openAddPlayerDrawer}>
       + ADD PLAYER
     </button>
   );
   const addCoachButton = (
-    <button type="button" className={modulePrimaryButtonClass} onClick={openAddCoachDrawer}>
+    <button type="button" className={addButtonClass} onClick={openAddCoachDrawer}>
       + ADD COACH
     </button>
   );
 
   return (
-    <div className="flex flex-col gap-7">
-      <PageHeader
-        title="Players/Coaches"
-        subtitle="Players and coaches on the Denison Tennis team"
-        meta={`${filtered.length} ${filtered.length === 1 ? "person" : "people"}`}
-        actions={
-          <div className="flex items-center gap-2">
-            {coachesSectionActive ? (
-              <>
-                {addCoachButton}
-                {addPlayerButton}
-              </>
-            ) : (
-              <>
-                {addPlayerButton}
-                {addCoachButton}
-              </>
-            )}
-          </div>
-        }
-      />
-
-      <Toolbar
-        primary={
-          <SearchInput
-            value={query}
-            onChange={handleQueryChange}
-            placeholder="Search by name, title, hometown, or major"
+    <div className="flex flex-col gap-3.5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="relative pl-4">
+          <span
+            aria-hidden="true"
+            className="absolute top-1 bottom-1 left-0 w-[3px] rounded-full bg-[var(--module-accent)]"
           />
-        }
-        secondary={
-          <RoleFilterControl value={activeFilterIds} onChange={handleFilterChange} />
-        }
-        tertiary={<ViewToggle value={view} onChange={handleViewChange} />}
-      />
-
-      {filtered.length === 0 ? (
-        <EmptyState
-          title="No people found"
-          description="Try a different search term or filter."
-        />
-      ) : view === "cards" ? (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((person) => (
-            <PersonCard key={person.id} person={person} onPersonCommit={replacePerson} />
-          ))}
+          <h1 className="text-3xl font-semibold tracking-tight text-text-primary">
+            Team
+          </h1>
+          <p className="mt-1 text-sm text-text-secondary">
+            Players and coaches on the Denison Tennis team
+          </p>
         </div>
-      ) : (
-        <PersonList people={filtered} onPersonCommit={replacePerson} />
-      )}
+        <div className="flex shrink-0 items-center gap-2">
+          {coachesSectionActive ? (
+            <>
+              {addCoachButton}
+              {addPlayerButton}
+            </>
+          ) : (
+            <>
+              {addPlayerButton}
+              {addCoachButton}
+            </>
+          )}
+        </div>
+      </div>
+
+      <PeopleDirectoryKpiRow kpis={kpis} />
+
+      <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="min-w-0 flex-1 sm:max-w-xl">
+            <SearchInput
+              value={query}
+              onChange={handleQueryChange}
+              placeholder="Search by name, title, hometown, or major"
+            />
+          </div>
+          <div className="sm:ml-auto">
+            <ViewToggle value={view} onChange={handleViewChange} />
+          </div>
+        </div>
+        <RoleFilterControl value={activeFilterIds} onChange={handleFilterChange} />
+      </div>
+
+      <div className="relative z-0 isolate">
+        {filtered.length === 0 ? (
+          <EmptyState
+            title="No people found"
+            description="Try a different search term or filter."
+          />
+        ) : view === "cards" ? (
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            {filtered.map((person) => (
+              <PersonCard key={person.id} person={person} onPersonCommit={replacePerson} />
+            ))}
+          </div>
+        ) : (
+          <PersonList
+            people={filtered}
+            activeFilterIds={activeFilterIds}
+            onPersonCommit={replacePerson}
+          />
+        )}
+      </div>
     </div>
   );
 }

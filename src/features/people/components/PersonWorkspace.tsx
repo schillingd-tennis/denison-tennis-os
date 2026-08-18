@@ -8,13 +8,11 @@ import {
   ClipboardList,
   Copy,
   Download,
-  FileText,
   GraduationCap,
   Mail,
   MessageSquare,
   Phone,
   Plane,
-  School,
   Trash2,
   UserRound,
   Users,
@@ -37,7 +35,6 @@ import {
   type InlineCommitReason,
   type InlineSelectOption,
 } from "@/components/inline-edit";
-import { OverviewPanel, PersonHeader } from "@/components/person";
 import { StickyProductivityActionBar } from "@/components/productivity";
 import QuickActionButton from "@/components/QuickActionButton";
 import type { StatusDotTone } from "@/components/StatusDot";
@@ -46,12 +43,9 @@ import { useDrawerManager } from "@/components/workspace-drawer";
 import {
   AdaptiveWorkspace,
   AdaptiveWorkspacePlaceholder,
+  WorkspaceMutedNote,
   type AdaptiveWorkspaceDefinition,
 } from "@/components/adaptive-workspace";
-import {
-  WorkspaceNavigation,
-  type WorkspaceNavItem,
-} from "@/components/workspace-navigation";
 
 import {
   createCommunicationActions,
@@ -72,13 +66,13 @@ import {
   getDisplayName,
   getPermanentAddress,
   getPlayerStatusLabel,
-  getPreferredContactLabel,
   getStatusLabel,
   hasRole,
   isCoachDirectoryPerson,
   isFamilyPerson,
 } from "@/features/people/utils";
 import { formatDate, parseDisplayDate } from "@/lib/formatting";
+import { PLAYERS_COACHES_ROUTE, playersCoachesPersonPath } from "@/lib/module-routes";
 
 import ContactInformationWorkspace from "./ContactInformationWorkspace";
 import DeletePersonConfirm from "./DeletePersonConfirm";
@@ -86,6 +80,11 @@ import FamilyWorkspace, { type FamilyWorkspaceSummary } from "./FamilyWorkspace"
 import PersonStatusLabel from "./PersonStatusLabel";
 import RelatedPlayersWorkspace from "./RelatedPlayersWorkspace";
 import TravelWorkspace from "./TravelWorkspace";
+import {
+  PersonWorkspaceNav,
+  PersonWorkspaceProfile,
+  type PersonWorkspaceNavItem,
+} from "./PersonWorkspaceChrome";
 
 function favoriteObjectTypeForPerson(person: Person): SearchObjectType {
   if (hasRole(person, ROLE_KEYS.coach)) return "coaches";
@@ -182,15 +181,9 @@ function followUpStatusLine(communications: Communication[]): string {
   return `Follow-up ${formatMonthDay(date)}`;
 }
 
-function noteStatusLine(communications: Communication[]): string {
-  const noteCount = communications.filter((entry) => entry.type === "note").length;
-  if (noteCount === 0) return "No notes yet";
-  return noteCount === 1 ? "1 note" : `${noteCount} notes`;
-}
-
 /**
- * Person Workspace — executive dashboard + Adaptive Workspace (BP-035C).
- * Header / overview / performance stay fixed; only the workspace surface changes.
+ * Player / Coach person workspace — Recruit Workspace is the visual model.
+ * Summary card + metric tiles + split Adaptive Workspace; only the pane changes.
  */
 export default function PersonWorkspace({
   person,
@@ -205,7 +198,7 @@ export default function PersonWorkspace({
   const [editing, setEditing] = useState<HeaderEditableField | null>(null);
   const [fieldError, setFieldError] = useState<string | undefined>(undefined);
   const [copyFeedback, setCopyFeedback] = useState<string | undefined>(undefined);
-  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>("personal-info");
   const [familySummary, setFamilySummary] = useState<FamilyWorkspaceSummary>({
     parentCount: 0,
     hasEmergencyContact: false,
@@ -223,7 +216,7 @@ export default function PersonWorkspace({
   if (person.id !== trackedPerson.id) {
     setTrackedPerson(person);
     setRecord(person);
-    setActiveWorkspaceId(null);
+    setActiveWorkspaceId("personal-info");
     setRelatedPlayerCount(0);
     setFamilySummary({ parentCount: 0, hasEmergencyContact: false });
   } else if (person !== trackedPerson) {
@@ -255,7 +248,7 @@ export default function PersonWorkspace({
           personName={name}
           onSuccess={() => {
             closeDrawer();
-            router.push("/team");
+            router.push(PLAYERS_COACHES_ROUTE);
             router.refresh();
           }}
         />
@@ -276,7 +269,7 @@ export default function PersonWorkspace({
       displayName,
       commandId: `person:${record.id}`,
       iconKey: "Users",
-      href: `/team/${record.id}`,
+      href: playersCoachesPersonPath(record.id),
     });
   }, [displayName, favoriteObjectType, record.id]);
 
@@ -321,8 +314,8 @@ export default function PersonWorkspace({
   });
   const backToPlayer =
     familyPerson && fromPlayerId
-      ? { href: `/team/${fromPlayerId}`, label: "Back to Player" as const }
-      : { href: "/team", label: "Back to Team" as const };
+      ? { href: playersCoachesPersonPath(fromPlayerId), label: "Back to Player" as const }
+      : { href: PLAYERS_COACHES_ROUTE, label: "Back to Team" as const };
 
   const moveEditing = useCallback(
     (from: HeaderEditableField, direction: "next" | "prev") => {
@@ -482,110 +475,79 @@ export default function PersonWorkspace({
     exportFoundSetSnapshotCsv(snapshot);
   }, []);
 
-  const workspaceItems = useMemo((): WorkspaceNavItem[] => {
+  const workspaceItems = useMemo((): PersonWorkspaceNavItem[] => {
     const latest = communications[0];
-    const hasPhone = Boolean(record.cellPhone);
-    const hasEmail = familyPerson
-      ? Boolean(record.personalEmail)
-      : Boolean(record.personalEmail || record.denisonEmail);
-    const preferred = getPreferredContactLabel(record.preferredContactMethod);
     const parentCount = familySummary.parentCount;
     const hasEmergency = familySummary.hasEmergencyContact;
 
-    const contactLines = [
-      hasPhone ? "Phone available" : "No phone number",
-      hasEmail ? "Email available" : "No email address",
-    ];
-    if (preferred) {
-      contactLines.push(`Preferred: ${preferred}`);
-    }
-
-    const communicationItem: WorkspaceNavItem = {
-      id: "communication",
-      title: "Communication",
-      icon: MessageSquare,
-      lines: [
-        formatRelativeDay(latest?.createdAt),
-        followUpStatusLine(communications),
-        noteStatusLine(communications),
-      ],
-    };
-    const contactItem: WorkspaceNavItem = {
-      id: "contact",
-      title: "Contact Information",
+    const personalItem: PersonWorkspaceNavItem = {
+      id: "personal-info",
+      title: "Personal Info",
       icon: UserRound,
-      lines: contactLines,
-    };
-    const documentsItem: WorkspaceNavItem = {
-      id: "documents",
-      title: "Documents",
-      icon: FileText,
-      lines: ["No documents yet", "Uploads coming soon"],
-    };
-    const denisonItem: WorkspaceNavItem = {
-      id: "denison",
-      title: "Denison Information",
-      icon: School,
-      lines: [
-        record.classYear !== undefined
-          ? `Class ${record.classYear}`
-          : "Class year not set",
-        record.major?.trim() || "Major not set",
-      ],
+      descriptor: familyPerson
+        ? [
+            record.cellPhone ? "Phone on file" : "No phone number",
+            record.personalEmail ? "Email on file" : "No email address",
+          ].join(" · ")
+        : [
+            record.classYear !== undefined ? `Class ${record.classYear}` : "Class year not set",
+            record.cellPhone ? "Phone on file" : "No phone number",
+          ].join(" · "),
     };
 
-    // BP-040E — Family Person navigation (no Academics / Family / Travel).
+    const communicationsItem: PersonWorkspaceNavItem = {
+      id: "communications",
+      title: "Communications",
+      icon: MessageSquare,
+      descriptor: formatRelativeDay(latest?.createdAt),
+    };
+
     if (familyPerson) {
       return [
-        contactItem,
+        personalItem,
         {
           id: "related-players",
           title: "Related Players",
           icon: Users,
-          lines: [
+          descriptor:
             relatedPlayerCount === 0
               ? "No related players"
               : relatedPlayerCount === 1
                 ? "1 related player"
                 : `${relatedPlayerCount} related players`,
-          ],
         },
-        communicationItem,
-        documentsItem,
-        denisonItem,
+        communicationsItem,
       ];
     }
 
     return [
-      communicationItem,
-      contactItem,
-      {
-        id: "academics",
-        title: "Academics",
-        icon: GraduationCap,
-        lines: ["Standing unavailable", "GPA coming soon"],
-      },
+      personalItem,
       {
         id: "family",
         title: "Family",
         icon: Users,
-        lines: [
+        descriptor: [
           parentCount === 0
             ? "No parents connected"
             : parentCount === 1
               ? "1 parent connected"
               : `${parentCount} parents connected`,
           hasEmergency ? "Emergency contact on file" : "No emergency contact",
-        ],
+        ].join(" · "),
+      },
+      {
+        id: "academics",
+        title: "Academics",
+        icon: GraduationCap,
+        descriptor: record.major?.trim() || "No academic record",
       },
       {
         id: "travel",
         title: "Travel",
         icon: Plane,
-        lines: ["No upcoming travel", "Travel details coming soon"],
+        descriptor: "Travel documents & itinerary",
       },
-      documentsItem,
-      denisonItem,
+      communicationsItem,
     ];
   }, [
     communications,
@@ -594,21 +556,19 @@ export default function PersonWorkspace({
     familySummary.parentCount,
     record.cellPhone,
     record.classYear,
-    record.denisonEmail,
     record.major,
     record.personalEmail,
-    record.preferredContactMethod,
     relatedPlayerCount,
   ]);
 
   const adaptiveWorkspaces = useMemo((): AdaptiveWorkspaceDefinition[] => {
-    const communicationWorkspace: AdaptiveWorkspaceDefinition = {
-      id: "communication",
-      title: "Communication",
-      subtitle: displayName,
+    const communicationsWorkspace: AdaptiveWorkspaceDefinition = {
+      id: "communications",
+      title: "Communications",
+      subtitle: "Calls, texts, and follow-ups",
       content: (
         <AdaptiveWorkspacePlaceholder
-          message="Timeline coming soon."
+          message="No interaction history is available yet. Calls, texts, and follow-ups are not stored on this record."
           action={
             <button
               type="button"
@@ -621,10 +581,10 @@ export default function PersonWorkspace({
         />
       ),
     };
-    const contactWorkspace: AdaptiveWorkspaceDefinition = {
-      id: "contact",
-      title: "Contact Information",
-      subtitle: displayName,
+    const personalWorkspace: AdaptiveWorkspaceDefinition = {
+      id: "personal-info",
+      title: "Personal Info",
+      subtitle: "Identity & Contact",
       content: (
         <ContactInformationWorkspace
           key={record.id}
@@ -634,54 +594,26 @@ export default function PersonWorkspace({
         />
       ),
     };
-    const documentsWorkspace: AdaptiveWorkspaceDefinition = {
-      id: "documents",
-      title: "Documents",
-      subtitle: displayName,
-      content: (
-        <AdaptiveWorkspacePlaceholder message="Documents workspace coming soon." />
-      ),
-    };
-    const denisonWorkspace: AdaptiveWorkspaceDefinition = {
-      id: "denison",
-      title: "Denison Information",
-      subtitle: displayName,
-      content: (
-        <AdaptiveWorkspacePlaceholder message="Denison information coming soon." />
-      ),
-    };
 
-    // BP-040E — Family Person Adaptive bodies (no Academics / Family / Travel).
     if (familyPerson) {
       return [
-        contactWorkspace,
+        personalWorkspace,
         {
           id: "related-players",
           title: "Related Players",
           subtitle: displayName,
           content: <RelatedPlayersWorkspace key={record.id} person={record} />,
         },
-        communicationWorkspace,
-        documentsWorkspace,
-        denisonWorkspace,
+        communicationsWorkspace,
       ];
     }
 
     return [
-      communicationWorkspace,
-      contactWorkspace,
-      {
-        id: "academics",
-        title: "Academics",
-        subtitle: displayName,
-        content: (
-          <AdaptiveWorkspacePlaceholder message="Academic dashboard coming soon." />
-        ),
-      },
+      personalWorkspace,
       {
         id: "family",
         title: "Family",
-        subtitle: displayName,
+        subtitle: "Parents & guardians",
         content: (
           <FamilyWorkspace
             key={record.id}
@@ -693,9 +625,15 @@ export default function PersonWorkspace({
         ),
       },
       {
+        id: "academics",
+        title: "Academics",
+        subtitle: "School & standing",
+        content: <WorkspaceMutedNote>Academic dashboard coming soon.</WorkspaceMutedNote>,
+      },
+      {
         id: "travel",
         title: "Travel",
-        subtitle: displayName,
+        subtitle: "Travel documents & itinerary",
         content: (
           <TravelWorkspace
             person={record}
@@ -704,13 +642,12 @@ export default function PersonWorkspace({
           />
         ),
       },
-      documentsWorkspace,
-      denisonWorkspace,
+      communicationsWorkspace,
     ];
   }, [displayName, familyPerson, record, runSave]);
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
       <StickyProductivityActionBar
         leading={
           <>
@@ -736,7 +673,7 @@ export default function PersonWorkspace({
               objectType={favoriteObjectType}
               displayName={displayName}
               commandId={`person:${record.id}`}
-              href={`/team/${record.id}`}
+              href={playersCoachesPersonPath(record.id)}
               iconKey="Users"
             />
             {communicationActions.call.href ? (
@@ -793,8 +730,9 @@ export default function PersonWorkspace({
         }
       />
 
-      <PersonHeader
+      <PersonWorkspaceProfile
         person={record}
+        followUpValue={followUpStatusLine(communications)}
         statusSlot={
           <InlineEditCell
             label="Status"
@@ -868,43 +806,39 @@ export default function PersonWorkspace({
         }
       />
 
-      {!familyPerson ? <OverviewPanel person={record} /> : null}
-
-      {/*
-        BP-036D — Permanent desktop split: Workspace Navigation (left) +
-        Active Workspace (right). Always side-by-side; selection updates only
-        the right pane. Not stacked, not drawers, not accordions.
-      */}
       <section aria-label="Workspaces">
-        <div className="grid min-h-[420px] grid-cols-[minmax(260px,320px)_minmax(0,1fr)] items-stretch overflow-hidden rounded-card border border-[var(--module-border)] bg-surface shadow-[0_8px_24px_rgba(17,24,39,0.04)]">
-          <aside className="flex min-h-0 flex-col border-r border-[var(--module-border)]">
-            <div className="shrink-0 border-b border-[var(--module-border)] px-3.5 py-2">
-              <h2 className={typeRole.sectionTitle}>Workspaces</h2>
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              <WorkspaceNavigation
-                showTitle={false}
+          <div
+            className="grid min-h-[420px] w-full grid-cols-[minmax(260px,320px)_minmax(0,1fr)] grid-rows-1 items-stretch overflow-hidden rounded-card border border-[var(--module-border)] bg-surface shadow-[0_8px_24px_rgba(17,24,39,0.04)]"
+            style={{ gridTemplateColumns: "minmax(260px, 320px) minmax(0, 1fr)" }}
+          >
+            <aside className="flex min-h-0 min-w-0 flex-col border-r border-[var(--module-border)]">
+              <div className="shrink-0 border-b border-[var(--module-border)] px-3.5 py-2">
+                <h2 className={typeRole.sectionTitle}>Workspaces</h2>
+              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                <PersonWorkspaceNav
+                  items={workspaceItems}
+                  activeId={
+                    workspaceItems.some((item) => item.id === activeWorkspaceId)
+                      ? activeWorkspaceId
+                      : null
+                  }
+                  onSelect={setActiveWorkspaceId}
+                />
+              </div>
+            </aside>
+            <div className="min-h-0 min-w-0">
+              <AdaptiveWorkspace
                 framed={false}
-                items={workspaceItems}
                 activeId={
                   workspaceItems.some((item) => item.id === activeWorkspaceId)
                     ? activeWorkspaceId
                     : null
                 }
-                onSelect={setActiveWorkspaceId}
+                workspaces={adaptiveWorkspaces}
               />
             </div>
-          </aside>
-          <AdaptiveWorkspace
-            framed={false}
-            activeId={
-              workspaceItems.some((item) => item.id === activeWorkspaceId)
-                ? activeWorkspaceId
-                : null
-            }
-            workspaces={adaptiveWorkspaces}
-          />
-        </div>
+          </div>
       </section>
     </div>
   );

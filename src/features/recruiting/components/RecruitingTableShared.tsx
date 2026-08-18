@@ -151,13 +151,19 @@ export function RecruitingHeaderLabel({
             ? "descending"
             : "none"
       }
-      className={`${BOARD.th} ${align === "right" ? "text-right" : "text-left"}`}
+      className={`${BOARD.th} ${
+        align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left"
+      }`}
     >
       <button
         type="button"
         onClick={onSort}
         className={`inline-flex w-full items-center gap-1 whitespace-nowrap rounded-control transition-colors hover:text-text-primary focus-visible:ring-2 focus-visible:ring-[var(--module-accent)] focus-visible:outline-none ${
-          align === "right" ? "justify-end" : "justify-start"
+          align === "right"
+            ? "justify-end"
+            : align === "center"
+              ? "justify-center"
+              : "justify-start"
         } ${active ? "text-text-primary" : "text-text-secondary"}`}
       >
         <span className="whitespace-nowrap">{label}</span>

@@ -7,6 +7,7 @@ import { formatPhoneDisplay } from "@/components/inline-edit";
 import { moduleFieldClass, modulePrimaryButtonClass } from "@/components/module-theme";
 import OpenPersonAction from "@/components/OpenPersonAction";
 import QuickActionButton from "@/components/QuickActionButton";
+import { WorkspaceAccentHeading } from "@/components/adaptive-workspace";
 import { typeClass, typeRole } from "@/components/typography";
 import { useDrawerManager } from "@/components/workspace-drawer";
 import { FieldRenderer, PersonFieldSession } from "@/features/field-engine";
@@ -26,6 +27,7 @@ import {
 } from "@/features/people/personRelationshipTypes";
 import type { Person } from "@/features/people/types";
 import { getDisplayName, matchesSearch } from "@/features/people/utils";
+import { playersCoachesPersonPath } from "@/lib/module-routes";
 
 export type FamilyWorkspaceSummary = {
   parentCount: number;
@@ -411,7 +413,7 @@ function ParentRow({
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           <OpenPersonAction
-            href={`/team/${person.id}`}
+            href={playersCoachesPersonPath(person.id)}
             label="Open Parent"
             fromPlayerId={playerId}
           />
@@ -509,10 +511,10 @@ export default function FamilyWorkspace({
       runSave={runSave}
       fields={["familyNotes"]}
     >
-      <div className="space-y-6">
+      <div className="space-y-[14px]">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h3 className={typeRole.sectionTitle}>Parents / Guardians</h3>
+            <WorkspaceAccentHeading>Parents / Guardians</WorkspaceAccentHeading>
             <p className={`mt-1 ${typeRole.metadata}`}>
               People related to this player through family relationships.
             </p>
@@ -549,10 +551,16 @@ export default function FamilyWorkspace({
           </div>
         )}
 
-        <section aria-label="Notes">
-          <h3 className={typeRole.sectionTitle}>Notes</h3>
-          <div className="mt-3 max-w-xl min-h-[5.5rem]">
-            <FieldRenderer field="familyNotes" align="left" />
+        <section aria-label="Notes" className="border-t border-border/50 pt-[14px]">
+          <WorkspaceAccentHeading>Notes</WorkspaceAccentHeading>
+          <div className="mt-1.5 min-h-[5.5rem]">
+            <FieldRenderer
+              field="familyNotes"
+              align="left"
+              editOn="click"
+              emphasis="workspace"
+              density="compact"
+            />
           </div>
         </section>
       </div>

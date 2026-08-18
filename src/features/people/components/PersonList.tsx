@@ -6,21 +6,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } fr
 import { ClipboardList, Download } from "lucide-react";
 
 import ContactActionSlots from "@/components/ContactActionSlots";
-import DirectoryTable from "@/components/data-table/DirectoryTable";
-import {
-  DIRECTORY_CELL_CLIP,
-  DIRECTORY_CELL_PAD,
-  DIRECTORY_COL,
-  DIRECTORY_TABLE_WIDTH_PX,
-} from "@/components/data-table/directoryColumnWidths";
-import SortableColumnHeader from "@/components/data-table/SortableColumnHeader";
-import {
-  stickyColumnRowClass,
-  stickyLeadingTdClass,
-  stickyLeadingThClass,
-  stickyTrailingTdClass,
-  stickyTrailingThClass,
-} from "@/components/data-table/stickyColumns";
 import type { SortState } from "@/components/data-table/types";
 import { useSortableData } from "@/components/data-table/useSortableData";
 import {
@@ -35,6 +20,7 @@ import {
 } from "@/components/found-set";
 import {
   InlineEditCell,
+  formatPhoneDisplay,
   phoneHrefDigits,
   SaveIndicator,
   useSaveIndicator,
@@ -44,8 +30,8 @@ import { StickyProductivityActionBar } from "@/components/productivity";
 
 import { updatePersonAction } from "@/features/people/actions";
 import {
-  TEAM_DIRECTORY_TABLE_COLUMNS,
-  type TeamDirectoryColumnId,
+  TEAM_DIRECTORY_LIST_TABLE_COLUMNS,
+  type TeamDirectoryListColumnId,
 } from "@/features/people/directoryColumns";
 import {
   TEAM_DIRECTORY_EMPTY,
@@ -53,6 +39,8 @@ import {
   TEAM_DIRECTORY_NAME,
   directoryCellValue,
 } from "@/features/people/directoryHierarchy";
+import { peopleViewCountMeta } from "@/features/people/directorySummary";
+import { peopleDirectoryContextLabel } from "@/features/people/filters";
 import {
   TEAM_FOUND_SET_COLUMNS,
   TEAM_FOUND_SET_FILENAME_BASE,
@@ -68,15 +56,29 @@ import {
   isCoachDirectoryPerson,
 } from "@/features/people/utils";
 import { formatUtr, formatWtn } from "@/lib/formatting";
+import { playersCoachesPersonPath } from "@/lib/module-routes";
 
 import PlayerAvatar from "@/components/PlayerAvatar";
 import QuickActionButton from "@/components/QuickActionButton";
-import { typeClass, typeRole } from "@/components/typography";
+import {
+  RECRUITING_TABLE,
+  RECRUITING_TABLE_AVATAR_SIZE,
+  RECRUITING_TABLE_COLUMNS,
+} from "@/features/recruiting/components/recruitingTableChrome";
+import {
+  RecruitingHeaderLabel,
+  RecruitingTableSectionBar,
+  recruitingMetricDisplay,
+} from "@/features/recruiting/components/RecruitingTableShared";
+import RecruitingViewChrome, {
+  RecruitingViewContextMeta,
+} from "@/features/recruiting/components/RecruitingViewChrome";
+import RecruitingViewContextHeader from "@/features/recruiting/components/RecruitingViewContextHeader";
 
-type PersonColumnKey = TeamDirectoryColumnId;
+type PersonColumnKey = TeamDirectoryListColumnId;
 
 /** Fields that support double-click inline editing in the Team List (BP-019A / BP-025F). */
-type EditableField = Exclude<PersonColumnKey, "name" | "role">;
+type EditableField = Exclude<PersonColumnKey, "name" | "cellPhone" | "email">;
 
 const EDITABLE_FIELDS: EditableField[] = [
   "hometown",
@@ -91,11 +93,34 @@ const ROW_CLICK_DELAY_MS = 250;
 /** Session-only persistence so returning from a workspace keeps the sort. */
 const TEAM_LIST_SORT_STORAGE_KEY = "denison-tennis-os:team-list-sort";
 
-const PERSON_COLUMN_KEYS: readonly PersonColumnKey[] = TEAM_DIRECTORY_TABLE_COLUMNS.map(
+const PERSON_COLUMN_KEYS: readonly PersonColumnKey[] = TEAM_DIRECTORY_LIST_TABLE_COLUMNS.map(
   (column) => column.id,
 );
 
-const columns = TEAM_DIRECTORY_TABLE_COLUMNS;
+const columns = TEAM_DIRECTORY_LIST_TABLE_COLUMNS;
+const BOARD = RECRUITING_TABLE;
+const C = RECRUITING_TABLE_COLUMNS;
+
+function PlayersCoachesListColgroup() {
+  return (
+    <colgroup>
+      <col style={{ width: C.handle }} />
+      <col style={{ width: C.rank }} />
+      <col />
+      <col style={{ width: 160 }} />
+      <col style={{ width: C.classYear }} />
+      <col style={{ width: C.utr }} />
+      <col style={{ width: C.wtn }} />
+      <col style={{ width: 132 }} />
+      <col />
+      <col style={{ width: C.contact }} />
+    </colgroup>
+  );
+}
+
+function personListEmail(person: Person): string | undefined {
+  return person.personalEmail ?? person.denisonEmail;
+}
 
 type EditingCell = { personId: string; field: EditableField };
 
@@ -170,9 +195,11 @@ function contactHrefs(person: Person) {
 
 export default function PersonList({
   people,
+  activeFilterIds,
   onPersonCommit,
 }: {
   people: Person[];
+  activeFilterIds: readonly string[];
   onPersonCommit?: (person: Person) => void;
 }) {
   const router = useRouter();
@@ -231,7 +258,7 @@ export default function PersonList({
 
   const openWorkspace = useCallback(
     (personId: string) => {
-      router.push(`/team/${personId}`);
+      router.push(playersCoachesPersonPath(personId));
     },
     [router],
   );
@@ -414,46 +441,299 @@ export default function PersonList({
     cancelPendingRowClick();
   }
 
-  const cellPad = DIRECTORY_CELL_PAD;
-  const middleCell = `${DIRECTORY_CELL_PAD} ${DIRECTORY_CELL_CLIP}`;
+  const actionButtons = (
+    <>
+      <QuickActionButton
+        onAction={sortedItems.length > 0 ? handleCopyFoundSet : undefined}
+        icon={ClipboardList}
+        label="Copy Found Set"
+        tone="neutral"
+        unavailableTitle="No records in found set"
+      />
+      <QuickActionButton
+        onAction={sortedItems.length > 0 ? handleExportFoundSet : undefined}
+        icon={Download}
+        label="Export Found Set"
+        tone="neutral"
+        unavailableTitle="No records in found set"
+      />
+    </>
+  );
+
+  function sortDir(key: PersonColumnKey) {
+    return sort?.key === key ? sort.direction : null;
+  }
 
   return (
-    <div className="flex flex-col gap-2">
-      <StickyProductivityActionBar
-        leading={
-          <>
-            <SaveIndicator status={saveStatus} error={saveError} />
-            {foundSetFeedback ? (
+    <RecruitingViewChrome
+      contextHeader={
+        <RecruitingViewContextHeader
+          eyebrow="Team"
+          title="Roster"
+          subtitle={peopleDirectoryContextLabel(activeFilterIds)}
+        />
+      }
+      contextMeta={
+        <RecruitingViewContextMeta>
+          {peopleViewCountMeta(sortedItems.length)}
+        </RecruitingViewContextMeta>
+      }
+      foundSetFeedback={foundSetFeedback}
+      saveStatus={saveStatus}
+      saveError={saveError}
+      actionButtons={actionButtons}
+      mobileActionBar={
+        <StickyProductivityActionBar
+          className="!py-2 border-black/[0.04] bg-transparent md:hidden"
+          leading={
+            foundSetFeedback ? (
               <span className="text-xs font-medium text-success" role="status">
                 {foundSetFeedback}
               </span>
-            ) : null}
-            <span className={typeClass("metadataSm", "tabular-nums")}>
-              {sortedItems.length} in found set
-            </span>
-          </>
-        }
-        actions={
-          <>
-            <QuickActionButton
-              onAction={sortedItems.length > 0 ? handleCopyFoundSet : undefined}
-              icon={ClipboardList}
-              label="Copy Found Set"
-              tone="neutral"
-              unavailableTitle="No records in found set"
-            />
-            <QuickActionButton
-              onAction={sortedItems.length > 0 ? handleExportFoundSet : undefined}
-              icon={Download}
-              label="Export Found Set"
-              tone="neutral"
-              unavailableTitle="No records in found set"
-            />
-          </>
-        }
-      />
+            ) : (
+              <SaveIndicator status={saveStatus} error={saveError} />
+            )
+          }
+          actions={actionButtons}
+        />
+      }
+    >
+      <div className="min-w-0">
+        <section className={`${BOARD.section} max-md:hidden`}>
+          <RecruitingTableSectionBar title="Team" count={sortedItems.length} />
+          <table
+            className="w-full table-fixed border-collapse text-left"
+            role="grid"
+            aria-label="Players and coaches list"
+          >
+            <PlayersCoachesListColgroup />
+            <thead>
+              <tr>
+                <th scope="col" className={BOARD.th} aria-label="Handle" />
+                <th scope="col" className={BOARD.th} aria-label="Rank" />
+                <RecruitingHeaderLabel
+                  label="Player / Coach"
+                  sortDirection={sortDir("name")}
+                  onSort={() => toggleSort("name")}
+                />
+                <RecruitingHeaderLabel
+                  label="Hometown"
+                  sortDirection={sortDir("hometown")}
+                  onSort={() => toggleSort("hometown")}
+                />
+                <RecruitingHeaderLabel
+                  label="Class"
+                  sortDirection={sortDir("classYear")}
+                  onSort={() => toggleSort("classYear")}
+                />
+                <RecruitingHeaderLabel
+                  label="UTR"
+                  align="right"
+                  sortDirection={sortDir("utr")}
+                  onSort={() => toggleSort("utr")}
+                />
+                <RecruitingHeaderLabel
+                  label="WTN"
+                  align="right"
+                  sortDirection={sortDir("wtn")}
+                  onSort={() => toggleSort("wtn")}
+                />
+                <RecruitingHeaderLabel
+                  label="Cell #"
+                  sortDirection={sortDir("cellPhone")}
+                  onSort={() => toggleSort("cellPhone")}
+                />
+                <RecruitingHeaderLabel
+                  label="Email"
+                  sortDirection={sortDir("email")}
+                  onSort={() => toggleSort("email")}
+                />
+                <RecruitingHeaderLabel label="Actions" align="center" />
+              </tr>
+            </thead>
+            <tbody>
+              {sortedItems.map((person) => {
+                const displayName = getDisplayName(person);
+                const hometown = getHometown(person);
+                const hrefs = contactHrefs(person);
+                const coachDirectory = isCoachDirectoryPerson(person);
+                const showPlayerMetrics = !coachDirectory;
+                const classDisplay = showPlayerMetrics
+                  ? directoryCellValue(person.classYear)
+                  : TEAM_DIRECTORY_EMPTY;
+                const utrDisplay = showPlayerMetrics
+                  ? recruitingMetricDisplay(formatUtr(person.utr))
+                  : TEAM_DIRECTORY_EMPTY;
+                const wtnDisplay = showPlayerMetrics
+                  ? recruitingMetricDisplay(formatWtn(person.wtn))
+                  : TEAM_DIRECTORY_EMPTY;
+                const phoneDisplay = directoryCellValue(formatPhoneDisplay(person.cellPhone));
+                const emailDisplay = directoryCellValue(personListEmail(person));
 
-      <DirectoryTable mobile={
+                return (
+                  <tr
+                    key={person.id}
+                    onClick={() => handleRowClick(person.id)}
+                    className={`cursor-pointer ${BOARD.rowHover} last:[&>td]:border-b-0`}
+                  >
+                    <td className={`${BOARD.td} pr-0 pl-1.5`} />
+                    <td className={`${BOARD.td} pr-1`} />
+                    <td className={BOARD.td}>
+                      <Link
+                        href={playersCoachesPersonPath(person.id)}
+                        onClick={stopRowNavigation}
+                        onMouseDown={stopRowNavigation}
+                        className="flex min-w-0 items-center gap-2.5 rounded-control outline-none hover:text-[var(--module-accent)] focus-visible:ring-2 focus-visible:ring-[var(--module-accent)]/40"
+                        aria-label={`Open workspace for ${displayName}`}
+                      >
+                        <PlayerAvatar
+                          photoUrl={person.photoUrl}
+                          initials={getInitials(person)}
+                          size={RECRUITING_TABLE_AVATAR_SIZE}
+                        />
+                        <div className="min-w-0">
+                          <p className={`min-w-0 truncate ${TEAM_DIRECTORY_NAME}`}>
+                            {displayName}
+                          </p>
+                          <p className={BOARD.hometown}>
+                            {hometown || TEAM_DIRECTORY_EMPTY}
+                          </p>
+                        </div>
+                      </Link>
+                    </td>
+                    <td className={BOARD.td}>
+                      <InlineEditCell
+                        label="Hometown"
+                        value={hometown ?? ""}
+                        displayValue={directoryCellValue(hometown)}
+                        emptyDisplay={TEAM_DIRECTORY_EMPTY}
+                        emphasis="directory"
+                        className="truncate !mx-0 !px-0 !py-0"
+                        editing={isEditing(person.id, "hometown")}
+                        error={isEditing(person.id, "hometown") ? fieldError : undefined}
+                        onRequestEdit={() => startEdit(person.id, "hometown")}
+                        onCancel={cancelEdit}
+                        onCommit={(raw, reason) =>
+                          handleCommit(person.id, "hometown", raw, reason)
+                        }
+                      />
+                    </td>
+                    <td className={BOARD.td}>
+                      {showPlayerMetrics ? (
+                        <InlineEditCell
+                          label="Class"
+                          value={
+                            person.classYear !== undefined ? String(person.classYear) : ""
+                          }
+                          displayValue={classDisplay}
+                          emptyDisplay={TEAM_DIRECTORY_EMPTY}
+                          type="number"
+                          editOn="click"
+                          className="!mx-0 !px-0 !py-0"
+                          editing={isEditing(person.id, "classYear")}
+                          error={isEditing(person.id, "classYear") ? fieldError : undefined}
+                          renderDisplay={
+                            <span className={BOARD.classValue}>{classDisplay}</span>
+                          }
+                          onRequestEdit={() => startEdit(person.id, "classYear")}
+                          onCancel={cancelEdit}
+                          onCommit={(raw, reason) =>
+                            handleCommit(person.id, "classYear", raw, reason)
+                          }
+                        />
+                      ) : (
+                        <span className={BOARD.classValue}>{TEAM_DIRECTORY_EMPTY}</span>
+                      )}
+                    </td>
+                    <td className={`${BOARD.td} ${BOARD.metric}`}>
+                      {showPlayerMetrics ? (
+                        <InlineEditCell
+                          label="UTR"
+                          value={person.utr !== undefined ? String(person.utr) : ""}
+                          displayValue={directoryCellValue(formatUtr(person.utr))}
+                          emptyDisplay={TEAM_DIRECTORY_EMPTY}
+                          type="number"
+                          step={0.01}
+                          align="right"
+                          editOn="click"
+                          emphasis="directory"
+                          className="!mx-0 !px-0 !py-0"
+                          editing={isEditing(person.id, "utr")}
+                          error={isEditing(person.id, "utr") ? fieldError : undefined}
+                          renderDisplay={<span className={BOARD.metric}>{utrDisplay}</span>}
+                          onRequestEdit={() => startEdit(person.id, "utr")}
+                          onCancel={cancelEdit}
+                          onCommit={(raw, reason) =>
+                            handleCommit(person.id, "utr", raw, reason)
+                          }
+                        />
+                      ) : (
+                        <span className={BOARD.metric}>{TEAM_DIRECTORY_EMPTY}</span>
+                      )}
+                    </td>
+                    <td className={`${BOARD.td} ${BOARD.metric}`}>
+                      {showPlayerMetrics ? (
+                        <InlineEditCell
+                          label="WTN"
+                          value={person.wtn !== undefined ? String(person.wtn) : ""}
+                          displayValue={directoryCellValue(formatWtn(person.wtn))}
+                          emptyDisplay={TEAM_DIRECTORY_EMPTY}
+                          type="number"
+                          step={0.01}
+                          align="right"
+                          editOn="click"
+                          emphasis="directory"
+                          className="!mx-0 !px-0 !py-0"
+                          editing={isEditing(person.id, "wtn")}
+                          error={isEditing(person.id, "wtn") ? fieldError : undefined}
+                          renderDisplay={<span className={BOARD.metric}>{wtnDisplay}</span>}
+                          onRequestEdit={() => startEdit(person.id, "wtn")}
+                          onCancel={cancelEdit}
+                          onCommit={(raw, reason) =>
+                            handleCommit(person.id, "wtn", raw, reason)
+                          }
+                        />
+                      ) : (
+                        <span className={BOARD.metric}>{TEAM_DIRECTORY_EMPTY}</span>
+                      )}
+                    </td>
+                    <td className={BOARD.td}>
+                      <span
+                        title={phoneDisplay === TEAM_DIRECTORY_EMPTY ? undefined : phoneDisplay}
+                        className={`block truncate text-[13px] leading-none font-normal text-text-secondary`}
+                      >
+                        {phoneDisplay}
+                      </span>
+                    </td>
+                    <td className={BOARD.td}>
+                      <span
+                        title={emailDisplay === TEAM_DIRECTORY_EMPTY ? undefined : emailDisplay}
+                        className={`block truncate text-[13px] leading-none font-normal text-text-secondary`}
+                      >
+                        {emailDisplay}
+                      </span>
+                    </td>
+                    <td
+                      className={BOARD.td}
+                      onClick={stopRowNavigation}
+                      onMouseDown={stopRowNavigation}
+                    >
+                      <div className="flex justify-center">
+                        <ContactActionSlots
+                          tel={hrefs.tel}
+                          sms={hrefs.sms}
+                          mailto={hrefs.mailto}
+                          size="compact"
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </section>
+        <div className="md:hidden">
           <ul className="divide-y divide-border/50">
             {sortedItems.map((person) => {
               const displayName = getDisplayName(person);
@@ -469,13 +749,13 @@ export default function PersonList({
               return (
                 <li key={person.id}>
                   <Link
-                    href={`/team/${person.id}`}
+                    href={playersCoachesPersonPath(person.id)}
                     className="flex items-center gap-3 px-4 py-4 transition-colors duration-150 active:bg-app-background"
                   >
                     <PlayerAvatar
                       photoUrl={person.photoUrl}
                       initials={getInitials(person)}
-                      size={40}
+                      size={RECRUITING_TABLE_AVATAR_SIZE}
                     />
                     <div className="min-w-0 flex-1">
                       <p className={TEAM_DIRECTORY_NAME}>{displayName}</p>
@@ -485,7 +765,9 @@ export default function PersonList({
                       {detailLine ? (
                         <p className={`mt-1 ${TEAM_DIRECTORY_META}`}>{detailLine}</p>
                       ) : (
-                        <p className={`mt-1 ${TEAM_DIRECTORY_META}`}>{TEAM_DIRECTORY_EMPTY}</p>
+                        <p className={`mt-1 ${TEAM_DIRECTORY_META}`}>
+                          {TEAM_DIRECTORY_EMPTY}
+                        </p>
                       )}
                     </div>
                   </Link>
@@ -493,179 +775,8 @@ export default function PersonList({
               );
             })}
           </ul>
-        }
-      >
-        <table
-          className="w-full table-fixed text-left text-sm"
-          style={{ minWidth: DIRECTORY_TABLE_WIDTH_PX }}
-          role="grid"
-          aria-label="Team list"
-        >
-          <colgroup>
-            {/* Sticky content-width edges; middle cols share remainder (BP-028E). */}
-            <col className={DIRECTORY_COL.name} />
-            <col />
-            <col />
-            <col />
-            <col />
-            <col />
-            <col className={DIRECTORY_COL.actions} />
-          </colgroup>
-          <thead>
-            <tr className={`border-b border-border bg-app-background/60 ${typeRole.tableHeader}`}>
-              {columns.map((column) => (
-                <SortableColumnHeader
-                  key={column.id}
-                  label={column.title}
-                  align={column.align}
-                  sortDirection={sort?.key === column.id ? sort.direction : null}
-                  onSort={() => toggleSort(column.id)}
-                  className={
-                    column.id === "name"
-                      ? stickyLeadingThClass
-                      : "whitespace-nowrap align-middle"
-                  }
-                />
-              ))}
-              <th
-                scope="col"
-                className={`px-3 py-3 text-center align-middle ${typeRole.tableHeader} ${stickyTrailingThClass}`}
-              >
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedItems.map((person) => {
-              const displayName = getDisplayName(person);
-              const roleDisplay = directoryCellValue(getPersonRoleDisplay(person));
-              const hometown = getHometown(person);
-              const hrefs = contactHrefs(person);
-              const coachDirectory = isCoachDirectoryPerson(person);
-              const showPlayerMetrics = !coachDirectory;
-              const classDisplay = showPlayerMetrics
-                ? directoryCellValue(person.classYear)
-                : TEAM_DIRECTORY_EMPTY;
-              const utrDisplay = showPlayerMetrics ? formatUtr(person.utr) : TEAM_DIRECTORY_EMPTY;
-              const wtnDisplay = showPlayerMetrics ? formatWtn(person.wtn) : TEAM_DIRECTORY_EMPTY;
-
-              return (
-                <tr
-                  key={person.id}
-                  onClick={() => handleRowClick(person.id)}
-                  className={`${stickyColumnRowClass} h-12 cursor-pointer border-b border-border/40 transition-colors duration-150 last:border-b-0 hover:bg-app-background`}
-                >
-                  <td className={`${cellPad} ${stickyLeadingTdClass}`}>
-                    <div className="flex h-8 min-w-0 items-center gap-2">
-                      <PlayerAvatar
-                        photoUrl={person.photoUrl}
-                        initials={getInitials(person)}
-                        size={32}
-                      />
-                      <span className={`min-w-0 truncate ${TEAM_DIRECTORY_NAME}`}>
-                        {displayName}
-                      </span>
-                    </div>
-                  </td>
-                  <td className={middleCell}>
-                    <span className={`block whitespace-nowrap ${TEAM_DIRECTORY_META}`}>
-                      {roleDisplay}
-                    </span>
-                  </td>
-                  <td className={middleCell}>
-                    <InlineEditCell
-                      label="Hometown"
-                      value={hometown ?? ""}
-                      displayValue={directoryCellValue(hometown)}
-                      emptyDisplay={TEAM_DIRECTORY_EMPTY}
-                      emphasis="directory"
-                      className="truncate"
-                      editing={isEditing(person.id, "hometown")}
-                      error={isEditing(person.id, "hometown") ? fieldError : undefined}
-                      onRequestEdit={() => startEdit(person.id, "hometown")}
-                      onCancel={cancelEdit}
-                      onCommit={(raw, reason) => handleCommit(person.id, "hometown", raw, reason)}
-                    />
-                  </td>
-                  <td className={`${middleCell} text-right`}>
-                    {showPlayerMetrics ? (
-                      <InlineEditCell
-                        label="Class"
-                        value={person.classYear !== undefined ? String(person.classYear) : ""}
-                        displayValue={classDisplay}
-                        emptyDisplay={TEAM_DIRECTORY_EMPTY}
-                        type="number"
-                        align="right"
-                        emphasis="directory"
-                        editing={isEditing(person.id, "classYear")}
-                        error={isEditing(person.id, "classYear") ? fieldError : undefined}
-                        onRequestEdit={() => startEdit(person.id, "classYear")}
-                        onCancel={cancelEdit}
-                        onCommit={(raw, reason) =>
-                          handleCommit(person.id, "classYear", raw, reason)
-                        }
-                      />
-                    ) : (
-                      <span className={TEAM_DIRECTORY_META}>{TEAM_DIRECTORY_EMPTY}</span>
-                    )}
-                  </td>
-                  <td className={`${middleCell} text-right`}>
-                    {showPlayerMetrics ? (
-                      <InlineEditCell
-                        label="UTR"
-                        value={person.utr !== undefined ? String(person.utr) : ""}
-                        displayValue={utrDisplay}
-                        emptyDisplay={TEAM_DIRECTORY_EMPTY}
-                        type="number"
-                        step={0.01}
-                        align="right"
-                        emphasis="directory"
-                        editing={isEditing(person.id, "utr")}
-                        error={isEditing(person.id, "utr") ? fieldError : undefined}
-                        onRequestEdit={() => startEdit(person.id, "utr")}
-                        onCancel={cancelEdit}
-                        onCommit={(raw, reason) => handleCommit(person.id, "utr", raw, reason)}
-                      />
-                    ) : (
-                      <span className={TEAM_DIRECTORY_META}>{TEAM_DIRECTORY_EMPTY}</span>
-                    )}
-                  </td>
-                  <td className={`${middleCell} text-right`}>
-                    {showPlayerMetrics ? (
-                      <InlineEditCell
-                        label="WTN"
-                        value={person.wtn !== undefined ? String(person.wtn) : ""}
-                        displayValue={wtnDisplay}
-                        emptyDisplay={TEAM_DIRECTORY_EMPTY}
-                        type="number"
-                        step={0.01}
-                        align="right"
-                        emphasis="directory"
-                        editing={isEditing(person.id, "wtn")}
-                        error={isEditing(person.id, "wtn") ? fieldError : undefined}
-                        onRequestEdit={() => startEdit(person.id, "wtn")}
-                        onCancel={cancelEdit}
-                        onCommit={(raw, reason) => handleCommit(person.id, "wtn", raw, reason)}
-                      />
-                    ) : (
-                      <span className={TEAM_DIRECTORY_META}>{TEAM_DIRECTORY_EMPTY}</span>
-                    )}
-                  </td>
-                  <td
-                    className={`${cellPad} ${stickyTrailingTdClass}`}
-                    onClick={stopRowNavigation}
-                    onMouseDown={stopRowNavigation}
-                  >
-                    <div className="flex w-full justify-center">
-                      <ContactActionSlots tel={hrefs.tel} sms={hrefs.sms} mailto={hrefs.mailto} />
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </DirectoryTable>
-    </div>
+        </div>
+      </div>
+    </RecruitingViewChrome>
   );
 }

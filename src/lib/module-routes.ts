@@ -1,7 +1,7 @@
-/** Player/coach directory module (formerly the Team directory). */
+/** Team module — player/coach directory and workspaces. */
 export const PLAYERS_COACHES_ROUTE = "/players-coaches";
 
-/** Team program shell — schedule, results, academics, etc. */
+/** Legacy Team overview shell (no longer in primary nav). */
 export const TEAM_ROUTE = "/team";
 
 export function playersCoachesPersonPath(personId: string): string {

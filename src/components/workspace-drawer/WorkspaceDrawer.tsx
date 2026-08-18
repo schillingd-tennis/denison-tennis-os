@@ -93,17 +93,19 @@ export default function WorkspaceDrawer({
           titleId={titleId}
         />
         <DrawerBody>{children}</DrawerBody>
-        <DrawerFooter>
-          {footer ?? (
-            <DrawerFooterActions
-              cancelLabel={cancelAction?.label ?? "Cancel"}
-              onCancel={handleCancel}
-              primaryLabel={primaryAction?.label}
-              onPrimary={handlePrimary}
-              primaryDisabled={primaryAction?.disabled}
-            />
-          )}
-        </DrawerFooter>
+        {footer === null ? null : (
+          <DrawerFooter>
+            {footer ?? (
+              <DrawerFooterActions
+                cancelLabel={cancelAction?.label ?? "Cancel"}
+                onCancel={handleCancel}
+                primaryLabel={primaryAction?.label}
+                onPrimary={handlePrimary}
+                primaryDisabled={primaryAction?.disabled}
+              />
+            )}
+          </DrawerFooter>
+        )}
       </div>
     </div>
   );

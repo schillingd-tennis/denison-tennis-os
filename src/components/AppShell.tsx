@@ -18,6 +18,7 @@ function moduleForPath(pathname: string) {
   if (pathname.startsWith("/team")) return "team";
   if (pathname.startsWith("/recruiting")) return "recruiting";
   if (pathname.startsWith("/operations")) return "operations";
+  if (pathname.startsWith("/fundraising")) return "fundraising";
   if (pathname.startsWith("/research")) return "research";
   if (pathname.startsWith("/knowledge")) return "knowledge";
   if (pathname.startsWith("/people")) return "people";

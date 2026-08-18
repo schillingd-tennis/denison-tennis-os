@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 
 import { moduleFieldClass, modulePrimaryButtonClass } from "@/components/module-theme";
 import { typeRole } from "@/components/typography";
@@ -18,6 +18,12 @@ import {
 
 const fieldClass = moduleFieldClass;
 const primaryButtonClass = modulePrimaryButtonClass;
+const secondaryButtonClass =
+  "inline-flex h-10 items-center justify-center rounded-control border border-border bg-surface px-4 text-sm font-semibold text-text-primary transition-colors duration-150 hover:bg-app-background disabled:cursor-not-allowed disabled:opacity-40";
+const cancelButtonClass =
+  "inline-flex h-10 items-center justify-center rounded-control border border-border px-4 text-sm font-medium text-text-primary transition-colors duration-150 hover:border-text-secondary/60 disabled:cursor-not-allowed disabled:opacity-40";
+
+export type AddPersonCreateIntent = "stay" | "open";
 
 const PLAYER_STATUS_OPTIONS: { value: PlayerStatus; label: string }[] = [
   { value: "active", label: "Active" },
@@ -38,7 +44,8 @@ export type AddPersonFlowProps = {
   description: string;
   submitLabel: string;
   /** Called with the new Person id after a successful create. */
-  onSuccess: (personId: string) => void;
+  onSuccess: (personId: string, intent?: AddPersonCreateIntent) => void;
+  onCancel?: () => void;
 };
 
 /**
@@ -51,6 +58,7 @@ export default function AddPersonFlow({
   description,
   submitLabel,
   onSuccess,
+  onCancel,
 }: AddPersonFlowProps) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -62,13 +70,61 @@ export default function AddPersonFlow({
   const [recruitClassYear, setRecruitClassYear] = useState("");
   const [error, setError] = useState<string | undefined>();
   const [saving, setSaving] = useState(false);
+  const [pendingIntent, setPendingIntent] = useState<AddPersonCreateIntent | null>(
+    null,
+  );
+  const submittingRef = useRef(false);
 
   const showPlayerFields = roleKey === ROLE_KEYS.player;
   const showCoachFields = roleKey === ROLE_KEYS.coach;
   const showRecruitFields = roleKey === ROLE_KEYS.recruit;
+  const recruitReady =
+    firstName.trim().length > 0 &&
+    lastName.trim().length > 0 &&
+    recruitClassYear.trim().length > 0;
+
+  async function submitRecruit(intent: AddPersonCreateIntent) {
+    if (submittingRef.current || saving) return;
+    setError(undefined);
+
+    const classYearTrimmed = recruitClassYear.trim();
+    if (!firstName.trim() || !lastName.trim() || !classYearTrimmed) {
+      setError("First name, last name, and class year are required.");
+      return;
+    }
+    const parsedRecruitClassYear = Number(classYearTrimmed);
+    if (!Number.isInteger(parsedRecruitClassYear)) {
+      setError("Recruit class year must be a whole number.");
+      return;
+    }
+
+    submittingRef.current = true;
+    setPendingIntent(intent);
+    setSaving(true);
+    try {
+      const result = await createRecruitAction({
+        firstName,
+        lastName,
+        recruitClassYear: parsedRecruitClassYear,
+      });
+      if (!result.success) {
+        setError(result.error);
+        return;
+      }
+      onSuccess(result.personId, intent);
+    } finally {
+      submittingRef.current = false;
+      setSaving(false);
+      setPendingIntent(null);
+    }
+  }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    if (showRecruitFields) {
+      await submitRecruit("open");
+      return;
+    }
     setError(undefined);
 
     let parsedClassYear: number | undefined;
@@ -84,24 +140,13 @@ export default function AddPersonFlow({
       }
     }
 
-    let parsedRecruitClassYear: number | undefined;
-    if (showRecruitFields) {
-      const classYearTrimmed = recruitClassYear.trim();
-      if (classYearTrimmed) {
-        const value = Number(classYearTrimmed);
-        if (!Number.isInteger(value)) {
-          setError("Recruit class year must be a whole number.");
-          return;
-        }
-        parsedRecruitClassYear = value;
-      }
-    }
-
     if (showCoachFields && !coachDesignation) {
       setError("Coach designation is required.");
       return;
     }
 
+    if (submittingRef.current || saving) return;
+    submittingRef.current = true;
     setSaving(true);
     try {
       const result =
@@ -112,17 +157,11 @@ export default function AddPersonFlow({
               classYear: parsedClassYear,
               playerStatus: playerStatus || undefined,
             })
-          : roleKey === ROLE_KEYS.coach
-            ? await createCoachAction({
-                firstName,
-                lastName,
-                title: coachDesignation as CoachDesignation,
-              })
-            : await createRecruitAction({
-                firstName,
-                lastName,
-                recruitClassYear: parsedRecruitClassYear,
-              });
+          : await createCoachAction({
+              firstName,
+              lastName,
+              title: coachDesignation as CoachDesignation,
+            });
 
       if (!result.success) {
         setError(result.error);
@@ -130,12 +169,16 @@ export default function AddPersonFlow({
       }
       onSuccess(result.personId);
     } finally {
+      submittingRef.current = false;
       setSaving(false);
     }
   }
 
   return (
-    <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+    <form
+      className={`flex flex-col gap-4 ${showRecruitFields ? "min-h-full" : ""}`}
+      onSubmit={handleSubmit}
+    >
       <p className={typeRole.metadata}>{description}</p>
 
       <label className="flex flex-col gap-1.5">
@@ -219,23 +262,52 @@ export default function AddPersonFlow({
 
       {showRecruitFields ? (
         <label className="flex flex-col gap-1.5">
-          <span className={typeRole.sectionLabel}>Recruit Class Year</span>
+          <span className={typeRole.sectionLabel}>Class Year</span>
           <input
             className={fieldClass}
             inputMode="numeric"
-            placeholder="Optional HS / recruiting class"
+            placeholder="HS / recruiting class"
             value={recruitClassYear}
             onChange={(event) => setRecruitClassYear(event.target.value)}
             autoComplete="off"
+            required
           />
         </label>
       ) : null}
 
       {error ? <p className="text-sm text-danger">{error}</p> : null}
 
-      <button type="submit" className={primaryButtonClass} disabled={saving}>
-        {saving ? "Creating…" : submitLabel}
-      </button>
+      {showRecruitFields ? (
+        <div className="mt-auto flex flex-wrap items-center justify-end gap-2 pt-2">
+          <button
+            type="button"
+            className={cancelButtonClass}
+            disabled={saving}
+            onClick={onCancel}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className={secondaryButtonClass}
+            disabled={saving || !recruitReady}
+            onClick={() => void submitRecruit("stay")}
+          >
+            {saving && pendingIntent === "stay" ? "Creating…" : "Create"}
+          </button>
+          <button
+            type="submit"
+            className={primaryButtonClass}
+            disabled={saving || !recruitReady}
+          >
+            {saving && pendingIntent === "open" ? "Creating…" : "Create and Open"}
+          </button>
+        </div>
+      ) : (
+        <button type="submit" className={primaryButtonClass} disabled={saving}>
+          {saving ? "Creating…" : submitLabel}
+        </button>
+      )}
     </form>
   );
 }

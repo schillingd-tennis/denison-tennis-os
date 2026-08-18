@@ -1,6 +1,6 @@
 "use client";
 
-import { GraduationCap, LayoutGrid, List, ListOrdered } from "lucide-react";
+import { BarChart3, GraduationCap, LayoutGrid, List, ListOrdered } from "lucide-react";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 
@@ -40,6 +40,7 @@ import {
 import RecruitCard from "./RecruitCard";
 import RecruitCommitView from "./RecruitCommitView";
 import RecruitList from "./RecruitList";
+import RecruitMetricsView from "./RecruitMetricsView";
 import RecruitRankView from "./RecruitRankView";
 import RecruitingFilterControl from "./RecruitingFilterControl";
 import RecruitingKpiRow from "./RecruitingKpiRow";
@@ -49,6 +50,7 @@ const RECRUITING_VIEW_OPTIONS = [
   { value: "list" as const, label: "List", icon: List },
   { value: "rank" as const, label: "Rank", icon: ListOrdered },
   { value: "commit" as const, label: "Commit", icon: GraduationCap },
+  { value: "metrics" as const, label: "Metrics", icon: BarChart3 },
 ];
 
 export default function RecruitingDirectory({
@@ -111,9 +113,13 @@ export default function RecruitingDirectory({
     writeStoredActiveRecruitingFilters(normalizeActiveRecruitingFilters(next, allowedIds));
   }
 
-  function handleCreated(personId: string) {
+  function handleCreated(personId: string, intent: "stay" | "open" = "stay") {
     closeDrawer();
-    router.push(`/recruiting/${personId}`);
+    if (intent === "open") {
+      router.push(`/recruiting/${personId}`);
+      return;
+    }
+    router.refresh();
   }
 
   function openAddRecruitDrawer() {
@@ -121,18 +127,16 @@ export default function RecruitingDirectory({
       id: "recruiting-add-recruit",
       title: "Add Recruit",
       subtitle: "Recruiting",
+      hideFooter: true,
       content: (
         <AddPersonFlow
           roleKey={ROLE_KEYS.recruit}
-          description="Creates a Person with role Recruit and a Recruit Profile. Required fields only — recruiting details can be edited after opening the record."
+          description="Creates a Person with role Recruit and a Recruit Profile. Required: first name, last name, and class year. More recruiting details can be edited after opening the record."
           submitLabel="Create Recruit"
+          onCancel={() => closeDrawer()}
           onSuccess={handleCreated}
         />
       ),
-      cancelAction: {
-        label: "Cancel",
-        onClick: () => closeDrawer(),
-      },
     });
   }
 
@@ -184,12 +188,13 @@ export default function RecruitingDirectory({
       </div>
 
       {/*
-        Shared content stacking context for Cards / List / Rank / Commit.
+        Shared content stacking context for Cards / List / Rank / Commit / Metrics.
         `isolate` + `z-0` traps descendant z-index (card z-10 links, sticky
         table headers) so the body-portaled filter menu always paints above.
       */}
       <div data-recruiting-content="" className="relative z-0 isolate">
-        {filtered.length === 0 && (view === "cards" || view === "list") ? (
+        {filtered.length === 0 &&
+        (view === "cards" || view === "list" || view === "metrics") ? (
           <EmptyState
             title="No recruits found"
             description="Try a different search term or filter."
@@ -219,6 +224,8 @@ export default function RecruitingDirectory({
             activeFilterIds={activeFilterIds}
             onCohortChange={setLiveRows}
           />
+        ) : view === "metrics" ? (
+          <RecruitMetricsView rows={filtered} />
         ) : (
           <RecruitList
             rows={filtered}

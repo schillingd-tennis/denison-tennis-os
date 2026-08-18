@@ -19,6 +19,11 @@ export type DrawerDescriptor = {
   content: ReactNode;
   primaryAction?: DrawerAction;
   cancelAction?: DrawerAction;
+  /**
+   * When true, the sticky Cancel/primary footer is omitted so the drawer
+   * content can own its own action row (Add Recruit).
+   */
+  hideFooter?: boolean;
   /** Called after the drawer finishes closing (optional). */
   onClose?: () => void;
 };

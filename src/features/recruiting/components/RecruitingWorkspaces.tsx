@@ -882,6 +882,16 @@ export function RecruitingAcademicsWorkspace() {
                 className="[&>span]:whitespace-pre-wrap [&>span]:break-normal"
               />
             </WorkspaceField>
+            <div style={{ gridColumn: "1 / -1" }}>
+              <WorkspaceField label="School Chosen">
+                <RecruitProfileField
+                  field="schoolChosen"
+                  label="School Chosen"
+                  type="text"
+                  align="left"
+                />
+              </WorkspaceField>
+            </div>
           </div>
         </section>
       </div>

@@ -28,6 +28,20 @@ export type TeamDirectoryColumnId =
   | "utr"
   | "wtn";
 
+/** List table only — Role omitted; contact columns added (found set unchanged). */
+export type TeamDirectoryListColumnId =
+  | "name"
+  | "hometown"
+  | "classYear"
+  | "utr"
+  | "wtn"
+  | "cellPhone"
+  | "email";
+
+function personListEmail(person: Person): string | undefined {
+  return person.personalEmail ?? person.denisonEmail;
+}
+
 type CompositeDirectoryColumn = {
   kind: "composite";
   id: "name" | "role" | "hometown";
@@ -192,6 +206,75 @@ export function buildTeamFoundSetColumns(): FoundSetColumn<Person>[] {
 
 /** Prebuilt table columns (stable reference for PersonList). */
 export const TEAM_DIRECTORY_TABLE_COLUMNS = buildTeamDirectoryTableColumns();
+
+/** List view table columns — sort metadata; found set keeps legacy composition. */
+export function buildTeamDirectoryListTableColumns(): ColumnDef<
+  Person,
+  TeamDirectoryListColumnId
+>[] {
+  return [
+    {
+      id: "name",
+      title: "Player / Coach",
+      sortable: true,
+      sortType: "text",
+      accessor: nameSortKey,
+      defaultSort: "asc",
+    },
+    {
+      id: "hometown",
+      title: "Hometown",
+      sortable: true,
+      sortType: "text",
+      accessor: (person) => getHometown(person),
+      defaultSort: "asc",
+    },
+    {
+      id: "classYear",
+      title: catalogColumnTitle({ kind: "field", fieldId: "classYear", titleOverride: "Class" }),
+      sortable: getPersonColumnDefinition("classYear")?.sortable ?? true,
+      sortType: catalogSortType("classYear"),
+      accessor: catalogFieldAccessor("classYear"),
+      defaultSort: "asc",
+    },
+    {
+      id: "utr",
+      title: catalogColumnTitle({ kind: "field", fieldId: "utr" }),
+      sortable: getPersonColumnDefinition("utr")?.sortable ?? true,
+      sortType: catalogSortType("utr"),
+      align: "right",
+      accessor: catalogFieldAccessor("utr"),
+      defaultSort: "desc",
+    },
+    {
+      id: "wtn",
+      title: catalogColumnTitle({ kind: "field", fieldId: "wtn" }),
+      sortable: getPersonColumnDefinition("wtn")?.sortable ?? true,
+      sortType: catalogSortType("wtn"),
+      align: "right",
+      accessor: catalogFieldAccessor("wtn"),
+      defaultSort: "desc",
+    },
+    {
+      id: "cellPhone",
+      title: getPersonColumnDefinition("cellPhone")?.title ?? "Cell #",
+      sortable: getPersonColumnDefinition("cellPhone")?.sortable ?? true,
+      sortType: "text",
+      accessor: (person) => person.cellPhone,
+      defaultSort: "asc",
+    },
+    {
+      id: "email",
+      title: "Email",
+      sortable: true,
+      sortType: "text",
+      accessor: (person) => personListEmail(person),
+      defaultSort: "asc",
+    },
+  ];
+}
+
+export const TEAM_DIRECTORY_LIST_TABLE_COLUMNS = buildTeamDirectoryListTableColumns();
 
 /** Prebuilt found-set columns (stable reference for publish / export). */
 export const TEAM_FOUND_SET_COLUMNS = buildTeamFoundSetColumns();

@@ -50,6 +50,8 @@ export type PersonWorkspaceGroupId =
   | "contact.phone"
   | "contact.preferences"
   | "contact.notes"
+  | "contact.identity"
+  | "contact.homeAddress"
   | "family.notes";
 
 export type PersonFieldEnumOption<T extends string = string> = {
@@ -155,6 +157,7 @@ export const PERSON_FIELD_CATALOG: readonly PersonFieldDefinition[] = [
     label: "Role",
     section: "identity",
     type: "relationship",
+    required: true,
     editable: true,
     sortable: true,
     filterable: true,
@@ -166,6 +169,7 @@ export const PERSON_FIELD_CATALOG: readonly PersonFieldDefinition[] = [
     label: "Status",
     section: "identity",
     type: "relationship",
+    required: true,
     editable: true,
     sortable: true,
     filterable: true,
@@ -384,6 +388,9 @@ export const PERSON_FIELD_CATALOG: readonly PersonFieldDefinition[] = [
     editable: true,
     exportable: true,
     dbColumn: "address_line1",
+    workspaces: ["contact"],
+    workspaceGroup: "contact.homeAddress",
+    workspaceOrder: 10,
   },
   {
     key: "addressLine2",
@@ -405,6 +412,9 @@ export const PERSON_FIELD_CATALOG: readonly PersonFieldDefinition[] = [
     exportable: true,
     searchable: true,
     dbColumn: "city",
+    workspaces: ["contact"],
+    workspaceGroup: "contact.homeAddress",
+    workspaceOrder: 20,
   },
   {
     key: "state",
@@ -417,6 +427,9 @@ export const PERSON_FIELD_CATALOG: readonly PersonFieldDefinition[] = [
     exportable: true,
     searchable: true,
     dbColumn: "state",
+    workspaces: ["contact"],
+    workspaceGroup: "contact.homeAddress",
+    workspaceOrder: 30,
   },
   {
     key: "zipCode",
@@ -428,6 +441,9 @@ export const PERSON_FIELD_CATALOG: readonly PersonFieldDefinition[] = [
     filterable: true,
     exportable: true,
     dbColumn: "zip_code",
+    workspaces: ["contact"],
+    workspaceGroup: "contact.homeAddress",
+    workspaceOrder: 40,
   },
   {
     key: "country",
@@ -523,6 +539,9 @@ export const PERSON_FIELD_CATALOG: readonly PersonFieldDefinition[] = [
     searchable: true,
     dbColumn: "high_school",
     description: "Origin high school. Lives on Person for all roles (BP-043C).",
+    workspaces: ["contact"],
+    workspaceGroup: "contact.identity",
+    workspaceOrder: 10,
   },
 
   // Tennis Information

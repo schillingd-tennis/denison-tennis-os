@@ -116,13 +116,39 @@ export const TEAM_PHASE1_FILTER_IDS = [
 
 export type TeamPhase1FilterId = (typeof TEAM_PHASE1_FILTER_IDS)[number];
 
-export type PeopleToolbarFilterId = typeof PEOPLE_FILTER_CLEAR_ID | TeamPhase1FilterId;
+/** Compact Rank-style toolbar facets: Status + Role. Includes Former (existing status). */
+export const PEOPLE_TOOLBAR_FILTER_IDS = [
+  STATUS_KEYS.current,
+  STATUS_KEYS.former,
+  "players",
+  "coaches",
+] as const;
+
+export type PeopleToolbarFacetId = (typeof PEOPLE_TOOLBAR_FILTER_IDS)[number];
+
+export type PeopleToolbarFilterId = typeof PEOPLE_FILTER_CLEAR_ID | PeopleToolbarFacetId;
+
+export const PEOPLE_VISIBLE_FILTER_FACETS: readonly { category: string; label: string }[] = [
+  { category: "status", label: "Status" },
+  { category: "role", label: "Role" },
+];
 
 export const DEFAULT_ACTIVE_PEOPLE_FILTERS: string[] = [STATUS_KEYS.current];
 
 export const PEOPLE_FILTER_STORAGE_KEY = "denison-tennis-os:people-filter";
 
-const TEAM_PHASE1_ID_SET = new Set<string>(TEAM_PHASE1_FILTER_IDS);
+const PEOPLE_TOOLBAR_ID_SET = new Set<string>(PEOPLE_TOOLBAR_FILTER_IDS);
+
+export function peopleToolbarFilterIdsForCategory(category: string): string[] {
+  return PEOPLE_FILTER_DEFINITIONS.filter(
+    (definition) =>
+      definition.category === category && PEOPLE_TOOLBAR_ID_SET.has(definition.id),
+  ).map((definition) => definition.id);
+}
+
+export function peopleFiltersAreAll(activeIds: readonly string[]): boolean {
+  return isAllActive(activeIds);
+}
 
 /** Toolbar options derived from filter definitions (plus All). */
 export function getTeamPhase1FilterOptions(
@@ -148,14 +174,14 @@ export function normalizeActivePeopleFilters(raw: unknown): string[] {
   if (typeof raw === "string") {
     if (raw === "players") return [STATUS_KEYS.current];
     if (raw === "all") return [];
-    if (TEAM_PHASE1_ID_SET.has(raw)) return [raw];
+    if (PEOPLE_TOOLBAR_ID_SET.has(raw)) return [raw];
     return [...DEFAULT_ACTIVE_PEOPLE_FILTERS];
   }
 
   if (!Array.isArray(raw)) return [...DEFAULT_ACTIVE_PEOPLE_FILTERS];
 
   const next = raw.filter(
-    (id): id is string => typeof id === "string" && TEAM_PHASE1_ID_SET.has(id),
+    (id): id is string => typeof id === "string" && PEOPLE_TOOLBAR_ID_SET.has(id),
   );
 
   return [...new Set(next)];
@@ -207,9 +233,41 @@ export function getPeopleFilterVisualSelection(
   activeIds: readonly string[],
 ): PeopleToolbarFilterId[] {
   if (isAllActive(activeIds)) return [PEOPLE_FILTER_CLEAR_ID];
-  return activeIds.filter((id): id is TeamPhase1FilterId =>
-    TEAM_PHASE1_ID_SET.has(id),
+  return activeIds.filter((id): id is PeopleToolbarFacetId =>
+    PEOPLE_TOOLBAR_ID_SET.has(id),
   );
+}
+
+/** List/Rank-style context subtitle under the Players / Coaches section title. */
+export function peopleDirectoryContextLabel(
+  activeIds: readonly string[],
+): string {
+  if (isAllActive(activeIds)) return "All Members";
+
+  const hasCurrent = activeIds.includes(STATUS_KEYS.current);
+  const hasFormer = activeIds.includes(STATUS_KEYS.former);
+  const hasPlayers = activeIds.includes("players");
+  const hasCoaches = activeIds.includes("coaches");
+
+  const statusBits = [
+    hasCurrent ? "Current" : null,
+    hasFormer ? "Former" : null,
+  ].filter((part): part is string => Boolean(part));
+  const status = statusBits.join(" & ");
+
+  const role =
+    hasPlayers && hasCoaches
+      ? "Players & Coaches"
+      : hasPlayers
+        ? "Players"
+        : hasCoaches
+          ? "Coaches"
+          : "Members";
+
+  if (!hasPlayers && !hasCoaches) {
+    return status ? `${status} Members` : "Members";
+  }
+  return status ? `${status} ${role}` : role;
 }
 
 /**

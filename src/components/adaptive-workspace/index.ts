@@ -8,6 +8,7 @@
 export { default as AdaptiveWorkspace, AdaptiveWorkspacePlaceholder } from "./AdaptiveWorkspace";
 export { default as AdaptiveWorkspaceHeader } from "./AdaptiveWorkspaceHeader";
 export {
+  WorkspaceAccentHeading,
   WorkspaceContent,
   WorkspaceField,
   WorkspaceFieldGrid,

@@ -30,6 +30,8 @@ export async function updatePersonAction(id: string, patch: PersonWritePatch): P
 
   try {
     const person = await updatePerson(id, patch);
+    revalidatePath(`/players-coaches/${id}`);
+    revalidatePath("/players-coaches");
     revalidatePath(`/team/${id}`);
     revalidatePath("/team");
     revalidatePath(`/recruiting/${id}`);

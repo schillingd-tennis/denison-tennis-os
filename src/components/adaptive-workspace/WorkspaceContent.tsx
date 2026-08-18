@@ -58,6 +58,19 @@ export function WorkspaceSection({
   );
 }
 
+/** Recruit Personal Info / Academics section title — accent label + vertical mark. */
+export function WorkspaceAccentHeading({ children }: { children: ReactNode }) {
+  return (
+    <h3 className="flex items-center gap-1.5 text-[13px] font-semibold leading-none text-[var(--module-accent)]">
+      <span
+        className="inline-block h-4 w-[3px] shrink-0 rounded-[1px] bg-[var(--module-accent)]"
+        aria-hidden
+      />
+      {children}
+    </h3>
+  );
+}
+
 export function WorkspaceSplit({
   left,
   right,

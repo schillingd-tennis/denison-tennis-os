@@ -3,7 +3,7 @@
  * Separate keys from Team so Back to Recruiting does not share Team search/view.
  */
 
-export type RecruitingViewMode = "cards" | "list" | "rank" | "commit";
+export type RecruitingViewMode = "cards" | "list" | "rank" | "commit" | "metrics";
 
 const QUERY_KEY = "denison-tennis-os:recruiting-directory-query";
 const VIEW_KEY = "denison-tennis-os:recruiting-directory-view";
@@ -48,7 +48,15 @@ export function readStoredRecruitingDirectoryView(): RecruitingViewMode {
   if (typeof window === "undefined") return "list";
   try {
     const raw = window.sessionStorage.getItem(VIEW_KEY);
-    if (raw === "cards" || raw === "list" || raw === "rank" || raw === "commit") return raw;
+    if (
+      raw === "cards" ||
+      raw === "list" ||
+      raw === "rank" ||
+      raw === "commit" ||
+      raw === "metrics"
+    ) {
+      return raw;
+    }
     return "list";
   } catch {
     return "list";

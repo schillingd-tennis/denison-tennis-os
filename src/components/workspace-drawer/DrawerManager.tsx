@@ -137,7 +137,9 @@ export function DrawerManagerProvider({ children }: { children: ReactNode }) {
         title={descriptor?.title ?? ""}
         subtitle={descriptor?.subtitle}
         primaryAction={
-          descriptor?.primaryAction
+          descriptor?.hideFooter
+            ? undefined
+            : descriptor?.primaryAction
             ? {
                 ...descriptor.primaryAction,
                 onClick: () => {
@@ -148,7 +150,7 @@ export function DrawerManagerProvider({ children }: { children: ReactNode }) {
             : undefined
         }
         cancelAction={
-          descriptor
+          descriptor && !descriptor.hideFooter
             ? {
                 label: descriptor.cancelAction?.label ?? "Cancel",
                 onClick: () => {
@@ -158,6 +160,7 @@ export function DrawerManagerProvider({ children }: { children: ReactNode }) {
               }
             : undefined
         }
+        footer={descriptor?.hideFooter ? null : undefined}
       >
         {descriptor?.content}
       </WorkspaceDrawer>

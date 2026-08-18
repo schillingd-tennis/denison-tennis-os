@@ -2,7 +2,10 @@
 
 import type { ReactNode } from "react";
 
-import { typeRole } from "@/components/typography";
+import {
+  WorkspaceAccentHeading,
+  WorkspaceField,
+} from "@/components/adaptive-workspace";
 import {
   FieldRenderer,
   PersonFieldSession,
@@ -15,11 +18,8 @@ import {
 import type { Person } from "@/features/people/types";
 
 /**
- * BP-036F / BP-036G / BP-037 / BP-038B — Travel Adaptive Workspace body.
- *
- * Layout matches Tennis Performance label/value rows — no new design patterns.
- * Field membership comes from the Field Catalog (`workspaces: ["travel"]`).
- * Section titles remain view composition (not field metadata).
+ * Travel Adaptive Workspace body.
+ * Field membership unchanged; section chrome matches Recruit Personal Info.
  */
 
 const TRAVEL_WORKSPACE_SECTIONS: readonly {
@@ -34,33 +34,14 @@ const TRAVEL_WORKSPACE_SECTIONS: readonly {
 
 const TRAVEL_FIELDS = getPersonFieldKeysForWorkspace("travel");
 
-function FieldRow({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
+function PersonalInfoFieldGrid({ children }: { children: ReactNode }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 border-b border-border/60 py-2.5 last:border-b-0">
-      <dt className={typeRole.sectionLabel}>{label}</dt>
-      <dd className="min-w-0 max-w-[60%] text-right">{children}</dd>
-    </div>
-  );
-}
-
-function FieldSection({
-  title,
-  children,
-}: {
-  title: string;
-  children: ReactNode;
-}) {
-  return (
-    <section aria-label={title}>
-      <h3 className={typeRole.sectionTitle}>{title}</h3>
-      <dl className="mt-3 max-w-xl">{children}</dl>
-    </section>
+    <dl
+      className="mt-[5px] grid gap-x-6 gap-y-[7px]"
+      style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}
+    >
+      {children}
+    </dl>
   );
 }
 
@@ -80,18 +61,34 @@ export default function TravelWorkspace({
       runSave={runSave}
       fields={TRAVEL_FIELDS}
     >
-      <div className="space-y-6">
-        {TRAVEL_WORKSPACE_SECTIONS.map((section) => {
+      <div className="space-y-[14px]">
+        {TRAVEL_WORKSPACE_SECTIONS.map((section, index) => {
           const fields = getPersonFieldsForWorkspace("travel", section.group);
           if (fields.length === 0) return null;
-          return (
-            <FieldSection key={section.group} title={section.title}>
-              {fields.map((field) => (
-                <FieldRow key={field.key} label={field.label}>
-                  <FieldRenderer field={field.key} />
-                </FieldRow>
-              ))}
-            </FieldSection>
+          const block = (
+            <section aria-label={section.title}>
+              <WorkspaceAccentHeading>{section.title}</WorkspaceAccentHeading>
+              <PersonalInfoFieldGrid>
+                {fields.map((field) => (
+                  <WorkspaceField key={field.key} label={field.label}>
+                    <FieldRenderer
+                      field={field.key}
+                      align="left"
+                      editOn="click"
+                      emphasis="workspace"
+                      density="compact"
+                    />
+                  </WorkspaceField>
+                ))}
+              </PersonalInfoFieldGrid>
+            </section>
+          );
+          return index === 0 ? (
+            <div key={section.group}>{block}</div>
+          ) : (
+            <div key={section.group} className="border-t border-border/50 pt-[14px]">
+              {block}
+            </div>
           );
         })}
       </div>

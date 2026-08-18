@@ -1,9 +1,11 @@
 "use client";
 
+import { filterChipIdleClass, filterChipSelectedClass } from "./FilterTrigger";
+
 /**
  * Multi-select filter chips for faceted toolbars (BP-024G).
  * Each chip toggles independently — not a radio / segmented exclusive group.
- * Visual track matches the toolbar language (quiet raised active surface).
+ * Selected / idle color language comes from FilterTrigger (OS-wide).
  */
 
 export type FilterChipOption<T extends string> = {
@@ -56,11 +58,9 @@ export default function FilterChipGroup<T extends string>({
             data-filter-chip={option.value}
             data-active={active ? "true" : "false"}
             className={[
-              "inline-flex h-full min-w-0 items-center justify-center gap-1.5 rounded-[8px] px-3.5 text-[13px] font-medium transition-[color,background-color,box-shadow] duration-150",
+              "inline-flex h-full min-w-0 items-center justify-center gap-1.5 rounded-[8px] px-3.5 text-[13px] transition-[color,background-color,box-shadow] duration-150",
               equalWidth ? "w-full" : "",
-              active
-                ? "bg-surface text-text-primary shadow-[0_1px_2px_rgba(17,24,39,0.08),0_0_0_1px_rgba(17,24,39,0.04)]"
-                : "text-text-secondary hover:text-text-primary",
+              active ? filterChipSelectedClass : filterChipIdleClass,
             ]
               .filter(Boolean)
               .join(" ")}
