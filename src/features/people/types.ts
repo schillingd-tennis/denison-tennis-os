@@ -15,8 +15,8 @@ import type { LookupRef } from "@/features/lookups/types";
 export type DominantHand = "right" | "left";
 export type PlayerStatus = "active" | "injured" | "inactive" | "graduated";
 export type ContactMethod = "phone" | "text" | "email";
-/** TennisRecruiting.net star rating (BP-043C). */
-export type TrnStarRating = 3 | 4 | 5;
+/** TennisRecruiting.net star rating; 6 represents Blue Chip. */
+export type TrnStarRating = 1 | 2 | 3 | 4 | 5 | 6;
 
 /**
  * Coach designations stored on production_people.title (Team Role column).
@@ -114,6 +114,7 @@ export type Person = {
   trnStarRating?: TrnStarRating;
   trnUrl?: string;
   utrUrl?: string;
+  wtnUrl?: string;
   /** UTR match volume. Analytics input later; not Reliability. */
   utrMatchesPlayed?: number;
   videoUrl?: string;

@@ -63,6 +63,7 @@ export type ProductionPersonRow = {
   trn_star_rating: number | null;
   trn_url: string | null;
   utr_url: string | null;
+  wtn_url: string | null;
   utr_matches_played: number | null;
   video_url: string | null;
   high_school: string | null;
@@ -154,6 +155,7 @@ export function rowToPerson(row: ProductionPersonRow): Person {
     trnStarRating: undefinedIfNull(row.trn_star_rating) as Person["trnStarRating"],
     trnUrl: undefinedIfNull(row.trn_url),
     utrUrl: undefinedIfNull(row.utr_url),
+    wtnUrl: undefinedIfNull(row.wtn_url),
     utrMatchesPlayed: undefinedIfNull(row.utr_matches_played),
     videoUrl: undefinedIfNull(row.video_url),
     highSchool: undefinedIfNull(row.high_school),

@@ -2,14 +2,22 @@
 
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
-import { ClipboardList, Megaphone, NotebookPen, type LucideIcon } from "lucide-react";
+import {
+  Activity,
+  ArrowUpRight,
+  Gauge,
+  Globe,
+  Link2,
+  ListOrdered,
+  Medal,
+  Star,
+  type LucideIcon,
+} from "lucide-react";
 
 import {
   WorkspaceField,
-  WorkspaceFieldGrid,
   WorkspaceMutedNote,
   WorkspaceReadOnlyValue,
-  WorkspaceSection,
   WorkspaceStack,
 } from "@/components/adaptive-workspace";
 import { InlineEditCell } from "@/components/inline-edit";
@@ -26,10 +34,11 @@ import {
 import { getPersonField } from "@/features/people/fieldCatalog";
 import type { Person } from "@/features/people/types";
 import { getHometown, parseHometown } from "@/features/people/utils";
-import { EMPTY_VALUE } from "@/lib/formatting";
+import { EMPTY_VALUE, formatUtr, formatWtn } from "@/lib/formatting";
 
 import type { RecruitAnalyticsResult } from "../analytics/types";
 import type { RecruitProfile } from "../types";
+import { BlueChipRatingIcon, RecruitStarRatingDisplay } from "./RecruitRatingDisplay";
 import RecruitStatusBadge from "./RecruitStatusBadge";
 import {
   RecruitProfileField,
@@ -238,52 +247,449 @@ function CoachNotesCallout() {
   );
 }
 
-function PersonSourceLinkField({
-  field,
-  linkLabel,
+const rankingsTileTone = {
+  crimson: {
+    card: "border-[var(--module-accent)]/15 bg-[var(--module-tint)]/70",
+    icon: "bg-[var(--module-accent)]/10 text-[var(--module-accent)]",
+    value: "text-[var(--module-accent)]",
+  },
+  info: {
+    card: "border-info/15 bg-info/[0.06]",
+    icon: "bg-info/10 text-info",
+    value: "text-info",
+  },
+  success: {
+    card: "border-success/15 bg-success/[0.06]",
+    icon: "bg-success/10 text-success",
+    value: "text-success",
+  },
+  warning: {
+    card: "border-warning/20 bg-warning/[0.09]",
+    icon: "bg-warning/15 text-warning",
+    value: "text-warning",
+  },
+  muted: {
+    card: "border-border/70 bg-app-background/60",
+    icon: "bg-black/[0.04] text-text-secondary",
+    value: "text-text-primary",
+  },
+} as const;
+
+type RankingsTileTone = keyof typeof rankingsTileTone;
+
+const rankingsInlineInputClass =
+  "w-full min-w-0 rounded-control border border-[var(--module-accent)] bg-surface px-2 py-1.5 text-sm text-text-primary shadow-sm focus:outline-none focus:ring-1 focus:ring-[var(--module-accent)]";
+
+function RankingsSectionHeading({ children }: { children: string }) {
+  return (
+    <h3 className="flex items-center gap-1.5 text-[13px] font-semibold leading-none text-[var(--module-accent)]">
+      <span
+        className="inline-block h-4 w-[3px] shrink-0 rounded-[1px] bg-[var(--module-accent)]"
+        aria-hidden
+      />
+      {children}
+    </h3>
+  );
+}
+
+function RankingsSummaryTile({
+  label,
+  icon: Icon,
+  tone,
+  children,
 }: {
-  field: "trnUrl" | "utrUrl";
-  linkLabel: string;
+  label: string;
+  icon: LucideIcon;
+  tone: RankingsTileTone;
+  children: ReactNode;
+}) {
+  const styles = rankingsTileTone[tone];
+  return (
+    <div
+      className={`flex min-h-[84px] min-w-0 items-center justify-between gap-3 rounded-control border px-3 py-2.5 ${styles.card}`}
+    >
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] font-medium tracking-wide text-text-secondary uppercase">{label}</p>
+        <div className="mt-2 min-w-0">{children}</div>
+      </div>
+      <span
+        className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${styles.icon}`}
+      >
+        <Icon className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+      </span>
+    </div>
+  );
+}
+
+function RankingsTileField({
+  field,
+  label,
+  displayValue,
+  tone,
+  icon,
+  step,
+  renderValue,
+}: {
+  field: "utr" | "wtn" | "trnRank" | "trnStarRating";
+  label: string;
+  displayValue: string;
+  tone: RankingsTileTone;
+  icon: LucideIcon;
+  step?: number;
+  renderValue?: ReactNode;
 }) {
   const session = usePersonFieldSession();
   const def = getPersonField(field);
   if (!def) return null;
 
   const raw = session.person[field];
-  const href = typeof raw === "string" && raw.trim() ? raw.trim() : "";
+  return (
+    <RankingsSummaryTile label={label} icon={icon} tone={tone}>
+      <InlineEditCell
+        label={def.label}
+        type={toInlineFieldType(def)}
+        options={toInlineOptions(def)}
+        step={step}
+        value={toEditString(raw)}
+        displayValue={displayValue}
+        align="left"
+        editOn="click"
+        emphasis="workspace"
+        density="compact"
+        editing={session.isEditing(field)}
+        disabled={!isFieldEditable(def)}
+        error={session.errorFor(field)}
+        onRequestEdit={() => session.startEdit(field)}
+        onCancel={session.cancelEdit}
+        onCommit={(nextRaw, reason) => session.commit(field, nextRaw, reason)}
+        className="!mx-0 !px-0"
+        renderDisplay={
+          renderValue ?? (
+            <span
+              className={`block truncate text-[24px] leading-none font-semibold tabular-nums ${
+                displayValue === EMPTY_VALUE ? typeRole.metadataEmpty : rankingsTileTone[tone].value
+              }`}
+            >
+              {displayValue}
+            </span>
+          )
+        }
+      />
+    </RankingsSummaryTile>
+  );
+}
+
+function StarRatingValue({ rating }: { rating: Person["trnStarRating"] | undefined }) {
+  return (
+    <div className="flex min-h-[24px] items-center">
+      <RecruitStarRatingDisplay
+        rating={rating}
+        size="md"
+        showBlueChipLabel
+        emptyLabel={EMPTY_VALUE}
+      />
+    </div>
+  );
+}
+
+function RankingsStarTile() {
+  const session = usePersonFieldSession();
+  const [open, setOpen] = useState(false);
 
   return (
-    <InlineEditCell
-      label={def.label}
-      type={toInlineFieldType(def)}
-      options={toInlineOptions(def)}
-      value={toEditString(raw)}
-      displayValue={href ? linkLabel : undefined}
-      align="left"
-      editOn="click"
-      emphasis="workspace"
-      density="compact"
-      editing={session.isEditing(field)}
-      disabled={!isFieldEditable(def)}
-      error={session.errorFor(field)}
-      onRequestEdit={() => session.startEdit(field)}
-      onCancel={session.cancelEdit}
-      onCommit={(nextRaw, reason) => session.commit(field, nextRaw, reason)}
-      renderDisplay={
-        href ? (
+    <RankingsSummaryTile label="Star Rating" icon={Star} tone="warning">
+      <div className="relative">
+        <button
+          type="button"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            session.startEdit("trnStarRating");
+            setOpen((value) => !value);
+          }}
+          className="-mx-1 rounded-control px-1 py-0.5 text-left"
+        >
+          <StarRatingValue rating={session.person.trnStarRating} />
+        </button>
+        {open ? (
+          <div className="absolute left-0 top-full z-10 mt-2 w-44 rounded-control border border-border bg-surface p-1.5 shadow-lg">
+            <button
+              type="button"
+              onClick={async () => {
+                await session.commit("trnStarRating", "", "select");
+                setOpen(false);
+              }}
+              className="flex w-full items-center rounded-control px-2 py-1.5 text-left text-sm text-text-primary hover:bg-app-background"
+            >
+              No Rating
+            </button>
+            {([1, 2, 3, 4, 5] as const).map((value) => (
+              <button
+                key={value}
+                type="button"
+                onClick={async () => {
+                  await session.commit("trnStarRating", String(value), "select");
+                  setOpen(false);
+                }}
+                className="flex w-full items-center gap-1 rounded-control px-2 py-1.5 hover:bg-app-background"
+              >
+                <RecruitStarRatingDisplay rating={value} size="sm" emptyLabel={null} />
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={async () => {
+                await session.commit("trnStarRating", "6", "select");
+                setOpen(false);
+              }}
+              className="flex w-full items-center gap-2 rounded-control px-2 py-1.5 hover:bg-app-background"
+            >
+              <BlueChipRatingIcon size="sm" />
+              <span className="text-sm font-medium text-text-primary">Blue Chip</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                session.cancelEdit();
+                setOpen(false);
+              }}
+              className="mt-1 flex w-full items-center justify-end text-xs font-medium text-text-secondary hover:text-text-primary"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : null}
+      </div>
+    </RankingsSummaryTile>
+  );
+}
+
+function RankingsSummaryCards() {
+  const session = usePersonFieldSession();
+  const trnRankDisplay =
+    session.person.trnRank !== undefined ? `#${session.person.trnRank}` : EMPTY_VALUE;
+
+  return (
+    <div className="mt-[5px] grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <RankingsTileField
+        field="utr"
+        label="UTR"
+        displayValue={formatUtr(session.person.utr)}
+        tone="crimson"
+        icon={Gauge}
+        step={0.01}
+      />
+      <RankingsTileField
+        field="wtn"
+        label="WTN"
+        displayValue={formatWtn(session.person.wtn)}
+        tone="info"
+        icon={Globe}
+        step={0.01}
+      />
+      <RankingsTileField
+        field="trnRank"
+        label="TRN Rank"
+        displayValue={trnRankDisplay}
+        tone="success"
+        icon={ListOrdered}
+        step={1}
+      />
+      <RankingsStarTile />
+    </div>
+  );
+}
+
+function RankingsLinkRow({
+  title,
+  sourceLabel,
+  indicator,
+  action,
+  children,
+}: {
+  title: string;
+  sourceLabel: string;
+  indicator: ReactNode;
+  action: ReactNode;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-3 py-2.5">
+      <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-black/[0.04] text-text-secondary">
+        {indicator}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium text-text-primary">{title}</p>
+        <p className="mt-0.5 text-xs text-text-secondary">{sourceLabel}</p>
+        {children}
+      </div>
+      <div className="shrink-0">{action}</div>
+    </div>
+  );
+}
+
+function RankingsExternalLinkRow({
+  field,
+  title,
+  sourceLabel,
+  indicatorIcon: IndicatorIcon,
+}: {
+  field: "utrUrl" | "wtnUrl" | "trnUrl";
+  title: string;
+  sourceLabel: string;
+  indicatorIcon: LucideIcon;
+}) {
+  const session = usePersonFieldSession();
+  const [draft, setDraft] = useState("");
+  const def = getPersonField(field);
+  if (!def) return null;
+
+  const raw = session.person[field];
+  const href = typeof raw === "string" && raw.trim() ? raw.trim() : "";
+  const editing = session.isEditing(field);
+  const displayUrl = href
+    ? (() => {
+        try {
+          const parsed = new URL(href);
+          return `${parsed.hostname}${parsed.pathname === "/" ? "" : parsed.pathname}`;
+        } catch {
+          return href;
+        }
+      })()
+    : "No profile URL";
+
+  return (
+    <RankingsLinkRow
+      title={title}
+      sourceLabel={sourceLabel}
+      indicator={<IndicatorIcon className="h-4 w-4" strokeWidth={1.75} aria-hidden />}
+      action={
+        editing ? (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={async () => {
+                await session.commit(field, draft, "enter");
+              }}
+              className="rounded-control border border-border/70 bg-surface px-2.5 py-1 text-xs font-medium text-text-primary hover:bg-app-background"
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              onClick={() => session.cancelEdit()}
+              className="rounded-control px-2 py-1 text-xs font-medium text-text-secondary hover:text-text-primary"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : href ? (
           <a
             href={href}
             target="_blank"
             rel="noreferrer"
-            onClick={(event) => event.stopPropagation()}
-            onPointerDown={(event) => event.stopPropagation()}
-            className={`${typeRole.workspaceFieldValue} text-[var(--module-accent)] hover:underline`}
+            className="inline-flex items-center gap-1 rounded-control border border-border/70 bg-surface px-2.5 py-1 text-xs font-medium text-text-primary transition-colors hover:bg-app-background"
           >
-            {linkLabel}
+            Open Profile
+            <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
           </a>
-        ) : undefined
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setDraft("");
+              session.startEdit(field);
+            }}
+            className="rounded-control px-2 py-1 text-xs font-medium text-[var(--module-accent)] hover:bg-[var(--module-tint)]"
+          >
+            + Add URL
+          </button>
+        )
       }
+    >
+      {editing ? (
+        <div className="mt-1.5 flex items-center gap-2">
+          <input
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            aria-label={def.label}
+            className={rankingsInlineInputClass}
+          />
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => {
+            setDraft(href);
+            session.startEdit(field);
+          }}
+          className={`mt-0.5 max-w-full truncate text-left text-xs ${
+            href ? "text-text-secondary hover:text-text-primary" : typeRole.metadataEmpty
+          }`}
+        >
+          {displayUrl}
+        </button>
+      )}
+    </RankingsLinkRow>
+  );
+}
+
+function RankingsWTNLinkRow() {
+  return (
+    <RankingsExternalLinkRow
+      field="wtnUrl"
+      title="WTN Profile"
+      sourceLabel="worldtennisnumber.com"
+      indicatorIcon={Globe}
     />
+  );
+}
+
+function RankingsMatchesRow() {
+  const session = usePersonFieldSession();
+  const def = getPersonField("utrMatchesPlayed");
+  if (!def) return null;
+
+  const value = session.person.utrMatchesPlayed;
+  const displayValue = value === undefined ? EMPTY_VALUE : String(value);
+
+  return (
+    <RankingsLinkRow
+      title="Matches Played"
+      sourceLabel="UTR match volume"
+      indicator={<Activity className="h-4 w-4" strokeWidth={1.75} aria-hidden />}
+      action={
+        <InlineEditCell
+          label={def.label}
+          type={toInlineFieldType(def)}
+          options={toInlineOptions(def)}
+          value={toEditString(value)}
+          displayValue={displayValue}
+          align="right"
+          editOn="click"
+          emphasis="workspace"
+          density="compact"
+          editing={session.isEditing("utrMatchesPlayed")}
+          disabled={!isFieldEditable(def)}
+          error={session.errorFor("utrMatchesPlayed")}
+          onRequestEdit={() => session.startEdit("utrMatchesPlayed")}
+          onCancel={session.cancelEdit}
+          onCommit={(nextRaw, reason) => session.commit("utrMatchesPlayed", nextRaw, reason)}
+          className="!mx-0 !px-0"
+          renderDisplay={
+            <span
+              className={`text-lg font-semibold tabular-nums ${
+                displayValue === EMPTY_VALUE ? typeRole.metadataEmpty : "text-text-primary"
+              }`}
+            >
+              {displayValue}
+            </span>
+          }
+        />
+      }
+    >
+      <p className="mt-0.5 text-xs text-text-secondary">Stored on the UTR matches-played field.</p>
+    </RankingsLinkRow>
   );
 }
 
@@ -511,35 +917,66 @@ export function RecruitingRankingsWorkspace({
   coachRank: number | undefined;
 }) {
   return (
-    <WorkspaceFieldGrid columns={3}>
-      <WorkspaceField label="UTR">
-        <RecruitPersonField field="utr" />
-      </WorkspaceField>
-      <WorkspaceField label="WTN">
-        <RecruitPersonField field="wtn" />
-      </WorkspaceField>
-      <WorkspaceField label="TRN rank">
-        <RecruitPersonField field="trnRank" />
-      </WorkspaceField>
-      <WorkspaceField label="Coach rank">
-        <WorkspaceReadOnlyValue value={coachRank !== undefined ? `#${coachRank}` : ""} />
-      </WorkspaceField>
-      <WorkspaceField label="Getability">
-        <RecruitProfileField field="getabilityId" label="Getability" align="left" />
-      </WorkspaceField>
-      <WorkspaceField label="TR star rating">
-        <RecruitPersonField field="trnStarRating" />
-      </WorkspaceField>
-      <WorkspaceField label="TRN URL">
-        <PersonSourceLinkField field="trnUrl" linkLabel="Open TRN" />
-      </WorkspaceField>
-      <WorkspaceField label="UTR URL">
-        <PersonSourceLinkField field="utrUrl" linkLabel="Open UTR" />
-      </WorkspaceField>
-      <WorkspaceField label="Matches played">
-        <RecruitPersonField field="utrMatchesPlayed" />
-      </WorkspaceField>
-    </WorkspaceFieldGrid>
+    <div className="space-y-[14px]">
+      <section aria-label="Ranking summary">
+        <RankingsSectionHeading>Ranking summary</RankingsSectionHeading>
+        <RankingsSummaryCards />
+      </section>
+
+      <div className="border-t border-border/50 pt-[14px]">
+        <section aria-label="Profiles & Links">
+          <RankingsSectionHeading>Profiles & Links</RankingsSectionHeading>
+          <div className="mt-[5px] divide-y divide-border/50">
+            <RankingsExternalLinkRow
+              field="utrUrl"
+              title="UTR Profile"
+              sourceLabel="utrsports.net"
+              indicatorIcon={Gauge}
+            />
+            <RankingsWTNLinkRow />
+            <RankingsExternalLinkRow
+              field="trnUrl"
+              title="TennisRecruiting.net Profile"
+              sourceLabel="tennisrecruiting.net"
+              indicatorIcon={Link2}
+            />
+          </div>
+        </section>
+      </div>
+
+      <div className="border-t border-border/50 pt-[14px]">
+        <section aria-label="Activity">
+          <RankingsSectionHeading>Activity</RankingsSectionHeading>
+          <div className="mt-[5px]">
+            <RankingsMatchesRow />
+          </div>
+        </section>
+      </div>
+
+      <div className="border-t border-border/50 pt-[14px]">
+        <section aria-label="Coach evaluation">
+          <RankingsSectionHeading>Coach evaluation</RankingsSectionHeading>
+          <dl
+            className="mt-[5px] grid gap-x-6 gap-y-[7px]"
+            style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}
+          >
+            <WorkspaceField label="Coach Rank">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-warning/15 text-warning">
+                  <Medal className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+                </span>
+                <WorkspaceReadOnlyValue
+                  value={coachRank !== undefined ? `#${coachRank}` : ""}
+                />
+              </div>
+            </WorkspaceField>
+            <WorkspaceField label="Getability">
+              <RecruitProfileField field="getabilityId" label="Getability" align="left" />
+            </WorkspaceField>
+          </dl>
+        </section>
+      </div>
+    </div>
   );
 }
 
@@ -550,6 +987,8 @@ export function RecruitingAnalyticsWorkspace({
   analytics: RecruitAnalyticsResult | null;
   inCurrentCohort: boolean;
 }) {
+  const session = usePersonFieldSession();
+
   if (!inCurrentCohort || !analytics) {
     return (
       <WorkspaceMutedNote>
@@ -559,37 +998,106 @@ export function RecruitingAnalyticsWorkspace({
     );
   }
 
-  const rows: { label: string; value: string }[] = [
-    { label: "Pool", value: analytics.inPool ? "Yes (WTN present)" : "No" },
-    { label: "Tier", value: analytics.tier ?? EMPTY_VALUE },
-    { label: "Composite rank", value: formatMaybe(analytics.compositeRank) },
-    { label: "Composite z", value: formatMaybe(analytics.compositeZ) },
-    { label: "Weighted score", value: formatMaybe(analytics.weightedScore) },
-    { label: "Reliability", value: formatMaybe(analytics.reliability) },
-    { label: "Reliability score", value: formatMaybe(analytics.reliabilityScore) },
-    { label: "UTR rank", value: formatMaybe(analytics.utrRank) },
-    { label: "TR rank", value: formatMaybe(analytics.trRank) },
-    { label: "WTN rank", value: formatMaybe(analytics.wtnRank) },
-    { label: "UTR z", value: formatMaybe(analytics.utrZ) },
-    { label: "TR z", value: formatMaybe(analytics.trZ) },
-    { label: "WTN z", value: formatMaybe(analytics.wtnZ) },
-    { label: "Adjusted TR rank", value: formatMaybe(analytics.adjustedTrRank) },
+  const metricsColumnOne: { label: string; value: string }[] = [
+    { label: "UTR Z", value: formatMaybe(analytics.utrZ) },
+    { label: "WTN Z", value: formatMaybe(analytics.wtnZ) },
+    { label: "TRN Z", value: formatMaybe(analytics.trZ) },
+    { label: "Composite Z", value: formatMaybe(analytics.compositeZ) },
+  ];
+  const metricsColumnTwo: { label: string; value: string }[] = [
+    {
+      label: "Matches Played",
+      value:
+        session.person.utrMatchesPlayed !== undefined
+          ? String(session.person.utrMatchesPlayed)
+          : EMPTY_VALUE,
+    },
+    { label: "Weighted Score", value: formatAnalyticsScore(analytics.weightedScore) },
+    { label: "Reliability", value: formatAnalyticsReliability(analytics.reliability) },
+    { label: "Reliability Score", value: formatAnalyticsScore(analytics.reliabilityScore) },
+  ];
+  const metricsColumnThree: { label: string; value: string }[] = [
+    { label: "Adjusted TR Rank", value: formatAnalyticsScore(analytics.adjustedTrRank) },
   ];
 
   return (
-    <div className="space-y-4">
-      <WorkspaceMutedNote>
-        Computed from current Recruit tennis facts against the current recruiting WTN pool (role
-        Recruit + Recruit Profile). Not stored on Person or Recruit Profile.
-      </WorkspaceMutedNote>
-      <WorkspaceFieldGrid columns={3}>
-        {rows.map((row) => (
-          <WorkspaceField key={row.label} label={row.label}>
-            <WorkspaceReadOnlyValue value={row.value} />
-          </WorkspaceField>
-        ))}
-      </WorkspaceFieldGrid>
+    <div className="space-y-[14px]">
+      <section aria-label="Ranking summary">
+        <RankingsSectionHeading>Ranking summary</RankingsSectionHeading>
+        <RankingsSummaryCards />
+      </section>
+
+      <div className="border-t border-border/50 pt-[14px]">
+        <section aria-label="Metrics">
+          <RankingsSectionHeading>Metrics</RankingsSectionHeading>
+          <div className="mt-[5px] grid gap-3 lg:grid-cols-4">
+            <div className="rounded-control border border-[var(--module-accent)]/12 bg-[var(--module-tint)]/30 px-3 py-2.5">
+              <div className="flex flex-col gap-2.5">
+                {metricsColumnOne.map((metric) => (
+                  <div key={metric.label} className="flex items-center justify-between gap-2">
+                    <p className="text-xs text-text-secondary">{metric.label}</p>
+                    <p
+                      className={`text-base leading-none font-semibold tabular-nums ${
+                        metric.value === EMPTY_VALUE ? typeRole.metadataEmpty : "text-text-primary"
+                      }`}
+                    >
+                      {metric.value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-control border border-info/12 bg-info/[0.04] px-3 py-2.5">
+              <div className="flex flex-col gap-2.5">
+                {metricsColumnTwo.map((metric) => (
+                  <div key={metric.label} className="flex items-center justify-between gap-2">
+                    <p className="text-xs text-text-secondary">{metric.label}</p>
+                    <p
+                      className={`text-base leading-none font-semibold tabular-nums ${
+                        metric.value === EMPTY_VALUE ? typeRole.metadataEmpty : "text-text-primary"
+                      }`}
+                    >
+                      {metric.value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-control border border-success/12 bg-success/[0.04] px-3 py-2.5">
+              <div className="flex flex-col gap-2.5">
+                {metricsColumnThree.map((metric) => (
+                  <div key={metric.label} className="flex items-center justify-between gap-2">
+                    <p className="text-xs text-text-secondary">{metric.label}</p>
+                    <p
+                      className={`text-base leading-none font-semibold tabular-nums ${
+                        metric.value === EMPTY_VALUE ? typeRole.metadataEmpty : "text-text-primary"
+                      }`}
+                    >
+                      {metric.value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="rounded-control border border-research/12 bg-research/[0.04] px-3 py-2.5" />
+          </div>
+        </section>
+      </div>
     </div>
+  );
+}
+
+function NotesSectionHeading({ children }: { children: string }) {
+  return (
+    <h3 className="flex items-center gap-1.5 text-[13px] font-semibold leading-none text-[var(--module-accent)]">
+      <span
+        className="inline-block h-4 w-[3px] shrink-0 rounded-[1px] bg-[var(--module-accent)]"
+        aria-hidden
+      />
+      {children}
+    </h3>
   );
 }
 
@@ -603,11 +1111,9 @@ function NotesBlock({ children }: { children: ReactNode }) {
 
 function NotesSection({
   title,
-  icon: Icon,
   field,
 }: {
   title: string;
-  icon: LucideIcon;
   field: "notes" | "gameNotes" | "keyPitchAngle";
 }) {
   const session = useRecruitProfileFieldSession();
@@ -615,39 +1121,39 @@ function NotesSection({
   const empty = !value.trim();
 
   return (
-    <WorkspaceSection
-      title={title}
-      leading={<Icon className="h-3.5 w-3.5 text-knowledge" strokeWidth={1.75} aria-hidden />}
-    >
-      <NotesBlock>
-        <RecruitProfileField
-          field={field}
-          label={title}
-          type="textarea"
-          align="left"
-          rows={5}
-          className="!mx-0 !px-0.5"
-          renderDisplay={
-            <span
-              className={`text-[15px] leading-relaxed whitespace-pre-wrap ${
-                empty ? typeRole.metadataEmpty : "font-normal text-text-primary"
-              }`}
-            >
-              {empty ? EMPTY_VALUE : value}
-            </span>
-          }
-        />
-      </NotesBlock>
-    </WorkspaceSection>
+    <section aria-label={title} className="min-w-0">
+      <NotesSectionHeading>{title}</NotesSectionHeading>
+      <div className="mt-[5px] min-w-0">
+        <NotesBlock>
+          <RecruitProfileField
+            field={field}
+            label={title}
+            type="textarea"
+            align="left"
+            rows={5}
+            className="!mx-0 !px-0.5"
+            renderDisplay={
+              <span
+                className={`text-[15px] leading-relaxed whitespace-pre-wrap ${
+                  empty ? typeRole.metadataEmpty : "font-normal text-text-primary"
+                }`}
+              >
+                {empty ? EMPTY_VALUE : value}
+              </span>
+            }
+          />
+        </NotesBlock>
+      </div>
+    </section>
   );
 }
 
 export function RecruitingNotesWorkspace() {
   return (
     <WorkspaceStack>
-      <NotesSection title="Coach notes" icon={NotebookPen} field="notes" />
-      <NotesSection title="Game notes" icon={ClipboardList} field="gameNotes" />
-      <NotesSection title="Key pitch angle" icon={Megaphone} field="keyPitchAngle" />
+      <NotesSection title="Coach notes" field="notes" />
+      <NotesSection title="Game notes" field="gameNotes" />
+      <NotesSection title="Key pitch angle" field="keyPitchAngle" />
     </WorkspaceStack>
   );
 }
@@ -710,10 +1216,21 @@ const RECRUIT_PERSON_FIELDS = [
   "trnStarRating",
   "trnUrl",
   "utrUrl",
+  "wtnUrl",
   "utrMatchesPlayed",
 ] as const;
 
 function formatMaybe(value: number | undefined): string {
   if (value === undefined) return EMPTY_VALUE;
   return String(value);
+}
+
+function formatAnalyticsScore(value: number | undefined): string {
+  if (value === undefined) return EMPTY_VALUE;
+  return value.toFixed(2);
+}
+
+function formatAnalyticsReliability(value: number | undefined): string {
+  if (value === undefined) return EMPTY_VALUE;
+  return `${Math.round(value * 100)}%`;
 }

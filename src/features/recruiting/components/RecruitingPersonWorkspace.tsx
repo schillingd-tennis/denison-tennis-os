@@ -224,8 +224,7 @@ export default function RecruitingPersonWorkspace({
       {
         id: "rankings",
         title: "Rankings",
-        subtitle: "Ratings & Sources",
-        toolbar: WORKSPACE_EDIT_HINT,
+        subtitle: "Player rankings & external profiles",
         content: (
           <RecruitingRankingsWorkspace coachRank={profileRecord.coachRank} />
         ),
@@ -233,7 +232,7 @@ export default function RecruitingPersonWorkspace({
       {
         id: "analytics",
         title: "Analytics",
-        subtitle: "Computed recruiting scores",
+        subtitle: "Advanced metrics & performance indicators",
         content: (
           <RecruitingAnalyticsWorkspace analytics={analytics} inCurrentCohort={inCurrentCohort} />
         ),
@@ -330,10 +329,6 @@ export default function RecruitingPersonWorkspace({
           wtn: metricOrNoData(formatWtn(record.wtn)),
           trnRank:
             record.trnRank !== undefined ? String(record.trnRank) : NO_DATA,
-          coachRank:
-            profileRecord.coachRank !== undefined
-              ? `#${profileRecord.coachRank}`
-              : NO_DATA,
           pipeline: metricOrNoData(formatDisplay(profileRecord.pipelineStage?.label)),
           priority: metricOrNoData(formatDisplay(profileRecord.priority?.label)),
         }}

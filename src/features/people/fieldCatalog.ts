@@ -572,9 +572,12 @@ export const PERSON_FIELD_CATALOG: readonly PersonFieldDefinition[] = [
     exportable: true,
     dbColumn: "trn_star_rating",
     enumValues: [
+      { value: "1", label: "1 Star" },
+      { value: "2", label: "2 Star" },
       { value: "3", label: "3 Star" },
       { value: "4", label: "4 Star" },
       { value: "5", label: "5 Star" },
+      { value: "6", label: "Blue Chip" },
     ] as const satisfies readonly PersonFieldEnumOption[],
   },
   {
@@ -594,6 +597,15 @@ export const PERSON_FIELD_CATALOG: readonly PersonFieldDefinition[] = [
     editable: true,
     exportable: true,
     dbColumn: "utr_url",
+  },
+  {
+    key: "wtnUrl",
+    label: "WTN URL",
+    section: "tennis",
+    type: "url",
+    editable: true,
+    exportable: true,
+    dbColumn: "wtn_url",
   },
   {
     key: "utrMatchesPlayed",

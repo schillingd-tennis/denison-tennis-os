@@ -7,7 +7,6 @@ import {
   Gauge,
   GitBranch,
   ListOrdered,
-  Medal,
   Pencil,
   Star,
 } from "lucide-react";
@@ -28,6 +27,7 @@ import {
 import { EMPTY_VALUE } from "@/lib/formatting";
 
 import { RecruitProfileField } from "./RecruitProfileFields";
+import { RecruitStarRatingDisplay } from "./RecruitRatingDisplay";
 
 export type RecruitWorkspaceTone =
   | "personal-info"
@@ -116,6 +116,28 @@ const tileTone = {
 
 type TileTone = keyof typeof tileTone;
 
+export function RecruitSummaryStarRatingMetricTile() {
+  const session = usePersonFieldSession();
+  const rating = session.person.trnStarRating;
+  const empty = rating === undefined;
+  const styles = tileTone.warning;
+
+  return (
+    <div
+      className={`flex min-w-0 items-center justify-between gap-2 rounded-control border px-3 py-2.5 ${styles.card}`}
+    >
+      <div className="min-w-0">
+        <div className={`min-h-[17px] leading-none ${empty ? typeRole.metadataEmpty : ""}`}>
+          <RecruitStarRatingDisplay rating={rating} size="sm" emptyLabel="—" />
+        </div>
+        <p className="mt-1.5 text-[10px] font-medium tracking-wide text-text-secondary uppercase">
+          Star Rating
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function MetricTile({
   label,
   value,
@@ -123,25 +145,28 @@ function MetricTile({
   tone,
 }: {
   label: string;
-  value: string;
+  value: ReactNode;
   icon: LucideIcon;
   tone: TileTone;
 }) {
-  const empty = !value.trim() || value === EMPTY_VALUE || value === "No data";
+  const empty =
+    typeof value === "string"
+      ? !value.trim() || value === EMPTY_VALUE || value === "No data"
+      : false;
   const styles = tileTone[tone];
   return (
     <div
       className={`flex min-w-0 items-center justify-between gap-2 rounded-control border px-3 py-2.5 ${styles.card}`}
     >
       <div className="min-w-0">
-        <p
-          title={empty ? undefined : value}
+        <div
+          title={!empty && typeof value === "string" ? value : undefined}
           className={`truncate text-[17px] leading-none font-semibold tabular-nums tracking-tight ${
             empty ? typeRole.metadataEmpty : styles.value
           }`}
         >
           {empty ? "No data" : value}
-        </p>
+        </div>
         <p className="mt-1.5 text-[10px] font-medium tracking-wide text-text-secondary uppercase">
           {label}
         </p>
@@ -211,7 +236,6 @@ export function RecruitWorkspaceProfile({
     utr: string;
     wtn: string;
     trnRank: string;
-    coachRank: string;
     pipeline: string;
     priority: string;
   };
@@ -303,7 +327,7 @@ export function RecruitWorkspaceProfile({
           <MetricTile label="UTR" value={metrics.utr} icon={Gauge} tone="crimson" />
           <MetricTile label="WTN" value={metrics.wtn} icon={Activity} tone="info" />
           <MetricTile label="TRN Rank" value={metrics.trnRank} icon={ListOrdered} tone="success" />
-          <MetricTile label="Coach Rank" value={metrics.coachRank} icon={Medal} tone="warning" />
+          <RecruitSummaryStarRatingMetricTile />
           <MetricTile label="Pipeline" value={metrics.pipeline} icon={GitBranch} tone="info" />
           <MetricTile label="Priority" value={metrics.priority} icon={Star} tone="research" />
         </div>
