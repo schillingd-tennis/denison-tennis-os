@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 import {
   WorkspaceAccentHeading,
   WorkspaceField,
 } from "@/components/adaptive-workspace";
-import { FieldRenderer, PersonFieldSession } from "@/features/field-engine";
+import { InlineEditCell, type InlineCommitReason } from "@/components/inline-edit";
+import { typeRole } from "@/components/typography";
+import { FieldRenderer, PersonFieldSession, toEditString, usePersonFieldSession } from "@/features/field-engine";
 import {
   getPersonField,
   getPersonFieldsForWorkspace,
@@ -15,15 +17,18 @@ import {
 } from "@/features/people/fieldCatalog";
 import type { Person } from "@/features/people/types";
 import { isFamilyPerson } from "@/features/people/utils";
+import { upsertRecruitClassYearAction } from "@/features/recruiting/actions";
+import { EMPTY_VALUE } from "@/lib/formatting";
 
 import PersonStatusRoleStrip from "./PersonStatusRoleStrip";
 
 /**
  * Personal Info adaptive body (formerly Contact Information).
- * Section chrome matches Recruit Personal Info; field membership from catalog.
+ * Section chrome matches Recruit Personal Info; field membership from catalog
+ * for Family. Player/Coach layout is explicit (Identity / Contact / Notes).
  */
 
-const CONTACT_WORKSPACE_SECTIONS: readonly {
+const FAMILY_CONTACT_SECTIONS: readonly {
   group: PersonWorkspaceGroupId;
   title: string;
   layout?: "grid" | "homeAddress" | "notes";
@@ -36,11 +41,27 @@ const CONTACT_WORKSPACE_SECTIONS: readonly {
   { group: "contact.notes", title: "Notes", layout: "notes" },
 ];
 
-function isContactFieldVisible(field: PersonFieldDefinition, familyPerson: boolean): boolean {
-  if (familyPerson) {
-    return field.key !== "denisonEmail";
-  }
-  return field.key !== "notes";
+const PLAYER_PERSONAL_INFO_FIELDS = [
+  "statusId",
+  "roleId",
+  "firstName",
+  "lastName",
+  "denisonId",
+  "highSchool",
+  "dateOfBirth",
+  "personalEmail",
+  "denisonEmail",
+  "cellPhone",
+  "addressLine1",
+  "city",
+  "state",
+  "zipCode",
+  "country",
+  "notes",
+] as const;
+
+function isFamilyContactFieldVisible(field: PersonFieldDefinition): boolean {
+  return field.key !== "denisonEmail";
 }
 
 function PersonalInfoFieldGrid({ children }: { children: ReactNode }) {
@@ -57,11 +78,26 @@ function PersonalInfoFieldGrid({ children }: { children: ReactNode }) {
 function PersonalInfoField({
   field,
   label,
+  revealValue = false,
 }: {
   field: keyof Person;
   label?: string;
+  /** Show the stored value even when the catalog marks the field sensitive (DU #). */
+  revealValue?: boolean;
 }) {
+  const session = usePersonFieldSession();
   const resolvedLabel = label ?? getPersonField(field)?.label ?? String(field);
+  const raw = toEditString(session.person[field]);
+  const empty = !raw.trim();
+  const renderDisplay = revealValue ? (
+    <span
+      className={`whitespace-pre-wrap ${typeRole.workspaceFieldValue}${
+        empty ? ` ${typeRole.metadataEmpty}` : ""
+      }`}
+    >
+      {empty ? EMPTY_VALUE : raw}
+    </span>
+  ) : undefined;
 
   return (
     <WorkspaceField label={resolvedLabel}>
@@ -71,8 +107,33 @@ function PersonalInfoField({
         editOn="click"
         emphasis="workspace"
         density="compact"
+        renderDisplay={renderDisplay}
       />
     </WorkspaceField>
+  );
+}
+
+function ContactInfoSection() {
+  return (
+    <section aria-label="Contact Info">
+      <WorkspaceAccentHeading>Contact Info</WorkspaceAccentHeading>
+      <div className="mt-[5px] flex flex-col gap-y-[7px]">
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-[7px] md:grid-cols-3">
+          <PersonalInfoField field="personalEmail" />
+          <PersonalInfoField field="denisonEmail" />
+          <PersonalInfoField field="cellPhone" label="Phone" />
+        </dl>
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-[7px] md:grid-cols-[minmax(0,45fr)_minmax(0,25fr)_minmax(0,15fr)_minmax(0,15fr)]">
+          <PersonalInfoField field="addressLine1" label="Address" />
+          <PersonalInfoField field="city" label="City" />
+          <PersonalInfoField field="state" label="State" />
+          <PersonalInfoField field="zipCode" label="Zip" />
+        </dl>
+        <dl className="grid grid-cols-1 gap-x-6 md:grid-cols-3">
+          <PersonalInfoField field="country" label="Country" />
+        </dl>
+      </div>
+    </section>
   );
 }
 
@@ -95,7 +156,160 @@ function HomeAddressSection() {
   );
 }
 
-export default function ContactInformationWorkspace({
+function HsClassField({
+  personId,
+  value,
+  onChange,
+  runSave,
+}: {
+  personId: string;
+  value: number | undefined;
+  onChange: (next: number | undefined) => void;
+  runSave: (fn: () => Promise<void>) => Promise<boolean>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [error, setError] = useState<string | undefined>();
+  const display = value !== undefined ? String(value) : "";
+
+  async function commit(raw: string, reason: InlineCommitReason) {
+    const trimmed = raw.trim();
+    let next: number | null = null;
+    if (trimmed !== "") {
+      const parsed = Number(trimmed);
+      if (!Number.isInteger(parsed) || parsed < 1900 || parsed > 2200) {
+        setError("HS Class must be a valid year.");
+        return;
+      }
+      next = parsed;
+    }
+
+    const local = next ?? undefined;
+    if (local === value) {
+      setError(undefined);
+      if (reason !== "tab" && reason !== "shift-tab") setEditing(false);
+      else setEditing(false);
+      return;
+    }
+
+    const previous = value;
+    onChange(local);
+    setError(undefined);
+    setEditing(false);
+
+    const ok = await runSave(async () => {
+      const result = await upsertRecruitClassYearAction(personId, next);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      onChange(result.recruitClassYear ?? undefined);
+    });
+
+    if (!ok) {
+      onChange(previous);
+    }
+  }
+
+  return (
+    <WorkspaceField label="HS Class">
+      <InlineEditCell
+        label="HS Class"
+        type="number"
+        value={display}
+        displayValue={display || EMPTY_VALUE}
+        align="left"
+        editOn="click"
+        emphasis="workspace"
+        density="compact"
+        editing={editing}
+        error={error}
+        onRequestEdit={() => {
+          setError(undefined);
+          setEditing(true);
+        }}
+        onCancel={() => {
+          setError(undefined);
+          setEditing(false);
+        }}
+        onCommit={commit}
+      />
+    </WorkspaceField>
+  );
+}
+
+function PlayerCoachPersonalInfo({
+  person,
+  recruitClassYear,
+  onPersonChange,
+  runSave,
+}: {
+  person: Person;
+  recruitClassYear?: number;
+  onPersonChange: (person: Person) => void;
+  runSave: (fn: () => Promise<void>) => Promise<boolean>;
+}) {
+  const [hsPersonId, setHsPersonId] = useState(person.id);
+  const [hsClassYear, setHsClassYear] = useState(recruitClassYear);
+  if (person.id !== hsPersonId) {
+    setHsPersonId(person.id);
+    setHsClassYear(recruitClassYear);
+  }
+
+  return (
+    <PersonFieldSession
+      person={person}
+      onPersonChange={onPersonChange}
+      runSave={runSave}
+      fields={PLAYER_PERSONAL_INFO_FIELDS}
+    >
+      <div className="space-y-[14px]">
+        <PersonStatusRoleStrip />
+
+        <div className="border-t border-border/50 pt-[14px]">
+          <section aria-label="Identity">
+            <WorkspaceAccentHeading>Identity</WorkspaceAccentHeading>
+            <PersonalInfoFieldGrid>
+              <PersonalInfoField field="firstName" />
+              <PersonalInfoField field="lastName" />
+              <PersonalInfoField field="denisonId" label="DU #" revealValue />
+              <PersonalInfoField field="highSchool" />
+              <HsClassField
+                personId={person.id}
+                value={hsClassYear}
+                onChange={setHsClassYear}
+                runSave={runSave}
+              />
+              <PersonalInfoField field="dateOfBirth" />
+            </PersonalInfoFieldGrid>
+          </section>
+        </div>
+
+        <div className="border-t border-border/50 pt-[14px]">
+          <ContactInfoSection />
+        </div>
+
+        <div className="border-t border-border/50 pt-[14px]">
+          <section aria-label="Notes">
+            <WorkspaceAccentHeading>Notes</WorkspaceAccentHeading>
+            <div className="mt-[5px]">
+              <WorkspaceField label="Player Notes">
+                <FieldRenderer
+                  field="notes"
+                  align="left"
+                  editOn="click"
+                  emphasis="workspace"
+                  density="compact"
+                  rows={2}
+                />
+              </WorkspaceField>
+            </div>
+          </section>
+        </div>
+      </div>
+    </PersonFieldSession>
+  );
+}
+
+function FamilyPersonalInfo({
   person,
   onPersonChange,
   runSave,
@@ -104,14 +318,12 @@ export default function ContactInformationWorkspace({
   onPersonChange: (person: Person) => void;
   runSave: (fn: () => Promise<void>) => Promise<boolean>;
 }) {
-  const familyPerson = isFamilyPerson(person);
-
   const fields = useMemo(() => {
     const contactFields = getPersonFieldsForWorkspace("contact")
-      .filter((field) => isContactFieldVisible(field, familyPerson))
+      .filter(isFamilyContactFieldVisible)
       .map((field) => field.key);
     return ["statusId", "roleId", ...contactFields] as const;
-  }, [familyPerson]);
+  }, []);
 
   function renderSectionBody(
     sectionFields: PersonFieldDefinition[],
@@ -157,9 +369,9 @@ export default function ContactInformationWorkspace({
       <div className="space-y-[14px]">
         <PersonStatusRoleStrip />
 
-        {CONTACT_WORKSPACE_SECTIONS.map((section) => {
+        {FAMILY_CONTACT_SECTIONS.map((section) => {
           const sectionFields = getPersonFieldsForWorkspace("contact", section.group).filter(
-            (field) => isContactFieldVisible(field, familyPerson),
+            isFamilyContactFieldVisible,
           );
           if (section.layout !== "homeAddress" && sectionFields.length === 0) return null;
 
@@ -180,5 +392,36 @@ export default function ContactInformationWorkspace({
         })}
       </div>
     </PersonFieldSession>
+  );
+}
+
+export default function ContactInformationWorkspace({
+  person,
+  recruitClassYear,
+  onPersonChange,
+  runSave,
+}: {
+  person: Person;
+  recruitClassYear?: number;
+  onPersonChange: (person: Person) => void;
+  runSave: (fn: () => Promise<void>) => Promise<boolean>;
+}) {
+  if (isFamilyPerson(person)) {
+    return (
+      <FamilyPersonalInfo
+        person={person}
+        onPersonChange={onPersonChange}
+        runSave={runSave}
+      />
+    );
+  }
+
+  return (
+    <PlayerCoachPersonalInfo
+      person={person}
+      recruitClassYear={recruitClassYear}
+      onPersonChange={onPersonChange}
+      runSave={runSave}
+    />
   );
 }

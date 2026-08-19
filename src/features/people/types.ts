@@ -42,6 +42,14 @@ export type SeatPreference =
   | "bulkhead"
   | "no_preference";
 
+/** Shared apparel size vocabulary for player Equipment workspace. */
+export const APPAREL_SIZES = ["Small", "Medium", "Large", "XL", "XXL"] as const;
+export type ApparelSize = (typeof APPAREL_SIZES)[number];
+
+/** Tennis grip sizes stored as display strings. */
+export const GRIP_SIZES = ['4"', '4 1/8"', '4 1/4"', '4 3/8"', '4 1/2"', '4 5/8"'] as const;
+export type GripSize = (typeof GRIP_SIZES)[number];
+
 /**
  * How another record relates to this person (e.g. a parent). Populated
  * starting with a later blueprint (parent import) — every player imported
@@ -102,6 +110,10 @@ export type Person = {
   classYear?: number;
   major?: string;
   minor?: string;
+  /** Cumulative / overall college GPA. Distinct from RecruitProfile.gpa (recruiting-time). */
+  gpa?: number;
+  gpaLastSemester?: number;
+  gpaLastYear?: number;
   denisonId?: string;
   dorm?: string;
   roomNumber?: string;
@@ -125,6 +137,21 @@ export type Person = {
 
   /** Origin high school (BP-043C). Not a Recruit Profile column. */
   highSchool?: string;
+
+  // Equipment — player apparel / tennis gear attributes (not Operations inventory).
+  tShirtSize?: ApparelSize;
+  driFitSize?: ApparelSize;
+  collaredShirtSize?: ApparelSize;
+  longSleeveSize?: ApparelSize;
+  jacketSize?: ApparelSize;
+  hoodieSize?: ApparelSize;
+  shortsSize?: ApparelSize;
+  pantsSize?: ApparelSize;
+  shoeSize?: number;
+  racket?: string;
+  gripSize?: GripSize;
+  /** Tennis string setup (e.g. brand / gauge). */
+  string?: string;
 
   // Travel — identity / preference fields on Person (BP-036A / BP-036E). UI later.
   /** Sensitive; catalog type secureText. */

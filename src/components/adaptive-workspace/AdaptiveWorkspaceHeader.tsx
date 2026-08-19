@@ -4,6 +4,9 @@ import { typeRole } from "@/components/typography";
 
 /**
  * BP-035C — Consistent header for every Adaptive Workspace module.
+ *
+ * Right-side action slot is always reserved so titles stay put when a
+ * workspace has no toolbar (Family / Communications vs Export).
  */
 export default function AdaptiveWorkspaceHeader({
   title,
@@ -24,7 +27,10 @@ export default function AdaptiveWorkspaceHeader({
           <p className={`mt-0.5 truncate ${typeRole.metadataSm}`}>{subtitle}</p>
         ) : null}
       </div>
-      {toolbar ? <div className="flex shrink-0 items-center gap-2">{toolbar}</div> : null}
+      {/* Reserved action slot so workspace titles do not shift when Export is absent. */}
+      <div className="flex min-h-[26px] min-w-[5.5rem] shrink-0 items-center justify-end">
+        {toolbar}
+      </div>
     </header>
   );
 }

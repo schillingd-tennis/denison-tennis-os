@@ -6,7 +6,6 @@
  * parentActions instead (server action boundary).
  */
 
-import { supabase } from "@/lib/supabase";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 import {
@@ -79,7 +78,8 @@ function isUniqueViolation(error: { code?: string; message?: string } | null): b
 export async function listRelationshipsForPerson(
   personId: string,
 ): Promise<PersonRelationshipRecord[]> {
-  const { data, error } = await supabase
+  const client = await createSupabaseServerClient();
+  const { data, error } = await client
     .from(TABLE)
     .select("*")
     .eq("person_id", personId)
@@ -101,7 +101,8 @@ export async function listRelationshipsForPerson(
 export async function listRelationshipsByRelatedPerson(
   relatedPersonId: string,
 ): Promise<PersonRelationshipRecord[]> {
-  const { data, error } = await supabase
+  const client = await createSupabaseServerClient();
+  const { data, error } = await client
     .from(TABLE)
     .select("*")
     .eq("related_person_id", relatedPersonId)

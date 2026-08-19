@@ -37,6 +37,7 @@ export default function FieldRenderer({
   emphasis,
   density,
   rows,
+  step,
   renderDisplay,
   className,
 }: {
@@ -48,6 +49,7 @@ export default function FieldRenderer({
   emphasis?: InlineEmphasis;
   density?: InlineDensity;
   rows?: number;
+  step?: number;
   /** Optional custom display (e.g. status badge). Overrides default text display. */
   renderDisplay?: ReactNode;
   className?: string;
@@ -104,6 +106,7 @@ export default function FieldRenderer({
       emphasis={emphasis}
       density={density}
       rows={resolvedRows}
+      step={step}
       className={className}
       editing={session.isEditing(field)}
       disabled={!editable}

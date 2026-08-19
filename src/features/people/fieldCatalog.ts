@@ -12,7 +12,7 @@
 
 import type { FieldType } from "@/features/field-engine/types";
 
-import type { Person, SeatPreference } from "./types";
+import type { ApparelSize, GripSize, Person, SeatPreference } from "./types";
 
 /** Catalog field types — Universal Field Engine types. */
 export type PersonFieldType = FieldType;
@@ -31,11 +31,12 @@ export type PersonFieldSection =
   | "school"
   | "tennis"
   | "travel"
+  | "equipment"
   | "relationships"
   | "notes";
 
 /** Adaptive Workspace ids that may include a field (membership, not layout). */
-export type PersonWorkspaceId = "travel" | "contact" | "family";
+export type PersonWorkspaceId = "travel" | "contact" | "family" | "academics" | "equipment";
 
 /**
  * Grouping within a workspace. Titles/layout live in the workspace component;
@@ -52,7 +53,11 @@ export type PersonWorkspaceGroupId =
   | "contact.notes"
   | "contact.identity"
   | "contact.homeAddress"
-  | "family.notes";
+  | "family.notes"
+  | "academics.summary"
+  | "academics.performance"
+  | "equipment.apparel"
+  | "equipment.tennis";
 
 export type PersonFieldEnumOption<T extends string = string> = {
   value: T;
@@ -112,6 +117,23 @@ export const SEAT_PREFERENCE_OPTIONS = [
 ] as const satisfies readonly PersonFieldEnumOption<SeatPreference>[];
 
 export const SEAT_PREFERENCE_VALUES = SEAT_PREFERENCE_OPTIONS.map((o) => o.value);
+
+export const APPAREL_SIZE_OPTIONS = [
+  { value: "Small", label: "Small" },
+  { value: "Medium", label: "Medium" },
+  { value: "Large", label: "Large" },
+  { value: "XL", label: "XL" },
+  { value: "XXL", label: "XXL" },
+] as const satisfies readonly PersonFieldEnumOption<ApparelSize>[];
+
+export const GRIP_SIZE_OPTIONS = [
+  { value: '4"', label: '4"' },
+  { value: '4 1/8"', label: '4 1/8"' },
+  { value: '4 1/4"', label: '4 1/4"' },
+  { value: '4 3/8"', label: '4 3/8"' },
+  { value: '4 1/2"', label: '4 1/2"' },
+  { value: '4 5/8"', label: '4 5/8"' },
+] as const satisfies readonly PersonFieldEnumOption<GripSize>[];
 
 /**
  * Canonical Person field registry. Order within a section is the preferred
@@ -482,6 +504,9 @@ export const PERSON_FIELD_CATALOG: readonly PersonFieldDefinition[] = [
     exportable: true,
     searchable: true,
     dbColumn: "major",
+    workspaces: ["academics"],
+    workspaceGroup: "academics.summary",
+    workspaceOrder: 10,
   },
   {
     key: "minor",
@@ -493,6 +518,53 @@ export const PERSON_FIELD_CATALOG: readonly PersonFieldDefinition[] = [
     filterable: true,
     exportable: true,
     dbColumn: "minor",
+    workspaces: ["academics"],
+    workspaceGroup: "academics.summary",
+    workspaceOrder: 20,
+  },
+  {
+    key: "gpa",
+    label: "Overall GPA",
+    section: "denison",
+    type: "number",
+    editable: true,
+    sortable: true,
+    filterable: true,
+    exportable: true,
+    dbColumn: "gpa",
+    description:
+      "Cumulative college GPA on the Person record. Distinct from RecruitProfile.gpa (recruiting-time snapshot).",
+    workspaces: ["academics"],
+    workspaceGroup: "academics.summary",
+    workspaceOrder: 30,
+  },
+  {
+    key: "gpaLastSemester",
+    label: "GPA Last Semester",
+    section: "denison",
+    type: "number",
+    editable: true,
+    sortable: true,
+    filterable: true,
+    exportable: true,
+    dbColumn: "gpa_last_semester",
+    workspaces: ["academics"],
+    workspaceGroup: "academics.performance",
+    workspaceOrder: 10,
+  },
+  {
+    key: "gpaLastYear",
+    label: "GPA Last Year",
+    section: "denison",
+    type: "number",
+    editable: true,
+    sortable: true,
+    filterable: true,
+    exportable: true,
+    dbColumn: "gpa_last_year",
+    workspaces: ["academics"],
+    workspaceGroup: "academics.performance",
+    workspaceOrder: 20,
   },
   {
     key: "denisonId",
@@ -697,6 +769,186 @@ export const PERSON_FIELD_CATALOG: readonly PersonFieldDefinition[] = [
       { value: "inactive", label: "Inactive" },
       { value: "graduated", label: "Graduated" },
     ],
+  },
+
+  // Equipment — player apparel / tennis gear (not Operations inventory).
+  {
+    key: "tShirtSize",
+    label: "T-shirt Size",
+    section: "equipment",
+    type: "enum",
+    editable: true,
+    sortable: true,
+    filterable: true,
+    exportable: true,
+    dbColumn: "t_shirt_size",
+    enumValues: APPAREL_SIZE_OPTIONS,
+    workspaces: ["equipment"],
+    workspaceGroup: "equipment.apparel",
+    workspaceOrder: 10,
+  },
+  {
+    key: "driFitSize",
+    label: "Dri-fit Size",
+    section: "equipment",
+    type: "enum",
+    editable: true,
+    sortable: true,
+    filterable: true,
+    exportable: true,
+    dbColumn: "dri_fit_size",
+    enumValues: APPAREL_SIZE_OPTIONS,
+    workspaces: ["equipment"],
+    workspaceGroup: "equipment.apparel",
+    workspaceOrder: 20,
+  },
+  {
+    key: "collaredShirtSize",
+    label: "Collared Shirt Size",
+    section: "equipment",
+    type: "enum",
+    editable: true,
+    sortable: true,
+    filterable: true,
+    exportable: true,
+    dbColumn: "collared_shirt_size",
+    enumValues: APPAREL_SIZE_OPTIONS,
+    workspaces: ["equipment"],
+    workspaceGroup: "equipment.apparel",
+    workspaceOrder: 30,
+  },
+  {
+    key: "longSleeveSize",
+    label: "Long Sleeve Size",
+    section: "equipment",
+    type: "enum",
+    editable: true,
+    sortable: true,
+    filterable: true,
+    exportable: true,
+    dbColumn: "long_sleeve_size",
+    enumValues: APPAREL_SIZE_OPTIONS,
+    workspaces: ["equipment"],
+    workspaceGroup: "equipment.apparel",
+    workspaceOrder: 40,
+  },
+  {
+    key: "jacketSize",
+    label: "Jacket Size",
+    section: "equipment",
+    type: "enum",
+    editable: true,
+    sortable: true,
+    filterable: true,
+    exportable: true,
+    dbColumn: "jacket_size",
+    enumValues: APPAREL_SIZE_OPTIONS,
+    workspaces: ["equipment"],
+    workspaceGroup: "equipment.apparel",
+    workspaceOrder: 50,
+  },
+  {
+    key: "hoodieSize",
+    label: "Hoodie/Sweatshirt Size",
+    section: "equipment",
+    type: "enum",
+    editable: true,
+    sortable: true,
+    filterable: true,
+    exportable: true,
+    dbColumn: "hoodie_size",
+    enumValues: APPAREL_SIZE_OPTIONS,
+    workspaces: ["equipment"],
+    workspaceGroup: "equipment.apparel",
+    workspaceOrder: 60,
+  },
+  {
+    key: "shortsSize",
+    label: "Shorts Size",
+    section: "equipment",
+    type: "enum",
+    editable: true,
+    sortable: true,
+    filterable: true,
+    exportable: true,
+    dbColumn: "shorts_size",
+    enumValues: APPAREL_SIZE_OPTIONS,
+    workspaces: ["equipment"],
+    workspaceGroup: "equipment.apparel",
+    workspaceOrder: 70,
+  },
+  {
+    key: "pantsSize",
+    label: "Pants Size",
+    section: "equipment",
+    type: "enum",
+    editable: true,
+    sortable: true,
+    filterable: true,
+    exportable: true,
+    dbColumn: "pants_size",
+    enumValues: APPAREL_SIZE_OPTIONS,
+    workspaces: ["equipment"],
+    workspaceGroup: "equipment.apparel",
+    workspaceOrder: 80,
+  },
+  {
+    key: "shoeSize",
+    label: "Shoe Size",
+    section: "equipment",
+    type: "number",
+    editable: true,
+    sortable: true,
+    filterable: true,
+    exportable: true,
+    dbColumn: "shoe_size",
+    workspaces: ["equipment"],
+    workspaceGroup: "equipment.apparel",
+    workspaceOrder: 90,
+  },
+  {
+    key: "racket",
+    label: "Racket",
+    section: "equipment",
+    type: "text",
+    editable: true,
+    sortable: true,
+    filterable: true,
+    exportable: true,
+    searchable: true,
+    dbColumn: "racket",
+    workspaces: ["equipment"],
+    workspaceGroup: "equipment.tennis",
+    workspaceOrder: 10,
+  },
+  {
+    key: "gripSize",
+    label: "Grip Size",
+    section: "equipment",
+    type: "enum",
+    editable: true,
+    sortable: true,
+    filterable: true,
+    exportable: true,
+    dbColumn: "grip_size",
+    enumValues: GRIP_SIZE_OPTIONS,
+    workspaces: ["equipment"],
+    workspaceGroup: "equipment.tennis",
+    workspaceOrder: 20,
+  },
+  {
+    key: "string",
+    label: "String",
+    section: "equipment",
+    type: "text",
+    editable: true,
+    sortable: true,
+    filterable: true,
+    exportable: true,
+    dbColumn: "string",
+    workspaces: ["equipment"],
+    workspaceGroup: "equipment.tennis",
+    workspaceOrder: 30,
   },
 
   // Travel (BP-036A / BP-036E)

@@ -6,6 +6,10 @@ import type { ReactNode } from "react";
  * Geometry is copied from the approved Recruiting List page: title block,
  * accent line, subtitle spacing, header-row alignment, and gap down to
  * summary cards / content. Do not fork these values per module.
+ *
+ * Page inset (distance from the global header) is AppShell `py-10`, the
+ * same `main` padding Recruiting List shipped with. Do not add
+ * module-specific top margin or padding.
  */
 export default function ModulePageShell({
   title,

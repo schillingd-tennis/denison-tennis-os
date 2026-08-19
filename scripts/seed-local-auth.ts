@@ -95,6 +95,7 @@ async function main(): Promise<void> {
     (user) => user.email?.toLowerCase() === LOCAL_DEV_EMAIL.toLowerCase(),
   );
 
+  let authUserId: string;
   if (existing) {
     const { error } = await admin.auth.admin.updateUserById(existing.id, {
       password: LOCAL_DEV_PASSWORD,
@@ -104,19 +105,36 @@ async function main(): Promise<void> {
       console.error("Failed to update local auth user:", error.message);
       process.exit(1);
     }
+    authUserId = existing.id;
     console.log(`Updated local auth user: ${LOCAL_DEV_EMAIL}`);
   } else {
-    const { error } = await admin.auth.admin.createUser({
+    const { data, error } = await admin.auth.admin.createUser({
       email: LOCAL_DEV_EMAIL,
       password: LOCAL_DEV_PASSWORD,
       email_confirm: true,
     });
-    if (error) {
-      console.error("Failed to create local auth user:", error.message);
+    if (error || !data.user) {
+      console.error("Failed to create local auth user:", error?.message ?? "no user returned");
       process.exit(1);
     }
+    authUserId = data.user.id;
     console.log(`Created local auth user: ${LOCAL_DEV_EMAIL}`);
   }
+
+  const { error: appUserError } = await admin.from("app_users").upsert(
+    {
+      auth_user_id: authUserId,
+      active: true,
+      access_level: "admin",
+    },
+    { onConflict: "auth_user_id" },
+  );
+  if (appUserError) {
+    console.error("Failed to map local auth user into app_users:", appUserError.message);
+    console.error("Apply supabase/migrations/0020_hosted_auth_security.sql locally first.");
+    process.exit(1);
+  }
+  console.log("Mapped local auth user as active admin in app_users.");
 
   console.log("");
   console.log("Local development login (never use on hosted/production):");

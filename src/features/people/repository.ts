@@ -12,7 +12,6 @@ import {
   type RoleKey,
   type StatusKey,
 } from "@/features/lookups/seed";
-import { supabase } from "@/lib/supabase";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 import type { Person, PersonWritePatch, PlayerStatus } from "./types";
@@ -52,7 +51,8 @@ const PLAYER_STATUS_VALUES = new Set<PlayerStatus>([
 
 /** All people in the People database, sorted by last name then first name. */
 export async function listPeople(): Promise<Person[]> {
-  const { data, error } = await supabase
+  const client = await createSupabaseServerClient();
+  const { data, error } = await client
     .from(TABLE)
     .select(PERSON_SELECT)
     .order("last_name", { ascending: true })
@@ -67,7 +67,8 @@ export async function listPeople(): Promise<Person[]> {
 
 /** A single person by id, or `null` if no such person exists. */
 export async function getPersonById(id: string): Promise<Person | null> {
-  const { data, error } = await supabase
+  const client = await createSupabaseServerClient();
+  const { data, error } = await client
     .from(TABLE)
     .select(PERSON_SELECT)
     .eq("id", id)

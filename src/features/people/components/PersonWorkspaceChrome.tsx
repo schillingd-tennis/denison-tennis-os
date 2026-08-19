@@ -38,6 +38,7 @@ export type PersonWorkspaceNavTone =
   | "personal-info"
   | "family"
   | "academics"
+  | "equipment"
   | "travel"
   | "communications"
   | "related-players";
@@ -67,6 +68,11 @@ const toneSurface: Record<
     icon: "bg-success/10 text-success",
     active: "border-success bg-success/[0.07]",
     activeIcon: "bg-success/15 text-success",
+  },
+  equipment: {
+    icon: "bg-operations/10 text-operations",
+    active: "border-operations bg-operations/[0.07]",
+    activeIcon: "bg-operations/15 text-operations",
   },
   travel: {
     icon: "bg-warning/15 text-warning",

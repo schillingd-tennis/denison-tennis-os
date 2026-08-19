@@ -1,6 +1,6 @@
 import type { RoleBadgeTone } from "@/components/RoleBadge";
 import { ROLE_KEYS, STATUS_KEYS } from "@/features/lookups/seed";
-import { EMPTY_VALUE } from "@/lib/formatting";
+import { EMPTY_VALUE, formatGpa } from "@/lib/formatting";
 
 import type { ContactMethod, Person, PlayerStatus } from "./types";
 
@@ -10,6 +10,56 @@ export function getDisplayFirstName(person: Person): string {
 
 export function getDisplayName(person: Person): string {
   return `${getDisplayFirstName(person)} ${person.lastName}`;
+}
+
+/**
+ * Left-nav descriptor for the Academics workspace.
+ * Major · GPA when both exist; either value alone; otherwise "No academic record".
+ */
+export function formatAcademicsNavDescriptor(person: Person): string {
+  const major = person.major?.trim() ?? "";
+  const gpaDisplay = formatGpa(person.gpa);
+  const hasGpa = gpaDisplay !== EMPTY_VALUE;
+
+  if (major && hasGpa) return `${major} · ${gpaDisplay} GPA`;
+  if (major) return major;
+  if (hasGpa) return `${gpaDisplay} GPA`;
+  return "No academic record";
+}
+
+const EQUIPMENT_ATTRIBUTE_KEYS = [
+  "tShirtSize",
+  "driFitSize",
+  "collaredShirtSize",
+  "longSleeveSize",
+  "jacketSize",
+  "hoodieSize",
+  "shortsSize",
+  "pantsSize",
+  "shoeSize",
+  "racket",
+  "gripSize",
+  "string",
+] as const satisfies readonly (keyof Person)[];
+
+function isPopulatedEquipmentValue(value: unknown): boolean {
+  if (value === undefined || value === null || value === "") return false;
+  if (typeof value === "string") return value.trim() !== "";
+  return true;
+}
+
+/**
+ * Left-nav descriptor for the Equipment workspace.
+ * Racket when present; otherwise "Equipment on file" / "No equipment on file".
+ */
+export function formatEquipmentNavDescriptor(person: Person): string {
+  const racket = person.racket?.trim() ?? "";
+  if (racket) return racket;
+
+  const hasAny = EQUIPMENT_ATTRIBUTE_KEYS.some((key) =>
+    isPopulatedEquipmentValue(person[key]),
+  );
+  return hasAny ? "Equipment on file" : "No equipment on file";
 }
 
 /** Full legal name, with a preferred name (if different) shown in quotes. */

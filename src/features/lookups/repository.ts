@@ -2,7 +2,7 @@
  * Lookup repository (BP-025A).
  * Sole sanctioned read path for roles / statuses tables.
  */
-import { supabase } from "@/lib/supabase";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 import type { LookupRecord } from "./types";
 
@@ -27,7 +27,8 @@ function rowToLookup(row: LookupRow): LookupRecord {
 }
 
 async function listLookupTable(table: "roles" | "statuses"): Promise<LookupRecord[]> {
-  const { data, error } = await supabase
+  const client = await createSupabaseServerClient();
+  const { data, error } = await client
     .from(table)
     .select("id, key, label, sort_order, active")
     .eq("active", true)

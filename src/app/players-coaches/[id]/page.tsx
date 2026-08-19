@@ -5,6 +5,7 @@ import PersonWorkspace from "@/features/people/components/PersonWorkspace";
 import { listRelationshipsByRelatedPerson } from "@/features/people/personRelationships";
 import { getPersonById } from "@/features/people/repository";
 import { hasRole, isFamilyPerson } from "@/features/people/utils";
+import { getRecruitProfileByPersonId } from "@/features/recruiting";
 
 /**
  * Player/coach workspace route. Directory state (search / filters / sort / view)
@@ -23,6 +24,10 @@ export default async function PlayersCoachesWorkspacePage(
     notFound();
   }
 
+  const recruitProfile = isFamilyPerson(person)
+    ? null
+    : await getRecruitProfileByPersonId(id);
+
   const rawFromPlayer =
     typeof searchParams.fromPlayer === "string" ? searchParams.fromPlayer.trim() : "";
   let fromPlayerId: string | undefined;
@@ -38,5 +43,11 @@ export default async function PlayersCoachesWorkspacePage(
     }
   }
 
-  return <PersonWorkspace person={person} fromPlayerId={fromPlayerId} />;
+  return (
+    <PersonWorkspace
+      person={person}
+      fromPlayerId={fromPlayerId}
+      recruitClassYear={recruitProfile?.recruitClassYear}
+    />
+  );
 }

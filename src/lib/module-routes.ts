@@ -17,8 +17,17 @@ export const TOP_LEVEL_MODULE_PATHS = [
   "/people",
 ] as const;
 
+function normalizePathname(pathname: string): string {
+  if (pathname.length > 1 && pathname.endsWith("/")) {
+    return pathname.slice(0, -1);
+  }
+  return pathname;
+}
+
 export function isTopLevelModulePage(pathname: string): boolean {
-  return (TOP_LEVEL_MODULE_PATHS as readonly string[]).includes(pathname);
+  return (TOP_LEVEL_MODULE_PATHS as readonly string[]).includes(
+    normalizePathname(pathname),
+  );
 }
 
 export function playersCoachesPersonPath(personId: string): string {

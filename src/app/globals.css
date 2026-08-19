@@ -42,9 +42,6 @@
 :root {
   --sidebar-width: 260px;
   --header-height: 88px;
-  /* Recruiting List is the source of truth for top-level module page padding. */
-  --module-page-padding-top: 1.75rem;
-  --module-page-padding-bottom: 2.5rem;
   /* Fallbacks for chrome portaled to document.body (filter menus). */
   --module-accent: var(--color-denison-red);
   --module-tint: #fff1f2;
@@ -105,14 +102,6 @@
   --module-accent: var(--color-knowledge);
   --module-tint: #f0fdfa;
   --module-border: #99f6e4;
-}
-
-/* Top-level module pages share Recruiting List padding. Recruiting keeps
-   the same values on detail routes so the Recruit workspace does not shift. */
-.app-shell[data-page="module"] main,
-.app-shell[data-module="recruiting"] main {
-  padding-top: var(--module-page-padding-top);
-  padding-bottom: var(--module-page-padding-bottom);
 }
 
 body {

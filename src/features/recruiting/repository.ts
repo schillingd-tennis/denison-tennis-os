@@ -4,7 +4,6 @@
  * Runtime reads/writes go only to Supabase `recruit_profiles`.
  * Coach Rank multi-row mutations use atomic Postgres RPCs.
  */
-import { supabase } from "@/lib/supabase";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 import {
@@ -42,7 +41,8 @@ export type CoachRankBoard = {
 };
 
 export async function listRecruitProfiles(): Promise<RecruitProfile[]> {
-  const { data, error } = await supabase
+  const client = await createSupabaseServerClient();
+  const { data, error } = await client
     .from(TABLE)
     .select(RECRUIT_PROFILE_SELECT)
     .order("created_at", { ascending: true })
@@ -58,7 +58,8 @@ export async function listRecruitProfiles(): Promise<RecruitProfile[]> {
 export async function getRecruitProfileByPersonId(
   personId: string,
 ): Promise<RecruitProfile | null> {
-  const { data, error } = await supabase
+  const client = await createSupabaseServerClient();
+  const { data, error } = await client
     .from(TABLE)
     .select(RECRUIT_PROFILE_SELECT)
     .eq("person_id", personId)
@@ -202,7 +203,8 @@ export async function updateRecruitProfile(
 export async function getCoachRankBoard(classYear: number): Promise<CoachRankBoard> {
   assertClassYear(classYear);
 
-  const { data, error } = await supabase
+  const client = await createSupabaseServerClient();
+  const { data, error } = await client
     .from(TABLE)
     .select("person_id, coach_rank")
     .eq("recruit_class_year", classYear)

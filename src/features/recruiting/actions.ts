@@ -12,7 +12,9 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   addUnrankedToCoachRank,
   applyCoachRankOrder,
+  createRecruitProfile,
   getCoachRankBoard,
+  getRecruitProfileByPersonId,
   moveCoachRank,
   RecruitingRepositoryError,
   updateRecruitProfile,
@@ -65,6 +67,66 @@ export async function updateRecruitProfileAction(
       console.error(`[updateRecruitProfileAction] ${error.message}`);
     } else {
       console.error("[updateRecruitProfileAction] Unexpected error", error);
+    }
+    return { success: false, error: "We couldn't save your changes. Please try again." };
+  }
+}
+
+export type UpsertRecruitClassYearResult =
+  | { success: true; recruitClassYear: number | null }
+  | { success: false; error: string };
+
+/**
+ * Persist HS Class onto RecruitProfile.recruitClassYear without touching
+ * Person.classYear (Denison graduation). Creates a historical profile only
+ * when this Person has none yet.
+ */
+export async function upsertRecruitClassYearAction(
+  personId: string,
+  recruitClassYear: number | null,
+): Promise<UpsertRecruitClassYearResult> {
+  const auth = await requireUser();
+  if (!auth.ok) return { success: false, error: auth.error };
+
+  const trimmed = personId?.trim() ?? "";
+  if (!trimmed) {
+    return { success: false, error: "Person is required." };
+  }
+
+  if (recruitClassYear !== null) {
+    if (!Number.isInteger(recruitClassYear) || recruitClassYear < 1900 || recruitClassYear > 2200) {
+      return { success: false, error: "HS Class must be a valid year." };
+    }
+  }
+
+  try {
+    const current = await getRecruitProfileByPersonId(trimmed);
+    if (!current) {
+      if (recruitClassYear === null) {
+        return { success: true, recruitClassYear: null };
+      }
+      const created = await createRecruitProfile({
+        personId: trimmed,
+        recruitClassYear,
+      });
+      revalidatePath("/players-coaches");
+      revalidatePath(`/players-coaches/${trimmed}`);
+      revalidatePath("/recruiting");
+      revalidatePath(`/recruiting/${trimmed}`);
+      return { success: true, recruitClassYear: created.recruitClassYear ?? null };
+    }
+
+    const profile = await updateRecruitProfile(trimmed, { recruitClassYear });
+    revalidatePath("/players-coaches");
+    revalidatePath(`/players-coaches/${trimmed}`);
+    revalidatePath("/recruiting");
+    revalidatePath(`/recruiting/${trimmed}`);
+    return { success: true, recruitClassYear: profile.recruitClassYear ?? null };
+  } catch (error) {
+    if (error instanceof RecruitingRepositoryError) {
+      console.error(`[upsertRecruitClassYearAction] ${error.message}`);
+    } else {
+      console.error("[upsertRecruitClassYearAction] Unexpected error", error);
     }
     return { success: false, error: "We couldn't save your changes. Please try again." };
   }

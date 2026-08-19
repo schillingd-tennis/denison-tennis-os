@@ -54,6 +54,9 @@ export type ProductionPersonRow = {
   class_year: number | null;
   major: string | null;
   minor: string | null;
+  gpa: number | null;
+  gpa_last_semester: number | null;
+  gpa_last_year: number | null;
   denison_id: string | null;
   dorm: string | null;
   room_number: string | null;
@@ -76,6 +79,18 @@ export type ProductionPersonRow = {
   passport_number: string | null;
   passport_expiration_date: string | null;
   seat_preference: string | null;
+  t_shirt_size: string | null;
+  dri_fit_size: string | null;
+  collared_shirt_size: string | null;
+  long_sleeve_size: string | null;
+  jacket_size: string | null;
+  hoodie_size: string | null;
+  shorts_size: string | null;
+  pants_size: string | null;
+  shoe_size: number | null;
+  racket: string | null;
+  grip_size: string | null;
+  string: string | null;
   relationships: PersonRelationship[] | null;
   notes: string | null;
   family_notes: string | null;
@@ -145,6 +160,9 @@ export function rowToPerson(row: ProductionPersonRow): Person {
     classYear: undefinedIfNull(row.class_year),
     major: undefinedIfNull(row.major),
     minor: undefinedIfNull(row.minor),
+    gpa: undefinedIfNull(row.gpa),
+    gpaLastSemester: undefinedIfNull(row.gpa_last_semester),
+    gpaLastYear: undefinedIfNull(row.gpa_last_year),
     denisonId: undefinedIfNull(row.denison_id),
     dorm: undefinedIfNull(row.dorm),
     roomNumber: undefinedIfNull(row.room_number),
@@ -169,6 +187,19 @@ export function rowToPerson(row: ProductionPersonRow): Person {
     passportNumber: undefinedIfNull(row.passport_number),
     passportExpirationDate: undefinedIfNull(row.passport_expiration_date),
     seatPreference: undefinedIfNull(row.seat_preference) as Person["seatPreference"],
+
+    tShirtSize: undefinedIfNull(row.t_shirt_size) as Person["tShirtSize"],
+    driFitSize: undefinedIfNull(row.dri_fit_size) as Person["driFitSize"],
+    collaredShirtSize: undefinedIfNull(row.collared_shirt_size) as Person["collaredShirtSize"],
+    longSleeveSize: undefinedIfNull(row.long_sleeve_size) as Person["longSleeveSize"],
+    jacketSize: undefinedIfNull(row.jacket_size) as Person["jacketSize"],
+    hoodieSize: undefinedIfNull(row.hoodie_size) as Person["hoodieSize"],
+    shortsSize: undefinedIfNull(row.shorts_size) as Person["shortsSize"],
+    pantsSize: undefinedIfNull(row.pants_size) as Person["pantsSize"],
+    shoeSize: undefinedIfNull(row.shoe_size),
+    racket: undefinedIfNull(row.racket),
+    gripSize: undefinedIfNull(row.grip_size) as Person["gripSize"],
+    string: undefinedIfNull(row.string),
 
     relationships: row.relationships ?? [],
 

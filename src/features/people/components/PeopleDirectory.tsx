@@ -228,6 +228,7 @@ export default function PeopleDirectory({ people }: { people: Person[] }) {
         ) : (
           <PersonList
             people={filtered}
+            allPeople={livePeople}
             activeFilterIds={activeFilterIds}
             onPersonCommit={replacePerson}
           />

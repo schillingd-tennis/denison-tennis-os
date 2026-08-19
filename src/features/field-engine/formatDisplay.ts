@@ -4,9 +4,17 @@
  * Presentation only — persistence keeps raw values.
  */
 
-import { EMPTY_VALUE, formatDate, formatDisplay, formatPercent } from "@/lib/formatting";
+import {
+  EMPTY_VALUE,
+  formatDate,
+  formatDisplay,
+  formatGpa,
+  formatPercent,
+} from "@/lib/formatting";
 
 import type { FieldDefinition } from "./types";
+
+const PERSON_GPA_KEYS = new Set(["gpa", "gpaLastSemester", "gpaLastYear"]);
 
 /** Mask SSN for display; empty → EMPTY_VALUE. Shows last four digits when present. */
 export function maskSocialSecurityNumber(value: string | undefined): string {
@@ -65,6 +73,14 @@ export function formatFieldDisplay(def: FieldDefinition, value: unknown): string
     case "percentage":
       return typeof value === "number" ? formatPercent(value) : formatDisplay(value as string | undefined);
     case "number":
+      if (PERSON_GPA_KEYS.has(def.key)) {
+        return formatGpa(
+          typeof value === "number" || typeof value === "string" ? value : undefined,
+        );
+      }
+      return formatDisplay(
+        value === undefined || value === null || value === "" ? undefined : String(value),
+      );
     case "currency":
       return formatDisplay(
         value === undefined || value === null || value === "" ? undefined : String(value),

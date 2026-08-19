@@ -15,7 +15,6 @@ import {
 } from "@/components/editor";
 import {
   copyFoundSet,
-  exportFoundSetCsv,
   publishFoundSet,
 } from "@/components/found-set";
 import {
@@ -27,7 +26,10 @@ import {
   type InlineCommitReason,
 } from "@/components/inline-edit";
 import { StickyProductivityActionBar } from "@/components/productivity";
+import { useDrawerManager } from "@/components/workspace-drawer";
 
+import ExportBuilder from "@/features/export-engine/components/ExportBuilder";
+import { TEAM_EXPORT_MODULE } from "@/features/export-engine";
 import { updatePersonAction } from "@/features/people/actions";
 import {
   TEAM_DIRECTORY_LIST_TABLE_COLUMNS,
@@ -195,14 +197,22 @@ function contactHrefs(person: Person) {
 
 export default function PersonList({
   people,
+  allPeople,
   activeFilterIds,
   onPersonCommit,
 }: {
   people: Person[];
+  /** Unfiltered Team directory (search/filters not applied). Used for All Players. */
+  allPeople?: Person[];
   activeFilterIds: readonly string[];
   onPersonCommit?: (person: Person) => void;
 }) {
   const router = useRouter();
+  const { openDrawer, closeDrawer } = useDrawerManager();
+  const runExportRef = useRef<() => boolean>(() => false);
+  const bindExport = useCallback((run: () => boolean) => {
+    runExportRef.current = run;
+  }, []);
   const [rows, setRows] = useState(people);
   const [trackedPeople, setTrackedPeople] = useState(people);
   const [editing, setEditing] = useState<EditingCell | null>(null);
@@ -249,12 +259,33 @@ export default function PersonList({
 
   const handleExportFoundSet = useCallback(() => {
     if (sortedItems.length === 0) return;
-    exportFoundSetCsv({
-      rows: sortedItems,
-      columns: TEAM_FOUND_SET_COLUMNS,
-      filenameBase: TEAM_FOUND_SET_FILENAME_BASE,
+    openDrawer({
+      id: "team-export",
+      title: "Export",
+      subtitle: "Team",
+      content: (
+        <ExportBuilder
+          entry={{
+            module: TEAM_EXPORT_MODULE,
+            populations: {
+              all: allPeople ?? people,
+              foundSet: sortedItems,
+            },
+            initialPresetId: "playerDirectory",
+            initialWho: "found_set",
+          }}
+          bindExport={bindExport}
+        />
+      ),
+      primaryAction: {
+        label: "Export",
+        onClick: () => {
+          if (runExportRef.current()) closeDrawer();
+        },
+      },
+      cancelAction: { label: "Cancel" },
     });
-  }, [sortedItems]);
+  }, [allPeople, bindExport, closeDrawer, openDrawer, people, sortedItems]);
 
   const openWorkspace = useCallback(
     (personId: string) => {

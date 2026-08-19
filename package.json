@@ -21,7 +21,8 @@
     "db:push": "supabase db push",
     "db:link": "supabase link",
     "db:env": "tsx scripts/print-local-supabase-env.ts",
-    "test:recruiting-analytics": "tsx --test src/features/recruiting/analytics/*.test.ts",
+    "test:export-engine": "tsx --test src/features/export-engine/*.test.ts",
+    "test:hosted-auth-security": "tsx --test src/features/people/hostedAuthSecurity.migration.test.ts",
     "test:recruiting-coach-rank": "tsx --test src/features/recruiting/coachRank/*.test.ts",
     "test:recruiting": "tsx --test src/features/recruiting/analytics/*.test.ts src/features/recruiting/coachRank/*.test.ts src/features/recruiting/directoryInline.test.ts src/features/recruiting/rankViewSort.test.ts src/features/recruiting/metricsView.test.ts"
   },

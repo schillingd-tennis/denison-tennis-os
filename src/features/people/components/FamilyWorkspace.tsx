@@ -1,15 +1,25 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
-import { Trash2 } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+  type MouseEvent,
+} from "react";
+import { Mail, Phone, Trash2 } from "lucide-react";
 
+import { DIRECTORY_ACTIONS_WIDTH_CLASS } from "@/components/data-table/directoryColumnWidths";
 import { formatPhoneDisplay } from "@/components/inline-edit";
 import { moduleFieldClass, modulePrimaryButtonClass } from "@/components/module-theme";
-import OpenPersonAction from "@/components/OpenPersonAction";
 import QuickActionButton from "@/components/QuickActionButton";
 import { WorkspaceAccentHeading } from "@/components/adaptive-workspace";
 import { typeClass, typeRole } from "@/components/typography";
 import { useDrawerManager } from "@/components/workspace-drawer";
+import { createCommunicationActions } from "@/features/communication";
 import { FieldRenderer, PersonFieldSession } from "@/features/field-engine";
 import {
   createParentForPlayerAction,
@@ -27,6 +37,7 @@ import {
 } from "@/features/people/personRelationshipTypes";
 import type { Person } from "@/features/people/types";
 import { getDisplayName, matchesSearch } from "@/features/people/utils";
+import { RECRUITING_TABLE } from "@/features/recruiting/components/recruitingTableChrome";
 import { playersCoachesPersonPath } from "@/lib/module-routes";
 
 export type FamilyWorkspaceSummary = {
@@ -357,6 +368,15 @@ function AddParentFlow({
   );
 }
 
+function familyPersonHref(personId: string, fromPlayerId: string): string {
+  const href = playersCoachesPersonPath(personId);
+  return `${href}${href.includes("?") ? "&" : "?"}fromPlayer=${encodeURIComponent(fromPlayerId)}`;
+}
+
+function stopRowNavigation(event: MouseEvent) {
+  event.stopPropagation();
+}
+
 function ParentRow({
   row,
   playerId,
@@ -366,12 +386,19 @@ function ParentRow({
   playerId: string;
   onRemoved: () => void;
 }) {
+  const router = useRouter();
   const { person, relationship } = row;
   const name = getDisplayName(person);
   const relationshipLabel = PERSON_RELATIONSHIP_TYPE_LABELS[relationship.relationshipType];
   const email = person.personalEmail?.trim() || person.denisonEmail?.trim();
   const phoneDisplay = formatPhoneDisplay(person.cellPhone);
   const contactParts = [email, phoneDisplay].filter(Boolean);
+  const href = familyPersonHref(person.id, playerId);
+  const communicationActions = createCommunicationActions({
+    personId: person.id,
+    cellPhone: person.cellPhone,
+    email,
+  });
   const [removing, setRemoving] = useState(false);
   const [removeError, setRemoveError] = useState<string | undefined>();
 
@@ -400,33 +427,53 @@ function ParentRow({
   }
 
   return (
-    <div className="flex flex-col gap-1 py-3.5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+    <div
+      onClick={() => router.push(href)}
+      className={`flex cursor-pointer items-center gap-3 py-3.5 ${RECRUITING_TABLE.rowHover}`}
+    >
+      <div className="min-w-0 flex-1">
+        <Link
+          href={href}
+          onClick={stopRowNavigation}
+          onMouseDown={stopRowNavigation}
+          className="rounded-control outline-none hover:text-[var(--module-accent)] focus-visible:ring-2 focus-visible:ring-[var(--module-accent)]/40"
+          aria-label={`Open workspace for ${name}`}
+        >
           <p className={typeRole.personName}>{name}</p>
-          <p className={typeClass("metadataSm", "mt-0.5")}>{relationshipLabel}</p>
-          {contactParts.length > 0 ? (
-            <p className={typeClass("metadataSm", "mt-0.5 truncate")}>
-              {contactParts.join(" · ")}
-            </p>
-          ) : null}
-        </div>
-        <div className="flex shrink-0 items-center gap-1.5">
-          <OpenPersonAction
-            href={playersCoachesPersonPath(person.id)}
-            label="Open Parent"
-            fromPlayerId={playerId}
-          />
-          <QuickActionButton
-            onAction={removing ? undefined : () => void handleRemove()}
-            icon={Trash2}
-            label="Remove from Family"
-            tone="denison"
-            unavailableTitle="Removing…"
-          />
-        </div>
+        </Link>
+        <p className={typeClass("metadataSm", "mt-0.5")}>{relationshipLabel}</p>
+        {contactParts.length > 0 ? (
+          <p className={typeClass("metadataSm", "mt-0.5 truncate")}>
+            {contactParts.join(" · ")}
+          </p>
+        ) : null}
+        {removeError ? <p className="mt-1 text-sm text-danger">{removeError}</p> : null}
       </div>
-      {removeError ? <p className="text-sm text-danger">{removeError}</p> : null}
+      <div
+        className={`flex ${DIRECTORY_ACTIONS_WIDTH_CLASS} items-center justify-end gap-1`}
+        onClick={stopRowNavigation}
+        onMouseDown={stopRowNavigation}
+      >
+        <QuickActionButton
+          href={communicationActions.call.href}
+          icon={Phone}
+          label={communicationActions.call.label}
+          tone="success"
+        />
+        <QuickActionButton
+          href={communicationActions.email.href}
+          icon={Mail}
+          label={communicationActions.email.label}
+          tone="info"
+        />
+        <QuickActionButton
+          onAction={removing ? undefined : () => void handleRemove()}
+          icon={Trash2}
+          label="Remove from Family"
+          tone="denison"
+          unavailableTitle="Removing…"
+        />
+      </div>
     </div>
   );
 }

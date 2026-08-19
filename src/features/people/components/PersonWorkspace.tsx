@@ -13,6 +13,7 @@ import {
   MessageSquare,
   Phone,
   Plane,
+  Shirt,
   Trash2,
   UserRound,
   Users,
@@ -43,7 +44,6 @@ import { useDrawerManager } from "@/components/workspace-drawer";
 import {
   AdaptiveWorkspace,
   AdaptiveWorkspacePlaceholder,
-  WorkspaceMutedNote,
   type AdaptiveWorkspaceDefinition,
 } from "@/components/adaptive-workspace";
 
@@ -63,6 +63,8 @@ import {
 import { toPersonWritePatch } from "@/features/people/personWritePatch";
 import type { Person, PlayerStatus } from "@/features/people/types";
 import {
+  formatAcademicsNavDescriptor,
+  formatEquipmentNavDescriptor,
   getDisplayName,
   getPermanentAddress,
   getPlayerStatusLabel,
@@ -74,10 +76,13 @@ import {
 import { formatDate, parseDisplayDate } from "@/lib/formatting";
 import { PLAYERS_COACHES_ROUTE, playersCoachesPersonPath } from "@/lib/module-routes";
 
+import AcademicsWorkspace from "./AcademicsWorkspace";
 import ContactInformationWorkspace from "./ContactInformationWorkspace";
 import DeletePersonConfirm from "./DeletePersonConfirm";
+import EquipmentWorkspace from "./EquipmentWorkspace";
 import FamilyWorkspace, { type FamilyWorkspaceSummary } from "./FamilyWorkspace";
 import PersonStatusLabel from "./PersonStatusLabel";
+import PersonWorkspaceExportAction from "./PersonWorkspaceExportAction";
 import RelatedPlayersWorkspace from "./RelatedPlayersWorkspace";
 import TravelWorkspace from "./TravelWorkspace";
 import {
@@ -188,10 +193,13 @@ function followUpStatusLine(communications: Communication[]): string {
 export default function PersonWorkspace({
   person,
   fromPlayerId,
+  recruitClassYear,
 }: {
   person: Person;
   /** Originating player id when opened from a player's Family workspace (`?fromPlayer=`). */
   fromPlayerId?: string;
+  /** HS graduation / recruiting class from RecruitProfile, when present (BP-043E). */
+  recruitClassYear?: number;
 }) {
   const [record, setRecord] = useState(person);
   const [trackedPerson, setTrackedPerson] = useState(person);
@@ -520,8 +528,15 @@ export default function PersonWorkspace({
       ];
     }
 
-    return [
+    const playerRecord = hasRole(record, ROLE_KEYS.player);
+    const items: PersonWorkspaceNavItem[] = [
       personalItem,
+      {
+        id: "academics",
+        title: "Academics",
+        icon: GraduationCap,
+        descriptor: formatAcademicsNavDescriptor(record),
+      },
       {
         id: "family",
         title: "Family",
@@ -535,12 +550,16 @@ export default function PersonWorkspace({
           hasEmergency ? "Emergency contact on file" : "No emergency contact",
         ].join(" · "),
       },
-      {
-        id: "academics",
-        title: "Academics",
-        icon: GraduationCap,
-        descriptor: record.major?.trim() || "No academic record",
-      },
+    ];
+    if (playerRecord) {
+      items.push({
+        id: "equipment",
+        title: "Equipment",
+        icon: Shirt,
+        descriptor: formatEquipmentNavDescriptor(record),
+      });
+    }
+    items.push(
       {
         id: "travel",
         title: "Travel",
@@ -548,7 +567,8 @@ export default function PersonWorkspace({
         descriptor: "Travel documents & itinerary",
       },
       communicationsItem,
-    ];
+    );
+    return items;
   }, [
     communications,
     familyPerson,
@@ -556,8 +576,22 @@ export default function PersonWorkspace({
     familySummary.parentCount,
     record.cellPhone,
     record.classYear,
+    record.gpa,
     record.major,
     record.personalEmail,
+    record.racket,
+    record.tShirtSize,
+    record.driFitSize,
+    record.collaredShirtSize,
+    record.longSleeveSize,
+    record.jacketSize,
+    record.hoodieSize,
+    record.shortsSize,
+    record.pantsSize,
+    record.shoeSize,
+    record.gripSize,
+    record.string,
+    record.role.key,
     relatedPlayerCount,
   ]);
 
@@ -585,10 +619,14 @@ export default function PersonWorkspace({
       id: "personal-info",
       title: "Personal Info",
       subtitle: "Identity & Contact",
+      toolbar: familyPerson ? undefined : (
+        <PersonWorkspaceExportAction person={record} presetId="personalInfo" />
+      ),
       content: (
         <ContactInformationWorkspace
           key={record.id}
           person={record}
+          recruitClassYear={recruitClassYear}
           onPersonChange={setRecord}
           runSave={runSave}
         />
@@ -608,8 +646,23 @@ export default function PersonWorkspace({
       ];
     }
 
-    return [
+    const playerRecord = hasRole(record, ROLE_KEYS.player);
+    const workspaces: AdaptiveWorkspaceDefinition[] = [
       personalWorkspace,
+      {
+        id: "academics",
+        title: "Academics",
+        subtitle: "Academic profile & performance",
+        toolbar: <PersonWorkspaceExportAction person={record} presetId="academics" />,
+        content: (
+          <AcademicsWorkspace
+            key={record.id}
+            person={record}
+            onPersonChange={setRecord}
+            runSave={runSave}
+          />
+        ),
+      },
       {
         id: "family",
         title: "Family",
@@ -624,16 +677,29 @@ export default function PersonWorkspace({
           />
         ),
       },
-      {
-        id: "academics",
-        title: "Academics",
-        subtitle: "School & standing",
-        content: <WorkspaceMutedNote>Academic dashboard coming soon.</WorkspaceMutedNote>,
-      },
+    ];
+    if (playerRecord) {
+      workspaces.push({
+        id: "equipment",
+        title: "Equipment",
+        subtitle: "Apparel & tennis equipment",
+        toolbar: <PersonWorkspaceExportAction person={record} presetId="equipment" />,
+        content: (
+          <EquipmentWorkspace
+            key={record.id}
+            person={record}
+            onPersonChange={setRecord}
+            runSave={runSave}
+          />
+        ),
+      });
+    }
+    workspaces.push(
       {
         id: "travel",
         title: "Travel",
         subtitle: "Travel documents & itinerary",
+        toolbar: <PersonWorkspaceExportAction person={record} presetId="travel" />,
         content: (
           <TravelWorkspace
             person={record}
@@ -643,8 +709,9 @@ export default function PersonWorkspace({
         ),
       },
       communicationsWorkspace,
-    ];
-  }, [displayName, familyPerson, record, runSave]);
+    );
+    return workspaces;
+  }, [displayName, familyPerson, record, recruitClassYear, runSave]);
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
