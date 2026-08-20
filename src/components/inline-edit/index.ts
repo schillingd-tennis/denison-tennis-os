@@ -9,6 +9,7 @@
 export { default as InlineEditCell } from "./InlineEditCell";
 export { default as SaveIndicator } from "./SaveIndicator";
 export { useSaveIndicator } from "./useSaveIndicator";
+export { useIsMobileEditSurface, isMobileEditSurface } from "./useIsMobileEditSurface";
 export {
   formatPhoneDisplay,
   normalizeEmail,

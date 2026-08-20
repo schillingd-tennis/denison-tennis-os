@@ -31,7 +31,7 @@ export default function AdaptiveWorkspace({
 
   return (
     <section
-      className={`flex h-full min-h-[280px] flex-col overflow-hidden ${
+      className={`flex h-full min-h-[280px] min-w-0 flex-col overflow-hidden ${
         framed ? "rounded-card border border-[var(--module-border)] bg-surface" : "bg-surface"
       } ${className ?? ""}`}
       aria-label="Adaptive workspace"
@@ -54,7 +54,9 @@ export default function AdaptiveWorkspace({
             subtitle={active.subtitle}
             toolbar={active.toolbar}
           />
-          <div className="min-h-0 flex-1 px-5 py-5">{active.content}</div>
+          <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-5 sm:px-5">
+            {active.content}
+          </div>
         </div>
       )}
     </section>

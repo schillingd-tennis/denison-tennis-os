@@ -46,6 +46,7 @@ import {
   AdaptiveWorkspacePlaceholder,
   type AdaptiveWorkspaceDefinition,
 } from "@/components/adaptive-workspace";
+import { MobileWorkspaceSelector } from "@/components/mobile-workspace";
 
 import {
   createCommunicationActions,
@@ -874,8 +875,35 @@ export default function PersonWorkspace({
       />
 
       <section aria-label="Workspaces">
+          {/* Mobile: selector + full-width active workspace (no compressed split). */}
+          <div className="flex flex-col gap-3 md:hidden">
+            <MobileWorkspaceSelector
+              items={workspaceItems.map((item) => ({
+                id: item.id,
+                title: item.title,
+                icon: item.icon,
+                lines: item.descriptor ? [item.descriptor] : [],
+              }))}
+              activeId={
+                workspaceItems.some((item) => item.id === activeWorkspaceId)
+                  ? activeWorkspaceId
+                  : null
+              }
+              onSelect={setActiveWorkspaceId}
+            />
+            <AdaptiveWorkspace
+              activeId={
+                workspaceItems.some((item) => item.id === activeWorkspaceId)
+                  ? activeWorkspaceId
+                  : null
+              }
+              workspaces={adaptiveWorkspaces}
+            />
+          </div>
+
+          {/* Desktop BP-036D: nav rail LEFT, Adaptive Workspace RIGHT. */}
           <div
-            className="grid min-h-[420px] w-full grid-cols-[minmax(260px,320px)_minmax(0,1fr)] grid-rows-1 items-stretch overflow-hidden rounded-card border border-[var(--module-border)] bg-surface shadow-[0_8px_24px_rgba(17,24,39,0.04)]"
+            className="hidden min-h-[420px] w-full grid-cols-[minmax(260px,320px)_minmax(0,1fr)] grid-rows-1 items-stretch overflow-hidden rounded-card border border-[var(--module-border)] bg-surface shadow-[0_8px_24px_rgba(17,24,39,0.04)] md:grid"
             style={{ gridTemplateColumns: "minmax(260px, 320px) minmax(0, 1fr)" }}
           >
             <aside className="flex min-h-0 min-w-0 flex-col border-r border-[var(--module-border)]">

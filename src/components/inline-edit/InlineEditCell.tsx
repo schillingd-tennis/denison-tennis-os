@@ -21,6 +21,7 @@ import type {
   InlineFieldType,
   InlineSelectOption,
 } from "./types";
+import { useIsMobileEditSurface, isMobileEditSurface } from "./useIsMobileEditSurface";
 
 /** Apply type-aware normalization immediately before a commit reaches the parent. */
 function normalizeForCommit(raw: string, type: InlineFieldType): string {
@@ -48,6 +49,24 @@ function displayClassName(emphasis: InlineEmphasis, hasValue: boolean): string {
   return hasValue
     ? `whitespace-pre-wrap ${typeRole.fieldValue}`
     : `whitespace-pre-wrap text-sm ${typeRole.metadataEmpty}`;
+}
+
+function focusEditor(
+  node: HTMLInputElement | HTMLTextAreaElement,
+  mode: "select-all" | "caret-end",
+) {
+  node.focus();
+  const length = node.value.length;
+  if (mode === "select-all") {
+    node.select();
+    return;
+  }
+  // Mobile: do not select-all. Caret at end so notes are easy to append.
+  try {
+    node.setSelectionRange(length, length);
+  } catch {
+    // Some input types (e.g. number/date) reject setSelectionRange.
+  }
 }
 
 /**
@@ -85,12 +104,18 @@ function InlineEditInput({
   const ignoreBlurRef = useRef(false);
   const committingRef = useRef(false);
 
+  const resolvedRows = rows ?? (density === "compact" ? 3 : 4);
+
   useEffect(() => {
     const node = inputRef.current;
     if (!node) return;
-    node.focus();
+    if (node instanceof HTMLSelectElement) {
+      node.focus();
+      return;
+    }
     if (node instanceof HTMLInputElement || node instanceof HTMLTextAreaElement) {
-      node.select();
+      // Read viewport at focus time so the first mobile paint never select-all.
+      focusEditor(node, isMobileEditSurface() ? "caret-end" : "select-all");
     }
   }, []);
 
@@ -143,12 +168,21 @@ function InlineEditInput({
       ignoreBlurRef.current = false;
       return;
     }
+    // Mobile long-text: require Save / Cancel (keyboard dismiss must not
+    // auto-commit or fight the software keyboard).
+    if (type === "textarea" && isMobileEditSurface()) {
+      return;
+    }
     void commit("blur");
+  }
+
+  function armExplicitAction() {
+    ignoreBlurRef.current = true;
   }
 
   return (
     <div
-      className="relative"
+      className="relative min-w-0"
       onClick={(event) => event.stopPropagation()}
       onDoubleClick={(event) => event.stopPropagation()}
     >
@@ -183,11 +217,11 @@ function InlineEditInput({
           }}
           aria-label={label}
           value={draft}
-          rows={rows ?? (density === "compact" ? 3 : 4)}
+          rows={resolvedRows}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={handleInputKeyDown}
           onBlur={handleBlur}
-          className={`${editorClass} resize-y`}
+          className={`${editorClass} min-h-[9rem] resize-y md:min-h-0`}
         />
       ) : (
         <input
@@ -216,6 +250,32 @@ function InlineEditInput({
           className={editorClass}
         />
       )}
+      {type === "textarea" ? (
+        <div className="mt-2 flex items-center justify-end gap-2 md:hidden">
+          <button
+            type="button"
+            className="inline-flex h-10 min-w-[4.5rem] items-center justify-center rounded-control px-3 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
+            onPointerDown={armExplicitAction}
+            onClick={() => {
+              setDraft(initialValue);
+              onCancel();
+              requestAnimationFrame(onExitFocus);
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="inline-flex h-10 min-w-[4.5rem] items-center justify-center rounded-control bg-[var(--module-accent)] px-3 text-sm font-semibold text-surface transition-opacity hover:opacity-90"
+            onPointerDown={armExplicitAction}
+            onClick={() => {
+              void commit("enter");
+            }}
+          >
+            Save
+          </button>
+        </div>
+      ) : null}
       <ValidationMessage message={error} />
     </div>
   );
@@ -230,7 +290,7 @@ function InlineEditInput({
  * - Enter → commit + exit (⌘/Ctrl+Enter for textarea)
  * - Tab / Shift+Tab → commit + ask parent to move focus
  * - Escape → cancel, restore original
- * - Blur → commit
+ * - Blur → commit (desktop / single-line); mobile textarea uses Save / Cancel
  *
  * Knows nothing about Person / Team / any record shape — the parent supplies
  * `value`/`displayValue` and handles persistence in `onCommit`.
@@ -298,6 +358,7 @@ export default function InlineEditCell({
   onCommit: (nextRaw: string, reason: InlineCommitReason) => void | Promise<void>;
 }) {
   const cellRef = useRef<HTMLDivElement | null>(null);
+  const mobileSurface = useIsMobileEditSurface();
 
   const shown = displayValue !== undefined && displayValue !== "" ? displayValue : value || emptyDisplay;
   const alignClass = align === "right" ? "text-right" : "text-left";
@@ -318,6 +379,15 @@ export default function InlineEditCell({
     }
   }
 
+  const editHint =
+    editing || disabled
+      ? undefined
+      : mobileSurface
+        ? `Tap to edit ${label}`
+        : editOn === "click"
+          ? `Click to edit ${label}`
+          : `Double-click to edit ${label}`;
+
   return (
     <div
       ref={cellRef}
@@ -330,13 +400,7 @@ export default function InlineEditCell({
       onDoubleClick={editing || editOn !== "double-click" ? undefined : enterEdit}
       onKeyDown={editing ? undefined : handleCellKeyDown}
       className={`${editing ? "rounded-control ring-1 ring-[var(--module-accent)]/30" : `-mx-1 cursor-cell rounded-control px-1 py-0.5 outline-none transition-colors duration-150 hover:bg-[var(--module-tint)] focus-visible:ring-2 focus-visible:ring-[var(--module-accent)]/40 ${disabled ? "cursor-default hover:bg-transparent" : ""}`} ${alignClass} ${className ?? ""}`}
-      title={
-        editing || disabled
-          ? undefined
-          : editOn === "click"
-            ? `Click to edit ${label}`
-            : `Double-click to edit ${label}`
-      }
+      title={editHint}
     >
       {editing ? (
         <InlineEditInput

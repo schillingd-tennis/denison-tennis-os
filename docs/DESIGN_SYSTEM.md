@@ -104,6 +104,48 @@ Shared package: `src/components/mobile-dashboard`
 **Migrated:** Team (`PeopleDirectory` / `RoleFilterControl`), Recruiting (`RecruitingDirectory` / `RecruitingFilterControl`).  
 **Future:** Operations, Fundraising, Research, Knowledge when they gain directory KPIs / multi-view / faceted filters — reuse this package; do not fork Recruiting-specific mobile chrome.
 
+### Mobile Adaptive Workspace (below `md`)
+
+Desktop keeps the BP-036D permanent split (nav rail left + Adaptive Workspace right). On mobile that split is hidden.
+
+Shared package: `src/components/mobile-workspace`
+
+| Piece | Role |
+|---|---|
+| `MobileWorkspaceSelector` | Single control showing the active workspace; opens the sheet. |
+| `MobileWorkspaceSheet` | Bottom sheet listing all workspaces; selection updates existing `activeWorkspaceId` state. |
+
+**Migrated:** Team Person Workspace, Recruit Person Workspace. Content still comes from `AdaptiveWorkspace` definitions — no duplicated workspace logic.
+
+### Mobile Adaptive Workspace content (below `md`)
+
+Desktop multi-column field grids and status strips stay unchanged at `md+`.
+
+Shared primitives in `src/components/adaptive-workspace/WorkspaceContent.tsx`:
+
+| Piece | Mobile | Desktop |
+|---|---|---|
+| `WorkspaceFieldGrid` | 1 column | 2 / 3 / 4 columns |
+| `WorkspaceSplit` | Stacked | Horizontal column template |
+| `WorkspaceStatusStrip` | 2–3 col wrap | Single nowrap row |
+| `WorkspaceField` | Label above value; long values wrap | Same |
+
+Do not reintroduce fixed `gridTemplateColumns: repeat(N, …)` that applies at all breakpoints — use these primitives.
+
+**Migrated content:** Recruiting Person Adaptive Workspaces (Personal Info, Academics, Rankings, Analytics, Notes, Communications).
+
+### Mobile inline editing (below `md`)
+
+Shared in `src/components/inline-edit` (`InlineEditCell`):
+
+| Surface | Enter edit | Focus behavior | Commit |
+|---|---|---|---|
+| Desktop | Unchanged (click / double-click) | `select()` all text | Blur / keyboard as before |
+| Mobile single-line | Tap field | Caret at end — **no** select-all | Blur / keyboard as before |
+| Mobile textarea (notes) | Tap field | Caret at end — **no** select-all | Explicit **Save** / **Cancel** (blur does not auto-commit) |
+
+All Adaptive Workspace + directory fields that use `InlineEditCell` / `FieldRenderer` / `RecruitProfileField` inherit this. Do not add per-workspace select-all workarounds.
+
 ### View chrome (directory / table workspaces)
 
 `src/components/view-chrome` is the OS pattern for **view header + workspace actions + data**. It is not Recruiting-specific.

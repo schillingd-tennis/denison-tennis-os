@@ -249,22 +249,23 @@ export function RecruitWorkspaceProfile({
 
   return (
     <section
-      className="rounded-card border border-[var(--module-border)] bg-surface px-5 py-4 shadow-[0_8px_24px_rgba(17,24,39,0.04)]"
+      className="min-w-0 overflow-x-hidden rounded-card border border-[var(--module-border)] bg-surface px-4 py-4 shadow-[0_8px_24px_rgba(17,24,39,0.04)] sm:px-5"
       aria-label="Person header"
     >
-      <div className="flex flex-col gap-4">
-        <div
-          className="grid w-full min-w-0 gap-x-8"
-          style={{ gridTemplateColumns: "max-content minmax(0, 1fr)" }}
-        >
-          <div className="flex w-max items-start gap-3.5" style={{ maxWidth: 360 }}>
+      <div className="flex min-w-0 flex-col gap-4">
+        {/*
+          Mobile: single vertical stream (identity → academic summary).
+          Desktop: unchanged max-content | academic split.
+        */}
+        <div className="grid w-full min-w-0 grid-cols-1 gap-4 md:gap-x-8 md:[grid-template-columns:max-content_minmax(0,1fr)]">
+          <div className="flex min-w-0 w-full items-start gap-3.5 md:w-max md:max-w-[360px]">
             <PlayerAvatar
               photoUrl={person.photoUrl}
               initials={getInitials(person)}
               size={64}
             />
             <div className="flex min-w-0 flex-col gap-1">
-              <h1 className={typeRole.personNameHero}>{fullName}</h1>
+              <h1 className={`${typeRole.personNameHero} break-words`}>{fullName}</h1>
               {preferred ? (
                 <p className={typeClass("identityMeta")}>Preferred: {preferred}</p>
               ) : null}
@@ -292,7 +293,7 @@ export function RecruitWorkspaceProfile({
           </div>
 
           <div
-            className="min-w-0 border-l border-border pl-8"
+            className="min-w-0 border-t border-border pt-3 md:border-t-0 md:border-l md:pl-8 md:pt-0"
             aria-label="Academic summary"
           >
             <SummaryField label="Academic interests">
@@ -303,7 +304,7 @@ export function RecruitWorkspaceProfile({
                 align="left"
                 slot="summary"
                 rows={2}
-                className="[&>span]:line-clamp-2 [&>span]:break-normal [&>span]:hyphens-none [&>span]:whitespace-normal"
+                className="[&>span]:line-clamp-2 [&>span]:break-words [&>span]:break-normal [&>span]:hyphens-none [&>span]:whitespace-normal"
               />
             </SummaryField>
             <SummaryField label="Schools of interest" className="mt-2.5">
@@ -314,7 +315,7 @@ export function RecruitWorkspaceProfile({
                 align="left"
                 slot="summary"
                 rows={2}
-                className="[&>span]:line-clamp-2 [&>span]:break-normal [&>span]:hyphens-none [&>span]:whitespace-normal"
+                className="[&>span]:line-clamp-2 [&>span]:break-words [&>span]:break-normal [&>span]:hyphens-none [&>span]:whitespace-normal"
               />
             </SummaryField>
           </div>

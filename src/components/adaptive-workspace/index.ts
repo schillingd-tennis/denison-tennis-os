@@ -18,5 +18,7 @@ export {
   WorkspaceSection,
   WorkspaceSplit,
   WorkspaceStack,
+  WorkspaceStatusStrip,
+  WorkspaceStatusStripItem,
 } from "./WorkspaceContent";
 export type { AdaptiveWorkspaceDefinition } from "./types";

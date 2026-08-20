@@ -16,9 +16,13 @@ import {
 
 import {
   WorkspaceField,
+  WorkspaceFieldGrid,
   WorkspaceMutedNote,
   WorkspaceReadOnlyValue,
+  WorkspaceSplit,
   WorkspaceStack,
+  WorkspaceStatusStrip,
+  WorkspaceStatusStripItem,
 } from "@/components/adaptive-workspace";
 import { InlineEditCell } from "@/components/inline-edit";
 import { typeRole } from "@/components/typography";
@@ -161,32 +165,6 @@ function PersonalInfoSectionHeading({ children }: { children: string }) {
       />
       {children}
     </h3>
-  );
-}
-
-function PersonalInfoFieldGrid({
-  columns,
-  children,
-}: {
-  columns: 3;
-  children: ReactNode;
-}) {
-  return (
-    <dl
-      className="mt-[5px] grid gap-x-6 gap-y-[7px]"
-      style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
-    >
-      {children}
-    </dl>
-  );
-}
-
-function StatusStripItem({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="flex w-max max-w-full shrink-0 flex-col items-start">
-      <p className={`${typeRole.workspaceFieldLabel} whitespace-nowrap text-left`}>{label}</p>
-      <div className="mt-0.5 text-left">{children}</div>
-    </div>
   );
 }
 
@@ -514,11 +492,11 @@ function RankingsLinkRow({
   children?: ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-3 py-2.5">
+    <div className="flex min-w-0 items-start gap-3 py-2.5 sm:items-center">
       <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-black/[0.04] text-text-secondary">
         {indicator}
       </span>
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 break-words [overflow-wrap:anywhere]">
         <p className="text-sm font-medium text-text-primary">{title}</p>
         <p className="mt-0.5 text-xs text-text-secondary">{sourceLabel}</p>
         {children}
@@ -695,65 +673,55 @@ function RankingsMatchesRow() {
 
 export function RecruitingPersonalInfoWorkspace() {
   return (
-    <div className="space-y-[14px]">
+    <div className="min-w-0 space-y-[14px]">
       <section aria-label="Recruiting status">
         <PersonalInfoSectionHeading>Recruiting status</PersonalInfoSectionHeading>
-        <div
-          className="mt-[5px] w-full"
-          style={{
-            display: "flex",
-            width: "100%",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            flexWrap: "nowrap",
-            columnGap: 12,
-          }}
-        >
-          <StatusStripItem label="Class year">
+        <WorkspaceStatusStrip>
+          <WorkspaceStatusStripItem label="Class year">
             <RecruitClassYearBadgeField />
-          </StatusStripItem>
-          <StatusStripItem label="Pipeline">
+          </WorkspaceStatusStripItem>
+          <WorkspaceStatusStripItem label="Pipeline">
             <RecruitLookupBadgeField
               field="pipelineStageId"
               label="Pipeline"
               tone={pipelineTone}
             />
-          </StatusStripItem>
-          <StatusStripItem label="Priority">
+          </WorkspaceStatusStripItem>
+          <WorkspaceStatusStripItem label="Priority">
             <RecruitLookupBadgeField
               field="priorityId"
               label="Priority"
               tone={priorityTone}
             />
-          </StatusStripItem>
-          <StatusStripItem label="Interest">
+          </WorkspaceStatusStripItem>
+          <WorkspaceStatusStripItem label="Interest">
             <RecruitLookupBadgeField
               field="interestId"
               label="Interest"
               tone={interestTone}
             />
-          </StatusStripItem>
-          <StatusStripItem label="Getability">
+          </WorkspaceStatusStripItem>
+          <WorkspaceStatusStripItem label="Getability">
             <RecruitLookupBadgeField
               field="getabilityId"
               label="Getability"
               tone={getabilityTone}
             />
-          </StatusStripItem>
-          <StatusStripItem label="Outcome">
+          </WorkspaceStatusStripItem>
+          <WorkspaceStatusStripItem label="Outcome">
             <RecruitLookupBadgeField
               field="outcomeId"
               label="Outcome"
               tone={outcomeTone}
             />
-          </StatusStripItem>
-        </div>
+          </WorkspaceStatusStripItem>
+        </WorkspaceStatusStrip>
       </section>
 
       <div className="border-t border-border/50 pt-[14px]">
         <section aria-label="Identity">
           <PersonalInfoSectionHeading>Identity</PersonalInfoSectionHeading>
-          <PersonalInfoFieldGrid columns={3}>
+          <WorkspaceFieldGrid columns={3} className="mt-[5px]">
             <WorkspaceField label="First name">
               <RecruitPersonField field="firstName" />
             </WorkspaceField>
@@ -763,14 +731,14 @@ export function RecruitingPersonalInfoWorkspace() {
             <WorkspaceField label="Preferred name">
               <RecruitPersonField field="preferredName" />
             </WorkspaceField>
-          </PersonalInfoFieldGrid>
+          </WorkspaceFieldGrid>
         </section>
       </div>
 
       <div className="border-t border-border/50 pt-[14px]">
         <section aria-label="Contact & location">
           <PersonalInfoSectionHeading>Contact & location</PersonalInfoSectionHeading>
-          <PersonalInfoFieldGrid columns={3}>
+          <WorkspaceFieldGrid columns={3} className="mt-[5px]">
             <WorkspaceField label="Hometown">
               <RecruitHometownField />
             </WorkspaceField>
@@ -789,14 +757,14 @@ export function RecruitingPersonalInfoWorkspace() {
             <WorkspaceField label="Cell phone">
               <RecruitPersonField field="cellPhone" />
             </WorkspaceField>
-          </PersonalInfoFieldGrid>
+          </WorkspaceFieldGrid>
         </section>
       </div>
 
       <div className="border-t border-border/50 pt-4">
         <section aria-label="Coach notes">
           <PersonalInfoSectionHeading>Coach notes</PersonalInfoSectionHeading>
-          <div className="mt-1.5">
+          <div className="mt-1.5 min-w-0">
             <CoachNotesCallout />
           </div>
         </section>
@@ -833,13 +801,10 @@ function AcademicsSectionHeading({ children }: { children: string }) {
 
 export function RecruitingAcademicsWorkspace() {
   return (
-    <div className="space-y-[14px]">
+    <div className="min-w-0 space-y-[14px]">
       <section aria-label="Academic Profile">
         <AcademicsSectionHeading>Academic Profile</AcademicsSectionHeading>
-        <dl
-          className="mt-[5px] grid gap-x-6 gap-y-[7px]"
-          style={{ gridTemplateColumns: "repeat(4, minmax(0, 1fr))" }}
-        >
+        <WorkspaceFieldGrid columns={4} className="mt-[5px]">
           <WorkspaceField label="High School">
             <RecruitPersonField field="highSchool" />
           </WorkspaceField>
@@ -852,46 +817,47 @@ export function RecruitingAcademicsWorkspace() {
           <WorkspaceField label="ACT">
             <RecruitProfileField field="act" label="ACT" type="number" align="left" />
           </WorkspaceField>
-        </dl>
+        </WorkspaceFieldGrid>
       </section>
 
       <div className="border-t border-border/50 pt-[14px]">
         <section aria-label="Academic Interests">
           <AcademicsSectionHeading>Academic Interests</AcademicsSectionHeading>
-          <div
-            className="mt-[5px] grid gap-x-6 gap-y-[7px]"
-            style={{ gridTemplateColumns: "minmax(0, 0.38fr) minmax(0, 0.62fr)" }}
-          >
-            <WorkspaceField label="Academic interests">
+          <div className="mt-[5px] min-w-0 space-y-[7px]">
+            <WorkspaceSplit
+              left={
+                <WorkspaceField label="Academic interests">
+                  <RecruitProfileField
+                    field="academicInterests"
+                    label="Academic interests"
+                    type="textarea"
+                    align="left"
+                    rows={3}
+                    className="[&>span]:whitespace-pre-wrap [&>span]:break-words"
+                  />
+                </WorkspaceField>
+              }
+              right={
+                <WorkspaceField label="Schools of interest">
+                  <RecruitProfileField
+                    field="schoolsOfInterest"
+                    label="Schools of interest"
+                    type="textarea"
+                    align="left"
+                    rows={4}
+                    className="[&>span]:whitespace-pre-wrap [&>span]:break-words"
+                  />
+                </WorkspaceField>
+              }
+            />
+            <WorkspaceField label="School Chosen">
               <RecruitProfileField
-                field="academicInterests"
-                label="Academic interests"
-                type="textarea"
+                field="schoolChosen"
+                label="School Chosen"
+                type="text"
                 align="left"
-                rows={3}
-                className="[&>span]:whitespace-pre-wrap [&>span]:break-normal"
               />
             </WorkspaceField>
-            <WorkspaceField label="Schools of interest">
-              <RecruitProfileField
-                field="schoolsOfInterest"
-                label="Schools of interest"
-                type="textarea"
-                align="left"
-                rows={4}
-                className="[&>span]:whitespace-pre-wrap [&>span]:break-normal"
-              />
-            </WorkspaceField>
-            <div style={{ gridColumn: "1 / -1" }}>
-              <WorkspaceField label="School Chosen">
-                <RecruitProfileField
-                  field="schoolChosen"
-                  label="School Chosen"
-                  type="text"
-                  align="left"
-                />
-              </WorkspaceField>
-            </div>
           </div>
         </section>
       </div>
@@ -899,10 +865,7 @@ export function RecruitingAcademicsWorkspace() {
       <div className="border-t border-border/50 pt-[14px]">
         <section aria-label="Admissions / Pre-Read">
           <AcademicsSectionHeading>Admissions / Pre-Read</AcademicsSectionHeading>
-          <dl
-            className="mt-[5px] grid gap-x-6 gap-y-[7px]"
-            style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}
-          >
+          <WorkspaceFieldGrid columns={2} className="mt-[5px]">
             <WorkspaceField label="Pre Read">
               <RecruitPrereadBadgeField />
             </WorkspaceField>
@@ -914,7 +877,7 @@ export function RecruitingAcademicsWorkspace() {
                 align="left"
               />
             </WorkspaceField>
-          </dl>
+          </WorkspaceFieldGrid>
         </section>
       </div>
     </div>
@@ -927,7 +890,7 @@ export function RecruitingRankingsWorkspace({
   coachRank: number | undefined;
 }) {
   return (
-    <div className="space-y-[14px]">
+    <div className="min-w-0 space-y-[14px]">
       <section aria-label="Ranking summary">
         <RankingsSectionHeading>Ranking summary</RankingsSectionHeading>
         <RankingsSummaryCards />
@@ -936,7 +899,7 @@ export function RecruitingRankingsWorkspace({
       <div className="border-t border-border/50 pt-[14px]">
         <section aria-label="Profiles & Links">
           <RankingsSectionHeading>Profiles & Links</RankingsSectionHeading>
-          <div className="mt-[5px] divide-y divide-border/50">
+          <div className="mt-[5px] min-w-0 divide-y divide-border/50">
             <RankingsExternalLinkRow
               field="utrUrl"
               title="UTR Profile"
@@ -957,7 +920,7 @@ export function RecruitingRankingsWorkspace({
       <div className="border-t border-border/50 pt-[14px]">
         <section aria-label="Activity">
           <RankingsSectionHeading>Activity</RankingsSectionHeading>
-          <div className="mt-[5px]">
+          <div className="mt-[5px] min-w-0">
             <RankingsMatchesRow />
           </div>
         </section>
@@ -966,10 +929,7 @@ export function RecruitingRankingsWorkspace({
       <div className="border-t border-border/50 pt-[14px]">
         <section aria-label="Coach evaluation">
           <RankingsSectionHeading>Coach evaluation</RankingsSectionHeading>
-          <dl
-            className="mt-[5px] grid gap-x-6 gap-y-[7px]"
-            style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}
-          >
+          <WorkspaceFieldGrid columns={2} className="mt-[5px]">
             <WorkspaceField label="Coach Rank">
               <div className="flex items-center gap-2">
                 <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-warning/15 text-warning">
@@ -983,7 +943,7 @@ export function RecruitingRankingsWorkspace({
             <WorkspaceField label="Getability">
               <RecruitProfileField field="getabilityId" label="Getability" align="left" />
             </WorkspaceField>
-          </dl>
+          </WorkspaceFieldGrid>
         </section>
       </div>
     </div>
@@ -1031,7 +991,7 @@ export function RecruitingAnalyticsWorkspace({
   ];
 
   return (
-    <div className="space-y-[14px]">
+    <div className="min-w-0 space-y-[14px]">
       <section aria-label="Ranking summary">
         <RankingsSectionHeading>Ranking summary</RankingsSectionHeading>
         <RankingsSummaryCards />
@@ -1040,14 +1000,14 @@ export function RecruitingAnalyticsWorkspace({
       <div className="border-t border-border/50 pt-[14px]">
         <section aria-label="Metrics">
           <RankingsSectionHeading>Metrics</RankingsSectionHeading>
-          <div className="mt-[5px] grid gap-3 lg:grid-cols-4">
-            <div className="rounded-control border border-[var(--module-accent)]/12 bg-[var(--module-tint)]/30 px-3 py-2.5">
+          <div className="mt-[5px] grid min-w-0 gap-3 lg:grid-cols-4">
+            <div className="min-w-0 rounded-control border border-[var(--module-accent)]/12 bg-[var(--module-tint)]/30 px-3 py-2.5">
               <div className="flex flex-col gap-2.5">
                 {metricsColumnOne.map((metric) => (
-                  <div key={metric.label} className="flex items-center justify-between gap-2">
-                    <p className="text-xs text-text-secondary">{metric.label}</p>
+                  <div key={metric.label} className="flex min-w-0 items-center justify-between gap-2">
+                    <p className="min-w-0 text-xs text-text-secondary">{metric.label}</p>
                     <p
-                      className={`text-base leading-none font-semibold tabular-nums ${
+                      className={`shrink-0 text-base leading-none font-semibold tabular-nums ${
                         metric.value === EMPTY_VALUE ? typeRole.metadataEmpty : "text-text-primary"
                       }`}
                     >
@@ -1058,13 +1018,13 @@ export function RecruitingAnalyticsWorkspace({
               </div>
             </div>
 
-            <div className="rounded-control border border-info/12 bg-info/[0.04] px-3 py-2.5">
+            <div className="min-w-0 rounded-control border border-info/12 bg-info/[0.04] px-3 py-2.5">
               <div className="flex flex-col gap-2.5">
                 {metricsColumnTwo.map((metric) => (
-                  <div key={metric.label} className="flex items-center justify-between gap-2">
-                    <p className="text-xs text-text-secondary">{metric.label}</p>
+                  <div key={metric.label} className="flex min-w-0 items-center justify-between gap-2">
+                    <p className="min-w-0 text-xs text-text-secondary">{metric.label}</p>
                     <p
-                      className={`text-base leading-none font-semibold tabular-nums ${
+                      className={`shrink-0 text-base leading-none font-semibold tabular-nums ${
                         metric.value === EMPTY_VALUE ? typeRole.metadataEmpty : "text-text-primary"
                       }`}
                     >
@@ -1075,13 +1035,13 @@ export function RecruitingAnalyticsWorkspace({
               </div>
             </div>
 
-            <div className="rounded-control border border-success/12 bg-success/[0.04] px-3 py-2.5">
+            <div className="min-w-0 rounded-control border border-success/12 bg-success/[0.04] px-3 py-2.5">
               <div className="flex flex-col gap-2.5">
                 {metricsColumnThree.map((metric) => (
-                  <div key={metric.label} className="flex items-center justify-between gap-2">
-                    <p className="text-xs text-text-secondary">{metric.label}</p>
+                  <div key={metric.label} className="flex min-w-0 items-center justify-between gap-2">
+                    <p className="min-w-0 text-xs text-text-secondary">{metric.label}</p>
                     <p
-                      className={`text-base leading-none font-semibold tabular-nums ${
+                      className={`shrink-0 text-base leading-none font-semibold tabular-nums ${
                         metric.value === EMPTY_VALUE ? typeRole.metadataEmpty : "text-text-primary"
                       }`}
                     >
@@ -1091,7 +1051,7 @@ export function RecruitingAnalyticsWorkspace({
                 ))}
               </div>
             </div>
-            <div className="rounded-control border border-research/12 bg-research/[0.04] px-3 py-2.5" />
+            <div className="min-w-0 rounded-control border border-research/12 bg-research/[0.04] px-3 py-2.5" />
           </div>
         </section>
       </div>

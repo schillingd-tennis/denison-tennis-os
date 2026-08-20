@@ -20,6 +20,7 @@ import {
   AdaptiveWorkspace,
   type AdaptiveWorkspaceDefinition,
 } from "@/components/adaptive-workspace";
+import { MobileWorkspaceSelector } from "@/components/mobile-workspace";
 import {
   FavoriteToggleButton,
   recordRecentOpen,
@@ -255,7 +256,7 @@ export default function RecruitingPersonWorkspace({
   );
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
+    <div className="mx-auto flex w-full min-w-0 max-w-6xl flex-col gap-4 overflow-x-hidden">
       <StickyProductivityActionBar
         leading={
           <>
@@ -335,13 +336,39 @@ export default function RecruitingPersonWorkspace({
       />
 
       <section aria-label="Workspaces">
+          {/* Mobile: selector + full-width active workspace (no compressed split). */}
+          <div className="flex flex-col gap-3 md:hidden">
+            <MobileWorkspaceSelector
+              items={workspaceItems.map((item) => ({
+                id: item.id,
+                title: item.title,
+                icon: item.icon,
+                lines: item.descriptor ? [item.descriptor] : [],
+              }))}
+              activeId={
+                workspaceItems.some((item) => item.id === activeWorkspaceId)
+                  ? activeWorkspaceId
+                  : null
+              }
+              onSelect={setActiveWorkspaceId}
+            />
+            <AdaptiveWorkspace
+              activeId={
+                workspaceItems.some((item) => item.id === activeWorkspaceId)
+                  ? activeWorkspaceId
+                  : null
+              }
+              workspaces={adaptiveWorkspaces}
+            />
+          </div>
+
           {/*
-            BP-036D split: narrow workspace rail LEFT, selected content RIGHT.
+            Desktop BP-036D: narrow workspace rail LEFT, selected content RIGHT.
             Inline columns keep the two-pane layout even if Tailwind arbitrary
             grid tracks fail to generate.
           */}
           <div
-            className="grid min-h-[420px] w-full grid-cols-[minmax(260px,320px)_minmax(0,1fr)] grid-rows-1 items-stretch overflow-hidden rounded-card border border-[var(--module-border)] bg-surface shadow-[0_8px_24px_rgba(17,24,39,0.04)]"
+            className="hidden min-h-[420px] w-full grid-cols-[minmax(260px,320px)_minmax(0,1fr)] grid-rows-1 items-stretch overflow-hidden rounded-card border border-[var(--module-border)] bg-surface shadow-[0_8px_24px_rgba(17,24,39,0.04)] md:grid"
             style={{ gridTemplateColumns: "minmax(260px, 320px) minmax(0, 1fr)" }}
           >
             <aside className="flex min-h-0 min-w-0 flex-col border-r border-[var(--module-border)]">
