@@ -31,7 +31,3 @@ export function computePeopleDirectoryKpis(
     coaches,
   };
 }
-
-export function peopleViewCountMeta(count: number): string {
-  return count === 1 ? "1 person" : `${count} people`;
-}

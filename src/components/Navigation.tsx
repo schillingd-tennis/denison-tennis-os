@@ -25,7 +25,7 @@ export default function Navigation({
             <Link
               href={item.href}
               onClick={onNavigate}
-              className={`flex items-center gap-3 rounded-control px-3.5 py-3 text-[15px] font-medium transition-colors duration-150 ${
+              className={`flex min-h-11 items-center gap-3 rounded-control px-3.5 py-3 text-[15px] font-medium transition-colors duration-150 md:min-h-0 ${
                 isActive
                   ? "bg-[var(--module-accent)] text-surface shadow-[0_8px_18px_color-mix(in_srgb,var(--module-accent)_32%,transparent)]"
                   : "text-text-secondary hover:bg-sidebar-hover hover:text-surface"

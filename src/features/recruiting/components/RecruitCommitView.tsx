@@ -6,6 +6,7 @@ import type { SortState } from "@/components/data-table/types";
 import { useSortableData } from "@/components/data-table/useSortableData";
 import EmptyState from "@/components/EmptyState";
 import { publishFoundSet } from "@/components/found-set";
+import ViewChrome, { ViewContextHeader } from "@/components/view-chrome";
 
 import { availableRecruitClassYears } from "../coachRank/classYear";
 import { filterCommitDirectoryRows } from "../commitView";
@@ -21,7 +22,6 @@ import { useRecruitDirectoryInlineEdit } from "../useRecruitDirectoryInlineEdit"
 import { useRecruitingFoundSetActions } from "../useRecruitingFoundSetActions";
 import {
   commitBoardClassContextLabel,
-  commitViewCountMeta,
   RECRUITING_TABLE,
 } from "./recruitingTableChrome";
 import {
@@ -32,8 +32,6 @@ import {
   RecruitingTableSectionBar,
   classYearSelectOptions,
 } from "./RecruitingTableShared";
-import RecruitingViewChrome, { RecruitingViewContextMeta } from "./RecruitingViewChrome";
-import RecruitingViewContextHeader from "./RecruitingViewContextHeader";
 
 const COMMIT_SORT_STORAGE_KEY = "denison-tennis-os:recruiting-commit-sort";
 const columns = RECRUITING_COMMIT_TABLE_COLUMNS;
@@ -129,18 +127,13 @@ export default function RecruitCommitView({
   }
 
   return (
-    <RecruitingViewChrome
+    <ViewChrome
       contextHeader={
-        <RecruitingViewContextHeader
+        <ViewContextHeader
           eyebrow="Commitments"
           title="Commit Board"
           subtitle={contextLabel}
         />
-      }
-      contextMeta={
-        <RecruitingViewContextMeta>
-          {commitViewCountMeta(sortedItems.length)}
-        </RecruitingViewContextMeta>
       }
       foundSetFeedback={foundSetFeedback}
       saveStatus={saveStatus}
@@ -235,6 +228,6 @@ export default function RecruitCommitView({
           </table>
         </section>
       )}
-    </RecruitingViewChrome>
+    </ViewChrome>
   );
 }

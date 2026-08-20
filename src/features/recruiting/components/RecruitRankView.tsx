@@ -14,6 +14,7 @@ import {
 } from "react";
 
 import type { SortDirection } from "@/components/data-table/types";
+import ViewChrome, { ViewContextHeader } from "@/components/view-chrome";
 import { getDisplayName } from "@/features/people/utils";
 
 import { denseRankByPersonId, parseDirectCoachRank, rankedPersonIdsForClass } from "../coachRank";
@@ -46,8 +47,6 @@ import {
   RecruitingTableSectionBar,
   classYearSelectOptions,
 } from "./RecruitingTableShared";
-import RecruitingViewChrome, { RecruitingViewContextMeta } from "./RecruitingViewChrome";
-import RecruitingViewContextHeader from "./RecruitingViewContextHeader";
 import { useRankedBoardDrag } from "./useRankedBoardDrag";
 
 /** @deprecated Use RECRUITING_TABLE_COLUMNS from recruitingTableChrome. */
@@ -659,10 +658,10 @@ export default function RecruitRankView({
   }
 
   const heading = (
-    <RecruitingViewContextHeader
+    <ViewContextHeader
       eyebrow="Coach Rank"
       title="Recruiting Board"
-      subtitle={filterContextLabel}
+      subtitle={classYear !== null ? `${classYear} Class` : filterContextLabel}
     />
   );
 
@@ -697,17 +696,8 @@ export default function RecruitRankView({
   }
 
   return (
-    <RecruitingViewChrome
+    <ViewChrome
       contextHeader={heading}
-      contextMeta={
-        <RecruitingViewContextMeta>
-          {ranked.length} ranked
-          {unranked.length > 0 ? ` · ${unranked.length} unranked` : null}
-          {filterResolution.status !== "ready" ? (
-            <span className="ml-2 text-text-secondary/80">· Managing {classYear}</span>
-          ) : null}
-        </RecruitingViewContextMeta>
-      }
       foundSetFeedback={foundSetFeedback}
       saveStatus={saveStatus}
       saveError={saveError}
@@ -717,9 +707,10 @@ export default function RecruitRankView({
           <p className="text-sm text-danger" role="alert">
             {error}
           </p>
-        ) : null
+        ) : undefined
       }
     >
+      <div className="flex min-w-0 flex-col gap-3">
       <RecruitRankSection
         title="Ranked"
         count={ranked.length}
@@ -878,6 +869,7 @@ export default function RecruitRankView({
           );
         })}
       </RecruitRankSection>
-    </RecruitingViewChrome>
+      </div>
+    </ViewChrome>
   );
 }

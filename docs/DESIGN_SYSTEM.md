@@ -69,12 +69,37 @@ the workspace; editable cells edit in place (`docs/DECISIONS.md`).
 
 ## Shell sizing
 
+Desktop shell begins at Tailwind **`md` (768px)**. Below `md` is the mobile
+coach shell. Do not treat `sm` as the desktop breakpoint.
+
 | Token | Value | Applied via |
 |---|---|---|
 | `--sidebar-width` | `260px` | `w-[var(--sidebar-width)]` / `md:pl-[var(--sidebar-width)]` |
-| `--header-height` | `88px` | `min-h-[var(--header-height)]` |
+| `--header-height` | `88px` | Desktop header: `md:min-h-[var(--header-height)]`. Leave this token at 88px. |
 
-Top-level module pages (Team, Recruiting, Team Operations, Fundraising, Research Lab, Knowledge, Home) use AppShell `py-10` plus `ModulePageShell` for title / accent-line / subtitle / action-row geometry (Recruiting List). Do not add per-module max-width, extra top margin, or a second title stack. Person / Recruit workspaces are not this shell.
+### Mobile shell (below `md`)
+
+| Rule | Value |
+|---|---|
+| Header height | `64px` (`min-h-16`). Desktop stays `88px`. |
+| AppShell main inset | `px-4 py-4`. Desktop: `md:px-10 md:py-10 lg:px-16`. |
+| Touch targets | Interactive chrome (header menu / search / sign-out, drawer nav rows, login fields and submit) is at least **44px** (`h-11` / `min-h-11`). Desktop control heights are unchanged at `md+`. |
+| Module titles | `ModulePageShell` uses `text-xl` below `md` and `md:text-3xl` on desktop. |
+| Search chrome | Search label and `⌘K` hint are `hidden` below `md`. |
+
+Top-level module pages (Team, Recruiting, Team Operations, Fundraising, Research Lab, Knowledge, Home) use AppShell inset plus `ModulePageShell` for title / accent-line / subtitle / action-row geometry (Recruiting List). Do not add per-module max-width, extra top margin, or a second title stack. Person / Recruit workspaces are not this shell. Desktop Person Workspace split (BP-036D) is unchanged.
+
+### View chrome (directory / table workspaces)
+
+`src/components/view-chrome` is the OS pattern for **view header + workspace actions + data**. It is not Recruiting-specific.
+
+| Layer | Component | Role |
+|---|---|---|
+| Module identity | `ModulePageShell` | Title, subtitle, module actions (e.g. + ADD RECRUIT) |
+| View header + actions | `ViewChrome` + `ViewContextHeader` | Eyebrow / board title / context on the left; Copy / Export / save feedback on the right at `md+` (`items-end`). `gap-3` down to the data section. |
+| Data | Table section bars | Grouping and counts (Ranked / Recruits / Team) |
+
+Do not put a separate actions row between the view header and the table. Record counts belong on section bars, not in the view header.
 
 ## Corner radii
 

@@ -23,7 +23,7 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
   });
 
   return (
-    <header className="relative flex min-h-[var(--header-height)] items-center justify-between gap-4 border-b border-[var(--module-border)] bg-surface px-6 md:px-10">
+    <header className="relative flex min-h-16 items-center justify-between gap-4 border-b border-[var(--module-border)] bg-surface px-4 md:min-h-[var(--header-height)] md:px-10">
       <span
         aria-hidden="true"
         className="absolute inset-x-0 top-0 h-0.5 bg-[var(--module-accent)]"
@@ -33,7 +33,7 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
           type="button"
           onClick={onMenuClick}
           aria-label="Open menu"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control text-text-primary hover:bg-app-background md:hidden"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-control text-text-primary hover:bg-app-background md:hidden"
         >
           <svg
             viewBox="0 0 24 24"
@@ -76,11 +76,11 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
           onClick={() => setOpen(true)}
           aria-label="Open command palette"
           title="Command palette (⌘K)"
-          className="inline-flex h-9 items-center gap-2 rounded-control border border-border bg-app-background px-2.5 text-text-secondary transition-colors hover:border-text-secondary/40 hover:text-text-primary"
+          className="inline-flex h-11 w-11 items-center justify-center gap-2 rounded-control border border-border bg-app-background px-0 text-text-secondary transition-colors hover:border-text-secondary/40 hover:text-text-primary md:h-9 md:w-auto md:px-2.5"
         >
           <Search className="h-3.5 w-3.5" strokeWidth={2} />
-          <span className="hidden text-xs sm:inline">Search</span>
-          <kbd className="hidden rounded border border-border bg-surface px-1 py-0.5 font-mono text-[10px] sm:inline">
+          <span className="hidden text-xs md:inline">Search</span>
+          <kbd className="hidden rounded border border-border bg-surface px-1 py-0.5 font-mono text-[10px] md:inline">
             ⌘K
           </kbd>
         </button>
@@ -98,7 +98,7 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
             type="submit"
             aria-label="Sign out"
             title="Sign out"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control text-text-secondary hover:bg-app-background hover:text-text-primary"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-control text-text-secondary hover:bg-app-background hover:text-text-primary md:h-9 md:w-9"
           >
             <LogOut className="h-4 w-4" strokeWidth={1.75} />
           </button>

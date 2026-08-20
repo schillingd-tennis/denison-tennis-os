@@ -8,6 +8,7 @@ import { useSortableData } from "@/components/data-table/useSortableData";
 import { publishFoundSet } from "@/components/found-set";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { StickyProductivityActionBar } from "@/components/productivity";
+import ViewChrome, { ViewContextHeader } from "@/components/view-chrome";
 import {
   TEAM_DIRECTORY_EMPTY,
   TEAM_DIRECTORY_META,
@@ -37,7 +38,6 @@ import {
   RECRUITING_METRICS_TABLE_WIDTH,
   RECRUITING_TABLE,
   RECRUITING_TABLE_AVATAR_SIZE,
-  recruitingViewCountMeta,
 } from "./recruitingTableChrome";
 import {
   RecruitingHeaderLabel,
@@ -45,8 +45,6 @@ import {
   RecruitingTableSectionBar,
   recruitingMetricDisplay,
 } from "./RecruitingTableShared";
-import RecruitingViewChrome, { RecruitingViewContextMeta } from "./RecruitingViewChrome";
-import RecruitingViewContextHeader from "./RecruitingViewContextHeader";
 
 const METRICS_SORT_STORAGE_KEY = "denison-tennis-os:recruiting-metrics-sort";
 const columns = RECRUITING_METRICS_TABLE_COLUMNS;
@@ -154,18 +152,13 @@ export default function RecruitMetricsView({
   }
 
   return (
-    <RecruitingViewChrome
+    <ViewChrome
       contextHeader={
-        <RecruitingViewContextHeader
-          eyebrow="Recruit Metrics"
+        <ViewContextHeader
+          eyebrow="Analytics"
           title="Metrics"
           subtitle="Performance and recruiting analytics"
         />
-      }
-      contextMeta={
-        <RecruitingViewContextMeta>
-          {recruitingViewCountMeta(sortedItems.length)}
-        </RecruitingViewContextMeta>
       }
       foundSetFeedback={foundSetFeedback}
       saveStatus="idle"
@@ -384,6 +377,6 @@ export default function RecruitMetricsView({
           </>
         }
       />
-    </RecruitingViewChrome>
+    </ViewChrome>
   );
 }

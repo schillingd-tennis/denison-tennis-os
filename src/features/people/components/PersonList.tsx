@@ -26,6 +26,7 @@ import {
   type InlineCommitReason,
 } from "@/components/inline-edit";
 import { StickyProductivityActionBar } from "@/components/productivity";
+import ViewChrome, { ViewContextHeader } from "@/components/view-chrome";
 import { useDrawerManager } from "@/components/workspace-drawer";
 
 import ExportBuilder from "@/features/export-engine/components/ExportBuilder";
@@ -41,7 +42,6 @@ import {
   TEAM_DIRECTORY_NAME,
   directoryCellValue,
 } from "@/features/people/directoryHierarchy";
-import { peopleViewCountMeta } from "@/features/people/directorySummary";
 import { peopleDirectoryContextLabel } from "@/features/people/filters";
 import {
   TEAM_FOUND_SET_COLUMNS,
@@ -72,10 +72,6 @@ import {
   RecruitingTableSectionBar,
   recruitingMetricDisplay,
 } from "@/features/recruiting/components/RecruitingTableShared";
-import RecruitingViewChrome, {
-  RecruitingViewContextMeta,
-} from "@/features/recruiting/components/RecruitingViewChrome";
-import RecruitingViewContextHeader from "@/features/recruiting/components/RecruitingViewContextHeader";
 
 type PersonColumnKey = TeamDirectoryListColumnId;
 
@@ -496,18 +492,13 @@ export default function PersonList({
   }
 
   return (
-    <RecruitingViewChrome
+    <ViewChrome
       contextHeader={
-        <RecruitingViewContextHeader
-          eyebrow="Team"
+        <ViewContextHeader
+          eyebrow="Directory"
           title="Roster"
           subtitle={peopleDirectoryContextLabel(activeFilterIds)}
         />
-      }
-      contextMeta={
-        <RecruitingViewContextMeta>
-          {peopleViewCountMeta(sortedItems.length)}
-        </RecruitingViewContextMeta>
       }
       foundSetFeedback={foundSetFeedback}
       saveStatus={saveStatus}
@@ -808,6 +799,6 @@ export default function PersonList({
           </ul>
         </div>
       </div>
-    </RecruitingViewChrome>
+    </ViewChrome>
   );
 }

@@ -238,7 +238,7 @@ export function getPeopleFilterVisualSelection(
   );
 }
 
-/** List/Rank-style context subtitle under the Players / Coaches section title. */
+/** List/Rank-style context subtitle under the Roster heading. */
 export function peopleDirectoryContextLabel(
   activeIds: readonly string[],
 ): string {

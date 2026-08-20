@@ -7,9 +7,9 @@ import type { ReactNode } from "react";
  * accent line, subtitle spacing, header-row alignment, and gap down to
  * summary cards / content. Do not fork these values per module.
  *
- * Page inset (distance from the global header) is AppShell `py-10`, the
- * same `main` padding Recruiting List shipped with. Do not add
- * module-specific top margin or padding.
+ * Page inset (distance from the global header) is AppShell `py-4` below md
+ * and `md:py-10` on desktop — the same `main` padding Recruiting List
+ * shipped with at md+. Do not add module-specific top margin or padding.
  */
 export default function ModulePageShell({
   title,
@@ -30,7 +30,7 @@ export default function ModulePageShell({
             aria-hidden="true"
             className="absolute top-1 bottom-1 left-0 w-[3px] rounded-full bg-[var(--module-accent)]"
           />
-          <h1 className="text-3xl font-semibold tracking-tight text-text-primary">
+          <h1 className="text-xl font-semibold tracking-tight text-text-primary md:text-3xl">
             {title}
           </h1>
           {subtitle ? (

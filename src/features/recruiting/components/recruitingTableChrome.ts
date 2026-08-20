@@ -122,7 +122,7 @@ export function rankBoardClassContextLabel(
   return `${raw} Class`;
 }
 
-/** List View class-context subtitle under “Recruit List”. */
+/** List View class-context subtitle under the Directory heading. */
 export function listDirectoryClassContextLabel(
   activeFilterIds: readonly string[],
 ): string {
@@ -140,19 +140,9 @@ export function listDirectoryClassContextLabel(
   return `${raw} Class`;
 }
 
-/** Right-side recruit count metadata for List/Rank context rows. */
-export function recruitingViewCountMeta(count: number): string {
-  return count === 1 ? "1 recruit" : `${count} recruits`;
-}
-
 /** Commit View class-context subtitle under “Commit Board”. */
 export function commitBoardClassContextLabel(
   activeFilterIds: readonly string[],
 ): string {
   return listDirectoryClassContextLabel(activeFilterIds);
-}
-
-/** Right-side commit count metadata for Commit View context row. */
-export function commitViewCountMeta(count: number): string {
-  return count === 1 ? "1 commit" : `${count} commits`;
 }

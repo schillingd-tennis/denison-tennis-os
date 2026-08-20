@@ -21,7 +21,7 @@ export default function LoginForm({ next }: { next?: string }) {
           type="email"
           autoComplete="email"
           required
-          className="h-10 w-full rounded-control border border-border bg-surface px-3 text-sm text-text-primary transition-colors duration-150 placeholder:text-text-secondary focus:border-denison-red focus:outline-none focus:ring-1 focus:ring-denison-red"
+          className="h-11 w-full rounded-control border border-border bg-surface px-3 text-sm text-text-primary transition-colors duration-150 placeholder:text-text-secondary focus:border-denison-red focus:outline-none focus:ring-1 focus:ring-denison-red md:h-10"
         />
       </div>
 
@@ -35,7 +35,7 @@ export default function LoginForm({ next }: { next?: string }) {
           type="password"
           autoComplete="current-password"
           required
-          className="h-10 w-full rounded-control border border-border bg-surface px-3 text-sm text-text-primary transition-colors duration-150 placeholder:text-text-secondary focus:border-denison-red focus:outline-none focus:ring-1 focus:ring-denison-red"
+          className="h-11 w-full rounded-control border border-border bg-surface px-3 text-sm text-text-primary transition-colors duration-150 placeholder:text-text-secondary focus:border-denison-red focus:outline-none focus:ring-1 focus:ring-denison-red md:h-10"
         />
       </div>
 
@@ -44,7 +44,7 @@ export default function LoginForm({ next }: { next?: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="mt-2 h-10 w-full rounded-control bg-denison-red text-sm font-semibold text-surface transition-opacity duration-150 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+        className="mt-2 h-11 w-full rounded-control bg-denison-red text-sm font-semibold text-surface transition-opacity duration-150 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 md:h-10"
       >
         {pending ? "Signing in…" : "Sign in"}
       </button>

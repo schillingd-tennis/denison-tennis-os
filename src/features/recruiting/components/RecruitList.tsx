@@ -9,6 +9,7 @@ import { publishFoundSet } from "@/components/found-set";
 import { SaveIndicator } from "@/components/inline-edit";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { StickyProductivityActionBar } from "@/components/productivity";
+import ViewChrome, { ViewContextHeader } from "@/components/view-chrome";
 import {
   TEAM_DIRECTORY_EMPTY,
   TEAM_DIRECTORY_META,
@@ -33,7 +34,6 @@ import {
   RECRUITING_TABLE,
   RECRUITING_TABLE_AVATAR_SIZE,
   listDirectoryClassContextLabel,
-  recruitingViewCountMeta,
 } from "./recruitingTableChrome";
 import {
   RecruitingHeaderLabel,
@@ -43,8 +43,6 @@ import {
   RecruitingTableSectionBar,
   classYearSelectOptions,
 } from "./RecruitingTableShared";
-import RecruitingViewChrome, { RecruitingViewContextMeta } from "./RecruitingViewChrome";
-import RecruitingViewContextHeader from "./RecruitingViewContextHeader";
 import { pipelineTone } from "./statusPresentation";
 
 const LIST_SORT_STORAGE_KEY = "denison-tennis-os:recruiting-list-sort";
@@ -87,7 +85,7 @@ function writeStoredSort(sort: SortState<RecruitDirectoryColumnId>) {
 
 /**
  * Responsive List table shell — mirrors DirectoryTable / RecruitRankSection.
- * Desktop table and mobile list must share one wrapper so RecruitingViewChrome
+ * Desktop table and mobile list must share one wrapper so ViewChrome
  * does not treat them as separate flex children (avoids blank gap + branch drift).
  */
 function RecruitingListTableShell({
@@ -161,18 +159,13 @@ export default function RecruitList({
   }
 
   return (
-    <RecruitingViewChrome
+    <ViewChrome
       contextHeader={
-        <RecruitingViewContextHeader
-          eyebrow="Recruit Directory"
-          title="Recruit List"
+        <ViewContextHeader
+          eyebrow="Directory"
+          title="Recruiting Board"
           subtitle={listContextLabel}
         />
-      }
-      contextMeta={
-        <RecruitingViewContextMeta>
-          {recruitingViewCountMeta(sortedItems.length)}
-        </RecruitingViewContextMeta>
       }
       foundSetFeedback={foundSetFeedback}
       saveStatus={saveStatus}
@@ -318,6 +311,6 @@ export default function RecruitList({
           </>
         }
       />
-    </RecruitingViewChrome>
+    </ViewChrome>
   );
 }
