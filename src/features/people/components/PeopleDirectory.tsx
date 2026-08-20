@@ -1,11 +1,16 @@
 "use client";
 
+import { LayoutGrid, List } from "lucide-react";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 
 import { publishFoundSet } from "@/components/found-set";
 import EmptyState from "@/components/EmptyState";
 import ModulePageShell from "@/components/ModulePageShell";
+import {
+  DesktopOnlySummary,
+  MobileViewSelector,
+} from "@/components/mobile-dashboard";
 import SearchInput from "@/components/SearchInput";
 import ViewToggle, { type ViewMode } from "@/components/ViewToggle";
 import { useDrawerManager } from "@/components/workspace-drawer";
@@ -45,6 +50,11 @@ import RoleFilterControl from "./RoleFilterControl";
  */
 const addButtonClass =
   "inline-flex h-11 items-center justify-center rounded-control bg-[var(--module-accent)] px-5 text-sm font-semibold tracking-wide text-white shadow-[0_8px_18px_rgba(17,24,39,0.12)] transition-opacity hover:opacity-90";
+
+const TEAM_VIEW_OPTIONS = [
+  { value: "cards" as const, label: "Cards", icon: LayoutGrid },
+  { value: "list" as const, label: "List", icon: List },
+];
 
 /**
  * Players/Coaches directory surface for the People domain.
@@ -195,7 +205,9 @@ export default function PeopleDirectory({ people }: { people: Person[] }) {
         </div>
       }
     >
-      <PeopleDirectoryKpiRow kpis={kpis} />
+      <DesktopOnlySummary>
+        <PeopleDirectoryKpiRow kpis={kpis} />
+      </DesktopOnlySummary>
 
       <div className="flex flex-col gap-2.5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -207,7 +219,15 @@ export default function PeopleDirectory({ people }: { people: Person[] }) {
             />
           </div>
           <div className="sm:ml-auto">
-            <ViewToggle value={view} onChange={handleViewChange} />
+            <MobileViewSelector
+              value={view}
+              onChange={handleViewChange}
+              options={TEAM_VIEW_OPTIONS}
+              ariaLabel="Change team view"
+            />
+            <div className="hidden md:block">
+              <ViewToggle value={view} onChange={handleViewChange} />
+            </div>
           </div>
         </div>
         <RoleFilterControl value={activeFilterIds} onChange={handleFilterChange} />

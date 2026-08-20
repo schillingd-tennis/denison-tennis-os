@@ -89,6 +89,21 @@ coach shell. Do not treat `sm` as the desktop breakpoint.
 
 Top-level module pages (Team, Recruiting, Team Operations, Fundraising, Research Lab, Knowledge, Home) use AppShell inset plus `ModulePageShell` for title / accent-line / subtitle / action-row geometry (Recruiting List). Do not add per-module max-width, extra top margin, or a second title stack. Person / Recruit workspaces are not this shell. Desktop Person Workspace split (BP-036D) is unchanged.
 
+### Mobile directory dashboard (below `md`)
+
+On mobile, directory modules prioritize **search → filters → views → content**. Large KPI / summary card rows are desktop-only.
+
+Shared package: `src/components/mobile-dashboard`
+
+| Piece | Role |
+|---|---|
+| `DesktopOnlySummary` | Wraps KPI / summary card sections; `hidden` below `md`, visible at `md+`. Data still computed. |
+| `MobileFilterSheet` + `MobileFiltersButton` | Single Filters control + bottom sheet. Modules supply facets; selection logic stays in-module. |
+| `MobileViewSelector` | Bottom-sheet view picker. Desktop keeps `ViewToggle`. |
+
+**Migrated:** Team (`PeopleDirectory` / `RoleFilterControl`), Recruiting (`RecruitingDirectory` / `RecruitingFilterControl`).  
+**Future:** Operations, Fundraising, Research, Knowledge when they gain directory KPIs / multi-view / faceted filters — reuse this package; do not fork Recruiting-specific mobile chrome.
+
 ### View chrome (directory / table workspaces)
 
 `src/components/view-chrome` is the OS pattern for **view header + workspace actions + data**. It is not Recruiting-specific.

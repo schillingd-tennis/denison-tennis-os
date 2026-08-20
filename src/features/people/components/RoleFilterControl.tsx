@@ -1,9 +1,22 @@
 "use client";
 
 import { BadgeCheck, ChevronDown, Users } from "lucide-react";
-import { useEffect, useId, useLayoutEffect, useRef, useState, type ComponentType } from "react";
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentType,
+} from "react";
 import { createPortal } from "react-dom";
 
+import {
+  MobileFilterSheet,
+  MobileFiltersButton,
+  type MobileFilterFacet,
+} from "@/components/mobile-dashboard";
 import { FilterMenuOption, FilterTrigger } from "@/components/toolbar";
 import {
   PEOPLE_FILTER_CLEAR_ID,
@@ -147,7 +160,7 @@ function FacetMenu({
 
 /**
  * Rank-style compact filter row for Players / Coaches.
- * Clear/All + Status + Role, using the shared FilterTrigger chrome.
+ * Desktop: Clear/All + Status + Role chips. Mobile: shared Filters sheet.
  */
 export default function RoleFilterControl({
   value,
@@ -158,8 +171,19 @@ export default function RoleFilterControl({
   onChange: (activeIds: string[]) => void;
 }) {
   const allActive = peopleFiltersAreAll(value);
+  const activeCount = value.length;
   const rootRef = useRef<HTMLDivElement>(null);
   const [openCategory, setOpenCategory] = useState<string | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const mobileFacets = useMemo((): MobileFilterFacet[] => {
+    return PEOPLE_VISIBLE_FILTER_FACETS.map((group) => ({
+      id: group.category,
+      label: group.label,
+      icon: facetIcons[group.category],
+      options: optionsForCategory(group.category),
+    })).filter((facet) => facet.options.length > 0);
+  }, []);
 
   function handleSelect(id: string) {
     onChange(resolvePeopleFilterSelection(value, id));
@@ -188,34 +212,57 @@ export default function RoleFilterControl({
   }, [openCategory]);
 
   return (
-    <div ref={rootRef} className="flex min-w-0 flex-wrap items-center gap-2">
-      <button
-        type="button"
-        aria-pressed={allActive}
-        aria-label={allActive ? "All filters" : "Clear all filters"}
-        onClick={() => handleSelect(PEOPLE_FILTER_CLEAR_ID)}
-        className={[
-          "inline-flex h-10 items-center rounded-control px-3.5 text-[13px] font-medium",
-          allActive
-            ? "bg-[var(--module-accent)] text-surface"
-            : "bg-surface text-text-secondary ring-1 ring-black/[0.06] hover:text-text-primary",
-        ].join(" ")}
-      >
-        {allActive ? "All" : "Clear"}
-      </button>
-      {PEOPLE_VISIBLE_FILTER_FACETS.map((group) => (
-        <FacetMenu
-          key={group.category}
-          label={group.label}
-          category={group.category}
+    <>
+      <div className="md:hidden">
+        <MobileFiltersButton
+          active={!allActive}
+          activeCount={activeCount}
+          expanded={mobileOpen}
+          onClick={() => setMobileOpen(true)}
+        />
+        <MobileFilterSheet
+          open={mobileOpen}
+          onClose={() => setMobileOpen(false)}
+          facets={mobileFacets}
           value={value}
           onSelect={handleSelect}
-          open={openCategory === group.category}
-          onToggle={() =>
-            setOpenCategory((current) => (current === group.category ? null : group.category))
-          }
+          clearId={PEOPLE_FILTER_CLEAR_ID}
+          isAllActive={allActive}
         />
-      ))}
-    </div>
+      </div>
+
+      <div
+        ref={rootRef}
+        className="hidden min-w-0 flex-wrap items-center gap-2 md:flex"
+      >
+        <button
+          type="button"
+          aria-pressed={allActive}
+          aria-label={allActive ? "All filters" : "Clear all filters"}
+          onClick={() => handleSelect(PEOPLE_FILTER_CLEAR_ID)}
+          className={[
+            "inline-flex h-10 items-center rounded-control px-3.5 text-[13px] font-medium",
+            allActive
+              ? "bg-[var(--module-accent)] text-surface"
+              : "bg-surface text-text-secondary ring-1 ring-black/[0.06] hover:text-text-primary",
+          ].join(" ")}
+        >
+          {allActive ? "All" : "Clear"}
+        </button>
+        {PEOPLE_VISIBLE_FILTER_FACETS.map((group) => (
+          <FacetMenu
+            key={group.category}
+            label={group.label}
+            category={group.category}
+            value={value}
+            onSelect={handleSelect}
+            open={openCategory === group.category}
+            onToggle={() =>
+              setOpenCategory((current) => (current === group.category ? null : group.category))
+            }
+          />
+        ))}
+      </div>
+    </>
   );
 }

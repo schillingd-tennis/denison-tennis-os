@@ -9,9 +9,22 @@ import {
   Star,
   Target,
 } from "lucide-react";
-import { useEffect, useId, useLayoutEffect, useRef, useState, type ComponentType } from "react";
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentType,
+} from "react";
 import { createPortal } from "react-dom";
 
+import {
+  MobileFilterSheet,
+  MobileFiltersButton,
+  type MobileFilterFacet,
+} from "@/components/mobile-dashboard";
 import { FilterMenuOption, FilterTrigger } from "@/components/toolbar";
 import type { FilterDefinition } from "@/lib/filtering";
 
@@ -128,9 +141,7 @@ function FacetMenu({
               top: coords.top,
               left: coords.left,
               zIndex: RECRUITING_FILTER_MENU_Z_INDEX,
-              // Explicit opaque fill — prevents content bleed-through under the popover.
               backgroundColor: "var(--color-surface)",
-              // Portaled to body — copy accent so selected options resolve.
               ["--module-accent" as string]: coords.moduleAccent,
             }}
             className="fixed isolate min-w-[13rem] rounded-card p-2 shadow-[0_10px_28px_rgba(17,24,39,0.08)] ring-1 ring-black/[0.06]"
@@ -189,8 +200,19 @@ export default function RecruitingFilterControl({
   definitions: readonly FilterDefinition<RecruitDirectoryRow>[];
 }) {
   const allActive = recruitingFiltersAreAll(value);
+  const activeCount = value.length;
   const rootRef = useRef<HTMLDivElement>(null);
   const [openCategory, setOpenCategory] = useState<string | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const mobileFacets = useMemo((): MobileFilterFacet[] => {
+    return RECRUITING_VISIBLE_FILTER_FACETS.map((group) => ({
+      id: group.category,
+      label: group.label,
+      icon: facetIcons[group.category],
+      options: optionsForCategory(definitions, group.category),
+    })).filter((facet) => facet.options.length > 0);
+  }, [definitions]);
 
   function handleSelect(id: string) {
     onChange(resolveRecruitingFilterSelection(value, id));
@@ -219,39 +241,59 @@ export default function RecruitingFilterControl({
   }, [openCategory]);
 
   return (
-    <div
-      ref={rootRef}
-      data-recruiting-filter-toolbar="true"
-      className="flex min-w-0 flex-wrap items-center gap-2"
-    >
-      <button
-        type="button"
-        aria-pressed={allActive}
-        aria-label={allActive ? "All filters" : "Clear all filters"}
-        onClick={() => handleSelect(RECRUITING_FILTER_CLEAR_ID)}
-        className={[
-          "inline-flex h-10 items-center rounded-control px-3.5 text-[13px] font-medium",
-          allActive
-            ? "bg-[var(--module-accent)] text-surface"
-            : "bg-surface text-text-secondary ring-1 ring-black/[0.06] hover:text-text-primary",
-        ].join(" ")}
-      >
-        {allActive ? "All" : "Clear"}
-      </button>
-      {RECRUITING_VISIBLE_FILTER_FACETS.map((group) => (
-        <FacetMenu
-          key={group.category}
-          label={group.label}
-          category={group.category}
+    <>
+      <div className="md:hidden">
+        <MobileFiltersButton
+          active={!allActive}
+          activeCount={activeCount}
+          expanded={mobileOpen}
+          onClick={() => setMobileOpen(true)}
+        />
+        <MobileFilterSheet
+          open={mobileOpen}
+          onClose={() => setMobileOpen(false)}
+          facets={mobileFacets}
           value={value}
           onSelect={handleSelect}
-          definitions={definitions}
-          open={openCategory === group.category}
-          onToggle={() =>
-            setOpenCategory((current) => (current === group.category ? null : group.category))
-          }
+          clearId={RECRUITING_FILTER_CLEAR_ID}
+          isAllActive={allActive}
         />
-      ))}
-    </div>
+      </div>
+
+      <div
+        ref={rootRef}
+        data-recruiting-filter-toolbar="true"
+        className="hidden min-w-0 flex-wrap items-center gap-2 md:flex"
+      >
+        <button
+          type="button"
+          aria-pressed={allActive}
+          aria-label={allActive ? "All filters" : "Clear all filters"}
+          onClick={() => handleSelect(RECRUITING_FILTER_CLEAR_ID)}
+          className={[
+            "inline-flex h-10 items-center rounded-control px-3.5 text-[13px] font-medium",
+            allActive
+              ? "bg-[var(--module-accent)] text-surface"
+              : "bg-surface text-text-secondary ring-1 ring-black/[0.06] hover:text-text-primary",
+          ].join(" ")}
+        >
+          {allActive ? "All" : "Clear"}
+        </button>
+        {RECRUITING_VISIBLE_FILTER_FACETS.map((group) => (
+          <FacetMenu
+            key={group.category}
+            label={group.label}
+            category={group.category}
+            value={value}
+            onSelect={handleSelect}
+            definitions={definitions}
+            open={openCategory === group.category}
+            onToggle={() =>
+              setOpenCategory((current) => (current === group.category ? null : group.category))
+            }
+          />
+        ))}
+      </div>
+    </>
   );
 }

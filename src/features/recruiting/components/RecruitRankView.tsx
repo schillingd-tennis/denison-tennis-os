@@ -17,7 +17,7 @@ import type { SortDirection } from "@/components/data-table/types";
 import ViewChrome, { ViewContextHeader } from "@/components/view-chrome";
 import { getDisplayName } from "@/features/people/utils";
 
-import { denseRankByPersonId, parseDirectCoachRank, rankedPersonIdsForClass } from "../coachRank";
+import { parseDirectCoachRank } from "../coachRank";
 import {
   availableRecruitClassYears,
   resolveRankClassYearFromFilters,
@@ -602,16 +602,6 @@ export default function RecruitRankView({
     onError: setError,
   });
 
-  const rankedPopulation = useMemo(
-    () => classRows.filter((row) => row.profile.coachRank !== undefined).length,
-    [classRows],
-  );
-
-  const masterRankById = useMemo(
-    () => denseRankByPersonId(rankedPersonIdsForClass(classRows, classYear ?? 0)),
-    [classRows, classYear],
-  );
-
   const unrankedBoardKey = [
     classYear ?? "none",
     boardSort.key,
@@ -724,15 +714,14 @@ export default function RecruitRankView({
         dropActive={rankedDrag.dragSource === "unranked" && rankedDrag.dropZone === "ranked"}
         dropSlot={rankedDrag.dropSlot}
       >
-        {rankedDrag.displayRanked.map((row) => {
+        {rankedDrag.displayRanked.map((row, index) => {
           const previewRank = rankedDrag.previewRankById?.get(row.person.id);
           const leavingBoard =
             rankedDrag.draggedPersonId === row.person.id && rankedDrag.dropZone === "unranked";
           const busy = rankedDrag.persistPending;
-          const displayRank = leavingBoard
-            ? null
-            : (previewRank ?? masterRankById.get(row.person.id) ?? null);
-          const masterRank = masterRankById.get(row.person.id) ?? null;
+          // Visible board densifies 1…N (no gaps). Master class order still
+          // densifies separately on persist via applyCoachRanksToCohort.
+          const displayRank = leavingBoard ? null : (previewRank ?? index + 1);
           const rankEditDisabled =
             rankedDrag.dragging || rankedDrag.persistPending;
           return (
@@ -743,8 +732,8 @@ export default function RecruitRankView({
               rankCell={
                 <CoachRankValue
                   displayRank={displayRank}
-                  currentRank={masterRank}
-                  rankedCount={rankedPopulation}
+                  currentRank={displayRank}
+                  rankedCount={ranked.length}
                   editing={
                     editingRankPersonId === row.person.id && !rankedDrag.dragging
                   }

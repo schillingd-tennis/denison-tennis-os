@@ -7,6 +7,10 @@ import { useRouter } from "next/navigation";
 import { publishFoundSet } from "@/components/found-set";
 import EmptyState from "@/components/EmptyState";
 import ModulePageShell from "@/components/ModulePageShell";
+import {
+  DesktopOnlySummary,
+  MobileViewSelector,
+} from "@/components/mobile-dashboard";
 import SearchInput from "@/components/SearchInput";
 import ViewToggle from "@/components/ViewToggle";
 import { useDrawerManager } from "@/components/workspace-drawer";
@@ -155,7 +159,9 @@ export default function RecruitingDirectory({
         </button>
       }
     >
-      <RecruitingKpiRow kpis={kpis} />
+      <DesktopOnlySummary>
+        <RecruitingKpiRow kpis={kpis} />
+      </DesktopOnlySummary>
 
       <div className="flex flex-col gap-2.5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -167,12 +173,20 @@ export default function RecruitingDirectory({
             />
           </div>
           <div className="sm:ml-auto">
-            <ViewToggle
+            <MobileViewSelector
               value={view}
               onChange={writeStoredRecruitingDirectoryView}
               options={RECRUITING_VIEW_OPTIONS}
               ariaLabel="Change recruiting view"
             />
+            <div className="hidden md:block">
+              <ViewToggle
+                value={view}
+                onChange={writeStoredRecruitingDirectoryView}
+                options={RECRUITING_VIEW_OPTIONS}
+                ariaLabel="Change recruiting view"
+              />
+            </div>
           </div>
         </div>
         <RecruitingFilterControl

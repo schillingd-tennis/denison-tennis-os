@@ -13,12 +13,12 @@ import {
   appendUnranked,
   applyCoachRanksToCohort,
   applyVisibleOrderToMaster,
-  densifyCoachRanks,
   densifyExistingClassOrder,
+  denseRankByPersonId,
   insertUnrankedAt,
   insertUnrankedIntoVisible,
-  moveByRank,
   moveInOrder,
+  moveVisibleByRank,
   rankedPersonIdsForClass,
   removeFromRanked,
 } from "../coachRank";
@@ -259,14 +259,18 @@ export function useRankedBoardDrag({
     (personId: string, toRank: number) => {
       if (addPending || persistPending || dragging) return;
       const originMasterIds = rankedMasterIds();
-      const fromRank = originMasterIds.indexOf(personId) + 1;
+      const originVisibleIds = ranked.map((row) => row.person.id);
+      const fromRank = originVisibleIds.indexOf(personId) + 1;
       if (fromRank < 1) return;
       if (toRank === fromRank) return;
-      if (toRank < 1 || toRank > originMasterIds.length) return;
+      if (toRank < 1 || toRank > originVisibleIds.length) return;
       onError(undefined);
-      applyMasterOrder(moveByRank(originMasterIds, fromRank, toRank));
+      // UI ranks are the visible board (1…visibleCount). Map onto master order.
+      applyMasterOrder(
+        moveVisibleByRank(originMasterIds, originVisibleIds, fromRank, toRank),
+      );
     },
-    [addPending, applyMasterOrder, dragging, onError, persistPending, rankedMasterIds],
+    [addPending, applyMasterOrder, dragging, onError, persistPending, ranked, rankedMasterIds],
   );
 
   const commitDrag = useCallback(
@@ -500,9 +504,17 @@ export function useRankedBoardDrag({
       );
     }
     if (previewMaster) {
-      previewRankById = new Map(
-        densifyCoachRanks(previewMaster).map((entry) => [entry.personId, entry.coachRank]),
-      );
+      // Board chrome shows dense 1…N among *visible* ranked rows (no gaps).
+      // Master order still densifies 1…N for the full class on persist.
+      const visibleIdSet = new Set(activeDrag.originVisibleIds);
+      if (activeDrag.source === "unranked" && activeDrag.hoverZone === "ranked") {
+        visibleIdSet.add(activeDrag.personId);
+      }
+      if (activeDrag.source === "ranked" && activeDrag.hoverZone === "unranked") {
+        visibleIdSet.delete(activeDrag.personId);
+      }
+      const visibleOrder = previewMaster.filter((id) => visibleIdSet.has(id));
+      previewRankById = denseRankByPersonId(visibleOrder);
     }
   }
 
