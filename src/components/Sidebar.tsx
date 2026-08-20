@@ -44,6 +44,11 @@ export default function Sidebar({
         <SidebarContent />
       </aside>
 
+      {/*
+        When closed, every layer must set pointer-events-none. A parent-only
+        none still lets children (default auto) intercept taps — including the
+        opacity-0 full-screen backdrop over the hamburger.
+      */}
       <div
         className={`fixed inset-0 z-40 md:hidden ${
           isOpen ? "" : "pointer-events-none"
@@ -52,13 +57,17 @@ export default function Sidebar({
       >
         <div
           className={`absolute inset-0 bg-black/40 transition-opacity ${
-            isOpen ? "opacity-100" : "opacity-0"
+            isOpen
+              ? "pointer-events-auto opacity-100"
+              : "pointer-events-none opacity-0"
           }`}
           onClick={onClose}
         />
         <aside
           className={`absolute inset-y-0 left-0 transition-transform duration-200 ${
-            isOpen ? "translate-x-0" : "-translate-x-full"
+            isOpen
+              ? "pointer-events-auto translate-x-0"
+              : "pointer-events-none -translate-x-full"
           }`}
         >
           <SidebarContent onNavigate={onClose} />
