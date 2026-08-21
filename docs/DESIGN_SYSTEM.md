@@ -98,6 +98,9 @@ Shared package: `src/components/mobile-dashboard`
 | Piece | Role |
 |---|---|
 | `DesktopOnlySummary` | Wraps KPI / summary card sections; `hidden` below `md`, visible at `md+`. Data still computed. |
+| `DesktopOnlyActions` | Hides Copy / Export found-set circular actions below `md`; `md:contents` so they stay in desktop action clusters. |
+| `MobileDirectoryControls` | One row: View + Filters side-by-side (`grid-cols-2`), `md:hidden`. |
+| `MobileDirectorySearchRegion` | Wraps search/toolbar + results. On focus + keyboard: results scroll inside the visible visual viewport above the keyboard. Desktop unchanged. |
 | `MobileFilterSheet` + `MobileFiltersButton` | Single Filters control + bottom sheet. Modules supply facets; selection logic stays in-module. |
 | `MobileViewSelector` | Bottom-sheet view picker. Desktop keeps `ViewToggle`. |
 
@@ -117,22 +120,22 @@ Shared package: `src/components/mobile-workspace`
 
 **Migrated:** Team Person Workspace, Recruit Person Workspace. Content still comes from `AdaptiveWorkspace` definitions — no duplicated workspace logic.
 
-### Mobile Adaptive Workspace content (below `md`)
-
-Desktop multi-column field grids and status strips stay unchanged at `md+`.
+### Adaptive Workspace section headers (all viewports)
 
 Shared primitives in `src/components/adaptive-workspace/WorkspaceContent.tsx`:
 
-| Piece | Mobile | Desktop |
-|---|---|---|
-| `WorkspaceFieldGrid` | 1 column | 2 / 3 / 4 columns |
-| `WorkspaceSplit` | Stacked | Horizontal column template |
-| `WorkspaceStatusStrip` | 2–3 col wrap | Single nowrap row |
-| `WorkspaceField` | Label above value; long values wrap | Same |
+| Piece | Behavior |
+|---|---|
+| `WorkspaceFieldGrid` | Base: 1 col. `sm+`: requested 2/3 cols (or 2 for 4-col requests). `md+`: full 4 cols when requested |
+| `WorkspaceSplit` | Mobile: stacked. Desktop: horizontal column template |
+| `WorkspaceStatusStrip` | Mobile: 2–3 col wrap. Desktop: single nowrap row |
+| `WorkspaceField` | Label above value; long values wrap — not shaded |
+| `WorkspaceSectionHeader` / `WorkspaceAccentHeading` | **OS-wide** compact tinted bar + icon + uppercase label on mobile **and** desktop (`h-11` / `md:h-9`). Replaces the old accent-text + vertical-mark desktop heading. |
 
 Do not reintroduce fixed `gridTemplateColumns: repeat(N, …)` that applies at all breakpoints — use these primitives.
+Do not use shaded bars for ordinary field labels.
 
-**Migrated content:** Recruiting Person Adaptive Workspaces (Personal Info, Academics, Rankings, Analytics, Notes, Communications).
+**Migrated content:** Recruiting Person Adaptive Workspaces (Personal Info, Academics, Rankings, Analytics, Notes, Communications) and Team Person Adaptive Workspaces (Personal Info, Academics, Family, Equipment, Travel, Related Players).
 
 ### Mobile inline editing (below `md`)
 

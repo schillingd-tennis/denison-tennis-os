@@ -9,6 +9,8 @@ import EmptyState from "@/components/EmptyState";
 import ModulePageShell from "@/components/ModulePageShell";
 import {
   DesktopOnlySummary,
+  MobileDirectoryControls,
+  MobileDirectorySearchRegion,
   MobileViewSelector,
 } from "@/components/mobile-dashboard";
 import SearchInput from "@/components/SearchInput";
@@ -163,45 +165,51 @@ export default function RecruitingDirectory({
         <RecruitingKpiRow kpis={kpis} />
       </DesktopOnlySummary>
 
-      <div className="flex flex-col gap-2.5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="min-w-0 flex-1 sm:max-w-xl">
-            <SearchInput
-              value={query}
-              onChange={writeStoredRecruitingDirectoryQuery}
-              placeholder="Search by name, school, or recruiting fields"
-            />
-          </div>
-          <div className="sm:ml-auto">
-            <MobileViewSelector
-              value={view}
-              onChange={writeStoredRecruitingDirectoryView}
-              options={RECRUITING_VIEW_OPTIONS}
-              ariaLabel="Change recruiting view"
-            />
-            <div className="hidden md:block">
-              <ViewToggle
-                value={view}
-                onChange={writeStoredRecruitingDirectoryView}
-                options={RECRUITING_VIEW_OPTIONS}
-                ariaLabel="Change recruiting view"
-              />
+      <MobileDirectorySearchRegion
+        toolbar={
+          <div className="flex flex-col gap-2.5">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center">
+              <div className="min-w-0 flex-1 md:max-w-xl">
+                <SearchInput
+                  value={query}
+                  onChange={writeStoredRecruitingDirectoryQuery}
+                  placeholder="Search by name, school, or recruiting fields"
+                  aria-label="Search recruits"
+                />
+              </div>
+              <div className="hidden md:ml-auto md:block">
+                <ViewToggle
+                  value={view}
+                  onChange={writeStoredRecruitingDirectoryView}
+                  options={RECRUITING_VIEW_OPTIONS}
+                  ariaLabel="Change recruiting view"
+                />
+              </div>
             </div>
+            <RecruitingFilterControl
+              value={activeFilterIds}
+              onChange={handleFilterChange}
+              definitions={definitions}
+              renderMobileTrigger={(filtersButton) => (
+                <MobileDirectoryControls>
+                  <MobileViewSelector
+                    value={view}
+                    onChange={writeStoredRecruitingDirectoryView}
+                    options={RECRUITING_VIEW_OPTIONS}
+                    ariaLabel="Change recruiting view"
+                  />
+                  {filtersButton}
+                </MobileDirectoryControls>
+              )}
+            />
           </div>
-        </div>
-        <RecruitingFilterControl
-          value={activeFilterIds}
-          onChange={handleFilterChange}
-          definitions={definitions}
-        />
-      </div>
-
-      {/*
-        Shared content stacking context for Cards / List / Rank / Commit / Metrics.
-        `isolate` + `z-0` traps descendant z-index (card z-10 links, sticky
-        table headers) so the body-portaled filter menu always paints above.
-      */}
-      <div data-recruiting-content="" className="relative z-0 isolate">
+        }
+      >
+        {/*
+          Shared content stacking context for Cards / List / Rank / Commit / Metrics.
+          `isolate` + `z-0` traps descendant z-index (card z-10 links, sticky
+          table headers) so the body-portaled filter menu always paints above.
+        */}
         {filtered.length === 0 &&
         (view === "cards" || view === "list" || view === "metrics") ? (
           <EmptyState
@@ -243,7 +251,7 @@ export default function RecruitingDirectory({
             onCohortChange={setLiveRows}
           />
         )}
-      </div>
+      </MobileDirectorySearchRegion>
     </ModulePageShell>
   );
 }

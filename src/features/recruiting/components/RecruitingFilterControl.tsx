@@ -17,6 +17,7 @@ import {
   useRef,
   useState,
   type ComponentType,
+  type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
 
@@ -194,10 +195,16 @@ export default function RecruitingFilterControl({
   value,
   onChange,
   definitions,
+  renderMobileTrigger,
 }: {
   value: readonly string[];
   onChange: (activeIds: string[]) => void;
   definitions: readonly FilterDefinition<RecruitDirectoryRow>[];
+  /**
+   * When provided, the Filters button is passed to the caller (e.g. to sit
+   * beside View in `MobileDirectoryControls`). Sheet + desktop chips stay here.
+   */
+  renderMobileTrigger?: (button: ReactNode) => ReactNode;
 }) {
   const allActive = recruitingFiltersAreAll(value);
   const activeCount = value.length;
@@ -240,25 +247,31 @@ export default function RecruitingFilterControl({
     };
   }, [openCategory]);
 
+  const filtersButton = (
+    <MobileFiltersButton
+      active={!allActive}
+      activeCount={activeCount}
+      expanded={mobileOpen}
+      onClick={() => setMobileOpen(true)}
+    />
+  );
+
   return (
     <>
-      <div className="md:hidden">
-        <MobileFiltersButton
-          active={!allActive}
-          activeCount={activeCount}
-          expanded={mobileOpen}
-          onClick={() => setMobileOpen(true)}
-        />
-        <MobileFilterSheet
-          open={mobileOpen}
-          onClose={() => setMobileOpen(false)}
-          facets={mobileFacets}
-          value={value}
-          onSelect={handleSelect}
-          clearId={RECRUITING_FILTER_CLEAR_ID}
-          isAllActive={allActive}
-        />
-      </div>
+      {renderMobileTrigger ? (
+        renderMobileTrigger(filtersButton)
+      ) : (
+        <div className="md:hidden">{filtersButton}</div>
+      )}
+      <MobileFilterSheet
+        open={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+        facets={mobileFacets}
+        value={value}
+        onSelect={handleSelect}
+        clearId={RECRUITING_FILTER_CLEAR_ID}
+        isAllActive={allActive}
+      />
 
       <div
         ref={rootRef}

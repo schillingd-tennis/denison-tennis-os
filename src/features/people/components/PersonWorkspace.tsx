@@ -36,17 +36,23 @@ import {
   type InlineCommitReason,
   type InlineSelectOption,
 } from "@/components/inline-edit";
+import { DesktopOnlyActions } from "@/components/mobile-dashboard";
+import { MobileWorkspaceSelector } from "@/components/mobile-workspace";
+import {
+  PersonWorkspaceDesktopSplit,
+  PersonWorkspaceMobilePane,
+  PersonWorkspaceShell,
+} from "@/components/person-workspace-shell";
 import { StickyProductivityActionBar } from "@/components/productivity";
 import QuickActionButton from "@/components/QuickActionButton";
 import type { StatusDotTone } from "@/components/StatusDot";
-import { typeRole } from "@/components/typography";
 import { useDrawerManager } from "@/components/workspace-drawer";
 import {
   AdaptiveWorkspace,
   AdaptiveWorkspacePlaceholder,
+  WorkspaceAccentHeading,
   type AdaptiveWorkspaceDefinition,
 } from "@/components/adaptive-workspace";
-import { MobileWorkspaceSelector } from "@/components/mobile-workspace";
 
 import {
   createCommunicationActions,
@@ -602,18 +608,27 @@ export default function PersonWorkspace({
       title: "Communications",
       subtitle: "Calls, texts, and follow-ups",
       content: (
-        <AdaptiveWorkspacePlaceholder
-          message="No interaction history is available yet. Calls, texts, and follow-ups are not stored on this record."
-          action={
-            <button
-              type="button"
-              disabled
-              className="inline-flex h-9 items-center justify-center rounded-control bg-[var(--module-accent)] px-3.5 text-sm font-semibold text-surface opacity-40"
-            >
-              Add Communication
-            </button>
-          }
-        />
+        <div className="min-w-0 space-y-[14px]">
+          <section aria-label="Communications">
+            <WorkspaceAccentHeading icon={MessageSquare} tone="research">
+              Communications
+            </WorkspaceAccentHeading>
+            <div className="mt-[5px]">
+              <AdaptiveWorkspacePlaceholder
+                message="No interaction history is available yet. Calls, texts, and follow-ups are not stored on this record."
+                action={
+                  <button
+                    type="button"
+                    disabled
+                    className="inline-flex h-9 items-center justify-center rounded-control bg-[var(--module-accent)] px-3.5 text-sm font-semibold text-surface opacity-40"
+                  >
+                    Add Communication
+                  </button>
+                }
+              />
+            </div>
+          </section>
+        </div>
       ),
     };
     const personalWorkspace: AdaptiveWorkspaceDefinition = {
@@ -776,18 +791,20 @@ export default function PersonWorkspace({
                 tone="neutral"
               />
             ) : null}
-            <QuickActionButton
-              onAction={handleCopyFoundSet}
-              icon={ClipboardList}
-              label="Copy Found Set"
-              tone="neutral"
-            />
-            <QuickActionButton
-              onAction={handleExportFoundSet}
-              icon={Download}
-              label="Export Found Set"
-              tone="neutral"
-            />
+            <DesktopOnlyActions>
+              <QuickActionButton
+                onAction={handleCopyFoundSet}
+                icon={ClipboardList}
+                label="Copy Found Set"
+                tone="neutral"
+              />
+              <QuickActionButton
+                onAction={handleExportFoundSet}
+                icon={Download}
+                label="Export Found Set"
+                tone="neutral"
+              />
+            </DesktopOnlyActions>
             <QuickActionButton
               onAction={openDeletePersonDrawer}
               icon={Trash2}
@@ -874,9 +891,9 @@ export default function PersonWorkspace({
         }
       />
 
-      <section aria-label="Workspaces">
-          {/* Mobile: selector + full-width active workspace (no compressed split). */}
-          <div className="flex flex-col gap-3 md:hidden">
+      <PersonWorkspaceShell
+        mobile={
+          <PersonWorkspaceMobilePane>
             <MobileWorkspaceSelector
               items={workspaceItems.map((item) => ({
                 id: item.id,
@@ -899,30 +916,22 @@ export default function PersonWorkspace({
               }
               workspaces={adaptiveWorkspaces}
             />
-          </div>
-
-          {/* Desktop BP-036D: nav rail LEFT, Adaptive Workspace RIGHT. */}
-          <div
-            className="hidden min-h-[420px] w-full grid-cols-[minmax(260px,320px)_minmax(0,1fr)] grid-rows-1 items-stretch overflow-hidden rounded-card border border-[var(--module-border)] bg-surface shadow-[0_8px_24px_rgba(17,24,39,0.04)] md:grid"
-            style={{ gridTemplateColumns: "minmax(260px, 320px) minmax(0, 1fr)" }}
-          >
-            <aside className="flex min-h-0 min-w-0 flex-col border-r border-[var(--module-border)]">
-              <div className="shrink-0 border-b border-[var(--module-border)] px-3.5 py-2">
-                <h2 className={typeRole.sectionTitle}>Workspaces</h2>
-              </div>
-              <div className="min-h-0 flex-1 overflow-y-auto">
-                <PersonWorkspaceNav
-                  items={workspaceItems}
-                  activeId={
-                    workspaceItems.some((item) => item.id === activeWorkspaceId)
-                      ? activeWorkspaceId
-                      : null
-                  }
-                  onSelect={setActiveWorkspaceId}
-                />
-              </div>
-            </aside>
-            <div className="min-h-0 min-w-0">
+          </PersonWorkspaceMobilePane>
+        }
+        desktop={
+          <PersonWorkspaceDesktopSplit
+            nav={
+              <PersonWorkspaceNav
+                items={workspaceItems}
+                activeId={
+                  workspaceItems.some((item) => item.id === activeWorkspaceId)
+                    ? activeWorkspaceId
+                    : null
+                }
+                onSelect={setActiveWorkspaceId}
+              />
+            }
+            content={
               <AdaptiveWorkspace
                 framed={false}
                 activeId={
@@ -932,9 +941,10 @@ export default function PersonWorkspace({
                 }
                 workspaces={adaptiveWorkspaces}
               />
-            </div>
-          </div>
-      </section>
+            }
+          />
+        }
+      />
     </div>
   );
 }

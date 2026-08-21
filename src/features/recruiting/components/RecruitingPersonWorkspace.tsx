@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   BarChart3,
@@ -12,6 +12,7 @@ import {
   MessageSquare,
   NotebookPen,
   Phone,
+  SquarePen,
   Trash2,
   UserRound,
 } from "lucide-react";
@@ -20,14 +21,19 @@ import {
   AdaptiveWorkspace,
   type AdaptiveWorkspaceDefinition,
 } from "@/components/adaptive-workspace";
+import RunningAthleteIcon from "@/components/icons/RunningAthleteIcon";
 import { MobileWorkspaceSelector } from "@/components/mobile-workspace";
 import {
   FavoriteToggleButton,
   recordRecentOpen,
 } from "@/components/command-palette/favorites";
+import {
+  PersonWorkspaceDesktopSplit,
+  PersonWorkspaceMobilePane,
+  PersonWorkspaceShell,
+} from "@/components/person-workspace-shell";
 import { StickyProductivityActionBar } from "@/components/productivity";
 import QuickActionButton from "@/components/QuickActionButton";
-import { typeRole } from "@/components/typography";
 import { useDrawerManager } from "@/components/workspace-drawer";
 import { createCommunicationActions } from "@/features/communication";
 import DeletePersonConfirm from "@/features/people/components/DeletePersonConfirm";
@@ -46,6 +52,11 @@ import {
 } from "@/lib/formatting";
 
 import type { RecruitAnalyticsResult } from "../analytics/types";
+import {
+  RECRUIT_NOTES_WORKSPACE_ID,
+  type RecruitNoteQuickEntryField,
+  type RecruitNoteQuickEntryRequest,
+} from "../noteQuickEntry";
 import type { RecruitProfile } from "../types";
 import {
   RecruitWorkspaceNav,
@@ -95,6 +106,9 @@ export default function RecruitingPersonWorkspace({
   const [trackedPerson, setTrackedPerson] = useState(person);
   const [profileRecord, setProfileRecord] = useState(profile);
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>("personal-info");
+  const [noteQuickEntry, setNoteQuickEntry] = useState<RecruitNoteQuickEntryRequest | null>(
+    null,
+  );
   const { status: saveStatus, error: saveError, runSave } = useSaveIndicator();
   const router = useRouter();
   const { openDrawer, closeDrawer } = useDrawerManager();
@@ -104,6 +118,7 @@ export default function RecruitingPersonWorkspace({
     setRecord(person);
     setProfileRecord(profile);
     setActiveWorkspaceId("personal-info");
+    setNoteQuickEntry(null);
   } else if (person !== trackedPerson) {
     setTrackedPerson(person);
     setRecord(person);
@@ -116,6 +131,15 @@ export default function RecruitingPersonWorkspace({
     cellPhone: record.cellPhone,
     email,
   });
+
+  const openNoteQuickEntry = useCallback((field: RecruitNoteQuickEntryField) => {
+    setActiveWorkspaceId(RECRUIT_NOTES_WORKSPACE_ID);
+    setNoteQuickEntry({ field, requestId: Date.now() });
+  }, []);
+
+  const clearNoteQuickEntry = useCallback(() => {
+    setNoteQuickEntry(null);
+  }, []);
 
   useEffect(() => {
     recordRecentOpen({
@@ -243,7 +267,12 @@ export default function RecruitingPersonWorkspace({
         title: "Notes",
         subtitle: "Coach notes, game notes, and pitch",
         toolbar: WORKSPACE_EDIT_HINT,
-        content: <RecruitingNotesWorkspace />,
+        content: (
+          <RecruitingNotesWorkspace
+            quickEntryRequest={noteQuickEntry}
+            onQuickEntryHandled={clearNoteQuickEntry}
+          />
+        ),
       },
       {
         id: "communications",
@@ -252,11 +281,11 @@ export default function RecruitingPersonWorkspace({
         content: <RecruitingCommunicationsWorkspace />,
       },
     ],
-    [analytics, inCurrentCohort, profileRecord.coachRank],
+    [analytics, clearNoteQuickEntry, inCurrentCohort, noteQuickEntry, profileRecord.coachRank],
   );
 
   return (
-    <div className="mx-auto flex w-full min-w-0 max-w-6xl flex-col gap-4 overflow-x-hidden">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 max-md:min-w-0 max-md:overflow-x-hidden">
       <StickyProductivityActionBar
         leading={
           <>
@@ -312,6 +341,24 @@ export default function RecruitingPersonWorkspace({
             />
           </>
         }
+        trailingActions={
+          <>
+            <QuickActionButton
+              onAction={() => openNoteQuickEntry("notes")}
+              icon={SquarePen}
+              label="Quick edit Coach Notes"
+              tone="warning"
+              appearance="filled"
+            />
+            <QuickActionButton
+              onAction={() => openNoteQuickEntry("gameNotes")}
+              icon={RunningAthleteIcon}
+              label="Quick edit Game Notes"
+              tone="research"
+              appearance="filled"
+            />
+          </>
+        }
       />
 
       <RecruitWorkspaceFieldSessions
@@ -335,9 +382,9 @@ export default function RecruitingPersonWorkspace({
         }}
       />
 
-      <section aria-label="Workspaces">
-          {/* Mobile: selector + full-width active workspace (no compressed split). */}
-          <div className="flex flex-col gap-3 md:hidden">
+      <PersonWorkspaceShell
+        mobile={
+          <PersonWorkspaceMobilePane>
             <MobileWorkspaceSelector
               items={workspaceItems.map((item) => ({
                 id: item.id,
@@ -360,34 +407,22 @@ export default function RecruitingPersonWorkspace({
               }
               workspaces={adaptiveWorkspaces}
             />
-          </div>
-
-          {/*
-            Desktop BP-036D: narrow workspace rail LEFT, selected content RIGHT.
-            Inline columns keep the two-pane layout even if Tailwind arbitrary
-            grid tracks fail to generate.
-          */}
-          <div
-            className="hidden min-h-[420px] w-full grid-cols-[minmax(260px,320px)_minmax(0,1fr)] grid-rows-1 items-stretch overflow-hidden rounded-card border border-[var(--module-border)] bg-surface shadow-[0_8px_24px_rgba(17,24,39,0.04)] md:grid"
-            style={{ gridTemplateColumns: "minmax(260px, 320px) minmax(0, 1fr)" }}
-          >
-            <aside className="flex min-h-0 min-w-0 flex-col border-r border-[var(--module-border)]">
-              <div className="shrink-0 border-b border-[var(--module-border)] px-3.5 py-2">
-                <h2 className={typeRole.sectionTitle}>Workspaces</h2>
-              </div>
-              <div className="min-h-0 flex-1 overflow-y-auto">
-                <RecruitWorkspaceNav
-                  items={workspaceItems}
-                  activeId={
-                    workspaceItems.some((item) => item.id === activeWorkspaceId)
-                      ? activeWorkspaceId
-                      : null
-                  }
-                  onSelect={setActiveWorkspaceId}
-                />
-              </div>
-            </aside>
-            <div className="min-h-0 min-w-0">
+          </PersonWorkspaceMobilePane>
+        }
+        desktop={
+          <PersonWorkspaceDesktopSplit
+            nav={
+              <RecruitWorkspaceNav
+                items={workspaceItems}
+                activeId={
+                  workspaceItems.some((item) => item.id === activeWorkspaceId)
+                    ? activeWorkspaceId
+                    : null
+                }
+                onSelect={setActiveWorkspaceId}
+              />
+            }
+            content={
               <AdaptiveWorkspace
                 framed={false}
                 activeId={
@@ -397,9 +432,10 @@ export default function RecruitingPersonWorkspace({
                 }
                 workspaces={adaptiveWorkspaces}
               />
-            </div>
-          </div>
-      </section>
+            }
+          />
+        }
+      />
       </RecruitWorkspaceFieldSessions>
     </div>
   );

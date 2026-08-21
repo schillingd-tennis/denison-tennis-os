@@ -115,9 +115,11 @@ function InlineEditInput({
     }
     if (node instanceof HTMLInputElement || node instanceof HTMLTextAreaElement) {
       // Read viewport at focus time so the first mobile paint never select-all.
-      focusEditor(node, isMobileEditSurface() ? "caret-end" : "select-all");
+      // Textareas (notes) always caret-end so quick-entry / mobile never replace-all.
+      const caretEnd = type === "textarea" || isMobileEditSurface();
+      focusEditor(node, caretEnd ? "caret-end" : "select-all");
     }
-  }, []);
+  }, [type]);
 
   async function commit(reason: InlineCommitReason, raw: string = draft) {
     if (committingRef.current) return;

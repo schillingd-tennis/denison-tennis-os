@@ -10,7 +10,7 @@ import {
   type FormEvent,
   type MouseEvent,
 } from "react";
-import { Mail, Phone, Trash2 } from "lucide-react";
+import { Mail, NotebookPen, Phone, Trash2, Users } from "lucide-react";
 
 import { DIRECTORY_ACTIONS_WIDTH_CLASS } from "@/components/data-table/directoryColumnWidths";
 import { formatPhoneDisplay } from "@/components/inline-edit";
@@ -561,7 +561,9 @@ export default function FamilyWorkspace({
       <div className="space-y-[14px]">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <WorkspaceAccentHeading>Parents / Guardians</WorkspaceAccentHeading>
+            <WorkspaceAccentHeading icon={Users} tone="knowledge">
+              Parents / Guardians
+            </WorkspaceAccentHeading>
             <p className={`mt-1 ${typeRole.metadata}`}>
               People related to this player through family relationships.
             </p>
@@ -599,7 +601,9 @@ export default function FamilyWorkspace({
         )}
 
         <section aria-label="Notes" className="border-t border-border/50 pt-[14px]">
-          <WorkspaceAccentHeading>Notes</WorkspaceAccentHeading>
+          <WorkspaceAccentHeading icon={NotebookPen} tone="knowledge">
+            Notes
+          </WorkspaceAccentHeading>
           <div className="mt-1.5 min-h-[5.5rem]">
             <FieldRenderer
               field="familyNotes"

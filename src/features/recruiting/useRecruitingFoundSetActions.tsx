@@ -5,6 +5,7 @@ import { ClipboardList, Download } from "lucide-react";
 
 import type { FoundSetColumn } from "@/components/found-set";
 import { copyFoundSet, exportFoundSetCsv } from "@/components/found-set";
+import { DesktopOnlyActions } from "@/components/mobile-dashboard";
 import QuickActionButton from "@/components/QuickActionButton";
 
 import type { RecruitDirectoryRow } from "./directory";
@@ -42,7 +43,7 @@ export function useRecruitingFoundSetActions(
   }, [rows, columns, filenameBase]);
 
   const actionButtons: ReactNode = (
-    <>
+    <DesktopOnlyActions>
       <QuickActionButton
         onAction={rows.length > 0 ? handleCopyFoundSet : undefined}
         icon={ClipboardList}
@@ -57,7 +58,7 @@ export function useRecruitingFoundSetActions(
         tone="neutral"
         unavailableTitle="No records in found set"
       />
-    </>
+    </DesktopOnlyActions>
   );
 
   return { foundSetFeedback, actionButtons };

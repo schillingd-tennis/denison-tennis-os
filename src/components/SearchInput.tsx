@@ -7,15 +7,21 @@ import { useRef } from "react";
  * Primary toolbar search field — 44px height, soft border, quiet placeholder.
  * Behavior (controlled value / onChange) is intentionally unchanged.
  * Clear (X) is shown only when the field has text; clearing keeps focus.
+ *
+ * Mobile: explicit `16px` prevents iOS Safari focus zoom (rem/`text-base`
+ * alone can still compute under 16px depending on root font size).
+ * Desktop (`md+`): retains the quieter `text-sm` visual.
  */
 export default function SearchInput({
   value,
   onChange,
   placeholder = "Search...",
+  "aria-label": ariaLabel = "Search",
 }: {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  "aria-label"?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const hasQuery = value.length > 0;
@@ -33,11 +39,23 @@ export default function SearchInput({
       />
       <input
         ref={inputRef}
-        type="text"
+        type="search"
+        enterKeyHint="search"
+        inputMode="search"
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="none"
+        spellCheck={false}
+        data-directory-search="true"
+        aria-label={ariaLabel}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="h-11 w-full rounded-control border border-border/70 bg-surface pr-10 pl-10 text-sm text-text-primary transition-[border-color,box-shadow] duration-150 placeholder:text-text-secondary/45 focus:border-[var(--module-accent)]/45 focus:ring-1 focus:ring-[var(--module-accent)]/25 focus:outline-none"
+        className="h-11 w-full rounded-control border border-border/70 bg-surface pr-10 pl-10 text-[16px] leading-normal text-text-primary transition-[border-color,box-shadow] duration-150 placeholder:text-text-secondary/45 focus:border-[var(--module-accent)]/45 focus:ring-1 focus:ring-[var(--module-accent)]/25 focus:outline-none md:text-sm md:leading-normal [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden"
+        onKeyDown={(event) => {
+          // Search/Enter should not submit a surrounding form; keep the query.
+          if (event.key === "Enter") event.preventDefault();
+        }}
       />
       {hasQuery ? (
         <button

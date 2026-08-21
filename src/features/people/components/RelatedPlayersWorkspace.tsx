@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Users } from "lucide-react";
 
 import { WorkspaceAccentHeading } from "@/components/adaptive-workspace";
 import OpenPersonAction from "@/components/OpenPersonAction";
@@ -56,7 +57,9 @@ export default function RelatedPlayersWorkspace({ person }: { person: Person }) 
   return (
     <div className="space-y-[14px]">
       <div>
-        <WorkspaceAccentHeading>Related Players</WorkspaceAccentHeading>
+        <WorkspaceAccentHeading icon={Users} tone="info">
+          Related Players
+        </WorkspaceAccentHeading>
         <p className={`mt-1 ${typeRole.metadata}`}>
           Players connected to this person through family relationships.
         </p>

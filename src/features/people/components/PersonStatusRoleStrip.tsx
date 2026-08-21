@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { BadgeCheck } from "lucide-react";
 
 import { InlineEditCell } from "@/components/inline-edit";
 import { typeRole } from "@/components/typography";
@@ -89,7 +90,9 @@ function PersonLookupBadgeField({
 export default function PersonStatusRoleStrip() {
   return (
     <section aria-label="Status & Role">
-      <WorkspaceAccentHeading>Status & Role</WorkspaceAccentHeading>
+      <WorkspaceAccentHeading icon={BadgeCheck} tone="module">
+        Status & Role
+      </WorkspaceAccentHeading>
       <div
         className="mt-[5px] w-full"
         style={{

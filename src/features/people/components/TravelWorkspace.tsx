@@ -1,10 +1,13 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
+import { FileText, IdCard, Plane, UserRound } from "lucide-react";
 
 import {
   WorkspaceAccentHeading,
   WorkspaceField,
+  WorkspaceFieldGrid,
+  type WorkspaceSectionTone,
 } from "@/components/adaptive-workspace";
 import {
   FieldRenderer,
@@ -25,25 +28,16 @@ import type { Person } from "@/features/people/types";
 const TRAVEL_WORKSPACE_SECTIONS: readonly {
   group: PersonWorkspaceGroupId;
   title: string;
+  icon: LucideIcon;
+  tone: WorkspaceSectionTone;
 }[] = [
-  { group: "travel.identity", title: "Identity" },
-  { group: "travel.documents", title: "Travel Documents" },
-  { group: "travel.air", title: "Air Travel" },
-  { group: "travel.government", title: "Government ID" },
+  { group: "travel.identity", title: "Identity", icon: UserRound, tone: "module" },
+  { group: "travel.documents", title: "Travel Documents", icon: FileText, tone: "warning" },
+  { group: "travel.air", title: "Air Travel", icon: Plane, tone: "warning" },
+  { group: "travel.government", title: "Government ID", icon: IdCard, tone: "neutral" },
 ];
 
 const TRAVEL_FIELDS = getPersonFieldKeysForWorkspace("travel");
-
-function PersonalInfoFieldGrid({ children }: { children: ReactNode }) {
-  return (
-    <dl
-      className="mt-[5px] grid gap-x-6 gap-y-[7px]"
-      style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}
-    >
-      {children}
-    </dl>
-  );
-}
 
 export default function TravelWorkspace({
   person,
@@ -67,8 +61,10 @@ export default function TravelWorkspace({
           if (fields.length === 0) return null;
           const block = (
             <section aria-label={section.title}>
-              <WorkspaceAccentHeading>{section.title}</WorkspaceAccentHeading>
-              <PersonalInfoFieldGrid>
+              <WorkspaceAccentHeading icon={section.icon} tone={section.tone}>
+                {section.title}
+              </WorkspaceAccentHeading>
+              <WorkspaceFieldGrid columns={3} className="mt-[5px]">
                 {fields.map((field) => (
                   <WorkspaceField key={field.key} label={field.label}>
                     <FieldRenderer
@@ -80,7 +76,7 @@ export default function TravelWorkspace({
                     />
                   </WorkspaceField>
                 ))}
-              </PersonalInfoFieldGrid>
+              </WorkspaceFieldGrid>
             </section>
           );
           return index === 0 ? (

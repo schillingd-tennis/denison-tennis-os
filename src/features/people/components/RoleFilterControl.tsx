@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
   type ComponentType,
+  type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
 
@@ -165,10 +166,16 @@ function FacetMenu({
 export default function RoleFilterControl({
   value,
   onChange,
+  renderMobileTrigger,
 }: {
   /** Active facet ids; empty means All Team members. */
   value: readonly string[];
   onChange: (activeIds: string[]) => void;
+  /**
+   * When provided, the Filters button is passed to the caller (e.g. to sit
+   * beside View in `MobileDirectoryControls`). Sheet + desktop chips stay here.
+   */
+  renderMobileTrigger?: (button: ReactNode) => ReactNode;
 }) {
   const allActive = peopleFiltersAreAll(value);
   const activeCount = value.length;
@@ -211,25 +218,31 @@ export default function RoleFilterControl({
     };
   }, [openCategory]);
 
+  const filtersButton = (
+    <MobileFiltersButton
+      active={!allActive}
+      activeCount={activeCount}
+      expanded={mobileOpen}
+      onClick={() => setMobileOpen(true)}
+    />
+  );
+
   return (
     <>
-      <div className="md:hidden">
-        <MobileFiltersButton
-          active={!allActive}
-          activeCount={activeCount}
-          expanded={mobileOpen}
-          onClick={() => setMobileOpen(true)}
-        />
-        <MobileFilterSheet
-          open={mobileOpen}
-          onClose={() => setMobileOpen(false)}
-          facets={mobileFacets}
-          value={value}
-          onSelect={handleSelect}
-          clearId={PEOPLE_FILTER_CLEAR_ID}
-          isAllActive={allActive}
-        />
-      </div>
+      {renderMobileTrigger ? (
+        renderMobileTrigger(filtersButton)
+      ) : (
+        <div className="md:hidden">{filtersButton}</div>
+      )}
+      <MobileFilterSheet
+        open={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+        facets={mobileFacets}
+        value={value}
+        onSelect={handleSelect}
+        clearId={PEOPLE_FILTER_CLEAR_ID}
+        isAllActive={allActive}
+      />
 
       <div
         ref={rootRef}

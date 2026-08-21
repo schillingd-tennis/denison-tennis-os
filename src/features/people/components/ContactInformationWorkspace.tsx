@@ -1,10 +1,14 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
+import { Home, IdCard, Mail, NotebookPen, Phone, UserRound } from "lucide-react";
 
 import {
   WorkspaceAccentHeading,
   WorkspaceField,
+  WorkspaceFieldGrid,
+  type WorkspaceSectionTone,
 } from "@/components/adaptive-workspace";
 import { InlineEditCell, type InlineCommitReason } from "@/components/inline-edit";
 import { typeRole } from "@/components/typography";
@@ -25,20 +29,22 @@ import PersonStatusRoleStrip from "./PersonStatusRoleStrip";
 /**
  * Personal Info adaptive body (formerly Contact Information).
  * Section chrome matches Recruit Personal Info; field membership from catalog
- * for Family. Player/Coach layout is explicit (Identity / Contact / Notes).
+ * for Family. Player/Coach/Family order: Identity → Status & Role → remaining.
  */
 
 const FAMILY_CONTACT_SECTIONS: readonly {
   group: PersonWorkspaceGroupId;
   title: string;
   layout?: "grid" | "homeAddress" | "notes";
+  icon?: LucideIcon;
+  tone?: WorkspaceSectionTone;
 }[] = [
-  { group: "contact.identity", title: "Identity", layout: "grid" },
-  { group: "contact.homeAddress", title: "Home Address", layout: "homeAddress" },
-  { group: "contact.email", title: "Email", layout: "grid" },
-  { group: "contact.phone", title: "Phone", layout: "grid" },
-  { group: "contact.preferences", title: "Preferences", layout: "grid" },
-  { group: "contact.notes", title: "Notes", layout: "notes" },
+  { group: "contact.identity", title: "Identity", layout: "grid", icon: UserRound, tone: "module" },
+  { group: "contact.homeAddress", title: "Home Address", layout: "homeAddress", icon: Home, tone: "neutral" },
+  { group: "contact.email", title: "Email", layout: "grid", icon: Mail, tone: "module" },
+  { group: "contact.phone", title: "Phone", layout: "grid", icon: Phone, tone: "neutral" },
+  { group: "contact.preferences", title: "Preferences", layout: "grid", icon: IdCard, tone: "neutral" },
+  { group: "contact.notes", title: "Notes", layout: "notes", icon: NotebookPen, tone: "knowledge" },
 ];
 
 const PLAYER_PERSONAL_INFO_FIELDS = [
@@ -65,14 +71,7 @@ function isFamilyContactFieldVisible(field: PersonFieldDefinition): boolean {
 }
 
 function PersonalInfoFieldGrid({ children }: { children: ReactNode }) {
-  return (
-    <dl
-      className="mt-[5px] grid gap-x-6 gap-y-[7px]"
-      style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}
-    >
-      {children}
-    </dl>
-  );
+  return <WorkspaceFieldGrid columns={3} className="mt-[5px]">{children}</WorkspaceFieldGrid>;
 }
 
 function PersonalInfoField({
@@ -116,20 +115,22 @@ function PersonalInfoField({
 function ContactInfoSection() {
   return (
     <section aria-label="Contact Info">
-      <WorkspaceAccentHeading>Contact Info</WorkspaceAccentHeading>
+      <WorkspaceAccentHeading icon={Mail} tone="module">
+        Contact Info
+      </WorkspaceAccentHeading>
       <div className="mt-[5px] flex flex-col gap-y-[7px]">
-        <dl className="grid grid-cols-1 gap-x-6 gap-y-[7px] md:grid-cols-3">
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-[7px] sm:grid-cols-3">
           <PersonalInfoField field="personalEmail" />
           <PersonalInfoField field="denisonEmail" />
           <PersonalInfoField field="cellPhone" label="Phone" />
         </dl>
-        <dl className="grid grid-cols-1 gap-x-6 gap-y-[7px] md:grid-cols-[minmax(0,45fr)_minmax(0,25fr)_minmax(0,15fr)_minmax(0,15fr)]">
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-[7px] sm:grid-cols-2 md:grid-cols-[minmax(0,45fr)_minmax(0,25fr)_minmax(0,15fr)_minmax(0,15fr)]">
           <PersonalInfoField field="addressLine1" label="Address" />
           <PersonalInfoField field="city" label="City" />
           <PersonalInfoField field="state" label="State" />
           <PersonalInfoField field="zipCode" label="Zip" />
         </dl>
-        <dl className="grid grid-cols-1 gap-x-6 md:grid-cols-3">
+        <dl className="grid grid-cols-1 gap-x-6 sm:grid-cols-3">
           <PersonalInfoField field="country" label="Country" />
         </dl>
       </div>
@@ -140,18 +141,17 @@ function ContactInfoSection() {
 function HomeAddressSection() {
   return (
     <section aria-label="Home Address">
-      <WorkspaceAccentHeading>Home Address</WorkspaceAccentHeading>
-      <dl
-        className="mt-[5px] grid gap-x-6 gap-y-[7px]"
-        style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}
-      >
-        <div className="min-w-0" style={{ gridColumn: "1 / -1" }}>
+      <WorkspaceAccentHeading icon={Home} tone="neutral">
+        Home Address
+      </WorkspaceAccentHeading>
+      <WorkspaceFieldGrid columns={3} className="mt-[5px]">
+        <div className="min-w-0 sm:col-span-full">
           <PersonalInfoField field="addressLine1" label="Address" />
         </div>
         <PersonalInfoField field="city" label="City" />
         <PersonalInfoField field="state" label="State" />
         <PersonalInfoField field="zipCode" label="Zip" />
-      </dl>
+      </WorkspaceFieldGrid>
     </section>
   );
 }
@@ -262,25 +262,27 @@ function PlayerCoachPersonalInfo({
       fields={PLAYER_PERSONAL_INFO_FIELDS}
     >
       <div className="space-y-[14px]">
-        <PersonStatusRoleStrip />
+        <section aria-label="Identity">
+          <WorkspaceAccentHeading icon={UserRound} tone="module">
+            Identity
+          </WorkspaceAccentHeading>
+          <PersonalInfoFieldGrid>
+            <PersonalInfoField field="firstName" />
+            <PersonalInfoField field="lastName" />
+            <PersonalInfoField field="denisonId" label="DU #" revealValue />
+            <PersonalInfoField field="highSchool" />
+            <HsClassField
+              personId={person.id}
+              value={hsClassYear}
+              onChange={setHsClassYear}
+              runSave={runSave}
+            />
+            <PersonalInfoField field="dateOfBirth" />
+          </PersonalInfoFieldGrid>
+        </section>
 
         <div className="border-t border-border/50 pt-[14px]">
-          <section aria-label="Identity">
-            <WorkspaceAccentHeading>Identity</WorkspaceAccentHeading>
-            <PersonalInfoFieldGrid>
-              <PersonalInfoField field="firstName" />
-              <PersonalInfoField field="lastName" />
-              <PersonalInfoField field="denisonId" label="DU #" revealValue />
-              <PersonalInfoField field="highSchool" />
-              <HsClassField
-                personId={person.id}
-                value={hsClassYear}
-                onChange={setHsClassYear}
-                runSave={runSave}
-              />
-              <PersonalInfoField field="dateOfBirth" />
-            </PersonalInfoFieldGrid>
-          </section>
+          <PersonStatusRoleStrip />
         </div>
 
         <div className="border-t border-border/50 pt-[14px]">
@@ -289,7 +291,9 @@ function PlayerCoachPersonalInfo({
 
         <div className="border-t border-border/50 pt-[14px]">
           <section aria-label="Notes">
-            <WorkspaceAccentHeading>Notes</WorkspaceAccentHeading>
+            <WorkspaceAccentHeading icon={NotebookPen} tone="knowledge">
+              Notes
+            </WorkspaceAccentHeading>
             <div className="mt-[5px]">
               <WorkspaceField label="Player Notes">
                 <FieldRenderer
@@ -367,29 +371,53 @@ function FamilyPersonalInfo({
       fields={fields}
     >
       <div className="space-y-[14px]">
-        <PersonStatusRoleStrip />
+        {FAMILY_CONTACT_SECTIONS.filter((section) => section.group === "contact.identity").map(
+          (section) => {
+            const sectionFields = getPersonFieldsForWorkspace("contact", section.group).filter(
+              isFamilyContactFieldVisible,
+            );
+            if (sectionFields.length === 0) return null;
 
-        {FAMILY_CONTACT_SECTIONS.map((section) => {
-          const sectionFields = getPersonFieldsForWorkspace("contact", section.group).filter(
-            isFamilyContactFieldVisible,
-          );
-          if (section.layout !== "homeAddress" && sectionFields.length === 0) return null;
+            return (
+              <section key={section.group} aria-label={section.title}>
+                <WorkspaceAccentHeading icon={section.icon} tone={section.tone}>
+                  {section.title}
+                </WorkspaceAccentHeading>
+                {renderSectionBody(sectionFields, section.layout ?? "grid")}
+              </section>
+            );
+          },
+        )}
 
-          const block = (
-            <section aria-label={section.title}>
-              {section.layout === "homeAddress" ? null : (
-                <WorkspaceAccentHeading>{section.title}</WorkspaceAccentHeading>
-              )}
-              {renderSectionBody(sectionFields, section.layout ?? "grid")}
-            </section>
-          );
+        <div className="border-t border-border/50 pt-[14px]">
+          <PersonStatusRoleStrip />
+        </div>
 
-          return (
-            <div key={section.group} className="border-t border-border/50 pt-[14px]">
-              {block}
-            </div>
-          );
-        })}
+        {FAMILY_CONTACT_SECTIONS.filter((section) => section.group !== "contact.identity").map(
+          (section) => {
+            const sectionFields = getPersonFieldsForWorkspace("contact", section.group).filter(
+              isFamilyContactFieldVisible,
+            );
+            if (section.layout !== "homeAddress" && sectionFields.length === 0) return null;
+
+            const block = (
+              <section aria-label={section.title}>
+                {section.layout === "homeAddress" ? null : (
+                  <WorkspaceAccentHeading icon={section.icon} tone={section.tone}>
+                    {section.title}
+                  </WorkspaceAccentHeading>
+                )}
+                {renderSectionBody(sectionFields, section.layout ?? "grid")}
+              </section>
+            );
+
+            return (
+              <div key={section.group} className="border-t border-border/50 pt-[14px]">
+                {block}
+              </div>
+            );
+          },
+        )}
       </div>
     </PersonFieldSession>
   );

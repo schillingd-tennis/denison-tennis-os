@@ -164,11 +164,10 @@ export default function AcademicsWorkspace({
     >
       <div className="min-w-0 space-y-[14px]">
         <section aria-label="Academic Summary" className="min-w-0">
-          <WorkspaceAccentHeading>Academic Summary</WorkspaceAccentHeading>
-          <div
-            className="mt-[5px] grid w-full min-w-0 items-stretch gap-3"
-            style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}
-          >
+          <WorkspaceAccentHeading icon={GraduationCap} tone="success">
+            Academic Summary
+          </WorkspaceAccentHeading>
+          <div className="mt-[5px] grid w-full min-w-0 grid-cols-1 items-stretch gap-3 sm:grid-cols-3">
             <AcademicTextTile field="major" label="Major" tone="crimson" icon={GraduationCap} />
             <AcademicTextTile field="minor" label="Minor" tone="info" icon={BookOpen} />
             <AcademicGpaTile />
@@ -177,8 +176,10 @@ export default function AcademicsWorkspace({
 
         <div className="border-t border-border/50 pt-[14px]">
           <section aria-label="GPA Performance">
-            <WorkspaceAccentHeading>GPA Performance</WorkspaceAccentHeading>
-            <dl className="mt-[5px] grid grid-cols-2 gap-x-6 gap-y-[7px]">
+            <WorkspaceAccentHeading icon={Percent} tone="success">
+              GPA Performance
+            </WorkspaceAccentHeading>
+            <dl className="mt-[5px] grid grid-cols-1 gap-x-6 gap-y-[7px] sm:grid-cols-2">
               <WorkspaceField label="GPA Last Semester">
                 <FieldRenderer
                   field="gpaLastSemester"

@@ -122,7 +122,7 @@ export default function MobileViewSelector<T extends string>({
         aria-haspopup="dialog"
         aria-label={ariaLabel}
         onClick={() => setOpen(true)}
-        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-control bg-surface px-3.5 text-[13px] font-medium text-text-secondary ring-1 ring-black/[0.06] sm:w-auto"
+        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-control bg-surface px-3.5 text-[13px] font-medium text-text-secondary ring-1 ring-black/[0.06]"
       >
         {CurrentIcon ? (
           <CurrentIcon className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden />

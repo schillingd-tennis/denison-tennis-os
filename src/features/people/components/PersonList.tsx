@@ -17,6 +17,7 @@ import {
   copyFoundSet,
   publishFoundSet,
 } from "@/components/found-set";
+import { DesktopOnlyActions } from "@/components/mobile-dashboard";
 import {
   InlineEditCell,
   formatPhoneDisplay,
@@ -469,7 +470,7 @@ export default function PersonList({
   }
 
   const actionButtons = (
-    <>
+    <DesktopOnlyActions>
       <QuickActionButton
         onAction={sortedItems.length > 0 ? handleCopyFoundSet : undefined}
         icon={ClipboardList}
@@ -484,7 +485,7 @@ export default function PersonList({
         tone="neutral"
         unavailableTitle="No records in found set"
       />
-    </>
+    </DesktopOnlyActions>
   );
 
   function sortDir(key: PersonColumnKey) {

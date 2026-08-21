@@ -1,20 +1,30 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 import {
   Activity,
   ArrowUpRight,
+  BookOpen,
+  Flag,
   Gauge,
   Globe,
+  GraduationCap,
   Link2,
   ListOrdered,
+  MapPin,
   Medal,
+  MessageSquare,
+  NotebookPen,
+  Scale,
+  ScrollText,
   Star,
+  UserRound,
   type LucideIcon,
 } from "lucide-react";
 
 import {
+  WorkspaceAccentHeading,
   WorkspaceField,
   WorkspaceFieldGrid,
   WorkspaceMutedNote,
@@ -41,6 +51,7 @@ import { getHometown, parseHometown } from "@/features/people/utils";
 import { EMPTY_VALUE, formatUtr, formatWtn } from "@/lib/formatting";
 
 import type { RecruitAnalyticsResult } from "../analytics/types";
+import type { RecruitNoteQuickEntryRequest } from "../noteQuickEntry";
 import type { RecruitProfile } from "../types";
 import { BlueChipRatingIcon, RecruitStarRatingDisplay } from "./RecruitRatingDisplay";
 import RecruitStatusBadge from "./RecruitStatusBadge";
@@ -156,18 +167,6 @@ function RecruitClassYearBadgeField() {
   );
 }
 
-function PersonalInfoSectionHeading({ children }: { children: string }) {
-  return (
-    <h3 className="flex items-center gap-1.5 text-[13px] font-semibold leading-none text-[var(--module-accent)]">
-      <span
-        className="inline-block h-4 w-[3px] shrink-0 rounded-[1px] bg-[var(--module-accent)]"
-        aria-hidden
-      />
-      {children}
-    </h3>
-  );
-}
-
 function CoachNotesCallout() {
   const session = useRecruitProfileFieldSession();
   const notes = session.profile.notes ?? "";
@@ -257,18 +256,6 @@ type RankingsTileTone = keyof typeof rankingsTileTone;
 
 const rankingsInlineInputClass =
   "w-full min-w-0 rounded-control border border-[var(--module-accent)] bg-surface px-2 py-1.5 text-sm text-text-primary shadow-sm focus:outline-none focus:ring-1 focus:ring-[var(--module-accent)]";
-
-function RankingsSectionHeading({ children }: { children: string }) {
-  return (
-    <h3 className="flex items-center gap-1.5 text-[13px] font-semibold leading-none text-[var(--module-accent)]">
-      <span
-        className="inline-block h-4 w-[3px] shrink-0 rounded-[1px] bg-[var(--module-accent)]"
-        aria-hidden
-      />
-      {children}
-    </h3>
-  );
-}
 
 function RankingsSummaryTile({
   label,
@@ -674,70 +661,76 @@ function RankingsMatchesRow() {
 export function RecruitingPersonalInfoWorkspace() {
   return (
     <div className="min-w-0 space-y-[14px]">
-      <section aria-label="Recruiting status">
-        <PersonalInfoSectionHeading>Recruiting status</PersonalInfoSectionHeading>
-        <WorkspaceStatusStrip>
-          <WorkspaceStatusStripItem label="Class year">
-            <RecruitClassYearBadgeField />
-          </WorkspaceStatusStripItem>
-          <WorkspaceStatusStripItem label="Pipeline">
-            <RecruitLookupBadgeField
-              field="pipelineStageId"
-              label="Pipeline"
-              tone={pipelineTone}
-            />
-          </WorkspaceStatusStripItem>
-          <WorkspaceStatusStripItem label="Priority">
-            <RecruitLookupBadgeField
-              field="priorityId"
-              label="Priority"
-              tone={priorityTone}
-            />
-          </WorkspaceStatusStripItem>
-          <WorkspaceStatusStripItem label="Interest">
-            <RecruitLookupBadgeField
-              field="interestId"
-              label="Interest"
-              tone={interestTone}
-            />
-          </WorkspaceStatusStripItem>
-          <WorkspaceStatusStripItem label="Getability">
-            <RecruitLookupBadgeField
-              field="getabilityId"
-              label="Getability"
-              tone={getabilityTone}
-            />
-          </WorkspaceStatusStripItem>
-          <WorkspaceStatusStripItem label="Outcome">
-            <RecruitLookupBadgeField
-              field="outcomeId"
-              label="Outcome"
-              tone={outcomeTone}
-            />
-          </WorkspaceStatusStripItem>
-        </WorkspaceStatusStrip>
+      <section aria-label="Identity">
+        <WorkspaceAccentHeading icon={UserRound} tone="module">
+          Identity
+        </WorkspaceAccentHeading>
+        <WorkspaceFieldGrid columns={3} className="mt-[5px]">
+          <WorkspaceField label="First name">
+            <RecruitPersonField field="firstName" />
+          </WorkspaceField>
+          <WorkspaceField label="Last name">
+            <RecruitPersonField field="lastName" />
+          </WorkspaceField>
+          <WorkspaceField label="Preferred name">
+            <RecruitPersonField field="preferredName" />
+          </WorkspaceField>
+        </WorkspaceFieldGrid>
       </section>
 
       <div className="border-t border-border/50 pt-[14px]">
-        <section aria-label="Identity">
-          <PersonalInfoSectionHeading>Identity</PersonalInfoSectionHeading>
-          <WorkspaceFieldGrid columns={3} className="mt-[5px]">
-            <WorkspaceField label="First name">
-              <RecruitPersonField field="firstName" />
-            </WorkspaceField>
-            <WorkspaceField label="Last name">
-              <RecruitPersonField field="lastName" />
-            </WorkspaceField>
-            <WorkspaceField label="Preferred name">
-              <RecruitPersonField field="preferredName" />
-            </WorkspaceField>
-          </WorkspaceFieldGrid>
+        <section aria-label="Recruiting status">
+          <WorkspaceAccentHeading icon={Flag} tone="module">
+            Recruiting status
+          </WorkspaceAccentHeading>
+          <WorkspaceStatusStrip>
+            <WorkspaceStatusStripItem label="Class year">
+              <RecruitClassYearBadgeField />
+            </WorkspaceStatusStripItem>
+            <WorkspaceStatusStripItem label="Pipeline">
+              <RecruitLookupBadgeField
+                field="pipelineStageId"
+                label="Pipeline"
+                tone={pipelineTone}
+              />
+            </WorkspaceStatusStripItem>
+            <WorkspaceStatusStripItem label="Priority">
+              <RecruitLookupBadgeField
+                field="priorityId"
+                label="Priority"
+                tone={priorityTone}
+              />
+            </WorkspaceStatusStripItem>
+            <WorkspaceStatusStripItem label="Interest">
+              <RecruitLookupBadgeField
+                field="interestId"
+                label="Interest"
+                tone={interestTone}
+              />
+            </WorkspaceStatusStripItem>
+            <WorkspaceStatusStripItem label="Getability">
+              <RecruitLookupBadgeField
+                field="getabilityId"
+                label="Getability"
+                tone={getabilityTone}
+              />
+            </WorkspaceStatusStripItem>
+            <WorkspaceStatusStripItem label="Outcome">
+              <RecruitLookupBadgeField
+                field="outcomeId"
+                label="Outcome"
+                tone={outcomeTone}
+              />
+            </WorkspaceStatusStripItem>
+          </WorkspaceStatusStrip>
         </section>
       </div>
 
       <div className="border-t border-border/50 pt-[14px]">
         <section aria-label="Contact & location">
-          <PersonalInfoSectionHeading>Contact & location</PersonalInfoSectionHeading>
+          <WorkspaceAccentHeading icon={MapPin} tone="neutral">
+            Contact & location
+          </WorkspaceAccentHeading>
           <WorkspaceFieldGrid columns={3} className="mt-[5px]">
             <WorkspaceField label="Hometown">
               <RecruitHometownField />
@@ -763,7 +756,9 @@ export function RecruitingPersonalInfoWorkspace() {
 
       <div className="border-t border-border/50 pt-4">
         <section aria-label="Coach notes">
-          <PersonalInfoSectionHeading>Coach notes</PersonalInfoSectionHeading>
+          <WorkspaceAccentHeading icon={NotebookPen} tone="knowledge">
+            Coach notes
+          </WorkspaceAccentHeading>
           <div className="mt-1.5 min-w-0">
             <CoachNotesCallout />
           </div>
@@ -787,23 +782,13 @@ function RecruitPrereadBadgeField() {
   );
 }
 
-function AcademicsSectionHeading({ children }: { children: string }) {
-  return (
-    <h3 className="flex items-center gap-1.5 text-[13px] font-semibold leading-none text-[var(--module-accent)]">
-      <span
-        className="inline-block h-4 w-[3px] shrink-0 rounded-[1px] bg-[var(--module-accent)]"
-        aria-hidden
-      />
-      {children}
-    </h3>
-  );
-}
-
 export function RecruitingAcademicsWorkspace() {
   return (
     <div className="min-w-0 space-y-[14px]">
       <section aria-label="Academic Profile">
-        <AcademicsSectionHeading>Academic Profile</AcademicsSectionHeading>
+        <WorkspaceAccentHeading icon={GraduationCap} tone="success">
+          Academic Profile
+        </WorkspaceAccentHeading>
         <WorkspaceFieldGrid columns={4} className="mt-[5px]">
           <WorkspaceField label="High School">
             <RecruitPersonField field="highSchool" />
@@ -822,7 +807,9 @@ export function RecruitingAcademicsWorkspace() {
 
       <div className="border-t border-border/50 pt-[14px]">
         <section aria-label="Academic Interests">
-          <AcademicsSectionHeading>Academic Interests</AcademicsSectionHeading>
+          <WorkspaceAccentHeading icon={BookOpen} tone="success">
+            Academic Interests
+          </WorkspaceAccentHeading>
           <div className="mt-[5px] min-w-0 space-y-[7px]">
             <WorkspaceSplit
               left={
@@ -864,7 +851,9 @@ export function RecruitingAcademicsWorkspace() {
 
       <div className="border-t border-border/50 pt-[14px]">
         <section aria-label="Admissions / Pre-Read">
-          <AcademicsSectionHeading>Admissions / Pre-Read</AcademicsSectionHeading>
+          <WorkspaceAccentHeading icon={Scale} tone="success">
+            Admissions / Pre-Read
+          </WorkspaceAccentHeading>
           <WorkspaceFieldGrid columns={2} className="mt-[5px]">
             <WorkspaceField label="Pre Read">
               <RecruitPrereadBadgeField />
@@ -892,13 +881,17 @@ export function RecruitingRankingsWorkspace({
   return (
     <div className="min-w-0 space-y-[14px]">
       <section aria-label="Ranking summary">
-        <RankingsSectionHeading>Ranking summary</RankingsSectionHeading>
+        <WorkspaceAccentHeading icon={ListOrdered} tone="warning">
+          Ranking summary
+        </WorkspaceAccentHeading>
         <RankingsSummaryCards />
       </section>
 
       <div className="border-t border-border/50 pt-[14px]">
         <section aria-label="Profiles & Links">
-          <RankingsSectionHeading>Profiles & Links</RankingsSectionHeading>
+          <WorkspaceAccentHeading icon={Link2} tone="warning">
+            Profiles & Links
+          </WorkspaceAccentHeading>
           <div className="mt-[5px] min-w-0 divide-y divide-border/50">
             <RankingsExternalLinkRow
               field="utrUrl"
@@ -919,7 +912,9 @@ export function RecruitingRankingsWorkspace({
 
       <div className="border-t border-border/50 pt-[14px]">
         <section aria-label="Activity">
-          <RankingsSectionHeading>Activity</RankingsSectionHeading>
+          <WorkspaceAccentHeading icon={Activity} tone="warning">
+            Activity
+          </WorkspaceAccentHeading>
           <div className="mt-[5px] min-w-0">
             <RankingsMatchesRow />
           </div>
@@ -928,7 +923,9 @@ export function RecruitingRankingsWorkspace({
 
       <div className="border-t border-border/50 pt-[14px]">
         <section aria-label="Coach evaluation">
-          <RankingsSectionHeading>Coach evaluation</RankingsSectionHeading>
+          <WorkspaceAccentHeading icon={Medal} tone="warning">
+            Coach evaluation
+          </WorkspaceAccentHeading>
           <WorkspaceFieldGrid columns={2} className="mt-[5px]">
             <WorkspaceField label="Coach Rank">
               <div className="flex items-center gap-2">
@@ -961,10 +958,20 @@ export function RecruitingAnalyticsWorkspace({
 
   if (!inCurrentCohort || !analytics) {
     return (
-      <WorkspaceMutedNote>
-        This Person has a historical Recruit Profile. Current recruiting analytics only score
-        People with role Recruit. The profile is preserved and is not part of the live WTN pool.
-      </WorkspaceMutedNote>
+      <div className="min-w-0 space-y-[14px]">
+        <section aria-label="Analytics">
+          <WorkspaceAccentHeading icon={Gauge} tone="info">
+            Analytics
+          </WorkspaceAccentHeading>
+          <div className="mt-[5px]">
+            <WorkspaceMutedNote>
+              This Person has a historical Recruit Profile. Current recruiting analytics only score
+              People with role Recruit. The profile is preserved and is not part of the live WTN
+              pool.
+            </WorkspaceMutedNote>
+          </div>
+        </section>
+      </div>
     );
   }
 
@@ -993,13 +1000,17 @@ export function RecruitingAnalyticsWorkspace({
   return (
     <div className="min-w-0 space-y-[14px]">
       <section aria-label="Ranking summary">
-        <RankingsSectionHeading>Ranking summary</RankingsSectionHeading>
+        <WorkspaceAccentHeading icon={ListOrdered} tone="warning">
+          Ranking summary
+        </WorkspaceAccentHeading>
         <RankingsSummaryCards />
       </section>
 
       <div className="border-t border-border/50 pt-[14px]">
         <section aria-label="Metrics">
-          <RankingsSectionHeading>Metrics</RankingsSectionHeading>
+          <WorkspaceAccentHeading icon={Gauge} tone="info">
+            Metrics
+          </WorkspaceAccentHeading>
           <div className="mt-[5px] grid min-w-0 gap-3 lg:grid-cols-4">
             <div className="min-w-0 rounded-control border border-[var(--module-accent)]/12 bg-[var(--module-tint)]/30 px-3 py-2.5">
               <div className="flex flex-col gap-2.5">
@@ -1059,18 +1070,6 @@ export function RecruitingAnalyticsWorkspace({
   );
 }
 
-function NotesSectionHeading({ children }: { children: string }) {
-  return (
-    <h3 className="flex items-center gap-1.5 text-[13px] font-semibold leading-none text-[var(--module-accent)]">
-      <span
-        className="inline-block h-4 w-[3px] shrink-0 rounded-[1px] bg-[var(--module-accent)]"
-        aria-hidden
-      />
-      {children}
-    </h3>
-  );
-}
-
 function NotesBlock({ children }: { children: ReactNode }) {
   return (
     <div className="rounded-control border-l-[3px] border-knowledge/30 bg-knowledge/[0.045] px-3.5 py-2.5">
@@ -1082,17 +1081,49 @@ function NotesBlock({ children }: { children: ReactNode }) {
 function NotesSection({
   title,
   field,
+  icon: Icon,
+  quickEntryRequest,
+  onQuickEntryHandled,
 }: {
   title: string;
   field: "notes" | "gameNotes" | "keyPitchAngle";
+  icon: LucideIcon;
+  quickEntryRequest?: RecruitNoteQuickEntryRequest | null;
+  onQuickEntryHandled?: () => void;
 }) {
   const session = useRecruitProfileFieldSession();
   const value = session.profile[field] ?? "";
   const empty = !value.trim();
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const { startEdit } = session;
+  const quickEntryActive = quickEntryRequest?.field === field;
+  const requestId = quickEntryRequest?.requestId;
+
+  useEffect(() => {
+    if (!quickEntryActive || requestId === undefined) return;
+
+    startEdit(field);
+
+    const section = sectionRef.current;
+    // Wait for Adaptive Workspace enter animation + InlineEditInput mount.
+    const timer = window.setTimeout(() => {
+      section?.scrollIntoView({ behavior: "smooth", block: "center" });
+      onQuickEntryHandled?.();
+    }, 180);
+
+    return () => window.clearTimeout(timer);
+  }, [field, onQuickEntryHandled, quickEntryActive, requestId, startEdit]);
 
   return (
-    <section aria-label={title} className="min-w-0">
-      <NotesSectionHeading>{title}</NotesSectionHeading>
+    <section
+      ref={sectionRef}
+      aria-label={title}
+      className="min-w-0 scroll-mt-28"
+      data-note-field={field}
+    >
+      <WorkspaceAccentHeading icon={Icon} tone="knowledge">
+        {title}
+      </WorkspaceAccentHeading>
       <div className="mt-[5px] min-w-0">
         <NotesBlock>
           <RecruitProfileField
@@ -1118,22 +1149,49 @@ function NotesSection({
   );
 }
 
-export function RecruitingNotesWorkspace() {
+export function RecruitingNotesWorkspace({
+  quickEntryRequest = null,
+  onQuickEntryHandled,
+}: {
+  quickEntryRequest?: RecruitNoteQuickEntryRequest | null;
+  onQuickEntryHandled?: () => void;
+} = {}) {
   return (
     <WorkspaceStack>
-      <NotesSection title="Coach notes" field="notes" />
-      <NotesSection title="Game notes" field="gameNotes" />
-      <NotesSection title="Key pitch angle" field="keyPitchAngle" />
+      <NotesSection
+        title="Coach notes"
+        field="notes"
+        icon={NotebookPen}
+        quickEntryRequest={quickEntryRequest}
+        onQuickEntryHandled={onQuickEntryHandled}
+      />
+      <NotesSection
+        title="Game notes"
+        field="gameNotes"
+        icon={ScrollText}
+        quickEntryRequest={quickEntryRequest}
+        onQuickEntryHandled={onQuickEntryHandled}
+      />
+      <NotesSection title="Key pitch angle" field="keyPitchAngle" icon={NotebookPen} />
     </WorkspaceStack>
   );
 }
 
 export function RecruitingCommunicationsWorkspace() {
   return (
-    <WorkspaceMutedNote>
-      No interaction history is available yet. Calls, texts, and follow-ups are not stored on
-      this record.
-    </WorkspaceMutedNote>
+    <div className="min-w-0 space-y-[14px]">
+      <section aria-label="Communications / Interactions">
+        <WorkspaceAccentHeading icon={MessageSquare} tone="research">
+          Communications / Interactions
+        </WorkspaceAccentHeading>
+        <div className="mt-[5px]">
+          <WorkspaceMutedNote>
+            No interaction history is available yet. Calls, texts, and follow-ups are not stored on
+            this record.
+          </WorkspaceMutedNote>
+        </div>
+      </section>
+    </div>
   );
 }
 
