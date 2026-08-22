@@ -18,6 +18,7 @@ import { usePersonFieldSession } from "@/features/field-engine";
 import PersonStatusLabel from "@/features/people/components/PersonStatusLabel";
 import type { Person } from "@/features/people/types";
 import {
+  getDisplayName,
   getFullDisplayName,
   getHometown,
   getInitials,
@@ -26,6 +27,7 @@ import {
 } from "@/features/people/utils";
 import { EMPTY_VALUE } from "@/lib/formatting";
 
+import { rankingProfileHref } from "../rankingProfileUrl";
 import { RecruitProfileField } from "./RecruitProfileFields";
 import { RecruitStarRatingDisplay } from "./RecruitRatingDisplay";
 
@@ -143,17 +145,25 @@ function MetricTile({
   value,
   icon: Icon,
   tone,
+  profileHref,
+  profileAriaLabel,
 }: {
   label: string;
   value: ReactNode;
   icon: LucideIcon;
   tone: TileTone;
+  /** Stored external ranking profile URL — icon is a link only when set. */
+  profileHref?: string;
+  profileAriaLabel?: string;
 }) {
   const empty =
     typeof value === "string"
       ? !value.trim() || value === EMPTY_VALUE || value === "No data"
       : false;
   const styles = tileTone[tone];
+  const wellClass = `inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${styles.well}`;
+  const icon = <Icon className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />;
+
   return (
     <div
       className={`flex min-w-0 items-center justify-between gap-2 rounded-control border px-3 py-2.5 ${styles.card}`}
@@ -171,11 +181,19 @@ function MetricTile({
           {label}
         </p>
       </div>
-      <span
-        className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${styles.well}`}
-      >
-        <Icon className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
-      </span>
+      {profileHref ? (
+        <a
+          href={profileHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={profileAriaLabel}
+          className={`${wellClass} cursor-pointer transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-[var(--module-accent)]/40 focus-visible:outline-none`}
+        >
+          {icon}
+        </a>
+      ) : (
+        <span className={`${wellClass} opacity-70`}>{icon}</span>
+      )}
     </div>
   );
 }
@@ -241,6 +259,7 @@ export function RecruitWorkspaceProfile({
   };
 }) {
   const fullName = getFullDisplayName(person);
+  const displayName = getDisplayName(person);
   const preferred =
     person.preferredName?.trim() &&
     person.preferredName.trim() !== person.firstName.trim()
@@ -332,9 +351,30 @@ export function RecruitWorkspaceProfile({
           className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6"
           aria-label="Recruit snapshot"
         >
-          <MetricTile label="UTR" value={metrics.utr} icon={Gauge} tone="crimson" />
-          <MetricTile label="WTN" value={metrics.wtn} icon={Activity} tone="info" />
-          <MetricTile label="TRN Rank" value={metrics.trnRank} icon={ListOrdered} tone="success" />
+          <MetricTile
+            label="UTR"
+            value={metrics.utr}
+            icon={Gauge}
+            tone="crimson"
+            profileHref={rankingProfileHref(person.utrUrl)}
+            profileAriaLabel={`Open ${displayName}'s UTR profile`}
+          />
+          <MetricTile
+            label="WTN"
+            value={metrics.wtn}
+            icon={Activity}
+            tone="info"
+            profileHref={rankingProfileHref(person.wtnUrl)}
+            profileAriaLabel={`Open ${displayName}'s WTN profile`}
+          />
+          <MetricTile
+            label="TRN Rank"
+            value={metrics.trnRank}
+            icon={ListOrdered}
+            tone="success"
+            profileHref={rankingProfileHref(person.trnUrl)}
+            profileAriaLabel={`Open ${displayName}'s TennisRecruiting.net profile`}
+          />
           <RecruitSummaryStarRatingMetricTile />
           <MetricTile label="Pipeline" value={metrics.pipeline} icon={GitBranch} tone="info" />
           <MetricTile label="Priority" value={metrics.priority} icon={Star} tone="research" />

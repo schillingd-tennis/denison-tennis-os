@@ -52,6 +52,7 @@ import { EMPTY_VALUE, formatUtr, formatWtn } from "@/lib/formatting";
 
 import type { RecruitAnalyticsResult } from "../analytics/types";
 import type { RecruitNoteQuickEntryRequest } from "../noteQuickEntry";
+import { rankingProfileHref } from "../rankingProfileUrl";
 import type { RecruitProfile } from "../types";
 import { BlueChipRatingIcon, RecruitStarRatingDisplay } from "./RecruitRatingDisplay";
 import RecruitStatusBadge from "./RecruitStatusBadge";
@@ -510,7 +511,7 @@ function RankingsExternalLinkRow({
   if (!def) return null;
 
   const raw = session.person[field];
-  const href = typeof raw === "string" && raw.trim() ? raw.trim() : "";
+  const href = rankingProfileHref(typeof raw === "string" ? raw : undefined) ?? "";
   const editing = session.isEditing(field);
   const displayUrl = href
     ? (() => {
@@ -552,7 +553,7 @@ function RankingsExternalLinkRow({
           <a
             href={href}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             className="inline-flex items-center gap-1 rounded-control border border-border/70 bg-surface px-2.5 py-1 text-xs font-medium text-text-primary transition-colors hover:bg-app-background"
           >
             Open Profile

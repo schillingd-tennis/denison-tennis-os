@@ -2,7 +2,6 @@
 
 import { formatPhoneDisplay } from "@/components/inline-edit/formatters";
 import { listPeople } from "@/features/people/repository";
-import { ROLE_KEYS } from "@/features/lookups/seed";
 import type { Person } from "@/features/people/types";
 import { personPaletteKeywords } from "@/features/people/personSearch";
 import {
@@ -13,14 +12,14 @@ import {
   getInitials,
   getPersonRoleBadges,
   getPersonRoleLabel,
-  hasRole,
+  searchObjectTypeForPerson,
 } from "@/features/people/utils";
 
 import type { PersonPreviewData, SearchObjectType } from "@/components/command-palette/types";
 
 export type PalettePersonItem = {
   id: string;
-  objectType: Extract<SearchObjectType, "people" | "coaches" | "staff">;
+  objectType: Extract<SearchObjectType, "people" | "coaches" | "staff" | "recruits">;
   displayName: string;
   fullName: string;
   roleLabel: string;
@@ -29,14 +28,6 @@ export type PalettePersonItem = {
   keywords: string[];
   preview: PersonPreviewData;
 };
-
-function objectTypeForPerson(
-  person: Person,
-): Extract<SearchObjectType, "people" | "coaches" | "staff"> {
-  if (hasRole(person, ROLE_KEYS.coach)) return "coaches";
-  if (hasRole(person, ROLE_KEYS.staff)) return "staff";
-  return "people";
-}
 
 function roleLabels(person: Person): string[] {
   return getPersonRoleBadges(person).map((badge) => badge.label);
@@ -54,7 +45,7 @@ export async function listPalettePeople(): Promise<PalettePersonItem[]> {
     const email = person.denisonEmail ?? person.personalEmail;
     const phone = formatPhoneDisplay(person.cellPhone);
     const roles = roleLabels(person);
-    const objectType = objectTypeForPerson(person);
+    const objectType = searchObjectTypeForPerson(person);
 
     return {
       id: person.id,

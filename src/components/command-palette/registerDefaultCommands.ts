@@ -21,7 +21,7 @@ import type { CommandContext, CommandDefinition } from "@/components/command-pal
 import { primaryNavItems, settingsNavItem } from "@/components/nav-items";
 import {
   PLAYERS_COACHES_ROUTE,
-  playersCoachesPersonPath,
+  resolvePersonWorkspacePath,
 } from "@/lib/module-routes";
 import {
   forceRefreshFromProviderAction,
@@ -298,7 +298,12 @@ export function registerDefaultCommands(): void {
           icon: Users,
           preview: person.preview,
           perform: ({ navigate, close }: CommandContext) => {
-            navigate(playersCoachesPersonPath(person.id));
+            navigate(
+              resolvePersonWorkspacePath(person.id, {
+                objectType: person.objectType,
+                roleKey: person.roles[0],
+              }),
+            );
             close();
           },
         }));

@@ -10,6 +10,10 @@ import MobileWorkspaceSheet, {
 /**
  * OS-wide mobile Adaptive Workspace selector.
  * Desktop keeps the BP-036D split rail; this is `md:hidden` only.
+ *
+ * Visual language: a quiet module-tinted navigation control — noticeable
+ * as interactive, not a primary CTA. Tokens follow the active module
+ * (Recruiting: Denison red/pink; Team: team blue).
  */
 export default function MobileWorkspaceSelector({
   items,
@@ -38,18 +42,36 @@ export default function MobileWorkspaceSelector({
         aria-haspopup="dialog"
         aria-label={ariaLabel}
         onClick={() => setOpen(true)}
-        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-control bg-surface px-3.5 text-[13px] font-medium text-text-secondary ring-1 ring-black/[0.06]"
+        className="inline-flex h-11 w-full items-center gap-2.5 rounded-control bg-[var(--module-tint)] px-3 text-left ring-1 ring-[var(--module-border)]"
       >
         {CurrentIcon ? (
-          <CurrentIcon className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden />
+          <CurrentIcon
+            className="h-4 w-4 shrink-0 text-[var(--module-accent)]"
+            strokeWidth={1.75}
+            aria-hidden
+          />
         ) : (
-          <LayoutPanelLeft className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden />
+          <LayoutPanelLeft
+            className="h-4 w-4 shrink-0 text-[var(--module-accent)]"
+            strokeWidth={1.75}
+            aria-hidden
+          />
         )}
-        <span className="min-w-0 truncate">
-          {triggerLabel}
-          {current ? `: ${current.title}` : ""}
+        <span className="min-w-0 flex-1 truncate">
+          <span className="text-[12px] font-medium text-text-secondary">{triggerLabel}: </span>
+          <span className="text-[13px] font-semibold text-text-primary">
+            {current?.title ?? "Select"}
+          </span>
         </span>
-        <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-50" strokeWidth={1.75} aria-hidden />
+        <span
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--module-accent)]/10"
+          aria-hidden
+        >
+          <ChevronDown
+            className="h-3.5 w-3.5 text-[var(--module-accent)]"
+            strokeWidth={2}
+          />
+        </span>
       </button>
       <MobileWorkspaceSheet
         open={open}

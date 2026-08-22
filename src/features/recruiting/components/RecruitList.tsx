@@ -6,9 +6,7 @@ import { useEffect, useMemo, type ReactNode } from "react";
 import type { SortState } from "@/components/data-table/types";
 import { useSortableData } from "@/components/data-table/useSortableData";
 import { publishFoundSet } from "@/components/found-set";
-import { SaveIndicator } from "@/components/inline-edit";
 import PlayerAvatar from "@/components/PlayerAvatar";
-import { StickyProductivityActionBar } from "@/components/productivity";
 import ViewChrome, { ViewContextHeader } from "@/components/view-chrome";
 import {
   TEAM_DIRECTORY_EMPTY,
@@ -16,6 +14,7 @@ import {
   TEAM_DIRECTORY_NAME,
 } from "@/features/people/directoryHierarchy";
 import { getDisplayName, getInitials } from "@/features/people/utils";
+import { EMPTY_VALUE, formatUtr } from "@/lib/formatting";
 
 import { availableRecruitClassYears } from "../coachRank/classYear";
 import type { RecruitDirectoryRow } from "../directory";
@@ -49,6 +48,49 @@ const LIST_SORT_STORAGE_KEY = "denison-tennis-os:recruiting-list-sort";
 const columns = RECRUITING_DIRECTORY_TABLE_COLUMNS;
 const COLUMN_IDS = columns.map((column) => column.id);
 const BOARD = RECRUITING_TABLE;
+
+/** Compact UTR / TRN block — mobile List rows only. */
+function MobileListTennisMetrics({
+  utr,
+  trnRank,
+}: {
+  utr: number | undefined;
+  trnRank: number | undefined;
+}) {
+  const utrDisplay = formatUtr(utr);
+  const trnDisplay = trnRank !== undefined ? `#${trnRank}` : EMPTY_VALUE;
+  const utrEmpty = utrDisplay === EMPTY_VALUE;
+  const trnEmpty = trnDisplay === EMPTY_VALUE;
+
+  return (
+    <div className="grid shrink-0 grid-cols-2 gap-x-3 text-right">
+      <div className="min-w-0">
+        <p
+          className={`text-[15px] leading-none font-semibold tabular-nums ${
+            utrEmpty ? "text-text-secondary/45" : "text-[var(--module-accent)]"
+          }`}
+        >
+          {utrDisplay}
+        </p>
+        <p className="mt-1 text-[9px] font-medium tracking-[0.06em] text-text-secondary uppercase">
+          UTR
+        </p>
+      </div>
+      <div className="min-w-0">
+        <p
+          className={`text-[15px] leading-none font-semibold tabular-nums ${
+            trnEmpty ? "text-text-secondary/45" : "text-success"
+          }`}
+        >
+          {trnDisplay}
+        </p>
+        <p className="mt-1 text-[9px] font-medium tracking-[0.06em] text-text-secondary uppercase">
+          TRN
+        </p>
+      </div>
+    </div>
+  );
+}
 
 /** Map list column ids ↔ shared table sort keys used by header buttons. */
 type ListHeaderSortKey = RecruitDirectoryColumnId;
@@ -171,21 +213,6 @@ export default function RecruitList({
       saveStatus={saveStatus}
       saveError={saveError}
       actionButtons={actionButtons}
-      mobileActionBar={
-        <StickyProductivityActionBar
-          className="!py-2 border-black/[0.04] bg-transparent md:hidden"
-          leading={
-            foundSetFeedback ? (
-              <span className="text-xs font-medium text-success" role="status">
-                {foundSetFeedback}
-              </span>
-            ) : (
-              <SaveIndicator status={saveStatus} error={saveError} />
-            )
-          }
-          actions={actionButtons}
-        />
-      }
     >
       <RecruitingListTableShell
         mobile={
@@ -196,7 +223,7 @@ export default function RecruitList({
                 <li key={row.person.id}>
                   <Link
                     href={`/recruiting/${row.person.id}`}
-                    className="flex items-center gap-3 px-4 py-4 transition-colors duration-150 active:bg-app-background"
+                    className="flex min-w-0 items-center gap-3 px-4 py-3.5 transition-colors duration-150 active:bg-app-background"
                   >
                     <PlayerAvatar
                       photoUrl={row.person.photoUrl}
@@ -210,7 +237,7 @@ export default function RecruitList({
                         ) : null}
                         <span className="min-w-0 truncate">{displayName}</span>
                       </p>
-                      <p className={`mt-0.5 ${TEAM_DIRECTORY_META}`}>
+                      <p className={`mt-0.5 truncate ${TEAM_DIRECTORY_META}`}>
                         {recruitListSummaryLine(row) || TEAM_DIRECTORY_EMPTY}
                       </p>
                       <div className="mt-1">
@@ -220,6 +247,10 @@ export default function RecruitList({
                         />
                       </div>
                     </div>
+                    <MobileListTennisMetrics
+                      utr={row.person.utr}
+                      trnRank={row.person.trnRank}
+                    />
                   </Link>
                 </li>
               );

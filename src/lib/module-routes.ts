@@ -1,5 +1,10 @@
+import { ROLE_KEYS } from "@/features/lookups/seed";
+
 /** Team module — player/coach directory and workspaces. */
 export const PLAYERS_COACHES_ROUTE = "/players-coaches";
+
+/** Recruiting module — recruit directory and workspaces. */
+export const RECRUITING_ROUTE = "/recruiting";
 
 /** Legacy Team overview shell (no longer in primary nav). */
 export const TEAM_ROUTE = "/team";
@@ -9,7 +14,7 @@ export const TOP_LEVEL_MODULE_PATHS = [
   "/",
   PLAYERS_COACHES_ROUTE,
   TEAM_ROUTE,
-  "/recruiting",
+  RECRUITING_ROUTE,
   "/operations",
   "/fundraising",
   "/research",
@@ -32,4 +37,23 @@ export function isTopLevelModulePage(pathname: string): boolean {
 
 export function playersCoachesPersonPath(personId: string): string {
   return `${PLAYERS_COACHES_ROUTE}/${personId}`;
+}
+
+export function recruitingPersonPath(personId: string): string {
+  return `${RECRUITING_ROUTE}/${personId}`;
+}
+
+/**
+ * Shared Command-K / search destination for a Person.
+ * Recruits open Recruiting workspace; Team players, coaches, staff, and
+ * other person types keep the Team person workspace.
+ */
+export function resolvePersonWorkspacePath(
+  personId: string,
+  hint?: { roleKey?: string; objectType?: string },
+): string {
+  if (hint?.objectType === "recruits" || hint?.roleKey === ROLE_KEYS.recruit) {
+    return recruitingPersonPath(personId);
+  }
+  return playersCoachesPersonPath(personId);
 }

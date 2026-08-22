@@ -195,6 +195,19 @@ export function hasRole(person: Person, roleKey: string): boolean {
   return person.role.key === roleKey;
 }
 
+/**
+ * Command-K / favorites object type for a Person.
+ * Recruits are a distinct type so search can route to Recruiting workspace.
+ */
+export function searchObjectTypeForPerson(
+  person: Person,
+): "recruits" | "coaches" | "staff" | "people" {
+  if (hasRole(person, ROLE_KEYS.recruit)) return "recruits";
+  if (hasRole(person, ROLE_KEYS.coach)) return "coaches";
+  if (hasRole(person, ROLE_KEYS.staff)) return "staff";
+  return "people";
+}
+
 /** True when the person holds the coach role. */
 export function isCoach(person: Person): boolean {
   return hasRole(person, ROLE_KEYS.coach);

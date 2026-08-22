@@ -8,7 +8,7 @@ import {
   Users,
 } from "lucide-react";
 
-import { playersCoachesPersonPath } from "@/lib/module-routes";
+import { resolvePersonWorkspacePath } from "@/lib/module-routes";
 import type { CommandDefinition, SearchObjectType } from "@/components/command-palette/types";
 
 import type { PinnedFavorite } from "./types";
@@ -67,7 +67,9 @@ export function hrefFromCommand(command: CommandDefinition): string | undefined 
     return path.length > 0 ? path : "/";
   }
   if (command.id.startsWith("person:")) {
-    return playersCoachesPersonPath(command.id.slice("person:".length));
+    return resolvePersonWorkspacePath(command.id.slice("person:".length), {
+      objectType: command.objectType,
+    });
   }
   return undefined;
 }
@@ -84,12 +86,19 @@ export function favoriteFromCommand(command: CommandDefinition): PinnedFavorite 
 }
 
 export function hrefFromFavorite(favorite: PinnedFavorite): string | undefined {
+  if (favorite.objectType === "recruits") {
+    return resolvePersonWorkspacePath(favorite.objectId, {
+      objectType: favorite.objectType,
+    });
+  }
   if (favorite.href) return favorite.href;
   switch (favorite.objectType) {
     case "people":
     case "coaches":
     case "staff":
-      return playersCoachesPersonPath(favorite.objectId);
+      return resolvePersonWorkspacePath(favorite.objectId, {
+        objectType: favorite.objectType,
+      });
     case "pages":
       return favorite.objectId || "/";
     default:

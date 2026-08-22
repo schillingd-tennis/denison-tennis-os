@@ -79,6 +79,7 @@ import {
   hasRole,
   isCoachDirectoryPerson,
   isFamilyPerson,
+  searchObjectTypeForPerson,
 } from "@/features/people/utils";
 import { formatDate, parseDisplayDate } from "@/lib/formatting";
 import { PLAYERS_COACHES_ROUTE, playersCoachesPersonPath } from "@/lib/module-routes";
@@ -99,9 +100,7 @@ import {
 } from "./PersonWorkspaceChrome";
 
 function favoriteObjectTypeForPerson(person: Person): SearchObjectType {
-  if (hasRole(person, ROLE_KEYS.coach)) return "coaches";
-  if (hasRole(person, ROLE_KEYS.staff)) return "staff";
-  return "people";
+  return searchObjectTypeForPerson(person);
 }
 
 function playerStatusDotTone(playerStatus: PlayerStatus | undefined): StatusDotTone {

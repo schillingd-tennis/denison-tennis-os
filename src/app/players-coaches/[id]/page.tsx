@@ -1,11 +1,12 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { ROLE_KEYS } from "@/features/lookups/seed";
 import PersonWorkspace from "@/features/people/components/PersonWorkspace";
 import { listRelationshipsByRelatedPerson } from "@/features/people/personRelationships";
 import { getPersonById } from "@/features/people/repository";
-import { hasRole, isFamilyPerson } from "@/features/people/utils";
+import { hasRole, isFamilyPerson, isTeamDirectoryPerson } from "@/features/people/utils";
 import { getRecruitProfileByPersonId } from "@/features/recruiting";
+import { recruitingPersonPath } from "@/lib/module-routes";
 
 /**
  * Player/coach workspace route. Directory state (search / filters / sort / view)
@@ -22,6 +23,10 @@ export default async function PlayersCoachesWorkspacePage(
 
   if (!person) {
     notFound();
+  }
+
+  if (hasRole(person, ROLE_KEYS.recruit) && !isTeamDirectoryPerson(person)) {
+    redirect(recruitingPersonPath(id));
   }
 
   const recruitProfile = isFamilyPerson(person)
