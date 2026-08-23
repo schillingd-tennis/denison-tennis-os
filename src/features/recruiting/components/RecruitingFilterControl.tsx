@@ -22,6 +22,7 @@ import {
 import { createPortal } from "react-dom";
 
 import {
+  DesktopDirectoryControls,
   MobileFilterSheet,
   MobileFiltersButton,
   type MobileFilterFacet,
@@ -273,10 +274,9 @@ export default function RecruitingFilterControl({
         isAllActive={allActive}
       />
 
-      <div
+      <DesktopDirectoryControls
         ref={rootRef}
         data-recruiting-filter-toolbar="true"
-        className="hidden min-w-0 flex-wrap items-center gap-2 md:flex"
       >
         <button
           type="button"
@@ -306,7 +306,7 @@ export default function RecruitingFilterControl({
             }
           />
         ))}
-      </div>
+      </DesktopDirectoryControls>
     </>
   );
 }

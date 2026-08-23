@@ -39,27 +39,50 @@ function developerToolsEnabled(): boolean {
 }
 
 function pageCommands(): CommandDefinition[] {
-  const fromNav: CommandDefinition[] = primaryNavItems.map((item) => ({
-    id: `page:${item.href}`,
-    objectType: "pages",
-    label: `Go to ${item.label}`,
-    subtitle: item.href === "/" ? "Home" : item.href,
-    keywords:
-      item.href === PLAYERS_COACHES_ROUTE
-        ? ["team", "players", "coaches", "directory", "roster"]
-        : [item.label, item.href.replace(/^\//, "")],
-    icon: item.icon,
-    preview: {
-      kind: "generic",
-      title: item.label,
-      body: `Navigate to ${item.label}.`,
-      lines: [{ label: "Path", value: item.href }],
-    },
-    perform: ({ navigate, close }: CommandContext) => {
-      navigate(item.href);
-      close();
-    },
-  }));
+  const fromNav: CommandDefinition[] = primaryNavItems.flatMap((item) => {
+    const parent: CommandDefinition = {
+      id: `page:${item.href}`,
+      objectType: "pages",
+      label: `Go to ${item.label}`,
+      subtitle: item.href === "/" ? "Home" : item.href,
+      keywords:
+        item.href === PLAYERS_COACHES_ROUTE
+          ? ["team", "players", "coaches", "directory", "roster"]
+          : [item.label, item.href.replace(/^\//, "")],
+      icon: item.icon,
+      preview: {
+        kind: "generic",
+        title: item.label,
+        body: `Navigate to ${item.label}.`,
+        lines: [{ label: "Path", value: item.href }],
+      },
+      perform: ({ navigate, close }: CommandContext) => {
+        navigate(item.href);
+        close();
+      },
+    };
+    const children = (item.children ?? [])
+      .filter((child) => child.href !== item.href)
+      .map((child) => ({
+        id: `page:${child.href}`,
+        objectType: "pages" as const,
+        label: `Go to ${item.label} · ${child.label}`,
+        subtitle: child.href,
+        keywords: [item.label, child.label, child.href.replace(/^\//, "")],
+        icon: child.icon ?? item.icon,
+        preview: {
+          kind: "generic" as const,
+          title: child.label,
+          body: `Navigate to ${item.label} · ${child.label}.`,
+          lines: [{ label: "Path", value: child.href }],
+        },
+        perform: ({ navigate, close }: CommandContext) => {
+          navigate(child.href);
+          close();
+        },
+      }));
+    return [parent, ...children];
+  });
 
   return [
     ...fromNav,

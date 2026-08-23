@@ -6,6 +6,13 @@ export const PLAYERS_COACHES_ROUTE = "/players-coaches";
 /** Recruiting module — recruit directory and workspaces. */
 export const RECRUITING_ROUTE = "/recruiting";
 
+/** Recruiting directory / recruit list. */
+export const RECRUITING_LIST_ROUTE = "/recruiting/list";
+
+/** Recruiting tournaments. */
+export const RECRUITING_TOURNAMENTS_ROUTE = "/recruiting/tournaments";
+export const RECRUITING_INTERACTIONS_ROUTE = "/recruiting/interactions";
+
 /** Legacy Team overview shell (no longer in primary nav). */
 export const TEAM_ROUTE = "/team";
 
@@ -15,6 +22,9 @@ export const TOP_LEVEL_MODULE_PATHS = [
   PLAYERS_COACHES_ROUTE,
   TEAM_ROUTE,
   RECRUITING_ROUTE,
+  RECRUITING_LIST_ROUTE,
+  RECRUITING_TOURNAMENTS_ROUTE,
+  RECRUITING_INTERACTIONS_ROUTE,
   "/operations",
   "/fundraising",
   "/research",
@@ -41,6 +51,10 @@ export function playersCoachesPersonPath(personId: string): string {
 
 export function recruitingPersonPath(personId: string): string {
   return `${RECRUITING_ROUTE}/${personId}`;
+}
+
+export function recruitingTournamentPath(tournamentId: string): string {
+  return `${RECRUITING_TOURNAMENTS_ROUTE}/${tournamentId}`;
 }
 
 /**

@@ -1,0 +1,26 @@
+---
+description: Locked Recruit card + Adaptive Workspace field-grid contracts. Read before changing Recruit header, AW fields, directory Search/Views, or Recruiting nav geometry.
+alwaysApply: true
+---
+
+# UI Guardrails
+
+Full contract: `docs/UI-GUARDRAILS.md`.
+
+Do not change these in feature work (Interactions, Tournaments, Dashboard, data-model):
+
+- Recruit card desktop split: identity left, Academic Interests + Schools of Interest upper-right
+- Adaptive Workspace field grids: `WorkspaceFieldGrid` + `[data-aw-field-grid]` in `globals.css`
+- Directory Search / Views row
+- Recruiting nested nav geometry
+
+Shared shell owns geometry. Feature modules own content only.
+
+## RECRUIT CARD UI — LOCKED
+
+- Recruit summary placement is protected.
+- Academic Interests placement is protected.
+- Schools of Interest remains on the right.
+- Desktop AWs use the canonical compact multi-column grid (`WorkspaceFieldGrid` + `[data-aw-field-grid]`).
+- Do not modify these layouts during unrelated feature work.
+- Layout changes require an explicit user request.

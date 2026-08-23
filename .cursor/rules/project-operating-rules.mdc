@@ -29,3 +29,6 @@ Unless a milestone explicitly overrides these:
    layout and does not explicitly authorize UI work, stop and ask first.
 
 7. **No Commit** — Do not commit until explicitly approved.
+
+8. **In-place Record Editing** — Record workspaces do not use a separate Edit
+   button or edit mode. User-managed fields are directly editable in place.

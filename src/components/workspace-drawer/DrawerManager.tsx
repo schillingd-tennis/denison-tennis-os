@@ -42,8 +42,10 @@ export function DrawerManagerProvider({ children }: { children: ReactNode }) {
   const [descriptor, setDescriptor] = useState<DrawerDescriptor | null>(null);
   const [visible, setVisible] = useState(false);
   const closingRef = useRef(false);
+  const descriptorRef = useRef<DrawerDescriptor | null>(null);
   const exitTimerRef = useRef<number | null>(null);
   const onCloseRef = useRef<(() => void) | undefined>(undefined);
+  descriptorRef.current = descriptor;
 
   const clearExitTimer = useCallback(() => {
     if (exitTimerRef.current != null) {
@@ -67,7 +69,7 @@ export function DrawerManagerProvider({ children }: { children: ReactNode }) {
   );
 
   const closeDrawer = useCallback(() => {
-    if (!descriptor || closingRef.current) return;
+    if (!descriptorRef.current || closingRef.current) return;
     closingRef.current = true;
     setVisible(false);
     clearExitTimer();
@@ -79,7 +81,7 @@ export function DrawerManagerProvider({ children }: { children: ReactNode }) {
       exitTimerRef.current = null;
       finished?.();
     }, EXIT_MS);
-  }, [clearExitTimer, descriptor]);
+  }, [clearExitTimer]);
 
   const replaceDrawer = useCallback(
     (next: DrawerDescriptor) => {

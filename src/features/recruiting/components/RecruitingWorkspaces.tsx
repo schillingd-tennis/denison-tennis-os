@@ -5,7 +5,6 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "re
 import {
   Activity,
   ArrowUpRight,
-  BookOpen,
   Flag,
   Gauge,
   Globe,
@@ -29,7 +28,6 @@ import {
   WorkspaceFieldGrid,
   WorkspaceMutedNote,
   WorkspaceReadOnlyValue,
-  WorkspaceSplit,
   WorkspaceStack,
   WorkspaceStatusStrip,
   WorkspaceStatusStripItem,
@@ -49,6 +47,8 @@ import { getPersonField } from "@/features/people/fieldCatalog";
 import type { Person } from "@/features/people/types";
 import { getHometown, parseHometown } from "@/features/people/utils";
 import { EMPTY_VALUE, formatUtr, formatWtn } from "@/lib/formatting";
+import InteractionList from "@/features/interactions/components/InteractionList";
+import type { RecruitInteraction } from "@/features/interactions/types";
 
 import type { RecruitAnalyticsResult } from "../analytics/types";
 import type { RecruitNoteQuickEntryRequest } from "../noteQuickEntry";
@@ -807,55 +807,11 @@ export function RecruitingAcademicsWorkspace() {
       </section>
 
       <div className="border-t border-border/50 pt-[14px]">
-        <section aria-label="Academic Interests">
-          <WorkspaceAccentHeading icon={BookOpen} tone="success">
-            Academic Interests
-          </WorkspaceAccentHeading>
-          <div className="mt-[5px] min-w-0 space-y-[7px]">
-            <WorkspaceSplit
-              left={
-                <WorkspaceField label="Academic interests">
-                  <RecruitProfileField
-                    field="academicInterests"
-                    label="Academic interests"
-                    type="textarea"
-                    align="left"
-                    rows={3}
-                    className="[&>span]:whitespace-pre-wrap [&>span]:break-words"
-                  />
-                </WorkspaceField>
-              }
-              right={
-                <WorkspaceField label="Schools of interest">
-                  <RecruitProfileField
-                    field="schoolsOfInterest"
-                    label="Schools of interest"
-                    type="textarea"
-                    align="left"
-                    rows={4}
-                    className="[&>span]:whitespace-pre-wrap [&>span]:break-words"
-                  />
-                </WorkspaceField>
-              }
-            />
-            <WorkspaceField label="School Chosen">
-              <RecruitProfileField
-                field="schoolChosen"
-                label="School Chosen"
-                type="text"
-                align="left"
-              />
-            </WorkspaceField>
-          </div>
-        </section>
-      </div>
-
-      <div className="border-t border-border/50 pt-[14px]">
         <section aria-label="Admissions / Pre-Read">
           <WorkspaceAccentHeading icon={Scale} tone="success">
             Admissions / Pre-Read
           </WorkspaceAccentHeading>
-          <WorkspaceFieldGrid columns={2} className="mt-[5px]">
+          <WorkspaceFieldGrid columns={3} className="mt-[5px]">
             <WorkspaceField label="Pre Read">
               <RecruitPrereadBadgeField />
             </WorkspaceField>
@@ -864,6 +820,14 @@ export function RecruitingAcademicsWorkspace() {
                 field="prereadScholarshipAmount"
                 label="Pre Read $"
                 type="number"
+                align="left"
+              />
+            </WorkspaceField>
+            <WorkspaceField label="School Chosen">
+              <RecruitProfileField
+                field="schoolChosen"
+                label="School Chosen"
+                type="text"
                 align="left"
               />
             </WorkspaceField>
@@ -1178,19 +1142,22 @@ export function RecruitingNotesWorkspace({
   );
 }
 
-export function RecruitingCommunicationsWorkspace() {
+export function RecruitingCommunicationsWorkspace({
+  interactions,
+  onOpen,
+  onDelete,
+}: {
+  interactions: RecruitInteraction[];
+  onOpen?: (interaction: RecruitInteraction) => void;
+  onDelete?: (interaction: RecruitInteraction) => void;
+}) {
   return (
     <div className="min-w-0 space-y-[14px]">
-      <section aria-label="Communications / Interactions">
-        <WorkspaceAccentHeading icon={MessageSquare} tone="research">
-          Communications / Interactions
+      <section aria-label="Interactions">
+        <WorkspaceAccentHeading icon={MessageSquare} tone="module">
+          Interactions
         </WorkspaceAccentHeading>
-        <div className="mt-[5px]">
-          <WorkspaceMutedNote>
-            No interaction history is available yet. Calls, texts, and follow-ups are not stored on
-            this record.
-          </WorkspaceMutedNote>
-        </div>
+        <div className="mt-3"><InteractionList interactions={interactions} showRecruit={false} onOpen={onOpen} onDelete={onDelete} /></div>
       </section>
     </div>
   );

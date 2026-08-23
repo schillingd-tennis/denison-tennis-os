@@ -9,6 +9,7 @@ import EmptyState from "@/components/EmptyState";
 import ModulePageShell from "@/components/ModulePageShell";
 import {
   DesktopOnlySummary,
+  DirectoryToolbar,
   MobileDirectoryControls,
   MobileDirectorySearchRegion,
   MobileViewSelector,
@@ -167,42 +168,42 @@ export default function RecruitingDirectory({
 
       <MobileDirectorySearchRegion
         toolbar={
-          <div className="flex flex-col gap-2.5">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center">
-              <div className="min-w-0 flex-1 md:max-w-xl">
-                <SearchInput
-                  value={query}
-                  onChange={writeStoredRecruitingDirectoryQuery}
-                  placeholder="Search by name, school, or recruiting fields"
-                  aria-label="Search recruits"
-                />
-              </div>
-              <div className="hidden md:ml-auto md:block">
-                <ViewToggle
-                  value={view}
-                  onChange={writeStoredRecruitingDirectoryView}
-                  options={RECRUITING_VIEW_OPTIONS}
-                  ariaLabel="Change recruiting view"
-                />
-              </div>
-            </div>
-            <RecruitingFilterControl
-              value={activeFilterIds}
-              onChange={handleFilterChange}
-              definitions={definitions}
-              renderMobileTrigger={(filtersButton) => (
-                <MobileDirectoryControls>
-                  <MobileViewSelector
-                    value={view}
-                    onChange={writeStoredRecruitingDirectoryView}
-                    options={RECRUITING_VIEW_OPTIONS}
-                    ariaLabel="Change recruiting view"
-                  />
-                  {filtersButton}
-                </MobileDirectoryControls>
-              )}
-            />
-          </div>
+          <DirectoryToolbar
+            search={
+              <SearchInput
+                value={query}
+                onChange={writeStoredRecruitingDirectoryQuery}
+                placeholder="Search by name, school, or recruiting fields"
+                aria-label="Search recruits"
+              />
+            }
+            views={
+              <ViewToggle
+                value={view}
+                onChange={writeStoredRecruitingDirectoryView}
+                options={RECRUITING_VIEW_OPTIONS}
+                ariaLabel="Change recruiting view"
+              />
+            }
+            filters={
+              <RecruitingFilterControl
+                value={activeFilterIds}
+                onChange={handleFilterChange}
+                definitions={definitions}
+                renderMobileTrigger={(filtersButton) => (
+                  <MobileDirectoryControls>
+                    <MobileViewSelector
+                      value={view}
+                      onChange={writeStoredRecruitingDirectoryView}
+                      options={RECRUITING_VIEW_OPTIONS}
+                      ariaLabel="Change recruiting view"
+                    />
+                    {filtersButton}
+                  </MobileDirectoryControls>
+                )}
+              />
+            }
+          />
         }
       >
         {/*

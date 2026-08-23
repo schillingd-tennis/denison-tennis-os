@@ -7,25 +7,16 @@ import { EMPTY_VALUE } from "@/lib/formatting";
 /**
  * Adaptive Workspace content primitives.
  *
- * Shared presentation for the right-hand workspace pane: quiet sentence-case
- * labels, value-forward type, compact grids, and whitespace — not cards —
- * between groups. Recruiting is the first consumer; Players/Coaches should
- * reuse these rather than inventing a second content language.
+ * Field-grid geometry is a locked OS contract (`docs/UI-GUARDRAILS.md`).
+ * Column counts live on `data-aw-field-grid` and are applied in unlayered
+ * CSS (`src/app/globals.css`). Do not restore density with Tailwind `sm:` /
+ * `md:` `grid-template-columns` utilities — they often fail to generate here
+ * and collapse every AW back to one field per row.
  *
- * Mobile (< sm): stacked field grids where needed.
- * Compact tablet / desktop (sm+): multi-column field density.
- * Full desktop (md+): preserve established dense layouts (incl. 4-col).
- *
- * Section headings use one OS-wide shaded bar on mobile and desktop
- * (`WorkspaceSectionHeader` / `WorkspaceAccentHeading`).
+ * Feature modules supply field content. They must not redefine grid geometry.
  */
 
-/** Responsive column templates for `WorkspaceFieldGrid` / `WorkspaceFieldGroup`. */
-const fieldGridColumns: Record<2 | 3 | 4, string> = {
-  2: "sm:[grid-template-columns:repeat(2,minmax(0,1fr))]",
-  3: "sm:[grid-template-columns:repeat(3,minmax(0,1fr))]",
-  4: "sm:[grid-template-columns:repeat(2,minmax(0,1fr))] md:[grid-template-columns:repeat(4,minmax(0,1fr))]",
-};
+type FieldGridColumns = 2 | 3 | 4;
 
 /** Soft tint families for workspace section header bars (never loud / saturated). */
 export type WorkspaceSectionTone =
@@ -209,42 +200,45 @@ export function WorkspaceFieldGroup({
   tone?: WorkspaceSectionTone;
   children: ReactNode;
 }) {
-  const grid =
-    columns === 1
-      ? ""
-      : columns === 4
-        ? fieldGridColumns[4]
-        : columns === 3
-          ? fieldGridColumns[3]
-          : fieldGridColumns[2];
-
   return (
     <section aria-label={title} className="min-w-0">
       {title ? <WorkspaceSectionHeader label={title} icon={icon} tone={tone} /> : null}
-      <dl className={`${title ? "mt-2" : ""} grid grid-cols-1 gap-x-6 gap-y-2.5 ${grid}`}>
-        {children}
-      </dl>
+      {columns === 1 ? (
+        <dl className={`${title ? "mt-2" : ""} grid grid-cols-1 gap-x-6 gap-y-2.5`}>{children}</dl>
+      ) : (
+        <dl
+          data-aw-field-grid={columns}
+          className={`${title ? "mt-2" : ""}`}
+        >
+          {children}
+        </dl>
+      )}
     </section>
   );
 }
 
 /**
- * Field definition list.
- * Base: 1 column. `sm+`: requested columns (4-col uses 2 at `sm`, 4 at `md+`).
+ * LOCKED RECRUIT UI CONTRACT
+ * Do not modify Recruit summary placement, Schools of Interest,
+ * Academic Interests, or Adaptive Workspace grid/layout unless the
+ * user explicitly requests a Recruit Card/AW layout change.
+ * See RecruitingWorkspaceLayout.guardrail.test.ts.
+ *
+ * Geometry is owned by `[data-aw-field-grid]` in `globals.css`.
+ * `columns` is the desktop target (3 or 4). CSS collapses toward 1 on mobile.
+ * Pass `span` on `WorkspaceField` for notes / long text.
  */
 export function WorkspaceFieldGrid({
   columns = 3,
   className,
   children,
 }: {
-  columns?: 2 | 3 | 4;
+  columns?: FieldGridColumns;
   className?: string;
   children: ReactNode;
 }) {
   return (
-    <dl
-      className={`grid grid-cols-1 gap-x-6 gap-y-[7px] ${fieldGridColumns[columns]} ${className ?? ""}`}
-    >
+    <dl data-aw-field-grid={columns} className={className}>
       {children}
     </dl>
   );
@@ -261,7 +255,7 @@ export function WorkspaceField({
   span?: boolean;
 }) {
   return (
-    <div className={`min-w-0 ${span ? "sm:col-span-full" : ""}`}>
+    <div className="min-w-0" data-aw-field-span={span ? "full" : undefined}>
       <dt className={typeRole.workspaceFieldLabel}>{label}</dt>
       <dd className="mt-1 min-w-0 break-words [overflow-wrap:anywhere]">{children}</dd>
     </div>

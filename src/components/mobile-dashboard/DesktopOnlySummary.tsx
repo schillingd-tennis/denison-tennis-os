@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
 
 /**
- * OS mobile dashboard pattern: hide large KPI / summary card sections below
- * `md` so search, filters, views, and content lead. Desktop (`md+`) unchanged.
+ * Hide large KPI / summary card rows below `md`. Desktop (`md+`) is the
+ * default (`block`); mobile uses `max-md:hidden`.
  *
- * Wrap module directory KPI rows — do not stop computing the underlying data.
+ * Do not use `hidden md:block` — if `md:block` is not generated, the section
+ * stays `display: none` on desktop.
  */
 export default function DesktopOnlySummary({ children }: { children: ReactNode }) {
-  return <div className="hidden md:block">{children}</div>;
+  return <div className="max-md:hidden">{children}</div>;
 }

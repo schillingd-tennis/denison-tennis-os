@@ -202,13 +202,21 @@ function SummaryField({
   label,
   children,
   className,
+  "data-recruit-summary-academic-interests": academicInterestsLock,
+  "data-recruit-summary-schools": schoolsLock,
 }: {
   label: string;
   children: ReactNode;
   className?: string;
+  "data-recruit-summary-academic-interests"?: string;
+  "data-recruit-summary-schools"?: string;
 }) {
   return (
-    <div className={`min-w-0 ${className ?? ""}`}>
+    <div
+      className={`min-w-0 ${className ?? ""}`}
+      data-recruit-summary-academic-interests={academicInterestsLock}
+      data-recruit-summary-schools={schoolsLock}
+    >
       <p className={typeRole.workspaceFieldLabel}>{label}</p>
       <div className="mt-1 min-w-0">{children}</div>
     </div>
@@ -273,16 +281,21 @@ export function RecruitWorkspaceProfile({
     >
       <div className="flex flex-col gap-4">
         {/*
-          Single field tree (no duplicated editors).
-          Mobile (< md): 1-col stack, top divider on academic.
-          Desktop (md+): exact original max-content | 1fr split (via CSS var,
-          same pattern as WorkspaceSplit — not an approximated utility set).
+          LOCKED RECRUIT UI CONTRACT
+          Do not modify Recruit summary placement, Schools of Interest,
+          Academic Interests, or Adaptive Workspace grid/layout unless the
+          user explicitly requests a Recruit Card/AW layout change.
+          See RecruitingWorkspaceLayout.guardrail.test.ts.
+
+          Desktop-first two-column split lives in unlayered CSS
+          ([data-recruit-summary-split] in globals.css). Do not use
+          `grid-cols-1` / `flex-col` + `md:` column overrides here.
         */}
-        <div
-          className="grid w-full min-w-0 grid-cols-1 gap-4 md:gap-x-8 md:gap-y-0 md:[grid-template-columns:var(--recruit-profile-cols)]"
-          style={{ ["--recruit-profile-cols" as string]: "max-content minmax(0, 1fr)" }}
-        >
-          <div className="flex w-full items-start gap-3.5 md:w-max" style={{ maxWidth: 360 }}>
+        <div data-recruit-summary-split="" className="w-full min-w-0">
+          <div
+            data-recruit-summary-identity=""
+            className="flex items-start gap-3.5"
+          >
             <PlayerAvatar
               photoUrl={person.photoUrl}
               initials={getInitials(person)}
@@ -319,10 +332,11 @@ export function RecruitWorkspaceProfile({
           </div>
 
           <div
-            className="min-w-0 border-t border-border pt-3 md:border-t-0 md:border-l md:pl-8 md:pt-0"
+            data-recruit-summary-academic=""
+            className="min-w-0"
             aria-label="Academic summary"
           >
-            <SummaryField label="Academic interests">
+            <SummaryField data-recruit-summary-academic-interests="" label="Academic interests">
               <RecruitProfileField
                 field="academicInterests"
                 label="Academic interests"
@@ -333,7 +347,11 @@ export function RecruitWorkspaceProfile({
                 className="[&>span]:line-clamp-2 [&>span]:break-words [&>span]:break-normal [&>span]:hyphens-none [&>span]:whitespace-normal md:[&>span]:break-normal"
               />
             </SummaryField>
-            <SummaryField label="Schools of interest" className="mt-2.5">
+            <SummaryField
+              data-recruit-summary-schools=""
+              label="Schools of interest"
+              className="mt-2.5"
+            >
               <RecruitProfileField
                 field="schoolsOfInterest"
                 label="Schools of interest"

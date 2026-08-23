@@ -97,14 +97,16 @@ Shared package: `src/components/mobile-dashboard`
 
 | Piece | Role |
 |---|---|
+| `DirectoryToolbar` | Canonical Search / Views / Filters geometry. Desktop (`md+`): Search left (`flex-1 min-w-0`), Views right (`shrink-0`) on one row; Filters next row, full width. Mobile: Search stacks; Views hidden here (`MobileDirectoryControls`). |
 | `DesktopOnlySummary` | Wraps KPI / summary card sections; `hidden` below `md`, visible at `md+`. Data still computed. |
 | `DesktopOnlyActions` | Hides Copy / Export found-set circular actions below `md`; `md:contents` so they stay in desktop action clusters. |
+| `DesktopDirectoryControls` | Desktop filter-chip cluster; `flex` by default, `max-md:hidden`. |
 | `MobileDirectoryControls` | One row: View + Filters side-by-side (`grid-cols-2`), `md:hidden`. |
 | `MobileDirectorySearchRegion` | Wraps search/toolbar + results. On focus + keyboard: results scroll inside the visible visual viewport above the keyboard. Desktop unchanged. |
 | `MobileFilterSheet` + `MobileFiltersButton` | Single Filters control + bottom sheet. Modules supply facets; selection logic stays in-module. |
 | `MobileViewSelector` | Bottom-sheet view picker. Desktop keeps `ViewToggle`. |
 
-**Migrated:** Team (`PeopleDirectory` / `RoleFilterControl`), Recruiting (`RecruitingDirectory` / `RecruitingFilterControl`).  
+**Migrated:** Team (`PeopleDirectory` / `RoleFilterControl`), Recruiting (`RecruitingDirectory` / `RecruitingFilterControl`), Tournaments (`TournamentsDashboard` / `TournamentFilterControl`).  
 **Future:** Operations, Fundraising, Research, Knowledge when they gain directory KPIs / multi-view / faceted filters — reuse this package; do not fork Recruiting-specific mobile chrome.
 
 ### Mobile Adaptive Workspace (below `md`)
@@ -228,6 +230,13 @@ Implementation: `src/components/ContactActionSlots.tsx`.
 
 Workspace toolbars that mix Call / Text / Email with unrelated actions
 (favorites, copy, delete) are not this compact Actions pattern.
+
+## Locked layout contracts
+
+Recruit card geometry, Adaptive Workspace field grids, directory Search/Views
+alignment, and Recruiting nav indentation are **structural contracts**. See
+[`UI-GUARDRAILS.md`](./UI-GUARDRAILS.md). Do not relocate Schools of Interest
+or restack AW fields in a feature milestone.
 
 ## Design Freeze (BP-036C)
 

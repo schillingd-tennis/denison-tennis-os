@@ -9,6 +9,7 @@ import EmptyState from "@/components/EmptyState";
 import ModulePageShell from "@/components/ModulePageShell";
 import {
   DesktopOnlySummary,
+  DirectoryToolbar,
   MobileDirectoryControls,
   MobileDirectorySearchRegion,
   MobileViewSelector,
@@ -213,36 +214,34 @@ export default function PeopleDirectory({ people }: { people: Person[] }) {
 
       <MobileDirectorySearchRegion
         toolbar={
-          <div className="flex flex-col gap-2.5">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center">
-              <div className="min-w-0 flex-1 md:max-w-xl">
-                <SearchInput
-                  value={query}
-                  onChange={handleQueryChange}
-                  placeholder="Search by name, title, hometown, or major"
-                  aria-label="Search people"
-                />
-              </div>
-              <div className="hidden md:ml-auto md:block">
-                <ViewToggle value={view} onChange={handleViewChange} />
-              </div>
-            </div>
-            <RoleFilterControl
-              value={activeFilterIds}
-              onChange={handleFilterChange}
-              renderMobileTrigger={(filtersButton) => (
-                <MobileDirectoryControls>
-                  <MobileViewSelector
-                    value={view}
-                    onChange={handleViewChange}
-                    options={TEAM_VIEW_OPTIONS}
-                    ariaLabel="Change team view"
-                  />
-                  {filtersButton}
-                </MobileDirectoryControls>
-              )}
-            />
-          </div>
+          <DirectoryToolbar
+            search={
+              <SearchInput
+                value={query}
+                onChange={handleQueryChange}
+                placeholder="Search by name, title, hometown, or major"
+                aria-label="Search people"
+              />
+            }
+            views={<ViewToggle value={view} onChange={handleViewChange} />}
+            filters={
+              <RoleFilterControl
+                value={activeFilterIds}
+                onChange={handleFilterChange}
+                renderMobileTrigger={(filtersButton) => (
+                  <MobileDirectoryControls>
+                    <MobileViewSelector
+                      value={view}
+                      onChange={handleViewChange}
+                      options={TEAM_VIEW_OPTIONS}
+                      ariaLabel="Change team view"
+                    />
+                    {filtersButton}
+                  </MobileDirectoryControls>
+                )}
+              />
+            }
+          />
         }
       >
         {filtered.length === 0 ? (

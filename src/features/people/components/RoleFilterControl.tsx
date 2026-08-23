@@ -14,6 +14,7 @@ import {
 import { createPortal } from "react-dom";
 
 import {
+  DesktopDirectoryControls,
   MobileFilterSheet,
   MobileFiltersButton,
   type MobileFilterFacet,
@@ -244,10 +245,7 @@ export default function RoleFilterControl({
         isAllActive={allActive}
       />
 
-      <div
-        ref={rootRef}
-        className="hidden min-w-0 flex-wrap items-center gap-2 md:flex"
-      >
+      <DesktopDirectoryControls ref={rootRef}>
         <button
           type="button"
           aria-pressed={allActive}
@@ -275,7 +273,7 @@ export default function RoleFilterControl({
             }
           />
         ))}
-      </div>
+      </DesktopDirectoryControls>
     </>
   );
 }

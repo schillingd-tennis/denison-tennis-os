@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 
 import RecruitingPersonWorkspace from "@/features/recruiting/components/RecruitingPersonWorkspace";
 import { getRecruitWorkspaceRecord } from "@/features/recruiting/directory";
+import { listRecruitInteractions } from "@/features/interactions/repository";
+import { listTournaments } from "@/features/tournaments/repository";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +13,9 @@ export default async function RecruitingPersonPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const record = await getRecruitWorkspaceRecord(id);
+  const [record, interactions, tournamentsResult] = await Promise.all([
+    getRecruitWorkspaceRecord(id), listRecruitInteractions(id), listTournaments(),
+  ]);
 
   if (!record) {
     notFound();
@@ -23,6 +27,8 @@ export default async function RecruitingPersonPage({
       profile={record.profile}
       analytics={record.analytics}
       inCurrentCohort={record.inCurrentCohort}
+      interactions={interactions}
+      tournamentOptions={(tournamentsResult.ok ? tournamentsResult.tournaments : []).map((item) => ({ id: item.id, label: item.name }))}
     />
   );
 }

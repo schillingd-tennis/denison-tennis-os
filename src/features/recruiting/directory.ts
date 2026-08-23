@@ -12,9 +12,36 @@ import { getDisplayName, hasRole } from "@/features/people/utils";
 
 import { computeRecruitingAnalytics, subjectsFromPeople } from "./analytics";
 import type { RecruitAnalyticsResult } from "./analytics/types";
-import { countDenisonCommitProfiles } from "./directorySummary";
+import { RECRUIT_OUTCOME_KEYS } from "./lookupSeed";
 import { getRecruitProfileByPersonId, listRecruitProfiles } from "./repository";
 import type { RecruitProfile } from "./types";
+
+export type DenisonCommitRecruit = {
+  personId: string;
+  name: string;
+  classYear?: number;
+};
+
+/** Outcome `committed_denison` is the canonical Denison commit flag. */
+export function listDenisonCommitRecruits(
+  profiles: readonly RecruitProfile[],
+  peopleById: ReadonlyMap<string, Person>,
+): DenisonCommitRecruit[] {
+  return profiles
+    .filter((profile) => profile.outcome?.key === RECRUIT_OUTCOME_KEYS.committedDenison)
+    .flatMap((profile) => {
+      const person = peopleById.get(profile.personId);
+      if (!person) return [];
+      return [
+        {
+          personId: person.id,
+          name: getDisplayName(person),
+          classYear: profile.recruitClassYear,
+        },
+      ];
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+}
 
 export type RecruitDirectoryRow = {
   person: Person;
@@ -63,6 +90,7 @@ function sortJoined(
 export async function loadRecruitingDirectory(): Promise<{
   rows: RecruitDirectoryRow[];
   denisonCommits: number;
+  denisonCommitRecruits: DenisonCommitRecruit[];
 }> {
   const [profiles, people] = await Promise.all([listRecruitProfiles(), listPeople()]);
   const peopleById = new Map(people.map((person) => [person.id, person]));
@@ -74,9 +102,11 @@ export async function loadRecruitingDirectory(): Promise<{
     joined.push({ person, profile });
   }
 
+  const denisonCommitRecruits = listDenisonCommitRecruits(profiles, peopleById);
   return {
     rows: attachAnalytics(sortJoined(joined)),
-    denisonCommits: countDenisonCommitProfiles(profiles),
+    denisonCommits: denisonCommitRecruits.length,
+    denisonCommitRecruits,
   };
 }
 

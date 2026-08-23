@@ -36,6 +36,9 @@ import { StickyProductivityActionBar } from "@/components/productivity";
 import QuickActionButton from "@/components/QuickActionButton";
 import { useDrawerManager } from "@/components/workspace-drawer";
 import { createCommunicationActions } from "@/features/communication";
+import DeleteInteractionConfirm from "@/features/interactions/components/DeleteInteractionConfirm";
+import InteractionForm, { type InteractionOption } from "@/features/interactions/components/InteractionForm";
+import type { RecruitInteraction } from "@/features/interactions/types";
 import DeletePersonConfirm from "@/features/people/components/DeletePersonConfirm";
 import { SaveIndicator, useSaveIndicator } from "@/components/inline-edit";
 import type { Person } from "@/features/people/types";
@@ -96,11 +99,15 @@ export default function RecruitingPersonWorkspace({
   profile,
   analytics,
   inCurrentCohort,
+  interactions,
+  tournamentOptions,
 }: {
   person: Person;
   profile: RecruitProfile;
   analytics: RecruitAnalyticsResult | null;
   inCurrentCohort: boolean;
+  interactions: RecruitInteraction[];
+  tournamentOptions: InteractionOption[];
 }) {
   const [record, setRecord] = useState(person);
   const [trackedPerson, setTrackedPerson] = useState(person);
@@ -174,6 +181,56 @@ export default function RecruitingPersonWorkspace({
     });
   }
 
+  const recruitOption = { id: record.id, label: displayName };
+  const openInteractionDrawer = useCallback(() => {
+    openDrawer({
+      id: `add-recruit-interaction-${record.id}`,
+      title: "Add Interaction",
+      subtitle: `Recruiting · ${displayName}`,
+      hideFooter: true,
+      content: <InteractionForm recruits={[recruitOption]} tournaments={tournamentOptions} defaultRecruitId={record.id} lockRecruit onSaved={closeDrawer} onCancel={closeDrawer} />,
+    });
+  }, [closeDrawer, displayName, openDrawer, record.id, tournamentOptions]);
+
+  const openExistingInteraction = useCallback((interaction: RecruitInteraction) => {
+    openDrawer({
+      id: `edit-recruit-interaction-${interaction.id}`,
+      title: "Interaction",
+      subtitle: `Recruiting · ${displayName}`,
+      hideFooter: true,
+      content: (
+        <InteractionForm
+          key={interaction.id}
+          interaction={interaction}
+          recruits={[{ id: record.id, label: displayName }]}
+          tournaments={tournamentOptions}
+          defaultRecruitId={record.id}
+          lockRecruit
+          onSaved={closeDrawer}
+          onCancel={closeDrawer}
+        />
+      ),
+    });
+  }, [closeDrawer, displayName, openDrawer, record.id, tournamentOptions]);
+
+  const requestDeleteInteraction = useCallback((interaction: RecruitInteraction) => {
+    openDrawer({
+      id: `delete-interaction-${interaction.id}`,
+      title: "Delete Interaction?",
+      hideFooter: true,
+      content: (
+        <DeleteInteractionConfirm
+          interactionId={interaction.id}
+          onCancel={closeDrawer}
+          onSuccess={() => {
+            closeDrawer();
+            router.refresh();
+          }}
+        />
+      ),
+    });
+  }, [closeDrawer, openDrawer, router]);
+
   const workspaceItems: RecruitWorkspaceNavItem[] = useMemo(
     () => [
       {
@@ -224,12 +281,12 @@ export default function RecruitingPersonWorkspace({
       },
       {
         id: "communications",
-        title: "Communications / Interactions",
+        title: "Interactions",
         icon: MessageSquare,
-        descriptor: "No interaction history",
+        descriptor: interactions.length === 0 ? "No interaction history" : `${interactions.length} interaction${interactions.length === 1 ? "" : "s"}`,
       },
     ],
-    [analytics?.tier, inCurrentCohort, profileRecord, record.utr],
+    [analytics?.tier, inCurrentCohort, interactions.length, profileRecord, record.utr],
   );
 
   const adaptiveWorkspaces: AdaptiveWorkspaceDefinition[] = useMemo(
@@ -276,12 +333,21 @@ export default function RecruitingPersonWorkspace({
       },
       {
         id: "communications",
-        title: "Communications / Interactions",
+        title: "Interactions",
         subtitle: "Calls, texts, and follow-ups",
-        content: <RecruitingCommunicationsWorkspace />,
+        toolbar: (
+          <button
+            type="button"
+            onClick={openInteractionDrawer}
+            className="h-9 rounded-control bg-[var(--module-accent)] px-3.5 text-sm font-semibold text-white"
+          >
+            Add Interaction
+          </button>
+        ),
+        content: <RecruitingCommunicationsWorkspace interactions={interactions} onOpen={openExistingInteraction} onDelete={requestDeleteInteraction} />,
       },
     ],
-    [analytics, clearNoteQuickEntry, inCurrentCohort, noteQuickEntry, profileRecord.coachRank],
+    [analytics, clearNoteQuickEntry, inCurrentCohort, interactions, noteQuickEntry, openExistingInteraction, openInteractionDrawer, profileRecord.coachRank, requestDeleteInteraction],
   );
 
   return (
