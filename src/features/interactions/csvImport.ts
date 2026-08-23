@@ -71,6 +71,15 @@ const MULTI_RECRUIT_IMG_EXCLUSION = {
 };
 
 /**
+ * Coda rows 151 and 167: "Udaijot Sangha" on 7/6/2026.
+ * Hosted has three recruit people with that name. Do not guess a person ID.
+ */
+const UDAIJOT_AMBIGUOUS_EXCLUSION = {
+  player: "Udaijot Sangha",
+  date: "7/6/2026",
+};
+
+/**
  * Explicit Coda Contact Type values → OS interaction_type.
  * Unknown source values are not coerced to "other".
  */
@@ -158,6 +167,7 @@ export type ExcludedInteractionRow = {
   rowNumber: number;
   player: string;
   notesPreview: string;
+  nextSteps: string;
   sourceDate: string;
   sourceType: string;
   csvTournament: string | null;
@@ -360,6 +370,13 @@ export function isMultiRecruitExclusion(row: InteractionCsvRow): boolean {
   );
 }
 
+export function isUdaijotAmbiguousExclusion(row: InteractionCsvRow): boolean {
+  return (
+    normalizePersonName(row.Player ?? "") === normalizePersonName(UDAIJOT_AMBIGUOUS_EXCLUSION.player) &&
+    (row.Date ?? "").trim() === UDAIJOT_AMBIGUOUS_EXCLUSION.date
+  );
+}
+
 export function contactTypeOverride(row: InteractionCsvRow): InteractionType | null {
   if (String(row["Contact Type"] ?? "").trim()) return null;
   if (normalizePersonName(row.Player ?? "") !== normalizePersonName(JARREN_GRIFFIN_EMAIL_OVERRIDE.player)) {
@@ -379,6 +396,7 @@ function excludedRow(
     rowNumber,
     player: (row.Player ?? "").trim(),
     notesPreview: previewNotes(row["Interaction Notes"] ?? ""),
+    nextSteps: (row["Next Steps"] ?? "").trim(),
     sourceDate: row.Date ?? "",
     sourceType: row["Contact Type"] ?? "",
     csvTournament: nullable(row["Tournament (if applicable)"] ?? ""),
@@ -420,6 +438,17 @@ export function analyzeInteractionRows(
           rowNumber,
           row,
           "INTENTIONALLY EXCLUDED — MULTI-RECRUIT INTERACTION (Ricards, Rafa, Enzo, Grant)",
+        ),
+      );
+      return;
+    }
+    if (isUdaijotAmbiguousExclusion(row)) {
+      const nextSteps = (row["Next Steps"] ?? "").trim() || "(none)";
+      intentionallyExcluded.push(
+        excludedRow(
+          rowNumber,
+          row,
+          `INTENTIONALLY EXCLUDED — AMBIGUOUS RECRUIT MATCH (Udaijot Sangha; 3 existing recruit records). Do not guess person ID. next steps: ${nextSteps}`,
         ),
       );
       return;

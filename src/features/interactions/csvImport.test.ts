@@ -9,6 +9,7 @@ import {
   contactTypeOverride,
   exclusiveSkipCount,
   isMultiRecruitExclusion,
+  isUdaijotAmbiguousExclusion,
   mapContactType,
   matchRecruit,
   matchTournament,
@@ -301,6 +302,44 @@ test("intentionally excluded multi-recruit row does not block apply", () => {
   assert.equal(analysis.ready.length, 1);
   assert.equal(canApply(analysis), true);
   assert.equal("sourceKey" in analysis.intentionallyExcluded[0]!, false);
+});
+
+test("ambiguous Udaijot Sangha source rows are intentionally excluded and do not block apply", () => {
+  const people = [
+    recruit("u1", "Udaijot", "Sangha"),
+    recruit("u2", "Udaijot", "Sangha"),
+    recruit("u3", "Udaijot", "Sangha"),
+  ];
+  const row151 = csv({
+    Player: "Udaijot Sangha",
+    Date: "7/6/2026",
+    "Contact Type": "Text",
+    "Interaction Notes": "",
+    "Next Steps": "responded",
+    "Logged By": "A Mack",
+  });
+  const row167 = csv({
+    Player: "Udaijot Sangha",
+    Date: "7/6/2026",
+    "Contact Type": "Text",
+    "Interaction Notes": "",
+    "Next Steps": "Received response; try to schedule call",
+    "Logged By": "A Mack",
+  });
+  assert.equal(isUdaijotAmbiguousExclusion(row151), true);
+  assert.equal(isUdaijotAmbiguousExclusion(row167), true);
+  const analysis = analyzeInteractionRows(
+    [row151, row167, csv({ Player: "Kunal Amara" })],
+    [...people, recruit("r1", "Kunal", "Amara")],
+    [],
+  );
+  assert.equal(analysis.intentionallyExcluded.length, 2);
+  assert.equal(analysis.ambiguousPeople.length, 0);
+  assert.equal(analysis.ready.length, 1);
+  assert.equal(canApply(analysis), true);
+  assert.match(analysis.intentionallyExcluded[0]?.reason ?? "", /AMBIGUOUS RECRUIT MATCH/);
+  assert.equal(analysis.intentionallyExcluded[0]?.nextSteps, "responded");
+  assert.equal(analysis.intentionallyExcluded[1]?.nextSteps, "Received response; try to schedule call");
 });
 
 test("unresolved real recruit still blocks apply", () => {

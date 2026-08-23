@@ -164,7 +164,7 @@ function printReport(file: string, analysis: ImportAnalysis, recruitCount: numbe
   console.log("INTENTIONALLY EXCLUDED", analysis.intentionallyExcluded.length);
   for (const row of analysis.intentionallyExcluded) {
     console.log(
-      `  row ${row.rowNumber}: ${row.reason} | date=${row.sourceDate || "(none)"} | loggedBy=${row.loggedBy || "(none)"} | notes: ${row.notesPreview || "(none)"}`,
+      `  row ${row.rowNumber}: ${row.reason} | date=${row.sourceDate || "(none)"} | loggedBy=${row.loggedBy || "(none)"} | notes: ${row.notesPreview || "(none)"} | nextSteps: ${row.nextSteps || "(none)"}`,
     );
   }
   printList("UNMATCHED PEOPLE", analysis.unmatchedPeople);
