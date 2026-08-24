@@ -30,6 +30,10 @@ import { EMPTY_VALUE } from "@/lib/formatting";
 import { rankingProfileHref } from "../rankingProfileUrl";
 import { RecruitProfileField } from "./RecruitProfileFields";
 import { RecruitStarRatingDisplay } from "./RecruitRatingDisplay";
+import {
+  RecruitSummaryAcademicColumn,
+  SummaryField,
+} from "./RecruitSummaryLockedSlots";
 
 export type RecruitWorkspaceTone =
   | "personal-info"
@@ -198,31 +202,6 @@ function MetricTile({
   );
 }
 
-function SummaryField({
-  label,
-  children,
-  className,
-  "data-recruit-summary-academic-interests": academicInterestsLock,
-  "data-recruit-summary-schools": schoolsLock,
-}: {
-  label: string;
-  children: ReactNode;
-  className?: string;
-  "data-recruit-summary-academic-interests"?: string;
-  "data-recruit-summary-schools"?: string;
-}) {
-  return (
-    <div
-      className={`min-w-0 ${className ?? ""}`}
-      data-recruit-summary-academic-interests={academicInterestsLock}
-      data-recruit-summary-schools={schoolsLock}
-    >
-      <p className={typeRole.workspaceFieldLabel}>{label}</p>
-      <div className="mt-1 min-w-0">{children}</div>
-    </div>
-  );
-}
-
 function RecruitHometownField() {
   const session = usePersonFieldSession();
   const [editing, setEditing] = useState(false);
@@ -281,15 +260,10 @@ export function RecruitWorkspaceProfile({
     >
       <div className="flex flex-col gap-4">
         {/*
-          LOCKED RECRUIT UI CONTRACT
-          Do not modify Recruit summary placement, Schools of Interest,
-          Academic Interests, or Adaptive Workspace grid/layout unless the
-          user explicitly requests a Recruit Card/AW layout change.
-          See RecruitingWorkspaceLayout.guardrail.test.ts.
-
-          Desktop-first two-column split lives in unlayered CSS
-          ([data-recruit-summary-split] in globals.css). Do not use
-          `grid-cols-1` / `flex-col` + `md:` column overrides here.
+          LOCKED OS UI CONTRACT — do not modify for feature-specific work.
+          Recruit summary split, Academic Interests, and Schools of Interest
+          are owned by RecruitSummaryLockedSlots + layout-lock.css.
+          See docs/UI-GUARDRAILS.md.
         */}
         <div data-recruit-summary-split="" className="w-full min-w-0">
           <div
@@ -331,38 +305,7 @@ export function RecruitWorkspaceProfile({
             </div>
           </div>
 
-          <div
-            data-recruit-summary-academic=""
-            className="min-w-0"
-            aria-label="Academic summary"
-          >
-            <SummaryField data-recruit-summary-academic-interests="" label="Academic interests">
-              <RecruitProfileField
-                field="academicInterests"
-                label="Academic interests"
-                type="textarea"
-                align="left"
-                slot="summary"
-                rows={2}
-                className="[&>span]:line-clamp-2 [&>span]:break-words [&>span]:break-normal [&>span]:hyphens-none [&>span]:whitespace-normal md:[&>span]:break-normal"
-              />
-            </SummaryField>
-            <SummaryField
-              data-recruit-summary-schools=""
-              label="Schools of interest"
-              className="mt-2.5"
-            >
-              <RecruitProfileField
-                field="schoolsOfInterest"
-                label="Schools of interest"
-                type="textarea"
-                align="left"
-                slot="summary"
-                rows={2}
-                className="[&>span]:line-clamp-2 [&>span]:break-words [&>span]:break-normal [&>span]:hyphens-none [&>span]:whitespace-normal md:[&>span]:break-normal"
-              />
-            </SummaryField>
-          </div>
+          <RecruitSummaryAcademicColumn />
         </div>
 
         <div

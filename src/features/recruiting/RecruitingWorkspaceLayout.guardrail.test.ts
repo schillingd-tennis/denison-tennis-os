@@ -7,6 +7,10 @@ const chrome = readFileSync(
   path.join(process.cwd(), "src/features/recruiting/components/RecruitWorkspaceChrome.tsx"),
   "utf8",
 );
+const summarySlots = readFileSync(
+  path.join(process.cwd(), "src/features/recruiting/components/RecruitSummaryLockedSlots.tsx"),
+  "utf8",
+);
 const workspaces = readFileSync(
   path.join(process.cwd(), "src/features/recruiting/components/RecruitingWorkspaces.tsx"),
   "utf8",
@@ -19,7 +23,13 @@ const gridPrimitive = readFileSync(
   path.join(process.cwd(), "src/components/adaptive-workspace/WorkspaceContent.tsx"),
   "utf8",
 );
-const css = readFileSync(path.join(process.cwd(), "src/app/globals.css"), "utf8");
+const css = [
+  readFileSync(path.join(process.cwd(), "src/app/globals.css"), "utf8"),
+  readFileSync(path.join(process.cwd(), "src/app/layout-lock.css"), "utf8"),
+].join("\n");
+const layout = readFileSync(path.join(process.cwd(), "src/app/layout.tsx"), "utf8");
+const layoutLock = readFileSync(path.join(process.cwd(), "src/app/layout-lock.css"), "utf8");
+const globalsCss = readFileSync(path.join(process.cwd(), "src/app/globals.css"), "utf8");
 const shell = readFileSync(
   path.join(process.cwd(), "src/components/person-workspace-shell/PersonWorkspaceShell.tsx"),
   "utf8",
@@ -52,8 +62,8 @@ function slice(source: string, startMarker: string, endMarker: string): string {
 }
 
 const profile = profileSource();
-const identity = slice(profile, "data-recruit-summary-identity", "data-recruit-summary-academic");
-const academic = slice(profile, "data-recruit-summary-academic", 'aria-label="Recruit snapshot"');
+const identity = slice(profile, "data-recruit-summary-identity", "RecruitSummaryAcademicColumn");
+const academic = summarySlots;
 const academicsAw = slice(
   workspaces,
   "export function RecruitingAcademicsWorkspace",
@@ -68,6 +78,11 @@ const gridFn = slice(gridPrimitive, "export function WorkspaceFieldGrid", "expor
 
 test("LOCKED RECRUIT LAYOUT: Academic Interests remains in the canonical summary location", () => {
   assert.match(
+    profile,
+    /<RecruitSummaryAcademicColumn/,
+    "LOCKED RECRUIT LAYOUT: Academic Interests must remain in the Recruit summary academic column.",
+  );
+  assert.match(
     academic,
     /data-recruit-summary-academic-interests/,
     "LOCKED RECRUIT LAYOUT: Academic Interests must remain in the Recruit summary.",
@@ -81,6 +96,11 @@ test("LOCKED RECRUIT LAYOUT: Academic Interests remains in the canonical summary
     identity,
     /academicInterests/,
     "LOCKED RECRUIT LAYOUT: Academic Interests must not move into the identity column.",
+  );
+  assert.doesNotMatch(
+    profile,
+    /field="academicInterests"/,
+    "LOCKED RECRUIT LAYOUT: Academic Interests must not be inlined in chrome.",
   );
 });
 
@@ -103,6 +123,11 @@ test("LOCKED RECRUIT LAYOUT: Schools of Interest remains in the right-side Recru
     identity,
     /schoolsOfInterest/,
     "LOCKED RECRUIT LAYOUT: Schools of Interest must not move into the identity column.",
+  );
+  assert.doesNotMatch(
+    profile,
+    /field="schoolsOfInterest"/,
+    "LOCKED RECRUIT LAYOUT: Schools of Interest must not be inlined in chrome.",
   );
 });
 
@@ -235,5 +260,28 @@ test("LOCKED RECRUIT LAYOUT: dashboard/tournament/interaction UI cannot redefine
     interactionUi,
     /data-aw-field-grid/,
     "LOCKED RECRUIT LAYOUT: Interactions UI must not redefine the AW field grid.",
+  );
+});
+
+test("LOCKED RECRUIT LAYOUT: layout contracts ship in a non-Tailwind stylesheet", () => {
+  assert.match(
+    layout,
+    /import "\.\/layout-lock\.css"/,
+    "LOCKED RECRUIT LAYOUT: root layout must load layout-lock.css as its own stylesheet.",
+  );
+  assert.doesNotMatch(
+    layoutLock,
+    /^@import\s+["']tailwindcss["']/m,
+    "LOCKED RECRUIT LAYOUT: layout-lock.css must not be processed as the Tailwind entry.",
+  );
+  assert.doesNotMatch(
+    globalsCss,
+    /\[data-recruit-summary-split\]/,
+    "LOCKED RECRUIT LAYOUT: summary split CSS must not live in globals.css.",
+  );
+  assert.doesNotMatch(
+    globalsCss,
+    /\[data-recruiting-dashboard-grid\]/,
+    "LOCKED RECRUIT LAYOUT: dashboard grid CSS must not live in globals.css.",
   );
 });

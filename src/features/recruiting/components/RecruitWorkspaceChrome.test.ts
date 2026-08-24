@@ -11,11 +11,15 @@ const workspacePath = path.join(
   process.cwd(),
   "src/features/recruiting/components/RecruitingPersonWorkspace.tsx",
 );
-const cssPath = path.join(process.cwd(), "src/app/globals.css");
+const cssPath = path.join(process.cwd(), "src/app/layout-lock.css");
 
 const chrome = readFileSync(chromePath, "utf8");
 const workspace = readFileSync(workspacePath, "utf8");
 const css = readFileSync(cssPath, "utf8");
+const summarySlots = readFileSync(
+  path.join(process.cwd(), "src/features/recruiting/components/RecruitSummaryLockedSlots.tsx"),
+  "utf8",
+);
 
 function sliceProfile(source: string): string {
   const start = source.indexOf("export function RecruitWorkspaceProfile");
@@ -57,28 +61,23 @@ test("desktop header puts academic fields in the right column, not under identit
   const identity = sliceAttr(
     profile,
     "data-recruit-summary-identity",
-    "data-recruit-summary-academic",
-  );
-  const academic = sliceAttr(
-    profile,
-    "data-recruit-summary-academic",
-    'aria-label="Recruit snapshot"',
+    "RecruitSummaryAcademicColumn",
   );
 
   assert.match(identity, /label="Class"/);
   assert.match(identity, /label="Hometown"/);
   assert.doesNotMatch(identity, /Academic interests/);
   assert.doesNotMatch(identity, /Schools of interest/);
-
-  assert.match(academic, /label="Academic interests"/);
-  assert.match(academic, /label="Schools of interest"/);
-  assert.doesNotMatch(academic, /label="Class"/);
-  assert.doesNotMatch(academic, /label="Hometown"/);
+  assert.match(profile, /<RecruitSummaryAcademicColumn/);
+  assert.match(summarySlots, /label="Academic interests"/);
+  assert.match(summarySlots, /label="Schools of interest"/);
+  assert.doesNotMatch(summarySlots, /label="Class"/);
+  assert.doesNotMatch(summarySlots, /label="Hometown"/);
 });
 
 test("metric cards stay beneath the complete two-column header row", () => {
   const splitIdx = profile.indexOf("data-recruit-summary-split");
-  const academicIdx = profile.indexOf("data-recruit-summary-academic");
+  const academicIdx = profile.indexOf("RecruitSummaryAcademicColumn");
   const snapshotIdx = profile.indexOf('aria-label="Recruit snapshot"');
 
   assert.ok(splitIdx < academicIdx);
@@ -90,10 +89,10 @@ test("metric cards stay beneath the complete two-column header row", () => {
   );
   const splitBlock = afterSplitOpen.slice(0, splitCloseRelative);
   assert.match(splitBlock, /data-recruit-summary-identity/);
-  assert.match(splitBlock, /data-recruit-summary-academic/);
+  assert.match(splitBlock, /RecruitSummaryAcademicColumn/);
   assert.doesNotMatch(
     profile.slice(snapshotIdx),
-    /data-recruit-summary-academic/,
+    /RecruitSummaryAcademicColumn/,
   );
 });
 
@@ -126,16 +125,15 @@ test("Schools of Interest stays in the recruit summary right column, not the AW"
     path.join(process.cwd(), "src/features/recruiting/components/RecruitingWorkspaces.tsx"),
     "utf8",
   );
-  const academic = sliceAttr(
-    profile,
-    "data-recruit-summary-academic",
-    'aria-label="Recruit snapshot"',
+  assert.match(profile, /<RecruitSummaryAcademicColumn/);
+  assert.match(summarySlots, /data-recruit-summary-schools/);
+  assert.match(summarySlots, /data-recruit-summary-academic-interests/);
+  assert.match(summarySlots, /field="schoolsOfInterest"/);
+  assert.match(summarySlots, /field="academicInterests"/);
+  assert.ok(
+    summarySlots.indexOf("data-recruit-summary-academic-interests") <
+      summarySlots.indexOf("data-recruit-summary-schools"),
   );
-
-  assert.match(academic, /data-recruit-summary-schools/);
-  assert.match(academic, /data-recruit-summary-academic-interests/);
-  assert.match(academic, /field="schoolsOfInterest"/);
-  assert.match(academic, /field="academicInterests"/);
 
   const academicsFn = workspaces.slice(
     workspaces.indexOf("export function RecruitingAcademicsWorkspace"),
@@ -144,6 +142,14 @@ test("Schools of Interest stays in the recruit summary right column, not the AW"
   assert.doesNotMatch(academicsFn, /field="schoolsOfInterest"/);
   assert.doesNotMatch(academicsFn, /field="academicInterests"/);
   assert.doesNotMatch(academicsFn, /WorkspaceSplit/);
+});
+
+test("Back to Recruiting returns to the Recruit List route", () => {
+  assert.match(workspace, /href=\{RECRUITING_LIST_ROUTE\}/);
+  assert.doesNotMatch(
+    workspace.slice(workspace.indexOf("Back to Recruiting") - 220, workspace.indexOf("Back to Recruiting")),
+    /href="\/recruiting"/,
+  );
 });
 
 test("Recruit Overview and Academics AWs use the shared dense field grid", () => {
@@ -159,7 +165,6 @@ test("Recruit Overview and Academics AWs use the shared dense field grid", () =>
     workspaces.indexOf("export function RecruitingAcademicsWorkspace"),
     workspaces.indexOf("export function RecruitingRankingsWorkspace"),
   );
-
   assert.match(personal, /WorkspaceFieldGrid columns=\{3\}/);
   assert.match(academics, /WorkspaceFieldGrid columns=\{4\}/);
   assert.match(academics, /WorkspaceFieldGrid columns=\{3\}/);

@@ -40,7 +40,10 @@ export default function Sidebar({
 }) {
   return (
     <>
-      <aside className="fixed inset-y-0 left-0 z-30 hidden md:block">
+      <aside
+        data-app-sidebar-desktop=""
+        className="fixed inset-y-0 left-0 z-30 hidden md:block"
+      >
         <SidebarContent />
       </aside>
 
@@ -50,6 +53,7 @@ export default function Sidebar({
         opacity-0 full-screen backdrop over the hamburger.
       */}
       <div
+        data-app-sidebar-mobile=""
         className={`fixed inset-0 z-40 md:hidden ${
           isOpen ? "" : "pointer-events-none"
         }`}

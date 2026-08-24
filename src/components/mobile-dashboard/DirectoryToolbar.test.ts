@@ -78,7 +78,7 @@ test("Search and Views share the primary row; Views is not in the filter region"
 });
 
 test("unlayered CSS locks desktop Search + Views to one row", () => {
-  const css = readFileSync(join(repoRoot, "src/app/globals.css"), "utf8");
+  const css = readFileSync(join(repoRoot, "src/app/layout-lock.css"), "utf8");
   assert.match(css, /\[data-directory-toolbar-primary-row\]/);
   assert.match(css, /flex-direction:\s*row/);
   assert.match(css, /flex-wrap:\s*nowrap/);

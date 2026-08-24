@@ -49,7 +49,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             onClose={() => setMobileNavOpen(false)}
           />
 
-          <div className="flex min-h-screen flex-col md:pl-[var(--sidebar-width)]">
+          <div
+            data-app-main=""
+            className="flex min-h-screen flex-col md:pl-[var(--sidebar-width)]"
+          >
             <Header onMenuClick={() => setMobileNavOpen(true)} />
             <main className="flex-1 px-4 py-4 md:px-10 md:py-10 lg:px-16">
               {children}

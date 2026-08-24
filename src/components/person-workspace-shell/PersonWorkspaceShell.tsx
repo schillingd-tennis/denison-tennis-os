@@ -3,17 +3,12 @@ import type { ReactNode } from "react";
 import { typeRole } from "@/components/typography";
 
 /**
+ * LOCKED OS UI CONTRACT — do not modify for feature-specific work.
+ *
  * OS-wide Person / Recruit Adaptive Workspace shell.
- *
- * Two explicit presentation branches share the same workspace state and
- * definitions from the parent — this component is presentation only.
- *
- * Mobile (< md): selector + full-width AdaptiveWorkspace (caller supplies).
- * Desktop (md+): BP-036D nav rail + content pane (exact original geometry).
- *
- * Uses `max-md:hidden` + `md:hidden` (not `hidden md:grid`) so the desktop
- * split is `display: grid` by default and cannot collapse to an empty pane
- * if a `md:grid` utility fails to generate.
+ * Two explicit presentation branches share the same workspace state.
+ * Visibility is CSS (`max-md:hidden` / `md:hidden`), not JS viewport state,
+ * so SSR and hydration render the same tree.
  */
 export function PersonWorkspaceMobilePane({ children }: { children: ReactNode }) {
   return <div className="flex flex-col gap-3 md:hidden">{children}</div>;

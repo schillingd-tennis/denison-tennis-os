@@ -228,7 +228,9 @@ test("dashboard page stays on /recruiting and opens existing editors/workspaces"
   assert.match(ui, /Upcoming Tournaments/);
   assert.match(ui, /Denison Commits/);
   assert.match(ui, /\{commits\.length\}/);
-  assert.match(ui, /contents md:flex md:flex-col/);
+  assert.match(ui, /data-recruiting-dashboard-grid/);
+  assert.match(ui, /data-recruiting-dashboard-col/);
+  assert.doesNotMatch(ui, /contents md:flex/);
   assert.doesNotMatch(ui, /Top Targets/);
   assert.doesNotMatch(ui, /Upcoming Events/);
   assert.match(page, /denisonCommitSummary\(directory\.denisonCommitRecruits\)/);

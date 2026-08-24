@@ -7,20 +7,24 @@ alwaysApply: true
 
 Full contract: `docs/UI-GUARDRAILS.md`.
 
-Do not change these in feature work (Interactions, Tournaments, Dashboard, data-model):
+**LOCKED OS UI CONTRACT — do not modify for feature-specific work.**
+
+Do not change these in feature work (Interactions, Tournaments, Dashboard, Visit, data-model):
 
 - Recruit card desktop split: identity left, Academic Interests + Schools of Interest upper-right
-- Adaptive Workspace field grids: `WorkspaceFieldGrid` + `[data-aw-field-grid]` in `globals.css`
+- Canonical slots: `RecruitSummaryAcademicInterestsSlot`, `RecruitSummarySchoolsOfInterestSlot`
+- Adaptive Workspace field grids: `WorkspaceFieldGrid` + `[data-aw-field-grid]` in `src/app/layout-lock.css`
 - Directory Search / Views row
 - Recruiting nested nav geometry
 
 Shared shell owns geometry. Feature modules own content only.
 
-## RECRUIT CARD UI — LOCKED
+Feature work must not edit:
 
-- Recruit summary placement is protected.
-- Academic Interests placement is protected.
-- Schools of Interest remains on the right.
-- Desktop AWs use the canonical compact multi-column grid (`WorkspaceFieldGrid` + `[data-aw-field-grid]`).
-- Do not modify these layouts during unrelated feature work.
-- Layout changes require an explicit user request.
+- `src/app/layout-lock.css`
+- `src/components/adaptive-workspace/WorkspaceContent.tsx` (`WorkspaceFieldGrid`)
+- `src/features/recruiting/components/RecruitSummaryLockedSlots.tsx`
+- `src/components/person-workspace-shell/PersonWorkspaceShell.tsx`
+- `tests/layout.cold-load.spec.ts`
+
+Mobile may collapse via CSS `@media (max-width: 767px)` only. Do not use JavaScript viewport initialization for these layouts.

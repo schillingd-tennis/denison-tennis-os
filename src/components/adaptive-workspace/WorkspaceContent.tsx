@@ -5,11 +5,11 @@ import { typeRole } from "@/components/typography";
 import { EMPTY_VALUE } from "@/lib/formatting";
 
 /**
- * Adaptive Workspace content primitives.
+ * LOCKED OS UI CONTRACT — do not modify for feature-specific work.
  *
  * Field-grid geometry is a locked OS contract (`docs/UI-GUARDRAILS.md`).
  * Column counts live on `data-aw-field-grid` and are applied in unlayered
- * CSS (`src/app/globals.css`). Do not restore density with Tailwind `sm:` /
+ * CSS (`src/app/layout-lock.css`). Do not restore density with Tailwind `sm:` /
  * `md:` `grid-template-columns` utilities — they often fail to generate here
  * and collapse every AW back to one field per row.
  *
@@ -218,15 +218,12 @@ export function WorkspaceFieldGroup({
 }
 
 /**
- * LOCKED RECRUIT UI CONTRACT
- * Do not modify Recruit summary placement, Schools of Interest,
- * Academic Interests, or Adaptive Workspace grid/layout unless the
- * user explicitly requests a Recruit Card/AW layout change.
- * See RecruitingWorkspaceLayout.guardrail.test.ts.
+ * LOCKED OS UI CONTRACT — do not modify for feature-specific work.
  *
- * Geometry is owned by `[data-aw-field-grid]` in `globals.css`.
- * `columns` is the desktop target (3 or 4). CSS collapses toward 1 on mobile.
- * Pass `span` on `WorkspaceField` for notes / long text.
+ * Canonical desktop Adaptive Workspace field grid. Geometry is owned by
+ * `[data-aw-field-grid]` in `layout-lock.css`. `columns` is the desktop
+ * target (3 or 4). CSS collapses toward 1 on mobile. Pass `span` on
+ * `WorkspaceField` for notes / long text.
  */
 export function WorkspaceFieldGrid({
   columns = 3,

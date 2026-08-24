@@ -43,8 +43,9 @@ Enforced by `src/features/recruiting/RecruitingWorkspaceLayout.guardrail.test.ts
    Class, and Hometown.
 4. Metric tiles sit **beneath** the two-column header row.
 5. Desktop split is unlayered CSS on `[data-recruit-summary-split]` in
-   `src/app/globals.css`. Do not replace it with `flex-col` + `md:` column
-   utilities.
+   `src/app/layout-lock.css`. Do not replace it with `flex-col` + `md:` column
+   utilities. Academic Interests and Schools of Interest render only through
+   `RecruitSummaryAcademicInterestsSlot` and `RecruitSummarySchoolsOfInterestSlot`.
 
 ## Adaptive Workspaces
 
@@ -53,7 +54,7 @@ Enforced by `src/features/recruiting/RecruitingWorkspaceLayout.guardrail.test.ts
    explicitly opt into full width (`WorkspaceField span` /
    `data-aw-field-span="full"`): notes, next steps, long text, narrative
    evaluation.
-6. Mobile may collapse to one column (`max-width: 767px` in `globals.css`).
+6. Mobile may collapse to one column (`max-width: 767px` in `layout-lock.css`).
 7. New AW features must use `WorkspaceFieldGrid` / `WorkspaceField` from
    `@/components/adaptive-workspace`. Do not invent a local `grid-cols-1`
    stack.
@@ -62,7 +63,7 @@ Enforced by `src/features/recruiting/RecruitingWorkspaceLayout.guardrail.test.ts
 
 Implementation lock:
 
-- Geometry: `[data-aw-field-grid]` in `src/app/globals.css` (unlayered).
+- Geometry: `[data-aw-field-grid]` in `src/app/layout-lock.css` (unlayered).
 - Primitive: `WorkspaceFieldGrid` in `src/components/adaptive-workspace/WorkspaceContent.tsx`.
 - Do **not** restore columns with Tailwind `sm:[grid-template-columns:…]`
   or `md:[grid-template-columns:…]`. Those utilities often fail to generate
@@ -79,8 +80,9 @@ Implementation lock:
 
 ## What to do instead of “fixing” layout in a feature
 
-- Put recruit summary fields in `RecruitWorkspaceProfile`.
+- Put Academic Interests / Schools of Interest in the locked summary slots.
 - Put AW fields inside `WorkspaceFieldGrid`.
+- A Desktop/mobile change is incomplete until `npm run test:recruiting` (including Playwright cold-load tests) passes.
 - Put long text in `WorkspaceField span`.
 - If a layout looks wrong, restore the shell/CSS — do not duplicate the
   field into a new stacked section.

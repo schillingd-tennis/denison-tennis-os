@@ -266,9 +266,9 @@ export default function RecruitingDashboard({
         <p className="mt-0.5 text-[13px] text-text-secondary">Recruiting activity at a glance</p>
       </header>
 
-      <div className="flex flex-col gap-4 md:grid md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] md:items-start">
-        <div className="contents md:flex md:flex-col md:gap-4">
-          <section className="order-1">
+      <div data-recruiting-dashboard-grid="">
+        <div data-recruiting-dashboard-col="">
+          <section>
             <DashboardCard
               title="Recent Interactions"
               meta="Last 10"
@@ -279,7 +279,7 @@ export default function RecruitingDashboard({
               {recentInteractions.length === 0 ? (
                 <p className="px-3.5 py-3 text-[13px] text-text-secondary">No interactions yet.</p>
               ) : (
-                <ul>
+                <ul data-dashboard-recent-list="">
                   {recentInteractions.map((interaction) => {
                     const notes = previewNotes(interaction.notes);
                     const style = INTERACTION_CHIP[interaction.interactionType] ?? INTERACTION_CHIP.other;
@@ -332,7 +332,7 @@ export default function RecruitingDashboard({
             </DashboardCard>
           </section>
 
-          <section className="order-4">
+          <section>
             <DashboardCard
               title="Upcoming Tournaments"
               meta="Next 5"
@@ -383,8 +383,8 @@ export default function RecruitingDashboard({
           </section>
         </div>
 
-        <div className="contents md:flex md:flex-col md:gap-4">
-          <section className="order-2">
+        <div data-recruiting-dashboard-col="">
+          <section>
             <DashboardCard
               title="Top Ranked Recruits"
               meta="Top 5"
@@ -449,7 +449,7 @@ export default function RecruitingDashboard({
             </DashboardCard>
           </section>
 
-          <section className="order-3">
+          <section>
             <DashboardCard title="Denison Commits" tone="green" icon={BadgeCheck}>
               <div className="mx-3.5 mt-2.5 flex items-center gap-3 rounded-control bg-success/[0.08] px-3 py-2.5">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control bg-success text-surface">

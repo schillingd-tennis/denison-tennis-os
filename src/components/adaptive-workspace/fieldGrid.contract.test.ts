@@ -6,7 +6,7 @@ import { test } from "node:test";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const content = readFileSync(join(root, "src/components/adaptive-workspace/WorkspaceContent.tsx"), "utf8");
-const css = readFileSync(join(root, "src/app/globals.css"), "utf8");
+const css = readFileSync(join(root, "src/app/layout-lock.css"), "utf8");
 const recruitingWorkspaces = readFileSync(
   join(root, "src/features/recruiting/components/RecruitingWorkspaces.tsx"),
   "utf8",
@@ -81,5 +81,5 @@ test("Interaction feature files do not own Recruit summary geometry", () => {
   assert.doesNotMatch(interactionList, /data-recruit-summary-/);
   assert.doesNotMatch(interactionList, /schoolsOfInterest/);
   assert.match(chrome, /data-recruit-summary-split/);
-  assert.match(chrome, /data-recruit-summary-academic/);
+  assert.match(chrome, /RecruitSummaryAcademicColumn/);
 });
