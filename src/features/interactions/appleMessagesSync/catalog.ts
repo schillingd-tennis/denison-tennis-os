@@ -1,6 +1,6 @@
 import { DatabaseSync } from "node:sqlite";
 
-import type { AppleScanRow } from "./scan";
+import { scanRowId, type AppleScanRow } from "./scan";
 import type { MessagesCatalog } from "./engine";
 
 /**
@@ -45,7 +45,10 @@ export class SqliteMessagesCatalog implements MessagesCatalog {
         ORDER BY m.ROWID ASC`,
     );
     stmt.setReadBigInts(true);
-    return stmt.all(rowId) as AppleScanRow[];
+    return (stmt.all(rowId) as AppleScanRow[]).map((row) => ({
+      ...row,
+      rowId: Number(row.rowId),
+    }));
   }
 }
 
@@ -54,10 +57,12 @@ export class MemoryMessagesCatalog implements MessagesCatalog {
 
   maxRowId(): number | null {
     if (this.rows.length === 0) return 0;
-    return this.rows.reduce((max, row) => Math.max(max, row.rowId), 0);
+    return this.rows.reduce((max, row) => Math.max(max, scanRowId(row)), 0);
   }
 
   messagesAfter(rowId: number): AppleScanRow[] {
-    return this.rows.filter((row) => row.rowId > rowId).sort((a, b) => a.rowId - b.rowId);
+    return this.rows
+      .filter((row) => scanRowId(row) > rowId)
+      .sort((a, b) => scanRowId(a) - scanRowId(b));
   }
 }

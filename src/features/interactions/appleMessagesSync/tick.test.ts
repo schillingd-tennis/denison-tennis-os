@@ -307,6 +307,91 @@ test("localhost supabase URL is rejected before a job is claimed", async () => {
   );
 });
 
+test("claimed job with SQLite BigInt ROWIDs completes instead of import_failed", async () => {
+  const activation = local(2026, 7, 17, 10, 0);
+  const now = local(2026, 7, 18, 10, 0);
+  await withRuntime(
+    async (runtime) => {
+      recordBaseline(runtime.store, runtime.catalog, activation);
+      appendAfterBaseline(runtime.catalog as MemoryMessagesCatalog, [
+        scanRow({
+          rowId: BigInt("80"),
+          guid: "g-80",
+          chatIdentifier: "+19735550101",
+          date: appleNanos("2026-08-17T16:00:00.000Z"),
+        }),
+      ]);
+      runtime.store.markImportSuccess(local(2026, 7, 17, 23, 3).toISOString());
+      await runtime.queue.enqueueManual("user-1", now);
+      const result = await runTick(runtime);
+      assert.equal(result.action, "claim");
+      assert.equal(result.errorCode, null);
+      assert.equal(result.importedCount, 1);
+      assert.equal(runtime.store.readState().lastScannedRowId, 80);
+    },
+    {
+      now,
+      rows: [
+        scanRow({
+          rowId: 40,
+          guid: "g-40",
+          chatIdentifier: "+19735550101",
+          date: appleNanos("2026-08-01T00:00:00.000Z"),
+        }),
+      ],
+    },
+  );
+});
+
+test("TypeError from BigInt coercion records bigint_coercion instead of import_failed", async () => {
+  const activation = local(2026, 7, 17, 10, 0);
+  const now = local(2026, 7, 18, 10, 0);
+  await withRuntime(
+    async (runtime) => {
+      recordBaseline(runtime.store, runtime.catalog, activation);
+      runtime.store.markImportSuccess(local(2026, 7, 17, 23, 3).toISOString());
+      runtime.catalog = {
+        maxRowId: () => 40,
+        messagesAfter: () => {
+          throw new TypeError("Cannot convert a BigInt value to a Number");
+        },
+      };
+      await runtime.queue.enqueueManual("user-1", now);
+      const logs: string[] = [];
+      const original = console.error;
+      console.error = (...args: unknown[]) => {
+        logs.push(String(args[0] ?? ""));
+      };
+      let result: Awaited<ReturnType<typeof runTick>>;
+      try {
+        result = await runTick(runtime);
+      } finally {
+        console.error = original;
+      }
+      assert.equal(result.action, "failed");
+      assert.equal(result.errorCode, "bigint_coercion");
+      assert.match(logs.join("\n"), /tick diagnostic code=bigint_coercion name=TypeError/);
+      assert.equal(
+        logs.every((line) => !/\+1|hello|service-role|keychain/i.test(line)),
+        true,
+      );
+      const status = await runtime.queue.getStatus();
+      assert.equal(status.lastFinished?.errorCode, "bigint_coercion");
+    },
+    {
+      now,
+      rows: [
+        scanRow({
+          rowId: 40,
+          guid: "g-40",
+          chatIdentifier: "+19735550101",
+          date: appleNanos("2026-08-01T00:00:00.000Z"),
+        }),
+      ],
+    },
+  );
+});
+
 test("missing Keychain secret fails closed without claiming work", async () => {
   const activation = local(2026, 7, 17, 10, 0);
   const now = local(2026, 7, 18, 8, 0);

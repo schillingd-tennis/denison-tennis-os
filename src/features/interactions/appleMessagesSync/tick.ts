@@ -47,10 +47,16 @@ export type TickRuntime = {
 function errorCodeFrom(error: unknown): string {
   if (error instanceof ProductionHostError) return "host_not_production";
   if (error instanceof Error && /keychain/i.test(error.message)) return "keychain_unavailable";
+  if (error instanceof TypeError && /bigint/i.test(error.message)) return "bigint_coercion";
   if (error instanceof Error && /recruiting_interactions|upsert/i.test(error.message)) {
     return "writer_failed";
   }
   return "import_failed";
+}
+
+function logSafeTickFailure(error: unknown, errorCode: string): void {
+  const name = error instanceof Error ? error.name : "unknown";
+  console.error(`tick diagnostic code=${errorCode} name=${name}`);
 }
 
 async function runClaimedJob(
@@ -87,6 +93,7 @@ async function runClaimedJob(
   } catch (error) {
     if (cursorBefore != null) runtime.store.setLastScannedRowId(cursorBefore);
     const errorCode = errorCodeFrom(error);
+    logSafeTickFailure(error, errorCode);
     try {
       await runtime.queue.fail(job.id, errorCode, now);
     } catch {

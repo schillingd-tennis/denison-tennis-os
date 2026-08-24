@@ -139,6 +139,40 @@ test("ROWID at or below the baseline is never selected", () => {
   });
 });
 
+test("scanForward accepts SQLite BigInt ROWIDs without import_failed", () => {
+  const activationAt = "2024-06-15T12:00:00.000Z";
+  withStore((_home, store) => {
+    recordBaseline(
+      store,
+      new MemoryMessagesCatalog([
+        scanRow({
+          rowId: 90,
+          guid: "g-90",
+          chatIdentifier: "+15550001111",
+          date: appleNanos("2024-05-01T00:00:00.000Z"),
+        }),
+      ]),
+      new Date(activationAt),
+    );
+    const result = scanForward(
+      store,
+      new MemoryMessagesCatalog([
+        scanRow({
+          rowId: BigInt("121"),
+          guid: "g-121",
+          chatIdentifier: "+19735550101",
+          date: appleNanos("2024-06-16T00:00:00.000Z"),
+        }),
+      ]),
+      context,
+      new Date("2024-06-20T00:00:00.000Z"),
+    );
+    assert.equal(result.importable.length, 1);
+    assert.equal(result.importable[0]?.source_key, "g-121");
+    assert.equal(store.readState().lastScannedRowId, 121);
+  });
+});
+
 test("new ROWID with occurrence at or before activation is never imported", () => {
   const activationAt = "2024-06-15T12:00:00.000Z";
   const delayedIcloud = scanRow({

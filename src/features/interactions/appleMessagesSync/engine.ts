@@ -5,6 +5,7 @@ import {
   classifyScanRow,
   matchHandle,
   selectForwardMessages,
+  scanRowId,
   type AppleScanRow,
   type ScanMatchContext,
 } from "./scan";
@@ -69,7 +70,7 @@ export function scanForward(
   const lastScannedRowId = state.lastScannedRowId ?? state.baselineRowId ?? 0;
   const activationAt = state.activationAt!;
   const fetched = catalog.messagesAfter(lastScannedRowId);
-  const nextCursor = fetched.reduce((max, row) => Math.max(max, row.rowId), lastScannedRowId);
+  const nextCursor = fetched.reduce((max, row) => Math.max(max, scanRowId(row)), lastScannedRowId);
   const forward = selectForwardMessages(fetched, { lastScannedRowId, activationAt });
   const classified = forward.map((row) => ({ row, classified: classifyScanRow(row) }));
   const handles = classified
@@ -91,7 +92,7 @@ export function scanForward(
     if (classified.kind === "decode_failed") {
       const write: UnresolvedWrite = {
         guid: classified.guid,
-        rowId: item.row.rowId,
+        rowId: scanRowId(item.row),
         appleDate: classified.appleDate,
         handle: classified.handle,
         reason: "decode_failed",
@@ -107,7 +108,7 @@ export function scanForward(
     }
     const write: UnresolvedWrite = {
       guid: classified.guid,
-      rowId: item.row.rowId,
+      rowId: scanRowId(item.row),
       appleDate: classified.appleDate,
       handle: classified.handle,
       reason: match.status === "ambiguous" ? "ambiguous" : "unmatched",

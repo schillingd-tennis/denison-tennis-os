@@ -27,6 +27,25 @@ export function assertAbsolutePath(name: string, value: string): void {
   }
 }
 
+export const LAUNCH_AGENT_TEMPLATE_PLACEHOLDERS = [
+  "NODE_BIN",
+  "HELPER_JS",
+  "APP_SUPPORT",
+  "LOG_OUT",
+  "LOG_ERR",
+] as const;
+
+export function applyLaunchAgentTemplate(
+  template: string,
+  replacements: Record<(typeof LAUNCH_AGENT_TEMPLATE_PLACEHOLDERS)[number], string>,
+): string {
+  let xml = template;
+  for (const key of LAUNCH_AGENT_TEMPLATE_PLACEHOLDERS) {
+    xml = xml.split(`__${key}__`).join(replacements[key]);
+  }
+  return xml;
+}
+
 export function renderLaunchAgentPlist(paths: LaunchAgentPaths): string {
   for (const [name, value] of Object.entries(paths)) {
     assertAbsolutePath(name, value);

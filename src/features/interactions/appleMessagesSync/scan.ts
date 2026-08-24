@@ -15,7 +15,11 @@ import {
 
 import type { UnresolvedReason } from "./store";
 
-export type AppleScanRow = AppleMessageRow & { rowId: number };
+export type AppleScanRow = AppleMessageRow & { rowId: number | bigint };
+
+export function scanRowId(row: Pick<AppleScanRow, "rowId">): number {
+  return typeof row.rowId === "bigint" ? Number(row.rowId) : row.rowId;
+}
 
 export type ScanMatchContext = {
   recruits: RecruitMatchInput[];
@@ -34,7 +38,7 @@ export type ClassifiedScan =
   | { kind: "candidate"; parsed: ProposedInteraction; handle: string; guid: string; appleDate: string };
 
 export function isForwardCandidate(row: AppleScanRow, options: ForwardSelectOptions): boolean {
-  if (row.rowId <= options.lastScannedRowId) return false;
+  if (scanRowId(row) <= options.lastScannedRowId) return false;
   return appleTimestampToIso(row.date) > options.activationAt;
 }
 
