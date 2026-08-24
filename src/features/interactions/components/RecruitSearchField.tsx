@@ -115,7 +115,7 @@ export default function RecruitSearchField({
           onChange={(event) => onQueryChange(event.target.value)}
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
-          className="h-10 w-full rounded-control border border-border bg-surface py-0 pr-10 pl-10 text-sm text-text-primary"
+          className="h-10 w-full rounded-control border border-border bg-surface py-0 pr-10 pl-10 text-sm font-normal text-text-primary"
         />
         {selected || query ? (
           <button

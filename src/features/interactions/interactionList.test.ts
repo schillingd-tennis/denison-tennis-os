@@ -41,7 +41,12 @@ test("3 clicking message opens the edit drawer", () => {
 test("4 clicking message does not navigate to the recruit", () => {
   assert.match(listSource, /event\.stopPropagation\(\);\s*onOpen\(item\)/);
   assert.doesNotMatch(listSource, /router\.push/);
-  assert.doesNotMatch(listSource, /notes[\s\S]*recruitingPersonPath/);
+  const workspaceRow = listSource.slice(
+    listSource.indexOf("function WorkspaceInteractionRow"),
+    listSource.indexOf("function DirectoryInteractionRow"),
+  );
+  const notesBlock = workspaceRow.slice(workspaceRow.indexOf("{item.notes ?"));
+  assert.doesNotMatch(notesBlock, /recruitingPersonPath/);
 });
 
 test("5 clicking trash opens delete confirmation only", () => {
@@ -64,6 +69,58 @@ test("7 saving an edit updates the same interaction id", () => {
   assert.match(actionsSource, /updateRecruitInteraction\(id, input\)/);
   assert.match(actionsSource, /if \(!id\) throw/);
   assert.match(actionsSource, /if \(!existing\) throw/);
+});
+
+test("central directory rows show recruit name then type then date", () => {
+  const directory = listSource.slice(listSource.indexOf("function DirectoryInteractionRow"));
+  const meta = directory.slice(
+    directory.indexOf("flex min-w-0 flex-wrap items-baseline"),
+    directory.indexOf("mt-0.5 flex min-w-0 flex-col"),
+  );
+  const nameAt = meta.indexOf("item.recruitName");
+  const typeAt = meta.indexOf("item.interactionType");
+  const dateAt = meta.indexOf("formatDate(item.occurredAt)");
+  assert.ok(nameAt >= 0 && typeAt > nameAt && dateAt > typeAt);
+  assert.match(meta, /TEAM_DIRECTORY_NAME/);
+  assert.match(meta, /typeRole\.sectionLabel/);
+  assert.match(meta, /text-xs text-text-secondary/);
+  assert.match(meta, /max-md:w-full/);
+  const workspace = listSource.slice(
+    listSource.indexOf("function WorkspaceInteractionRow"),
+    listSource.indexOf("function DirectoryInteractionRow"),
+  );
+  const workspaceMeta = workspace.slice(
+    workspace.indexOf("flex flex-wrap items-baseline"),
+    workspace.indexOf("showRecruit ?"),
+  );
+  assert.match(workspaceMeta, /item\.interactionType/);
+  assert.match(workspaceMeta, /formatDate\(item\.occurredAt\)/);
+  assert.doesNotMatch(workspaceMeta, /item\.recruitName/);
+});
+
+test("Interaction slideover keeps labels emphasized and field values at normal weight", () => {
+  assert.match(formSource, /const control = "h-10 w-full rounded-control border border-border bg-surface px-3 text-sm font-normal text-text-primary"/);
+  assert.match(formSource, /text-xs font-semibold text-text-secondary/);
+  assert.match(formSource, /h-10 rounded-control border border-border px-4 text-sm font-semibold/);
+  assert.match(formSource, /h-10 rounded-control bg-denison-red px-4 text-sm font-semibold text-white/);
+  assert.match(formSource, /text-sm font-normal text-text-primary/);
+  assert.doesNotMatch(formSource, /mt-1 flex h-10 items-center[\s\S]*font-medium text-text-primary/);
+});
+
+test("central directory rows use compact Recruit List density without changing workspace rows", () => {
+  assert.match(dashboardSource, /density="directory"/);
+  assert.match(listSource, /density = "workspace"/);
+  assert.match(listSource, /data-interaction-directory-row=/);
+  assert.match(listSource, /min-h-\[72px\]/);
+  assert.match(listSource, /line-clamp-2/);
+  assert.match(listSource, /Show more/);
+  assert.match(listSource, /Show less/);
+  assert.match(listSource, /flex gap-3 px-4 py-3.5 max-sm:px-3/);
+  const workspaces = readFileSync(
+    join(here, "../recruiting/components/RecruitingWorkspaces.tsx"),
+    "utf8",
+  );
+  assert.doesNotMatch(workspaces, /density="directory"/);
 });
 
 test("8 cancel performs no update", () => {

@@ -43,7 +43,7 @@ export default function InteractionsDashboard({ interactions, recruits, tourname
   }
   return <ModulePageShell title="Interactions" subtitle="Central history of recruiting calls, texts, messages, visits, and follow-ups." actions={<button type="button" onClick={openForm} className="inline-flex h-11 items-center rounded-control bg-denison-red px-5 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(200,16,46,0.28)]">+ Add Interaction</button>}>
     <MobileDirectorySearchRegion toolbar={<DirectoryToolbar search={<SearchInput value={query} onChange={setQuery} placeholder="Search interactions, recruits, notes, or tournaments" aria-label="Search interactions" />} views={null} filters={null} />}>
-      <InteractionList interactions={filtered} onOpen={openInteraction} onDelete={requestDelete}/>
+      <InteractionList interactions={filtered} onOpen={openInteraction} onDelete={requestDelete} density="directory"/>
     </MobileDirectorySearchRegion>
   </ModulePageShell>;
 }

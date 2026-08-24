@@ -51,6 +51,7 @@ const recruits: InteractionOption[] = [
 test("1 autocomplete renders as a combobox with results anchored below the input", () => {
   assert.match(fieldSource, /role="combobox"/);
   assert.match(fieldSource, /placeholder="Search recruits…"/);
+  assert.match(fieldSource, /text-sm font-normal text-text-primary/);
   assert.match(fieldSource, /absolute top-full/);
   assert.match(fieldSource, /role="listbox"/);
   assert.match(formSource, /RecruitSearchField/);

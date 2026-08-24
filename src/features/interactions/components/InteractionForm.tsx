@@ -74,7 +74,7 @@ export default function InteractionForm({
     onCancel?.();
   }
 
-  const control = "h-10 w-full rounded-control border border-border bg-surface px-3 text-sm text-text-primary";
+  const control = "h-10 w-full rounded-control border border-border bg-surface px-3 text-sm font-normal text-text-primary";
   return (
     <form onSubmit={onSubmit} className="space-y-4 p-5">
       {interaction ? <input type="hidden" name="interactionId" value={interaction.id} /> : null}
@@ -83,7 +83,7 @@ export default function InteractionForm({
           <div className="text-xs font-semibold text-text-secondary">
             Recruit
             <input type="hidden" name="recruitPersonId" value={pinned.id} />
-            <span className="mt-1 flex h-10 items-center rounded-control border border-border bg-surface px-3 text-sm font-medium text-text-primary">
+            <span className="mt-1 flex h-10 items-center rounded-control border border-border bg-surface px-3 text-sm font-normal text-text-primary">
               {pinned.label}
             </span>
           </div>
