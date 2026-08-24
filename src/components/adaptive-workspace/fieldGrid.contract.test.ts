@@ -19,6 +19,10 @@ const interactionList = readFileSync(
   join(root, "src/features/interactions/components/InteractionList.tsx"),
   "utf8",
 );
+const interactionSummary = readFileSync(
+  join(root, "src/features/interactions/components/InteractionSummaryCards.tsx"),
+  "utf8",
+);
 const chrome = readFileSync(
   join(root, "src/features/recruiting/components/RecruitWorkspaceChrome.tsx"),
   "utf8",
@@ -80,6 +84,8 @@ test("Tournament Overview continues to use a multi-column field grid", () => {
 test("Interaction feature files do not own Recruit summary geometry", () => {
   assert.doesNotMatch(interactionList, /data-recruit-summary-/);
   assert.doesNotMatch(interactionList, /schoolsOfInterest/);
+  assert.doesNotMatch(interactionSummary, /data-recruit-summary-/);
+  assert.doesNotMatch(interactionSummary, /data-aw-field-grid/);
   assert.match(chrome, /data-recruit-summary-split/);
   assert.match(chrome, /RecruitSummaryAcademicColumn/);
 });

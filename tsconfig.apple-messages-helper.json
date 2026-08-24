@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "outDir": "helpers/apple-messages-sync",
+    "rootDir": "src/features/interactions",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "noEmit": false,
+    "declaration": false,
+    "types": ["node"]
+  },
+  "include": [
+    "src/features/interactions/appleMessages.ts",
+    "src/features/interactions/appleMessagesSync/**/*.ts",
+    "src/types/node-sqlite.d.ts"
+  ],
+  "exclude": [
+    "**/*.test.ts",
+    "src/features/interactions/appleMessagesSync/actions.ts",
+    "src/features/interactions/appleMessagesSync/settingsStatus.ts"
+  ]
+}

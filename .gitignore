@@ -36,6 +36,7 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.local.example
+# .env.production.local is covered by .env* (production Apple Messages dry-run)
 
 # vercel
 .vercel
@@ -44,8 +45,14 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# private imports
+# private imports (CSV uploads, Apple Messages reports, local overrides)
 private-imports/
+/apple-messages-overrides.json
+/apple-messages-report.json
+/apple-messages-report.csv
+
+# compiled Apple Messages helper (install-time output)
+/helpers/apple-messages-sync/
 
 # local Supabase CLI runtime (also ignored under supabase/.gitignore)
 supabase/.temp/

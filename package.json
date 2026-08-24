@@ -10,6 +10,9 @@
     "import:players": "tsx scripts/import-players.ts",
     "import:tournaments": "tsx scripts/import-tournaments.ts",
     "import:interactions": "tsx scripts/import-interactions.ts",
+    "import:apple-messages": "tsx scripts/import-apple-messages.ts",
+    "apple-messages-helper": "tsx scripts/apple-messages-helper.ts",
+    "build:apple-messages-helper": "tsc -p tsconfig.apple-messages-helper.json",
     "verify:supabase": "tsx scripts/verify-supabase-connection.ts",
     "db:generate-seed": "tsx scripts/generate-supabase-seed.ts",
     "db:start": "supabase start && npm run db:seed-auth",
@@ -29,7 +32,7 @@
     "test:recruiting": "tsx --test src/features/recruiting/analytics/*.test.ts src/features/recruiting/coachRank/*.test.ts src/features/recruiting/directoryInline.test.ts src/features/recruiting/rankViewSort.test.ts src/features/recruiting/metricsView.test.ts src/features/recruiting/visitDays.test.ts src/features/recruiting/visitDatePersist.test.ts src/features/recruiting/components/RecruitWorkspaceChrome.test.ts src/features/recruiting/components/RecruitingVisitWorkspace.test.ts src/features/recruiting/RecruitingWorkspaceLayout.guardrail.test.ts src/features/recruiting/dashboard.test.ts src/components/adaptive-workspace/fieldGrid.contract.test.ts src/components/nav-items.test.ts && playwright test tests/layout.cold-load.spec.ts",
     "test:layout-cold-load": "playwright test tests/layout.cold-load.spec.ts",
     "test:tournaments": "tsx --test src/features/tournaments/*.test.ts",
-    "test:interactions": "tsx --test src/features/interactions/*.test.ts"
+    "test:interactions": "tsx --test src/features/interactions/*.test.ts src/features/interactions/appleMessagesSync/*.test.ts src/app/settings/*.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

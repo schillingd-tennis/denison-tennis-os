@@ -2,13 +2,28 @@ import Link from "next/link";
 import { ChevronRight, TerminalSquare } from "lucide-react";
 
 import PageHeader from "@/components/PageHeader";
+import AppleMessagesSettingsCard from "@/features/interactions/appleMessagesSync/AppleMessagesSettingsCard";
+import { getAppleMessagesSyncStatusAction } from "@/features/interactions/appleMessagesSync/actions";
+import { emptySyncStatus } from "@/features/interactions/appleMessagesSync/settingsStatus";
 
-export default function SettingsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function SettingsPage() {
+  const loaded = await getAppleMessagesSyncStatusAction();
+  const initialStatus = loaded.ok ? loaded.status : emptySyncStatus();
+  const initialError = loaded.ok ? null : loaded.error;
+
   return (
     <div className="flex flex-col gap-10">
       <PageHeader
         title="Settings"
         subtitle="Workspace preferences and developer tools for Denison Tennis OS."
+      />
+
+      <AppleMessagesSettingsCard
+        initialStatus={initialStatus}
+        initialError={initialError}
+        signedIn={loaded.ok}
       />
 
       <section>

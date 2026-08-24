@@ -99,6 +99,22 @@ test("rows open the same interaction record for editing", () => {
   assert.match(dashboard, /onOpen=\{openInteraction\}/);
 });
 
+test("Interaction summary cards sit above the INTERACTIONS heading", () => {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const panel = readFileSync(
+    join(here, "../recruiting/components/RecruitingWorkspaces.tsx"),
+    "utf8",
+  );
+  const start = panel.indexOf("export function RecruitingCommunicationsWorkspace");
+  assert.ok(start >= 0);
+  const slice = panel.slice(start, start + 1200);
+  const cards = slice.indexOf("<InteractionSummaryCards");
+  const heading = slice.indexOf(">\n          Interactions");
+  assert.ok(cards >= 0, "expected InteractionSummaryCards in communications workspace");
+  assert.ok(heading >= 0, "expected Interactions accent heading");
+  assert.ok(cards < heading, "summary cards must sit above the INTERACTIONS heading");
+});
+
 test("Recruit AW user-facing label is Interactions, not Communications / Interactions", () => {
   const here = dirname(fileURLToPath(import.meta.url));
   const workspace = readFileSync(

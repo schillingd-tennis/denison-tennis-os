@@ -49,6 +49,7 @@ import type { Person } from "@/features/people/types";
 import { getHometown, parseHometown } from "@/features/people/utils";
 import { EMPTY_VALUE, formatUtr, formatWtn } from "@/lib/formatting";
 import InteractionList from "@/features/interactions/components/InteractionList";
+import InteractionSummaryCards from "@/features/interactions/components/InteractionSummaryCards";
 import type { RecruitInteraction } from "@/features/interactions/types";
 
 import type { RecruitAnalyticsResult } from "../analytics/types";
@@ -1203,6 +1204,7 @@ export function RecruitingCommunicationsWorkspace({
 }) {
   return (
     <div className="min-w-0 space-y-[14px]">
+      <InteractionSummaryCards interactions={interactions} />
       <section aria-label="Interactions">
         <WorkspaceAccentHeading icon={MessageSquare} tone="module">
           Interactions
