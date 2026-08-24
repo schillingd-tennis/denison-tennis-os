@@ -15,6 +15,7 @@ import {
   Medal,
   MessageSquare,
   NotebookPen,
+  Plane,
   Scale,
   ScrollText,
   Star,
@@ -54,6 +55,7 @@ import type { RecruitAnalyticsResult } from "../analytics/types";
 import type { RecruitNoteQuickEntryRequest } from "../noteQuickEntry";
 import { rankingProfileHref } from "../rankingProfileUrl";
 import type { RecruitProfile } from "../types";
+import { visitDayCount, visitRangeInvalid } from "../visitDays";
 import { BlueChipRatingIcon, RecruitStarRatingDisplay } from "./RecruitRatingDisplay";
 import RecruitStatusBadge from "./RecruitStatusBadge";
 import {
@@ -1111,6 +1113,54 @@ function NotesSection({
         </NotesBlock>
       </div>
     </section>
+  );
+}
+
+function VisitDayCountField() {
+  const session = useRecruitProfileFieldSession();
+  if (visitRangeInvalid(session.profile.visitStartDate, session.profile.visitEndDate)) {
+    return <WorkspaceReadOnlyValue value="" />;
+  }
+  const days = visitDayCount(session.profile.visitStartDate, session.profile.visitEndDate);
+  return <WorkspaceReadOnlyValue value={days === null ? "" : String(days)} />;
+}
+
+export function RecruitingVisitWorkspace() {
+  return (
+    <div className="min-w-0 space-y-[14px]">
+      <section aria-label="Visit details">
+        <WorkspaceAccentHeading icon={Plane} tone="warning">
+          Visit details
+        </WorkspaceAccentHeading>
+        <WorkspaceFieldGrid columns={3} className="mt-[5px]">
+          <WorkspaceField label="Visit Start Date">
+            <RecruitProfileField field="visitStartDate" label="Visit Start Date" type="date" align="left" />
+          </WorkspaceField>
+          <WorkspaceField label="Visit End Date">
+            <RecruitProfileField field="visitEndDate" label="Visit End Date" type="date" align="left" />
+          </WorkspaceField>
+          <WorkspaceField label="Number of Days">
+            <VisitDayCountField />
+          </WorkspaceField>
+        </WorkspaceFieldGrid>
+      </section>
+
+      <div className="border-t border-border/50 pt-[14px]">
+        <section aria-label="Travel">
+          <WorkspaceAccentHeading icon={Plane} tone="warning">
+            Travel
+          </WorkspaceAccentHeading>
+          <WorkspaceFieldGrid columns={3} className="mt-[5px]">
+            <WorkspaceField label="Travel Type">
+              <RecruitProfileField field="travelType" label="Travel Type" type="select" align="left" />
+            </WorkspaceField>
+            <WorkspaceField label="Flight Info" span>
+              <RecruitProfileField field="flightInfo" label="Flight Info" type="text" align="left" />
+            </WorkspaceField>
+          </WorkspaceFieldGrid>
+        </section>
+      </div>
+    </div>
   );
 }
 

@@ -9,6 +9,7 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -24,6 +25,13 @@ import {
 import type { LookupSeedRow } from "@/features/lookups/seed";
 
 import { updateRecruitProfileAction } from "../actions";
+import {
+  applyVisitDateSaveResult,
+  calendarDateOnly,
+  persistVisitDateField,
+  type PersistVisitDateResult,
+} from "../visitDays";
+import { VisitDateField } from "./VisitDateField";
 import {
   GETABILITY_SELECT_OPTIONS,
   INTEREST_SELECT_OPTIONS,
@@ -64,7 +72,11 @@ export type RecruitProfileEditableField =
   | "notes"
   | "gameNotes"
   | "keyPitchAngle"
-  | "focus";
+  | "focus"
+  | "visitStartDate"
+  | "visitEndDate"
+  | "travelType"
+  | "flightInfo";
 
 const LOOKUP_FIELD: Record<
   | "recruitTypeId"
@@ -129,6 +141,12 @@ const BOOLEAN_OPTIONS: InlineSelectOption[] = [
   { value: "false", label: "No" },
 ];
 
+export const TRAVEL_TYPE_OPTIONS: InlineSelectOption[] = [
+  { value: "Flight", label: "Flight" },
+  { value: "Drive", label: "Drive" },
+  { value: "Other", label: "Other" },
+];
+
 export type RecruitProfileEditSlot = "workspace" | "summary";
 
 type EditingCell = {
@@ -147,6 +165,10 @@ type SessionValue = {
     raw: string,
     reason: InlineCommitReason,
   ) => Promise<void>;
+  saveVisitDate: (
+    field: "visitStartDate" | "visitEndDate",
+    raw: string,
+  ) => Promise<PersistVisitDateResult>;
 };
 
 const RecruitProfileFieldContext = createContext<SessionValue | null>(null);
@@ -172,6 +194,9 @@ export function RecruitProfileFieldSession({
 }) {
   const [editing, setEditing] = useState<EditingCell | null>(null);
   const [fieldError, setFieldError] = useState<string | undefined>(undefined);
+  const profileRef = useRef(profile);
+  profileRef.current = profile;
+  const pendingVisitRef = useRef(new Set<string>());
 
   const startEdit = useCallback((
     field: RecruitProfileEditableField,
@@ -185,6 +210,64 @@ export function RecruitProfileFieldSession({
     setFieldError(undefined);
     setEditing(null);
   }, []);
+
+  const saveVisitDate = useCallback(
+    async (field: "visitStartDate" | "visitEndDate", raw: string) => {
+      const current = profileRef.current;
+      const previousValue = current[field];
+      pendingVisitRef.current.add(field);
+      const result = await persistVisitDateField({
+        personId: current.personId,
+        field,
+        raw,
+        currentStored: calendarDateOnly(current[field]) ?? "",
+        visitStartDate: current.visitStartDate,
+        visitEndDate: current.visitEndDate,
+        update: async (personId, patch) => {
+          const written =
+            field === "visitStartDate"
+              ? (patch as { visitStartDate: string | null }).visitStartDate
+              : (patch as { visitEndDate: string | null }).visitEndDate;
+          onProfileChange({
+            ...profileRef.current,
+            [field]: written || undefined,
+          });
+          let saved: RecruitProfile | undefined;
+          const ok = await runSave(async () => {
+            const actionResult = await updateRecruitProfileAction(personId, patch);
+            if (!actionResult.success) throw new Error(actionResult.error);
+            saved = actionResult.profile;
+          });
+          if (!ok || !saved) {
+            return { success: false as const, error: "We couldn't save your changes. Please try again." };
+          }
+          return { success: true as const, profile: saved };
+        },
+      });
+      if (result.status === "invalid" || result.status === "skipped") {
+        pendingVisitRef.current.delete(field);
+        return result;
+      }
+      pendingVisitRef.current.delete(field);
+      if (result.status === "failed") {
+        onProfileChange({ ...profileRef.current, [field]: previousValue });
+        return result;
+      }
+      onProfileChange(
+        applyVisitDateSaveResult(
+          result.profile,
+          profileRef.current,
+          field,
+          "visitStartDate" in result.patch
+            ? result.patch.visitStartDate
+            : result.patch.visitEndDate,
+          pendingVisitRef.current,
+        ),
+      );
+      return result;
+    },
+    [onProfileChange, runSave],
+  );
 
   const commit = useCallback(
     async (
@@ -218,6 +301,41 @@ export function RecruitProfileFieldSession({
         const ok = await runSave(async () => {
           const result = await updateRecruitProfileAction(profile.personId, {
             [field]: raw || null,
+          });
+          if (!result.success) throw new Error(result.error);
+          onProfileChange(result.profile);
+        });
+        if (!ok) onProfileChange(previous);
+        return;
+      }
+
+      if (field === "visitStartDate" || field === "visitEndDate") {
+        const result = await saveVisitDate(field, raw);
+        if (result.status === "invalid") {
+          setFieldError(result.error);
+          return;
+        }
+        finish();
+        return;
+      }
+
+      if (field === "travelType") {
+        const next = raw.trim();
+        if (next && !TRAVEL_TYPE_OPTIONS.some((option) => option.value === next)) {
+          setFieldError("Travel type must be Flight, Drive, or Other.");
+          return;
+        }
+        const current = profile.travelType ?? "";
+        if (next === current) {
+          finish();
+          return;
+        }
+        const previous = profile;
+        onProfileChange({ ...profile, travelType: next || undefined });
+        finish();
+        const ok = await runSave(async () => {
+          const result = await updateRecruitProfileAction(profile.personId, {
+            travelType: next || null,
           });
           if (!result.success) throw new Error(result.error);
           onProfileChange(result.profile);
@@ -323,7 +441,7 @@ export function RecruitProfileFieldSession({
       });
       if (!ok) onProfileChange(previous);
     },
-    [onProfileChange, profile, runSave],
+    [onProfileChange, profile, runSave, saveVisitDate],
   );
 
   const value = useMemo<SessionValue>(
@@ -336,8 +454,9 @@ export function RecruitProfileFieldSession({
       startEdit,
       cancelEdit,
       commit,
+      saveVisitDate,
     }),
-    [cancelEdit, commit, editing, fieldError, profile, startEdit],
+    [cancelEdit, commit, editing, fieldError, profile, saveVisitDate, startEdit],
   );
 
   return (
@@ -379,6 +498,16 @@ export function RecruitProfileField({
   renderDisplay?: ReactNode;
 }) {
   const session = useRecruitProfileFieldSession();
+  if (field === "visitStartDate" || field === "visitEndDate") {
+    return (
+      <VisitDateField
+        field={field}
+        label={label}
+        profile={session.profile}
+        saveVisitDate={session.saveVisitDate}
+      />
+    );
+  }
   const lookup = field in LOOKUP_FIELD ? LOOKUP_FIELD[field as keyof typeof LOOKUP_FIELD] : undefined;
 
   let value = "";
@@ -396,6 +525,11 @@ export function RecruitProfileField({
     options = BOOLEAN_OPTIONS;
     value = session.profile.focus ? "true" : "false";
     displayValue = session.profile.focus ? "Yes" : "No";
+  } else if (field === "travelType") {
+    resolvedType = "select";
+    options = TRAVEL_TYPE_OPTIONS;
+    value = session.profile.travelType ?? "";
+    displayValue = session.profile.travelType;
   } else if (
     field === "recruitClassYear" ||
     field === "sat" ||

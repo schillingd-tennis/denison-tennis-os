@@ -16,6 +16,7 @@ export type RecruitProfileFieldSection =
   | "academic"
   | "admissions"
   | "intelligence"
+  | "visit"
   | "source";
 
 export type RecruitProfileFieldDefinition = {
@@ -305,6 +306,43 @@ export const RECRUIT_PROFILE_FIELD_CATALOG: readonly RecruitProfileFieldDefiniti
     editable: true,
     exportable: true,
     dbColumn: "key_pitch_angle",
+  },
+
+  {
+    key: "visitStartDate",
+    label: "Visit Start Date",
+    section: "visit",
+    type: "date",
+    editable: true,
+    exportable: true,
+    dbColumn: "visit_start_date",
+  },
+  {
+    key: "visitEndDate",
+    label: "Visit End Date",
+    section: "visit",
+    type: "date",
+    editable: true,
+    exportable: true,
+    dbColumn: "visit_end_date",
+  },
+  {
+    key: "travelType",
+    label: "Travel Type",
+    section: "visit",
+    type: "enum",
+    editable: true,
+    exportable: true,
+    dbColumn: "travel_type",
+  },
+  {
+    key: "flightInfo",
+    label: "Flight Info",
+    section: "visit",
+    type: "text",
+    editable: true,
+    exportable: true,
+    dbColumn: "flight_info",
   },
 
   {

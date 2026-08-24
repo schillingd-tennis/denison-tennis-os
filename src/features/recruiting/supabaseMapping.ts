@@ -4,6 +4,7 @@
 import type { LookupRef } from "@/features/lookups/types";
 
 import { getWritableRecruitProfileFieldMap } from "./fieldCatalog";
+import { calendarDateOnly } from "./visitDays";
 import {
   RECRUIT_GETABILITY_SEED,
   RECRUIT_INTEREST_SEED,
@@ -50,6 +51,10 @@ export type RecruitProfileRow = {
   notes: string | null;
   game_notes: string | null;
   key_pitch_angle: string | null;
+  visit_start_date: string | null;
+  visit_end_date: string | null;
+  travel_type: string | null;
+  flight_info: string | null;
   coda_row_id: string | null;
   coda_export: CodaExportPayload | null;
   recruit_type?: NestedLookup | NestedLookup[] | null;
@@ -139,6 +144,11 @@ export function rowToRecruitProfile(row: RecruitProfileRow): RecruitProfile {
     notes: undefinedIfNull(row.notes),
     gameNotes: undefinedIfNull(row.game_notes),
     keyPitchAngle: undefinedIfNull(row.key_pitch_angle),
+
+    visitStartDate: calendarDateOnly(row.visit_start_date),
+    visitEndDate: calendarDateOnly(row.visit_end_date),
+    travelType: undefinedIfNull(row.travel_type),
+    flightInfo: undefinedIfNull(row.flight_info),
 
     codaRowId: undefinedIfNull(row.coda_row_id),
     codaExport: asCodaExport(row.coda_export),

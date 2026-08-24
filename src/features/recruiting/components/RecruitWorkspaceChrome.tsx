@@ -40,6 +40,7 @@ export type RecruitWorkspaceTone =
   | "academics"
   | "rankings"
   | "analytics"
+  | "visit"
   | "notes"
   | "communications";
 
@@ -77,6 +78,12 @@ const toneSurface: Record<
     active: "border-info bg-info/[0.07]",
     activeIcon: "bg-info/15 text-info",
     chevron: "text-info/70",
+  },
+  visit: {
+    icon: "bg-warning/15 text-warning",
+    active: "border-warning bg-warning/[0.10]",
+    activeIcon: "bg-warning/20 text-warning",
+    chevron: "text-warning/80",
   },
   notes: {
     icon: "bg-knowledge/10 text-knowledge",

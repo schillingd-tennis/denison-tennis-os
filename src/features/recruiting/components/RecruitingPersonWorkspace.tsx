@@ -12,6 +12,7 @@ import {
   MessageSquare,
   NotebookPen,
   Phone,
+  Plane,
   SquarePen,
   Trash2,
   UserRound,
@@ -53,6 +54,7 @@ import {
   formatUtr,
   formatWtn,
 } from "@/lib/formatting";
+import { RECRUITING_LIST_ROUTE } from "@/lib/module-routes";
 
 import type { RecruitAnalyticsResult } from "../analytics/types";
 import {
@@ -72,6 +74,7 @@ import {
   RecruitingAnalyticsWorkspace,
   RecruitingCommunicationsWorkspace,
   RecruitingNotesWorkspace,
+  RecruitingVisitWorkspace,
   RecruitingPersonalInfoWorkspace,
   RecruitingRankingsWorkspace,
   RecruitWorkspaceFieldSessions,
@@ -101,6 +104,7 @@ export default function RecruitingPersonWorkspace({
   inCurrentCohort,
   interactions,
   tournamentOptions,
+  initialWorkspaceId,
 }: {
   person: Person;
   profile: RecruitProfile;
@@ -108,11 +112,14 @@ export default function RecruitingPersonWorkspace({
   inCurrentCohort: boolean;
   interactions: RecruitInteraction[];
   tournamentOptions: InteractionOption[];
+  initialWorkspaceId?: string;
 }) {
   const [record, setRecord] = useState(person);
   const [trackedPerson, setTrackedPerson] = useState(person);
   const [profileRecord, setProfileRecord] = useState(profile);
-  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>("personal-info");
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(
+    initialWorkspaceId ?? "personal-info",
+  );
   const [noteQuickEntry, setNoteQuickEntry] = useState<RecruitNoteQuickEntryRequest | null>(
     null,
   );
@@ -124,7 +131,7 @@ export default function RecruitingPersonWorkspace({
     setTrackedPerson(person);
     setRecord(person);
     setProfileRecord(profile);
-    setActiveWorkspaceId("personal-info");
+    setActiveWorkspaceId(initialWorkspaceId ?? "personal-info");
     setNoteQuickEntry(null);
   } else if (person !== trackedPerson) {
     setTrackedPerson(person);
@@ -274,6 +281,16 @@ export default function RecruitingPersonWorkspace({
           : "Historical profile",
       },
       {
+        id: "visit",
+        title: "Visit",
+        icon: Plane,
+        descriptor: profileRecord.travelType
+          ? profileRecord.travelType
+          : profileRecord.visitStartDate
+            ? "Visit scheduled"
+            : "No visit scheduled",
+      },
+      {
         id: "notes",
         title: "Notes",
         icon: NotebookPen,
@@ -320,6 +337,12 @@ export default function RecruitingPersonWorkspace({
         ),
       },
       {
+        id: "visit",
+        title: "Visit",
+        subtitle: "Campus visit & travel",
+        content: <RecruitingVisitWorkspace />,
+      },
+      {
         id: "notes",
         title: "Notes",
         subtitle: "Coach notes, game notes, and pitch",
@@ -356,7 +379,7 @@ export default function RecruitingPersonWorkspace({
         leading={
           <>
             <Link
-              href="/recruiting"
+              href={RECRUITING_LIST_ROUTE}
               className="inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-text-secondary transition-colors duration-150 hover:text-text-primary"
             >
               <ArrowLeft className="h-4 w-4" strokeWidth={1.75} />

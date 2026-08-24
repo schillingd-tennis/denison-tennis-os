@@ -12,10 +12,12 @@ import {
   DASHBOARD_RECENT_INTERACTION_LIMIT,
   DASHBOARD_TOP_RANKED_LIMIT,
   DASHBOARD_UPCOMING_TOURNAMENT_LIMIT,
+  DASHBOARD_UPCOMING_VISIT_LIMIT,
   denisonCommitSummary,
   recentInteractions,
   topRankedRecruits,
   upcomingTournaments,
+  upcomingVisits,
 } from "./dashboard";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -90,6 +92,9 @@ function row(partial: {
   classYear?: number;
   utr?: number;
   trnRank?: number;
+  visitStartDate?: string;
+  visitEndDate?: string;
+  travelType?: string;
 }): RecruitDirectoryRow {
   const [firstName, ...rest] = partial.name.split(" ");
   const lastName = rest.join(" ") || "Recruit";
@@ -105,6 +110,9 @@ function row(partial: {
       personId: partial.id,
       coachRank: partial.coachRank,
       recruitClassYear: partial.classYear,
+      visitStartDate: partial.visitStartDate,
+      visitEndDate: partial.visitEndDate,
+      travelType: partial.travelType,
     } as RecruitDirectoryRow["profile"],
     analytics: { id: partial.id } as RecruitDirectoryRow["analytics"],
   };
@@ -235,4 +243,117 @@ test("dashboard page stays on /recruiting and opens existing editors/workspaces"
   assert.doesNotMatch(ui, /Upcoming Events/);
   assert.match(page, /denisonCommitSummary\(directory\.denisonCommitRecruits\)/);
   assert.match(page, /commits=\{commits\.recruits\}/);
+});
+
+test("upcoming visits are max four, chronological by start, ending today or later", () => {
+  const visits = upcomingVisits(
+    [
+      row({
+        id: "past",
+        name: "Past Visit",
+        visitStartDate: "2026-08-01",
+        visitEndDate: "2026-08-23",
+      }),
+      row({
+        id: "fifth",
+        name: "Fifth Later",
+        visitStartDate: "2026-10-01",
+        visitEndDate: "2026-10-02",
+      }),
+      row({
+        id: "jarren",
+        name: "Jarren Griffini",
+        visitStartDate: "2026-09-01",
+        visitEndDate: "2026-09-03",
+        travelType: "Drive",
+      }),
+      row({
+        id: "landon",
+        name: "Landon Marcus",
+        visitStartDate: "2026-08-25",
+        visitEndDate: "2026-08-26",
+        travelType: "Flight",
+      }),
+      row({
+        id: "today",
+        name: "Ends Today",
+        visitStartDate: "2026-08-20",
+        visitEndDate: "2026-08-24",
+      }),
+      row({
+        id: "ongoing",
+        name: "Already Here",
+        visitStartDate: "2026-08-22",
+        visitEndDate: "2026-08-28",
+      }),
+      row({ id: "none", name: "No Dates" }),
+      row({
+        id: "start-only",
+        name: "Start Only",
+        visitStartDate: "2026-09-10",
+      }),
+    ],
+    { today: "2026-08-24" },
+  );
+
+  assert.equal(visits.length, DASHBOARD_UPCOMING_VISIT_LIMIT);
+  assert.deepEqual(
+    visits.map((visit) => visit.personId),
+    ["today", "ongoing", "landon", "jarren"],
+  );
+  assert.equal(visits.some((visit) => visit.personId === "past"), false);
+  assert.equal(visits.some((visit) => visit.personId === "fifth"), false);
+  assert.equal(visits[2]?.name, "Landon Marcus");
+  assert.equal(visits[2]?.dayCount, 2);
+  assert.equal(visits[2]?.travelType, "Flight");
+  assert.equal(visits[3]?.name, "Jarren Griffini");
+  assert.equal(visits[3]?.dayCount, 3);
+});
+
+test("upcoming visits empty when none end today or later", () => {
+  const visits = upcomingVisits(
+    [
+      row({
+        id: "past",
+        name: "Past Visit",
+        visitStartDate: "2026-07-01",
+        visitEndDate: "2026-07-03",
+      }),
+    ],
+    { today: "2026-08-24" },
+  );
+  assert.deepEqual(visits, []);
+});
+
+test("Upcoming Visits card sits below Denison Commits and opens Visit AW", () => {
+  const page = readFileSync(join(here, "../../app/recruiting/page.tsx"), "utf8");
+  const ui = readFileSync(join(here, "components/RecruitingDashboard.tsx"), "utf8");
+  const personPage = readFileSync(join(here, "../../app/recruiting/[id]/page.tsx"), "utf8");
+  const personWorkspace = readFileSync(
+    join(here, "components/RecruitingPersonWorkspace.tsx"),
+    "utf8",
+  );
+
+  assert.match(page, /upcomingVisits=\{upcomingVisits\(directory\.rows\)\}/);
+  assert.match(ui, /title="Upcoming Visits"/);
+  assert.match(ui, /meta="Next 4"/);
+  assert.match(ui, /tone="blue"/);
+  assert.match(ui, /monthDay\(visit\.visitStartDate\)/);
+  assert.match(ui, /bg-info\/15 text-info/);
+  assert.match(ui, /title="Upcoming Tournaments"[\s\S]*tone="orange"/);
+  assert.match(ui, /No upcoming visits/);
+  assert.match(ui, /recruitingPersonVisitPath\(visit\.personId\)/);
+  assert.match(ui, /visitRangeLabel\(visit\.visitStartDate, visit\.visitEndDate\)/);
+  assert.match(ui, /visitDaysLabel\(visit\.dayCount\)/);
+  assert.match(ui, /visit\.travelType/);
+
+  const commitsIdx = ui.indexOf('title="Denison Commits"');
+  const visitsIdx = ui.indexOf('title="Upcoming Visits"');
+  const rightColIdx = ui.lastIndexOf("data-recruiting-dashboard-col");
+  assert.ok(commitsIdx > rightColIdx && visitsIdx > commitsIdx);
+
+  assert.match(personPage, /initialWorkspaceId=\{workspace\}/);
+  assert.match(personWorkspace, /initialWorkspaceId \?\? "personal-info"/);
+  assert.doesNotMatch(ui, /Jarren Griffini/);
+  assert.doesNotMatch(ui, /Landon Marcus/);
 });

@@ -10,6 +10,7 @@ import {
   MapPin,
   MessageCircle,
   Phone,
+  Plane,
   Trophy,
   StickyNote,
   Users,
@@ -28,14 +29,19 @@ import {
   RECRUITING_LIST_ROUTE,
   RECRUITING_TOURNAMENTS_ROUTE,
   recruitingPersonPath,
+  recruitingPersonVisitPath,
   recruitingTournamentPath,
 } from "@/lib/module-routes";
 
-import { DASHBOARD_COMMIT_CLASS_YEAR, type RankedDashboardRecruit } from "../dashboard";
+import {
+  DASHBOARD_COMMIT_CLASS_YEAR,
+  type RankedDashboardRecruit,
+  type UpcomingDashboardVisit,
+} from "../dashboard";
 import type { DenisonCommitRecruit } from "../directory";
 import { writeStoredRecruitingDirectoryView } from "../directorySessionState";
 
-type Tone = "red" | "violet" | "orange" | "green";
+type Tone = "red" | "violet" | "orange" | "green" | "blue";
 
 const TONE: Record<
   Tone,
@@ -68,6 +74,13 @@ const TONE: Record<
     accent: "bg-success",
     meta: "text-success",
     hover: "hover:bg-success/[0.06]",
+  },
+  blue: {
+    tile: "bg-info text-surface",
+    header: "bg-[linear-gradient(180deg,rgba(37,99,235,0.12),rgba(37,99,235,0.03))]",
+    accent: "bg-info",
+    meta: "text-info",
+    hover: "hover:bg-info/[0.05]",
   },
 };
 
@@ -141,6 +154,17 @@ function shortDate(value: string): string {
   const date = parseDisplayDate(value);
   if (!date) return formatDate(value);
   return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(date);
+}
+
+function visitRangeLabel(start: string, end: string): string {
+  const from = formatDate(start);
+  const to = formatDate(end);
+  return start === end ? from : `${from} – ${to}`;
+}
+
+function visitDaysLabel(dayCount: number | null): string | null {
+  if (dayCount == null) return null;
+  return dayCount === 1 ? "1 day" : `${dayCount} days`;
 }
 
 function monthDay(value: string | null): { month: string; day: string } | null {
@@ -219,6 +243,7 @@ export default function RecruitingDashboard({
   interactionTournaments,
   topRanked,
   upcomingTournaments,
+  upcomingVisits,
   commits,
 }: {
   recentInteractions: RecruitInteraction[];
@@ -226,6 +251,7 @@ export default function RecruitingDashboard({
   interactionTournaments: InteractionOption[];
   topRanked: RankedDashboardRecruit[];
   upcomingTournaments: Tournament[];
+  upcomingVisits: UpcomingDashboardVisit[];
   commits: DenisonCommitRecruit[];
 }) {
   const router = useRouter();
@@ -492,6 +518,54 @@ export default function RecruitingDashboard({
                       </Link>
                     </li>
                   ))}
+                </ul>
+              )}
+            </DashboardCard>
+          </section>
+
+          <section>
+            <DashboardCard title="Upcoming Visits" meta="Next 4" tone="blue" icon={Plane}>
+              {upcomingVisits.length === 0 ? (
+                <p className="px-3.5 py-3 text-[13px] text-text-secondary">No upcoming visits.</p>
+              ) : (
+                <ul>
+                  {upcomingVisits.map((visit) => {
+                    const date = monthDay(visit.visitStartDate);
+                    const days = visitDaysLabel(visit.dayCount);
+                    return (
+                      <li key={visit.personId}>
+                        <Link
+                          href={recruitingPersonVisitPath(visit.personId)}
+                          className={`flex items-center gap-2.5 px-3.5 py-1.5 ${TONE.blue.hover}`}
+                        >
+                          {date ? (
+                            <span className="flex h-[38px] w-9 shrink-0 flex-col items-center justify-center rounded-control bg-info/15 text-info">
+                              <span className="text-[8px] font-bold tracking-[0.12em]">{date.month}</span>
+                              <span className="text-[14px] leading-none font-bold tabular-nums">{date.day}</span>
+                            </span>
+                          ) : (
+                            <span className="flex h-[38px] w-9 shrink-0 items-center justify-center rounded-control bg-info/15 text-[10px] font-bold text-info">
+                              TBD
+                            </span>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-[13px] font-semibold text-text-primary">
+                              {visit.name}
+                            </p>
+                            <p className="mt-0.5 truncate text-[11px] text-text-secondary">
+                              {[
+                                visitRangeLabel(visit.visitStartDate, visit.visitEndDate),
+                                days,
+                                visit.travelType?.trim() || null,
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </p>
+                          </div>
+                        </Link>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </DashboardCard>

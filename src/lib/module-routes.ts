@@ -53,6 +53,10 @@ export function recruitingPersonPath(personId: string): string {
   return `${RECRUITING_ROUTE}/${personId}`;
 }
 
+export function recruitingPersonVisitPath(personId: string): string {
+  return `${recruitingPersonPath(personId)}?workspace=visit`;
+}
+
 export function recruitingTournamentPath(tournamentId: string): string {
   return `${RECRUITING_TOURNAMENTS_ROUTE}/${tournamentId}`;
 }

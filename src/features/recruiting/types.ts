@@ -67,6 +67,11 @@ export type RecruitProfile = {
   gameNotes?: string;
   keyPitchAngle?: string;
 
+  visitStartDate?: string;
+  visitEndDate?: string;
+  travelType?: string;
+  flightInfo?: string;
+
   codaRowId?: string;
   codaExport?: CodaExportPayload;
 };

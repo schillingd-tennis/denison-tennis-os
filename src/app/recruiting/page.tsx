@@ -4,6 +4,7 @@ import {
   recentInteractions,
   topRankedRecruits,
   upcomingTournaments,
+  upcomingVisits,
 } from "@/features/recruiting/dashboard";
 import { loadRecruitingDirectory } from "@/features/recruiting/directory";
 import { listRecruitInteractions } from "@/features/interactions/repository";
@@ -38,6 +39,7 @@ export default async function RecruitingPage() {
       }))}
       topRanked={topRankedRecruits(directory.rows)}
       upcomingTournaments={upcomingTournaments(tournaments)}
+      upcomingVisits={upcomingVisits(directory.rows)}
       commits={commits.recruits}
     />
   );
