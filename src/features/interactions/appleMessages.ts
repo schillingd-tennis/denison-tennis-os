@@ -241,10 +241,130 @@ function uniqueOsHandles(raw: string[]): string[] {
   return [...handles];
 }
 
+function overrideRawForRecruit(
+  recruit: RecruitMatchInput,
+  overrides: Record<string, string>,
+): string | undefined {
+  return overrides[recruit.id] ?? overrides[recruit.name];
+}
+
+export function parsePersonName(name: string): { given: string; surname: string } | null {
+  const parts = name
+    .toLowerCase()
+    .replace(/\(.*?\)/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parts.length < 2) return null;
+  return { given: parts[0]!, surname: parts[parts.length - 1]! };
+}
+
+/** Conservative given+surname identity. Surname alone never matches. */
+export function namesConservativelyMatch(contactName: string, recruitName: string): boolean {
+  const contact = parsePersonName(contactName);
+  const recruit = parsePersonName(recruitName);
+  if (!contact || !recruit) return false;
+  if (contact.surname !== recruit.surname) return false;
+  return (
+    contact.given === recruit.given ||
+    contact.given.startsWith(recruit.given) ||
+    recruit.given.startsWith(contact.given)
+  );
+}
+
+export function contactNamesForHandle(
+  handle: string,
+  contacts: Map<string, Set<string>>,
+): string[] {
+  const normalized = normalizeHandle(handle);
+  if (!normalized) return [];
+  const names: string[] = [];
+  for (const [name, handles] of contacts) {
+    if ([...handles].some((value) => normalizeHandle(value) === normalized)) names.push(name);
+  }
+  return names;
+}
+
+export type HandleResolution =
+  | { status: "matched"; match: MatchedThread }
+  | { status: "ambiguous" }
+  | { status: "unmatched" };
+
+function uniqueRecruit(rows: RecruitMatchInput[]): RecruitMatchInput | "ambiguous" | null {
+  const ids = new Set(rows.map((row) => row.id));
+  if (ids.size === 0) return null;
+  if (ids.size > 1) return "ambiguous";
+  return rows[0] ?? null;
+}
+
 /**
- * Conservative 1:1 matching. Override is exclusive. OS phone/email and
- * Contacts handles are candidates only when they own a single 1:1 thread.
- * A recruit or thread that maps to more than one counterpart is ambiguous.
+ * Handle-first conservative resolver used by the dry-run importer and the
+ * live helper. Never surname-only; never first-candidate on ties.
+ */
+export function resolveHandle(
+  rawHandle: string,
+  input: {
+    recruits: RecruitMatchInput[];
+    contacts: Map<string, Set<string>>;
+    overrides: Record<string, string>;
+  },
+): HandleResolution {
+  const handle = normalizeHandle(rawHandle);
+  if (!handle) return { status: "unmatched" };
+
+  const overrideHits: RecruitMatchInput[] = [];
+  const skippedByOverride = new Set<string>();
+  for (const recruit of input.recruits) {
+    const raw = overrideRawForRecruit(recruit, input.overrides);
+    if (raw === undefined) continue;
+    skippedByOverride.add(recruit.id);
+    const mapped = normalizeHandle(raw);
+    if (mapped === handle) overrideHits.push(recruit);
+  }
+  if (overrideHits.length === 1) {
+    const recruit = overrideHits[0]!;
+    return {
+      status: "matched",
+      match: { recruitId: recruit.id, name: recruit.name, handle, source: "override" },
+    };
+  }
+  if (overrideHits.length > 1) return { status: "ambiguous" };
+
+  const osHits = input.recruits.filter((recruit) => {
+    if (skippedByOverride.has(recruit.id)) return false;
+    return uniqueOsHandles(recruit.osHandles).includes(handle);
+  });
+  const osUnique = uniqueRecruit(osHits);
+  if (osUnique === "ambiguous") return { status: "ambiguous" };
+  if (osUnique) {
+    return {
+      status: "matched",
+      match: { recruitId: osUnique.id, name: osUnique.name, handle, source: "os" },
+    };
+  }
+
+  const contactNames = contactNamesForHandle(handle, input.contacts);
+  const contactHits: RecruitMatchInput[] = [];
+  for (const recruit of input.recruits) {
+    if (skippedByOverride.has(recruit.id)) continue;
+    if (contactNames.some((name) => namesConservativelyMatch(name, recruit.name))) {
+      contactHits.push(recruit);
+    }
+  }
+  const contactUnique = uniqueRecruit(contactHits);
+  if (contactUnique === "ambiguous") return { status: "ambiguous" };
+  if (contactUnique) {
+    return {
+      status: "matched",
+      match: { recruitId: contactUnique.id, name: contactUnique.name, handle, source: "contacts" },
+    };
+  }
+  return { status: "unmatched" };
+}
+
+/**
+ * Conservative 1:1 matching for importer reports. Each thread handle is
+ * resolved independently so a recruit may own both a phone thread and an
+ * email thread. A handle that maps to more than one recruit is ambiguous.
  */
 export function matchRecruitsToThreads(input: {
   recruits: RecruitMatchInput[];
@@ -252,100 +372,68 @@ export function matchRecruitsToThreads(input: {
   contacts: Map<string, Set<string>>;
   overrides: Record<string, string>;
 }): MatchReport {
-  const threads = new Set(
+  const threads = [...new Set(
     [...input.threadHandles]
       .map((handle) => normalizeHandle(handle))
       .filter((value): value is string => Boolean(value)),
-  );
+  )];
 
   const matched: MatchedThread[] = [];
   const unmatched: UnmatchedRecruit[] = [];
   const ambiguous: AmbiguousRecruit[] = [];
+  const matchedRecruitIds = new Set<string>();
+  const ambiguousRecruitIds = new Set<string>();
+
+  for (const handle of threads) {
+    const resolved = resolveHandle(handle, input);
+    if (resolved.status === "matched") {
+      matched.push(resolved.match);
+      matchedRecruitIds.add(resolved.match.recruitId);
+      continue;
+    }
+    if (resolved.status === "ambiguous") {
+      for (const recruit of input.recruits) {
+        const raw = input.overrides[recruit.id] ?? input.overrides[recruit.name];
+        const osHit = uniqueOsHandles(recruit.osHandles).includes(handle);
+        const contactHit = contactNamesForHandle(handle, input.contacts).some((name) =>
+          namesConservativelyMatch(name, recruit.name),
+        );
+        const overrideHit = raw !== undefined && normalizeHandle(raw) === handle;
+        if (overrideHit || osHit || contactHit) {
+          ambiguousRecruitIds.add(recruit.id);
+          if (!ambiguous.some((row) => row.recruitId === recruit.id && row.handles[0] === handle)) {
+            ambiguous.push({
+              recruitId: recruit.id,
+              name: recruit.name,
+              reason: "handle matches more than one recruit",
+              handles: [handle],
+            });
+          }
+        }
+      }
+    }
+  }
 
   for (const recruit of input.recruits) {
+    if (matchedRecruitIds.has(recruit.id) || ambiguousRecruitIds.has(recruit.id)) continue;
     const overrideRaw = input.overrides[recruit.id] ?? input.overrides[recruit.name];
     if (overrideRaw !== undefined) {
       const handle = normalizeHandle(overrideRaw);
-      if (!handle) {
-        unmatched.push({ recruitId: recruit.id, name: recruit.name, reason: "override is not a valid handle" });
-        continue;
-      }
-      if (!threads.has(handle)) {
-        unmatched.push({
-          recruitId: recruit.id,
-          name: recruit.name,
-          reason: "override handle has no 1:1 thread",
-        });
-        continue;
-      }
-      matched.push({ recruitId: recruit.id, name: recruit.name, handle, source: "override" });
-      continue;
-    }
-
-    const osHandles = uniqueOsHandles(recruit.osHandles);
-    const contactHandles = contactHandlesFor(recruit.name, input.contacts);
-    const candidates = [...new Set([...osHandles, ...contactHandles])];
-    const withThreads = candidates.filter((handle) => threads.has(handle));
-
-    if (withThreads.length === 0) {
       unmatched.push({
         recruitId: recruit.id,
         name: recruit.name,
-        reason:
-          candidates.length === 0
-            ? "no usable phone, email, or Contacts handle"
-            : "no 1:1 thread for known handles",
+        reason: !handle ? "override is not a valid handle" : "override handle has no 1:1 thread",
       });
       continue;
     }
-    if (withThreads.length > 1) {
-      ambiguous.push({
-        recruitId: recruit.id,
-        name: recruit.name,
-        reason: "multiple 1:1 threads for this recruit",
-        handles: withThreads,
-      });
-      continue;
-    }
-
-    const handle = withThreads[0]!;
-    matched.push({
+    unmatched.push({
       recruitId: recruit.id,
       name: recruit.name,
-      handle,
-      source: osHandles.includes(handle) ? "os" : "contacts",
+      reason: "no 1:1 thread for known handles",
     });
   }
 
-  const byHandle = new Map<string, MatchedThread[]>();
-  for (const row of matched) {
-    const list = byHandle.get(row.handle) ?? [];
-    list.push(row);
-    byHandle.set(row.handle, list);
-  }
-
-  const kept: MatchedThread[] = [];
-  for (const [handle, rows] of byHandle) {
-    if (rows.length === 1) {
-      kept.push(rows[0]!);
-      continue;
-    }
-    for (const row of rows) {
-      ambiguous.push({
-        recruitId: row.recruitId,
-        name: row.name,
-        reason: "handle matches more than one recruit",
-        handles: [handle],
-      });
-    }
-  }
-
-  const ambiguousIds = new Set(ambiguous.map((row) => row.recruitId));
-  return {
-    matched: kept.filter((row) => !ambiguousIds.has(row.recruitId)),
-    unmatched,
-    ambiguous,
-  };
+  return { matched, unmatched, ambiguous };
 }
 
 export function attachRecruit(parsed: ProposedInteraction, match: MatchedThread): ProposedInteraction {

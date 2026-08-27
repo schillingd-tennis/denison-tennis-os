@@ -199,6 +199,35 @@ export class AppleMessagesSyncStore {
       .run(now, guid);
   }
 
+  countUnresolved(): {
+    pending: number;
+    unmatched: number;
+    ambiguous: number;
+    decodeFailed: number;
+    imported: number;
+  } {
+    const rows = this.db
+      .prepare(
+        `SELECT reason, retry_status AS retryStatus, COUNT(*) AS count
+           FROM unresolved_messages
+          GROUP BY reason, retry_status`,
+      )
+      .all() as Array<{ reason: UnresolvedReason; retryStatus: UnresolvedRetryStatus; count: number | bigint }>;
+    const counts = { pending: 0, unmatched: 0, ambiguous: 0, decodeFailed: 0, imported: 0 };
+    for (const row of rows) {
+      const n = Number(row.count);
+      if (row.retryStatus === "imported") {
+        counts.imported += n;
+        continue;
+      }
+      counts.pending += n;
+      if (row.reason === "unmatched") counts.unmatched += n;
+      else if (row.reason === "ambiguous") counts.ambiguous += n;
+      else counts.decodeFailed += n;
+    }
+    return counts;
+  }
+
   bumpUnresolvedAttempt(guid: string, reason: UnresolvedReason, now: string): void {
     this.db
       .prepare(

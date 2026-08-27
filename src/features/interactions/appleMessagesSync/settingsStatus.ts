@@ -49,6 +49,10 @@ export function statusAfterManualEnqueue(status: SyncStatus, result: EnqueueResu
   };
 }
 
+export function formatLastSyncWithNewInteractions(finishedAt: string | null | undefined): string {
+  return formatLastSuccessfulSync(finishedAt);
+}
+
 export function emptySyncStatus(): SyncStatus {
-  return { activeJob: null, lastCompleted: null, lastFinished: null };
+  return { activeJob: null, lastCompleted: null, lastFinished: null, lastCompletedWithImports: null };
 }

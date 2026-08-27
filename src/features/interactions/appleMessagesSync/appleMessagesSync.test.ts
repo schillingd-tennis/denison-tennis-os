@@ -15,6 +15,7 @@ import {
 import { ProcessFileLock, SyncLockHeldError } from "./lock";
 import { syncLockPath } from "./paths";
 import { isForwardCandidate, type AppleScanRow } from "./scan";
+import { collectMatchDiagnostics, formatMatchDiagnostics } from "./matchDiagnostics";
 import { openSyncStore } from "./store";
 
 function appleNanos(iso: string): bigint {
@@ -359,4 +360,83 @@ test("a second lock acquire fails until the first is released", () => {
   second.acquire();
   second.release();
   rmSync(home, { recursive: true, force: true });
+});
+
+test("Contacts handle uniquely matches a recruit on retry", () => {
+  withStore((_home, store) => {
+    recordBaseline(
+      store,
+      new MemoryMessagesCatalog([
+        scanRow({
+          rowId: 1,
+          guid: "g-1",
+          chatIdentifier: "+15550000000",
+          date: appleNanos("2024-01-01T00:00:00.000Z"),
+        }),
+      ]),
+      new Date("2024-06-01T00:00:00.000Z"),
+    );
+    const row = scanRow({
+      rowId: 2,
+      guid: "g-contact",
+      chatIdentifier: "+19735550101",
+      date: appleNanos("2024-07-01T00:00:00.000Z"),
+    });
+    scanForward(store, new MemoryMessagesCatalog([row]), {
+      recruits: [{ id: "recruit-1", name: "Alex One", osHandles: [] }],
+      contacts: new Map(),
+      overrides: {},
+    });
+    assert.equal(store.listPendingUnresolved()[0]?.reason, "unmatched");
+    const retried = retryUnresolved(store, {
+      recruits: [{ id: "recruit-1", name: "Alex One", osHandles: [] }],
+      contacts: new Map([["alex one", new Set(["+19735550101"])]]),
+      overrides: {},
+    });
+    assert.equal(retried.newlyMatched.length, 1);
+    assert.equal(retried.newlyMatched[0]?.source_key, "g-contact");
+    assert.equal(store.listPendingUnresolved().length, 0);
+  });
+});
+
+test("match diagnostics report counts only", () => {
+  withStore((_home, store) => {
+    recordBaseline(
+      store,
+      new MemoryMessagesCatalog([
+        scanRow({
+          rowId: 1,
+          guid: "g-1",
+          chatIdentifier: "+15550000000",
+          date: appleNanos("2024-01-01T00:00:00.000Z"),
+        }),
+      ]),
+      new Date("2024-06-01T00:00:00.000Z"),
+    );
+    scanForward(
+      store,
+      new MemoryMessagesCatalog([
+        scanRow({
+          rowId: 2,
+          guid: "g-later",
+          chatIdentifier: "+19735550101",
+          date: appleNanos("2024-07-01T00:00:00.000Z"),
+        }),
+      ]),
+      { recruits: [], contacts: new Map(), overrides: {} },
+    );
+    const diag = collectMatchDiagnostics(store, {
+      recruits: [recruit],
+      contacts: new Map(),
+      overrides: {},
+    });
+    const rendered = formatMatchDiagnostics(diag);
+    assert.equal(diag.unmatched, 1);
+    assert.equal(diag.wouldResolve, 1);
+    assert.equal(diag.osMatches, 1);
+    assert.match(rendered, /unmatched=1/);
+    assert.equal(rendered.includes("+19735550101"), false);
+    assert.equal(rendered.includes("g-later"), false);
+    assert.equal(rendered.includes("Alex"), false);
+  });
 });

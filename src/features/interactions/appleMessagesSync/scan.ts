@@ -6,6 +6,7 @@ import {
   isEmptyMessage,
   matchRecruitsToThreads,
   messageBody,
+  resolveHandle,
   type AppleMessageRow,
   type MatchReport,
   type MatchedThread,
@@ -101,17 +102,17 @@ export function buildHandleMatchReport(handles: Iterable<string>, context: ScanM
 
 export function matchHandle(
   handle: string,
-  report: MatchReport,
+  context: ScanMatchContext,
 ): { status: "matched"; match: MatchedThread } | { status: "ambiguous" } | { status: "unmatched" } {
-  const matched = report.matched.filter((row) => row.handle === handle);
-  if (matched.length === 1) return { status: "matched", match: matched[0]! };
-  if (matched.length > 1) return { status: "ambiguous" };
-  if (report.ambiguous.some((row) => row.handles.includes(handle))) return { status: "ambiguous" };
-  return { status: "unmatched" };
+  return resolveHandle(handle, {
+    recruits: context.recruits,
+    contacts: context.contacts,
+    overrides: context.overrides,
+  });
 }
 
-export function unresolvedReasonForHandle(handle: string, report: MatchReport): UnresolvedReason {
-  return matchHandle(handle, report).status === "ambiguous" ? "ambiguous" : "unmatched";
+export function unresolvedReasonForHandle(handle: string, context: ScanMatchContext): UnresolvedReason {
+  return matchHandle(handle, context).status === "ambiguous" ? "ambiguous" : "unmatched";
 }
 
 void APPLE_MESSAGES_SOURCE_SYSTEM;

@@ -28,6 +28,7 @@ export type JobsTable = {
   in: (column: string, values: string[]) => JobsTable;
   is: (column: string, value: null) => JobsTable;
   lt: (column: string, value: string) => JobsTable;
+  gt: (column: string, value: number | string) => JobsTable;
   order: (column: string, options: { ascending: boolean }) => JobsTable;
   limit: (count: number) => JobsTable;
   maybeSingle: () => Promise<JobsQuery>;
@@ -131,6 +132,19 @@ export function createSupabaseJobStore(client: JobsClient): JobQueueStore {
       const result = (await table()
         .select("*")
         .eq("status", "completed")
+        .order("finished_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()) as JobsQuery;
+      if (result.error) throw new Error(result.error.message);
+      if (!result.data || Array.isArray(result.data)) return null;
+      return jobFromRow(result.data);
+    },
+
+    async findLatestCompletedWithImports() {
+      const result = (await table()
+        .select("*")
+        .eq("status", "completed")
+        .gt("imported_count", 0)
         .order("finished_at", { ascending: false })
         .limit(1)
         .maybeSingle()) as JobsQuery;

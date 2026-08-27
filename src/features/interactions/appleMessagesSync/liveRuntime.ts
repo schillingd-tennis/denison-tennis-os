@@ -14,6 +14,7 @@ import { createSupabaseJobStore } from "./jobQueueSupabase";
 import { ProcessFileLock } from "./lock";
 import { copyChatDatabase } from "./messagesCopy";
 import { helperConfigPath, syncLockPath } from "./paths";
+import { loadHandleOverrides, loadMacContacts } from "./localMatchSources";
 import { createProductionRecruitCatalog } from "./recruits";
 import { createKeychainSecretStore, defaultSecurityRunner } from "./secrets";
 import { openSyncStore } from "./store";
@@ -52,7 +53,10 @@ export function createLiveTickRuntime(options: LiveTickOptions): TickRuntime {
     queue: createJobQueue(createSupabaseJobStore(client as never)),
     secrets,
     writer: createRecruitingInteractionsWriter(client as never),
-    recruits: createProductionRecruitCatalog(client as never),
+    recruits: createProductionRecruitCatalog(client as never, {
+      contacts: loadMacContacts(join(home, "contacts-copy")),
+      overrides: loadHandleOverrides(home),
+    }),
     supabaseUrl: config.supabaseUrl,
     leaseMs: DEFAULT_LEASE_MS,
   };

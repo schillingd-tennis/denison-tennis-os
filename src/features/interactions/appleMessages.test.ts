@@ -15,7 +15,9 @@ import {
   isTapback,
   matchRecruitsToThreads,
   messageBody,
+  namesConservativelyMatch,
   normalizeHandle,
+  resolveHandle,
   parseAppleMessage,
   parseRecruitFlag,
   recruitFilterError,
@@ -115,16 +117,76 @@ test("ambiguous handles never assign a recruit", () => {
   assert.equal(report.unmatched.length, 0);
 });
 
-test("a recruit with two distinct 1:1 threads is ambiguous", () => {
+test("phone and email 1:1 threads can both belong to the same recruit", () => {
   const report = matchRecruitsToThreads({
     recruits: [{ id: "a", name: "Alex One", osHandles: ["9735550101", "alex@icloud.com"] }],
     threadHandles: ["+19735550101", "alex@icloud.com"],
     contacts: new Map(),
     overrides: {},
   });
-  assert.equal(report.matched.length, 0);
-  assert.equal(report.ambiguous.length, 1);
-  assert.match(report.ambiguous[0]!.reason, /multiple 1:1 threads/);
+  assert.equal(report.matched.length, 2);
+  assert.equal(report.ambiguous.length, 0);
+  assert.deepEqual(new Set(report.matched.map((row) => row.handle)), new Set(["+19735550101", "alex@icloud.com"]));
+});
+
+test("exact normalized phone and email resolve a unique recruit", () => {
+  const recruits = [{ id: "a", name: "Alex One", osHandles: ["(973) 555-0101", "Alex@iCloud.com"] }];
+  const ctx = { recruits, contacts: new Map<string, Set<string>>(), overrides: {} };
+  const phone = resolveHandle("973-555-0101", ctx);
+  const email = resolveHandle("Alex@iCloud.com", ctx);
+  assert.equal(phone.status, "matched");
+  assert.equal(email.status, "matched");
+  if (phone.status === "matched") assert.equal(phone.match.source, "os");
+  if (email.status === "matched") assert.equal(email.match.source, "os");
+});
+
+test("Contacts handle maps to a unique recruit identity", () => {
+  const contacts = new Map<string, Set<string>>([["alex one", new Set(["+19735550101"])]]);
+  const resolved = resolveHandle("+19735550101", {
+    recruits: [{ id: "a", name: "Alex One", osHandles: [] }],
+    contacts,
+    overrides: {},
+  });
+  assert.equal(resolved.status, "matched");
+  if (resolved.status === "matched") {
+    assert.equal(resolved.match.recruitId, "a");
+    assert.equal(resolved.match.source, "contacts");
+  }
+});
+
+test("nickname prefix can uniquely match a recruit via Contacts", () => {
+  const contacts = new Map<string, Set<string>>([["alexander one", new Set(["+19735550101"])]]);
+  assert.equal(namesConservativelyMatch("Alexander One", "Alex One"), true);
+  const resolved = resolveHandle("+19735550101", {
+    recruits: [{ id: "a", name: "Alex One", osHandles: [] }],
+    contacts,
+    overrides: {},
+  });
+  assert.equal(resolved.status, "matched");
+});
+
+test("ambiguous Contacts/recruit matches stay unresolved", () => {
+  const contacts = new Map<string, Set<string>>([["alex one", new Set(["+19735550101"])]]);
+  const resolved = resolveHandle("+19735550101", {
+    recruits: [
+      { id: "a", name: "Alex One", osHandles: [] },
+      { id: "b", name: "Alexandra One", osHandles: [] },
+    ],
+    contacts,
+    overrides: {},
+  });
+  assert.equal(resolved.status, "ambiguous");
+});
+
+test("surname-only Contacts names never match", () => {
+  assert.equal(namesConservativelyMatch("One", "Alex One"), false);
+  const contacts = new Map<string, Set<string>>([["one", new Set(["+19735550101"])]]);
+  const resolved = resolveHandle("+19735550101", {
+    recruits: [{ id: "a", name: "Alex One", osHandles: [] }],
+    contacts,
+    overrides: {},
+  });
+  assert.equal(resolved.status, "unmatched");
 });
 
 test("guessed country-code phones are not used for matching", () => {

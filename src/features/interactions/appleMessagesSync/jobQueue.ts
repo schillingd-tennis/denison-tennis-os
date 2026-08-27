@@ -22,6 +22,7 @@ export type JobQueueStore = {
   listExpiredRunning(nowIso: string): Promise<SyncJob[]>;
   findLatestCompleted(): Promise<SyncJob | null>;
   findLatestFinished(): Promise<SyncJob | null>;
+  findLatestCompletedWithImports(): Promise<SyncJob | null>;
 };
 
 function iso(now: Date): string {
@@ -102,12 +103,13 @@ export function createJobQueue(store: JobQueueStore): JobQueuePort {
     },
 
     async getStatus(): Promise<SyncStatus> {
-      const [activeJob, lastCompleted, lastFinished] = await Promise.all([
+      const [activeJob, lastCompleted, lastFinished, lastCompletedWithImports] = await Promise.all([
         store.findActive(),
         store.findLatestCompleted(),
         store.findLatestFinished(),
+        store.findLatestCompletedWithImports(),
       ]);
-      return { activeJob, lastCompleted, lastFinished };
+      return { activeJob, lastCompleted, lastFinished, lastCompletedWithImports };
     },
 
     async claimQueued(now: Date, leaseMs: number = DEFAULT_LEASE_MS): Promise<SyncJob | null> {
@@ -223,6 +225,12 @@ export function createMemoryJobStore(): JobQueueStore & { jobs: SyncJob[] } {
         )
         .sort((a, b) => (a.finishedAt! < b.finishedAt! ? 1 : -1));
       return finished[0] ?? null;
+    },
+    async findLatestCompletedWithImports() {
+      const completed = jobs
+        .filter((job) => job.status === "completed" && job.finishedAt && (job.importedCount ?? 0) > 0)
+        .sort((a, b) => (a.finishedAt! < b.finishedAt! ? 1 : -1));
+      return completed[0] ?? null;
     },
   };
 }

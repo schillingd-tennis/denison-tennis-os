@@ -22,6 +22,7 @@ export type SyncStatus = {
   activeJob: SyncJob | null;
   lastCompleted: SyncJob | null;
   lastFinished: SyncJob | null;
+  lastCompletedWithImports: SyncJob | null;
 };
 
 export type EnqueueResult = {

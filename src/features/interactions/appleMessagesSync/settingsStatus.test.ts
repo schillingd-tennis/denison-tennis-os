@@ -10,6 +10,7 @@ import {
   canQueueManualSync,
   emptySyncStatus,
   formatLastSuccessfulSync,
+  formatLastSyncWithNewInteractions,
   isLiveSyncJob,
   latestImportedCountLabel,
   nightlyScheduleLabel,
@@ -92,4 +93,31 @@ test("a repeated Sync Messages click keeps the existing live job", async () => {
   assert.equal(next.activeJob?.id, first.job.id);
   assert.equal(settingsStatusLabel(next), "Queued");
   assert.equal(canQueueManualSync(next), false);
+});
+
+
+test("a completed zero-import job is a successful scan and keeps the last import with new rows", () => {
+  const imported = job({
+    status: "completed",
+    finishedAt: "2026-08-17T23:05:00.000Z",
+    importedCount: 1,
+  });
+  const emptyScan = job({
+    status: "completed",
+    finishedAt: "2026-08-18T12:00:00.000Z",
+    importedCount: 0,
+  });
+  const snapshot = status({
+    lastCompleted: emptyScan,
+    lastFinished: emptyScan,
+    lastCompletedWithImports: imported,
+  });
+  assert.equal(settingsStatusLabel(snapshot), "Completed");
+  assert.equal(latestImportedCountLabel(snapshot), "0");
+  assert.match(formatLastSuccessfulSync(emptyScan.finishedAt), /2026/);
+  assert.match(formatLastSyncWithNewInteractions(imported.finishedAt), /2026/);
+  assert.notEqual(
+    formatLastSuccessfulSync(emptyScan.finishedAt),
+    formatLastSyncWithNewInteractions(imported.finishedAt),
+  );
 });

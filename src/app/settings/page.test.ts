@@ -18,9 +18,10 @@ test("Settings hosts an Apple Messages Integrations card and Sync Messages actio
   assert.match(card, /Apple Messages/);
   assert.match(card, /Sync Messages/);
   assert.match(card, /Nightly schedule/);
-  assert.match(card, /Last successful sync/);
+  assert.match(card, /Last successful scan/);
+  assert.match(card, /Last sync with new interactions/);
   assert.match(card, /Current status/);
-  assert.match(card, /New interactions imported/);
+  assert.match(card, /New interactions from latest job/);
   assert.match(card, /disabled=\{disabled\}/);
   assert.match(card, /queueAppleMessagesSyncAction/);
 });

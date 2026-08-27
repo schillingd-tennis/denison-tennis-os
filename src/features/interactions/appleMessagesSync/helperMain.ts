@@ -15,6 +15,7 @@ import { openSyncStore } from "./store";
 import { SqliteMessagesCatalog } from "./catalog";
 import { runTick, type TickRuntime, type TickResult } from "./tick";
 import { createLiveTickRuntime } from "./liveRuntime";
+import { collectMatchDiagnostics, formatMatchDiagnostics } from "./matchDiagnostics";
 
 function argValue(argv: string[], flag: string): string | null {
   const index = argv.indexOf(flag);
@@ -57,6 +58,17 @@ export async function runHelper(argv: string[], injected?: TickRuntime): Promise
     }
   }
 
+
+  if (argv.includes("--match-report")) {
+    const store = openSyncStore(home);
+    try {
+      console.log(formatMatchDiagnostics(collectMatchDiagnostics(store)));
+      return 0;
+    } finally {
+      store.close();
+    }
+  }
+
   if (argv.includes("--tick")) {
     if (injected) {
       const result = await runTick(injected);
@@ -79,7 +91,7 @@ export async function runHelper(argv: string[], injected?: TickRuntime): Promise
     }
   }
 
-  console.error("Usage: apple-messages-helper --home <dir> [--baseline|--tick] [--chat-db <chat.db>]");
+  console.error("Usage: apple-messages-helper --home <dir> [--baseline|--tick|--match-report] [--chat-db <chat.db>]");
   return 1;
 }
 

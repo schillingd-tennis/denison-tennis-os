@@ -150,3 +150,19 @@ test("helper-owned scheduled jobs enqueue without a user id", async () => {
   assert.equal(scheduled.job.trigger, "scheduled");
   assert.equal(scheduled.job.requestedBy, null);
 });
+
+test("status keeps lastCompletedWithImports after a later zero-import completed job", async () => {
+  const queue = createMemoryJobQueue();
+  const t0 = new Date("2024-06-15T12:00:00.000Z");
+  await queue.enqueueManual(USER, t0);
+  const first = await queue.claimQueued(t0, DEFAULT_LEASE_MS);
+  await queue.complete(first!.id, 1, new Date("2024-06-15T12:05:00.000Z"));
+  await queue.enqueueManual(USER, new Date("2024-06-15T13:00:00.000Z"));
+  const second = await queue.claimQueued(new Date("2024-06-15T13:00:00.000Z"), DEFAULT_LEASE_MS);
+  await queue.complete(second!.id, 0, new Date("2024-06-15T13:01:00.000Z"));
+  const status = await queue.getStatus();
+  assert.equal(status.lastCompleted?.importedCount, 0);
+  assert.equal(status.lastCompletedWithImports?.importedCount, 1);
+  assert.equal(status.lastCompletedWithImports?.id, first!.id);
+  assert.equal(JSON.stringify(status).includes("+19735550101"), false);
+});

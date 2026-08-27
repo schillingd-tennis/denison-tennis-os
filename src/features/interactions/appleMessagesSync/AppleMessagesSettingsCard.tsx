@@ -12,6 +12,7 @@ import {
   CONNECTION_DESCRIPTION,
   canQueueManualSync,
   formatLastSuccessfulSync,
+  formatLastSyncWithNewInteractions,
   latestImportedCountLabel,
   nightlyScheduleLabel,
   settingsStatusLabel,
@@ -82,12 +83,16 @@ export default function AppleMessagesSettingsCard({
         <dl className="mt-4">
           <StatusRow label="Nightly schedule" value={nightlyScheduleLabel()} />
           <StatusRow
-            label="Last successful sync"
+            label="Last successful scan"
             value={formatLastSuccessfulSync(status.lastCompleted?.finishedAt)}
+          />
+          <StatusRow
+            label="Last sync with new interactions"
+            value={formatLastSyncWithNewInteractions(status.lastCompletedWithImports?.finishedAt)}
           />
           <StatusRow label="Current status" value={settingsStatusLabel(status)} />
           <StatusRow
-            label="New interactions imported"
+            label="New interactions from latest job"
             value={latestImportedCountLabel(status)}
           />
         </dl>

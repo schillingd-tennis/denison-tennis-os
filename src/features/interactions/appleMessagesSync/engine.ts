@@ -1,7 +1,6 @@
 import { APPLE_MESSAGES_SOURCE_SYSTEM, attachRecruit, type ProposedInteraction } from "../appleMessages";
 
 import {
-  buildHandleMatchReport,
   classifyScanRow,
   matchHandle,
   selectForwardMessages,
@@ -76,7 +75,7 @@ export function scanForward(
   const handles = classified
     .map((item) => (item.classified.kind === "candidate" ? item.classified.handle : ""))
     .filter(Boolean);
-  const report = buildHandleMatchReport(handles, context);
+  void handles;
 
   const importable: ProposedInteraction[] = [];
   const unresolved: UnresolvedWrite[] = [];
@@ -101,7 +100,7 @@ export function scanForward(
       store.upsertUnresolved(write, nowIso);
       continue;
     }
-    const match = matchHandle(classified.handle, report);
+    const match = matchHandle(classified.handle, context);
     if (match.status === "matched") {
       importable.push(attachRecruit(classified.parsed, match.match));
       continue;
@@ -131,10 +130,6 @@ export function retryUnresolved(
   const persistImported = options.persistImported !== false;
   const pending = store.listPendingUnresolved();
   if (pending.length === 0) return { newlyMatched: [], stillPending: [] };
-  const report = buildHandleMatchReport(
-    pending.map((row) => row.handle),
-    context,
-  );
   const nowIso = now.toISOString();
   const newlyMatched: ProposedInteraction[] = [];
   const stillPending: UnresolvedMessage[] = [];
@@ -145,7 +140,7 @@ export function retryUnresolved(
       stillPending.push({ ...row, attemptCount: row.attemptCount + 1, lastTriedAt: nowIso });
       continue;
     }
-    const match = matchHandle(row.handle, report);
+    const match = matchHandle(row.handle, context);
     if (match.status === "matched") {
       newlyMatched.push(
         attachRecruit(
