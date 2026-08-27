@@ -130,3 +130,96 @@ test("8 cancel performs no update", () => {
   assert.match(formSource, /event\.preventDefault\(\)/);
   assert.doesNotMatch(formSource, /onClick=\{cancel\}[\s\S]*updateRecruitInteractionAction/);
 });
+
+test("central page date filters persist via URL and default to Past month", () => {
+  assert.match(dashboardSource, /parseInteractionPeriod\(searchParams.get\("period"\)\)/);
+  assert.match(dashboardSource, /parseInteractionKind\(searchParams.get\("kind"\)\)/);
+  const period = readFileSync(join(here, "centralPeriod.ts"), "utf8");
+  const filterSource = readFileSync(join(here, "components/InteractionsFilterBar.tsx"), "utf8");
+  assert.match(period, /DEFAULT_INTERACTION_PERIOD: InteractionPeriod = "past_month"/);
+  assert.match(period, /America\/New_York/);
+  assert.match(filterSource, /interactionsPageHref/);
+  assert.match(dashboardSource, /No interactions match these filters/);
+});
+
+test("notes stay normal weight on directory rows", () => {
+  const notes = listSource.slice(listSource.indexOf("function InteractionNotes"), listSource.indexOf("function WorkspaceInteractionRow"));
+  assert.match(notes, /whitespace-pre-wrap text-sm leading-5 text-text-primary/);
+  assert.doesNotMatch(notes, /font-semibold/);
+  const directory = listSource.slice(listSource.indexOf("function DirectoryInteractionRow"));
+  assert.match(directory, /<InteractionNotes/);
+  assert.doesNotMatch(directory, /font-semibold[\s\S]*item\.notes/);
+});
+
+test("Sync Messages sits beside Add Interaction and uses the existing queue action", () => {
+  assert.match(dashboardSource, /\+ Add Interaction/);
+  assert.match(dashboardSource, /InteractionsSyncMessagesButton/);
+  assert.match(dashboardSource, /useAppleMessagesManualSync/);
+  assert.match(dashboardSource, /data-interactions-header-actions/);
+  const header = dashboardSource.slice(dashboardSource.indexOf("data-interactions-header-actions"));
+  assert.ok(header.indexOf("data-interactions-add-interaction") < header.indexOf("InteractionsSyncMessagesButton"));
+  const button = readFileSync(join(here, "components/InteractionsSyncMessagesButton.tsx"), "utf8");
+  const hook = readFileSync(join(here, "components/useAppleMessagesManualSync.ts"), "utf8");
+  const css = readFileSync(join(here, "components/interactionsHeaderActions.css"), "utf8");
+  const actionSource = readFileSync(join(here, "appleMessagesSync/actions.ts"), "utf8");
+  assert.match(button, /Sync Messages/);
+  assert.match(button, /aria-label="Sync Messages"/);
+  assert.match(button, /data-interactions-sync-messages/);
+  assert.match(button, /<button[\s\S]*Loader2[\s\S]*\{label\}[\s\S]*<\/button>/);
+  assert.match(css, /\[data-interactions-header-actions\]/);
+  assert.match(css, /\[data-interactions-add-interaction\]/);
+  assert.match(css, /\[data-interactions-sync-messages\]/);
+  assert.match(css, /background: #2563eb/);
+  assert.match(css, /background: #c8102e/);
+  assert.match(hook, /queueAppleMessagesSyncAction/);
+  assert.match(hook, /getAppleMessagesSyncStatusAction/);
+  assert.match(hook, /statusAfterManualEnqueue/);
+  assert.match(hook, /router\.refresh\(\)/);
+  assert.match(hook, /Synced · 0 new/);
+  assert.match(hook, /input\.hosted/);
+  assert.match(actionSource, /isManualAppleMessagesSyncAvailable/);
+  assert.match(actionSource, /available in production/);
+});
+
+test("communication alerts use Rank Board membership for Class of 2027", () => {
+  const page = readFileSync(join(here, "../../app/recruiting/interactions/page.tsx"), "utf8");
+  assert.match(page, /rankedPersonIdsForClass/);
+  assert.match(page, /COMMUNICATION_ALERT_CLASS_YEAR/);
+  assert.match(dashboardSource, /communicationAlertRecruitIds/);
+  assert.match(dashboardSource, /followUpRecruits\(interactions, now, 5, alertEligibleIds\)/);
+});
+
+test("Apple Messages insight card is status-only", () => {
+  const apple = readFileSync(join(here, "components/InteractionsAppleMessagesPanel.tsx"), "utf8");
+  assert.match(apple, /Apple Messages/);
+  assert.match(apple, /Current status/);
+  assert.match(apple, /Last successful scan/);
+  assert.match(apple, /Last sync with new interactions/);
+  assert.match(apple, /New interactions from latest job/);
+  assert.doesNotMatch(apple, /queueAppleMessagesSyncAction/);
+  assert.doesNotMatch(apple, />Sync Messages</);
+});
+
+test("Clear restores default date, type, and search", () => {
+  const filterSource = readFileSync(join(here, "components/InteractionsFilterBar.tsx"), "utf8");
+  assert.match(filterSource, /Clear/);
+  assert.match(filterSource, /DEFAULT_INTERACTION_PERIOD/);
+  assert.match(filterSource, /kind: "all"/);
+  assert.match(filterSource, /query: ""/);
+  assert.match(filterSource, /SearchInput/);
+  assert.match(filterSource, /Search interactions, recruits, notes, or tournaments/);
+});
+
+test("right column uses OS card headings and day labels", () => {
+  const column = readFileSync(join(here, "components/InteractionsInsightColumn.tsx"), "utf8");
+  const apple = readFileSync(join(here, "components/InteractionsAppleMessagesPanel.tsx"), "utf8");
+  const alertsAt = column.indexOf("Communication Alerts");
+  const activityAt = column.indexOf("Activity by Type");
+  const appleAt = column.lastIndexOf("InteractionsAppleMessagesPanel");
+  assert.ok(alertsAt >= 0 && activityAt > alertsAt && appleAt > activityAt);
+  assert.match(column, /followUpDaysLabel/);
+  assert.match(column, /Communication Alerts/);
+  assert.match(column, /Activity by Type/);
+  assert.doesNotMatch(column, /uppercase/);
+  assert.doesNotMatch(apple, />Sync Messages</);
+});

@@ -25,11 +25,12 @@
   "include": [
     "next-env.d.ts",
     "src/types/node-sqlite.d.ts",
+    "src/types/css-modules.d.ts",
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "src/features/recruiting/components/dashboard"]
 }

@@ -195,7 +195,7 @@ function DirectoryInteractionRow({
   return (
     <div
       data-interaction-directory-row=""
-      className="flex min-h-[72px] items-center gap-3 px-3 py-2 max-md:min-h-0 max-md:items-start max-md:px-3 max-md:py-3"
+      className="flex gap-3 px-4 py-3.5 max-sm:px-3"
     >
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--module-accent)]/10 text-[var(--module-accent)]">
         <MessageCircle className="h-4 w-4" />
@@ -227,6 +227,7 @@ function DirectoryInteractionRow({
             </div>
           ) : null}
           <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 text-xs leading-5 text-text-secondary md:max-w-[40%] md:justify-end">
+            {item.direction ? <span className="truncate">{item.direction}</span> : null}
             {item.tournamentName ? <span className="truncate">{item.tournamentName}</span> : null}
             {item.loggedBy ? <span className="truncate">Logged by {item.loggedBy}</span> : null}
             {item.nextSteps ? (
@@ -258,17 +259,22 @@ export default function InteractionList({
   onOpen,
   onDelete,
   density = "workspace",
+  emptyLabel = "No interaction history yet.",
 }: {
   interactions: RecruitInteraction[];
   showRecruit?: boolean;
   onOpen?: (interaction: RecruitInteraction) => void;
   onDelete?: (interaction: RecruitInteraction) => void;
   density?: "workspace" | "directory";
+  emptyLabel?: string;
 }) {
   if (!interactions.length) {
+    if (density === "directory") {
+      return <p className="px-4 py-5 text-sm text-text-secondary">{emptyLabel}</p>;
+    }
     return (
       <p className="rounded-card border border-border bg-surface p-5 text-sm text-text-secondary">
-        No interaction history yet.
+        {emptyLabel}
       </p>
     );
   }
@@ -279,13 +285,13 @@ export default function InteractionList({
     <div
       className={
         directory
-          ? "overflow-hidden rounded-card border border-black/[0.06] bg-surface"
+          ? "overflow-hidden bg-surface"
           : "overflow-hidden rounded-card border border-border bg-surface"
       }
     >
       <ul className={directory ? "divide-y divide-black/[0.06]" : "divide-y divide-border"}>
         {interactions.map((item) => (
-          <li key={item.id} className={directory ? "transition-colors hover:bg-black/[0.015]" : undefined}>
+          <li key={item.id} className={directory ? "min-h-[72px] transition-colors hover:bg-black/[0.015]" : undefined}>
             {directory ? (
               <DirectoryInteractionRow
                 item={item}

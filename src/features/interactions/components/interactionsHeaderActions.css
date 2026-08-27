@@ -1,0 +1,45 @@
+/* Scoped header-action contract. Global selectors so cold CSS cannot drop hashed module classes. */
+
+[data-interactions-header-actions] {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+[data-interactions-add-interaction],
+[data-interactions-sync-messages] {
+  display: inline-flex;
+  height: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 10px;
+  padding: 0 20px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  color: #fff;
+  white-space: nowrap;
+}
+
+[data-interactions-add-interaction] {
+  background: #c8102e;
+  box-shadow: 0 8px 18px rgba(200, 16, 46, 0.28);
+}
+
+[data-interactions-sync-messages] {
+  background: #2563eb;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.28);
+}
+
+[data-interactions-sync-messages]:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}

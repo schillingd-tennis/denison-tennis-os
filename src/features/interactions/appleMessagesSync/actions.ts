@@ -2,6 +2,7 @@
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+import { isManualAppleMessagesSyncAvailable } from "./environment";
 import { JobQueueError, createJobQueue, enqueueManualForUser, readStatusForUser } from "./jobQueue";
 import { createSupabaseJobStore } from "./jobQueueSupabase";
 import type { EnqueueResult, SyncStatus } from "./ports";
@@ -27,6 +28,9 @@ export async function queueAppleMessagesSyncAction(): Promise<
   { ok: true; result: EnqueueResult } | { ok: false; error: string }
 > {
   try {
+    if (!isManualAppleMessagesSyncAvailable()) {
+      return { ok: false, error: "Apple Messages sync is available in production." };
+    }
     const { queue, userId } = await authedQueue();
     const result = await enqueueManualForUser(queue, userId);
     return { ok: true, result };
