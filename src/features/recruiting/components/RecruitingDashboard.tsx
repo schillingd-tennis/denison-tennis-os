@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   BadgeCheck,
+  Bell,
   CalendarDays,
   Mail,
   MapPin,
@@ -12,6 +13,7 @@ import {
   Phone,
   Plane,
   History,
+  Target,
   Trophy,
   StickyNote,
   Users,
@@ -24,12 +26,14 @@ import InteractionForm, { type InteractionOption } from "@/features/interactions
 import type { InteractionType, RecruitInteraction } from "@/features/interactions/types";
 import { formatTournamentDates } from "@/features/tournaments/display";
 import type { Tournament } from "@/features/tournaments/types";
+import { interactionNotesPresentation } from "@/features/interactions/appleMessageNotes";
 import { formatDate, formatUtr, parseDisplayDate } from "@/lib/formatting";
 import {
   RECRUITING_INTERACTIONS_ROUTE,
   RECRUITING_LIST_ROUTE,
   RECRUITING_LOG_ROUTE,
   RECRUITING_TOURNAMENTS_ROUTE,
+  recruitingPersonCommunicationsPath,
   recruitingPersonPath,
   recruitingPersonVisitPath,
   recruitingTournamentPath,
@@ -37,16 +41,23 @@ import {
 
 import { DashboardChangeLogRows } from "@/features/recruiting/changeLog/ChangeLogList";
 import type { ChangeLogEvent } from "@/features/recruiting/changeLog/types";
+import type { FollowUpRecruit } from "@/features/interactions/centralInsights";
 
 import {
   DASHBOARD_COMMIT_CLASS_YEAR,
+  type DashboardKpis,
+  type DashboardPipelineStage,
+  type DashboardPriority,
   type RankedDashboardRecruit,
   type UpcomingDashboardVisit,
 } from "../dashboard";
+import RecruitingDashboardKpis from "./dashboard/RecruitingDashboardKpis";
+import RecruitingDashboardPlaceholder from "./dashboard/RecruitingDashboardPlaceholder";
+import RecruitingDashboardPipeline from "./dashboard/RecruitingDashboardPipeline";
 import type { DenisonCommitRecruit } from "../directory";
 import { writeStoredRecruitingDirectoryView } from "../directorySessionState";
 
-type Tone = "red" | "violet" | "orange" | "green" | "blue" | "teal";
+type Tone = "red" | "violet" | "orange" | "green" | "blue" | "teal" | "amber";
 
 const TONE: Record<
   Tone,
@@ -93,6 +104,13 @@ const TONE: Record<
     accent: "bg-teal-700",
     meta: "text-teal-800",
     hover: "hover:bg-teal-700/[0.05]",
+  },
+  amber: {
+    tile: "bg-warning text-surface",
+    header: "bg-[linear-gradient(180deg,rgba(245,158,11,0.18),rgba(200,16,46,0.05))]",
+    accent: "bg-warning",
+    meta: "text-warning",
+    hover: "hover:bg-warning/[0.07]",
   },
 };
 
@@ -250,6 +268,11 @@ function DashboardCard({
 }
 
 export default function RecruitingDashboard({
+  kpis,
+  pipeline,
+  priorities,
+  alerts,
+  recentChangeLogs,
   recentInteractions,
   interactionRecruits,
   interactionTournaments,
@@ -257,8 +280,12 @@ export default function RecruitingDashboard({
   upcomingTournaments,
   upcomingVisits,
   commits,
-  recentChangeLogs,
 }: {
+  kpis: DashboardKpis;
+  pipeline: DashboardPipelineStage[];
+  priorities: DashboardPriority[];
+  alerts: FollowUpRecruit[];
+  recentChangeLogs: ChangeLogEvent[];
   recentInteractions: RecruitInteraction[];
   interactionRecruits: InteractionOption[];
   interactionTournaments: InteractionOption[];
@@ -266,7 +293,6 @@ export default function RecruitingDashboard({
   upcomingTournaments: Tournament[];
   upcomingVisits: UpcomingDashboardVisit[];
   commits: DenisonCommitRecruit[];
-  recentChangeLogs: ChangeLogEvent[];
 }) {
   const router = useRouter();
   const { openDrawer, closeDrawer } = useDrawerManager();
@@ -303,12 +329,48 @@ export default function RecruitingDashboard({
           className="absolute top-0.5 bottom-0.5 left-0 w-[3px] rounded-full bg-[var(--module-accent)]"
         />
         <h1 className="text-2xl font-semibold tracking-tight text-text-primary">Recruiting Dashboard</h1>
-        <p className="mt-0.5 text-[13px] text-text-secondary">Recruiting activity at a glance</p>
+        <p className="mt-0.5 text-[13px] text-text-secondary">Your recruiting command center</p>
       </header>
+
+      <section data-recruiting-dashboard-section="kpis">
+        <RecruitingDashboardKpis kpis={kpis} />
+      </section>
 
       <div data-recruiting-dashboard-grid="">
         <div data-recruiting-dashboard-col="">
-          <section>
+          <section data-recruiting-dashboard-section="priorities">
+            <DashboardCard title="Today's Recruiting Priorities" tone="red" icon={Target}>
+              {priorities.length === 0 ? (
+                <RecruitingDashboardPlaceholder>
+                  Priority recommendations will appear here.
+                </RecruitingDashboardPlaceholder>
+              ) : (
+                <ul>
+                  {priorities.map((item) => (
+                    <li key={item.personId}>
+                      <Link
+                        href={item.href}
+                        className={`flex items-start gap-2.5 px-3.5 py-1.5 ${TONE.red.hover}`}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[13px] font-semibold text-text-primary">{item.name}</p>
+                          {item.meta ? (
+                            <p className="mt-0.5 truncate text-[11px] text-text-secondary">{item.meta}</p>
+                          ) : null}
+                          <p className="mt-0.5 truncate text-[12px] text-text-secondary">{item.reason}</p>
+                        </div>
+                        <span className="shrink-0 text-[11px] font-semibold text-[var(--module-accent)]">
+                          {item.timing}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </DashboardCard>
+          </section>
+
+          <section data-recruiting-dashboard-section="recent-interactions">
             <DashboardCard
               title="Recent Interactions"
               meta="Last 10"
@@ -321,7 +383,14 @@ export default function RecruitingDashboard({
               ) : (
                 <ul data-dashboard-recent-list="">
                   {recentInteractions.map((interaction) => {
-                    const notes = previewNotes(interaction.notes);
+                    const presented = interactionNotesPresentation({
+                      notes: interaction.notes,
+                      sourceSystem: interaction.sourceSystem,
+                    });
+                    const notes =
+                      presented.kind === "unavailable"
+                        ? "Message content unavailable"
+                        : previewNotes(presented.text);
                     const style = INTERACTION_CHIP[interaction.interactionType] ?? INTERACTION_CHIP.other;
                     const TypeIcon = style.icon;
                     const direction = interaction.direction
@@ -372,7 +441,7 @@ export default function RecruitingDashboard({
             </DashboardCard>
           </section>
 
-          <section>
+          <section data-recruiting-dashboard-section="recent-updates">
             <DashboardCard
               title="Recent Updates"
               meta="Latest 5"
@@ -384,7 +453,7 @@ export default function RecruitingDashboard({
             </DashboardCard>
           </section>
 
-          <section>
+          <section data-recruiting-dashboard-section="upcoming-tournaments">
             <DashboardCard
               title="Upcoming Tournaments"
               meta="Next 5"
@@ -436,7 +505,89 @@ export default function RecruitingDashboard({
         </div>
 
         <div data-recruiting-dashboard-col="">
-          <section>
+          <section data-recruiting-dashboard-section="pipeline">
+            <DashboardCard title="Pipeline Snapshot" tone="violet" icon={Users}>
+              <RecruitingDashboardPipeline stages={pipeline} />
+            </DashboardCard>
+          </section>
+
+          <section data-recruiting-dashboard-section="upcoming-visits">
+            <DashboardCard title="Upcoming Visits" meta="Next 4" tone="blue" icon={Plane}>
+              {upcomingVisits.length === 0 ? (
+                <p className="px-3.5 py-3 text-[13px] text-text-secondary">No upcoming visits.</p>
+              ) : (
+                <ul>
+                  {upcomingVisits.map((visit) => {
+                    const date = monthDay(visit.visitStartDate);
+                    const days = visitDaysLabel(visit.dayCount);
+                    return (
+                      <li key={visit.personId}>
+                        <Link
+                          href={recruitingPersonVisitPath(visit.personId)}
+                          className={`flex items-center gap-2.5 px-3.5 py-1.5 ${TONE.blue.hover}`}
+                        >
+                          {date ? (
+                            <span className="flex h-[38px] w-9 shrink-0 flex-col items-center justify-center rounded-control bg-info/15 text-info">
+                              <span className="text-[8px] font-bold tracking-[0.12em]">{date.month}</span>
+                              <span className="text-[14px] leading-none font-bold tabular-nums">{date.day}</span>
+                            </span>
+                          ) : (
+                            <span className="flex h-[38px] w-9 shrink-0 items-center justify-center rounded-control bg-info/15 text-[10px] font-bold text-info">
+                              TBD
+                            </span>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-[13px] font-semibold text-text-primary">
+                              {visit.name}
+                            </p>
+                            <p className="mt-0.5 truncate text-[11px] text-text-secondary">
+                              {[
+                                visitRangeLabel(visit.visitStartDate, visit.visitEndDate),
+                                days,
+                                visit.travelType?.trim() || null,
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </p>
+                          </div>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </DashboardCard>
+          </section>
+
+          <section data-recruiting-dashboard-section="communication-alerts">
+            <DashboardCard title="Communication Alerts" tone="amber" icon={Bell}>
+              {alerts.length === 0 ? (
+                <RecruitingDashboardPlaceholder>
+                  Recruits needing a communication follow-up will appear here.
+                </RecruitingDashboardPlaceholder>
+              ) : (
+                <ul>
+                  {alerts.map((alert) => (
+                    <li key={alert.recruitPersonId}>
+                      <Link
+                        href={recruitingPersonCommunicationsPath(alert.recruitPersonId)}
+                        className={`flex items-center gap-2.5 px-3.5 py-1.5 ${TONE.amber.hover}`}
+                      >
+                        <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-text-primary">
+                          {alert.recruitName}
+                        </span>
+                        <span className="shrink-0 text-[11px] font-semibold text-warning">
+                          {alert.daysSinceContact} days
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </DashboardCard>
+          </section>
+
+          <section data-recruiting-dashboard-section="top-ranked">
             <DashboardCard
               title="Top Ranked Recruits"
               meta="Top 5"
@@ -501,7 +652,7 @@ export default function RecruitingDashboard({
             </DashboardCard>
           </section>
 
-          <section>
+          <section data-recruiting-dashboard-section="denison-commits">
             <DashboardCard title="Denison Commits" tone="green" icon={BadgeCheck}>
               <div className="mx-3.5 mt-2.5 flex items-center gap-3 rounded-control bg-success/[0.08] px-3 py-2.5">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control bg-success text-surface">
@@ -549,53 +700,6 @@ export default function RecruitingDashboard({
             </DashboardCard>
           </section>
 
-          <section>
-            <DashboardCard title="Upcoming Visits" meta="Next 4" tone="blue" icon={Plane}>
-              {upcomingVisits.length === 0 ? (
-                <p className="px-3.5 py-3 text-[13px] text-text-secondary">No upcoming visits.</p>
-              ) : (
-                <ul>
-                  {upcomingVisits.map((visit) => {
-                    const date = monthDay(visit.visitStartDate);
-                    const days = visitDaysLabel(visit.dayCount);
-                    return (
-                      <li key={visit.personId}>
-                        <Link
-                          href={recruitingPersonVisitPath(visit.personId)}
-                          className={`flex items-center gap-2.5 px-3.5 py-1.5 ${TONE.blue.hover}`}
-                        >
-                          {date ? (
-                            <span className="flex h-[38px] w-9 shrink-0 flex-col items-center justify-center rounded-control bg-info/15 text-info">
-                              <span className="text-[8px] font-bold tracking-[0.12em]">{date.month}</span>
-                              <span className="text-[14px] leading-none font-bold tabular-nums">{date.day}</span>
-                            </span>
-                          ) : (
-                            <span className="flex h-[38px] w-9 shrink-0 items-center justify-center rounded-control bg-info/15 text-[10px] font-bold text-info">
-                              TBD
-                            </span>
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-[13px] font-semibold text-text-primary">
-                              {visit.name}
-                            </p>
-                            <p className="mt-0.5 truncate text-[11px] text-text-secondary">
-                              {[
-                                visitRangeLabel(visit.visitStartDate, visit.visitEndDate),
-                                days,
-                                visit.travelType?.trim() || null,
-                              ]
-                                .filter(Boolean)
-                                .join(" · ")}
-                            </p>
-                          </div>
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </DashboardCard>
-          </section>
         </div>
       </div>
     </div>

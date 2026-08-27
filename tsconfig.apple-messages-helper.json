@@ -15,6 +15,9 @@
   },
   "include": [
     "src/features/interactions/appleMessages.ts",
+    "src/features/interactions/appleMessageBody.ts",
+    "src/features/interactions/appleMessageNotes.ts",
+    "src/features/interactions/appleMessagesSync/repairEmptyBodies.ts",
     "src/features/interactions/appleMessagesSync/**/*.ts",
     "src/types/node-sqlite.d.ts"
   ],

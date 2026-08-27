@@ -142,11 +142,29 @@ test("central page date filters persist via URL and default to Past month", () =
   assert.match(dashboardSource, /No interactions match these filters/);
 });
 
+test("notes helpers compile without a leftover malformed JSX ternary", () => {
+  assert.match(listSource, /function WorkspaceNotes/);
+  assert.match(listSource, /function DirectoryNotes/);
+  assert.doesNotMatch(listSource, /\{\(\(\) =>/);
+  assert.doesNotMatch(listSource, /\{item\.notes\}\s*<\/p>\s*\) : null\}/);
+  assert.match(listSource, /Message content unavailable/);
+  assert.match(listSource, /Show more/);
+  assert.match(listSource, /Show less/);
+  assert.match(listSource, /item\.direction \? <span className="truncate">\{item\.direction\}<\/span>/);
+});
+
+test("directory rows never use direction as the notes body", () => {
+  const notes = listSource.slice(listSource.indexOf("function DirectoryNotes"), listSource.indexOf("function WorkspaceInteractionRow"));
+  assert.match(notes, /interactionNotesPresentation/);
+  assert.match(notes, /Message content unavailable/);
+  assert.doesNotMatch(notes, /\{item\.direction\}/);
+});
+
 test("notes stay normal weight on directory rows", () => {
   const notes = listSource.slice(listSource.indexOf("function InteractionNotes"), listSource.indexOf("function WorkspaceInteractionRow"));
   assert.match(notes, /whitespace-pre-wrap text-sm leading-5 text-text-primary/);
   assert.doesNotMatch(notes, /font-semibold/);
-  const directory = listSource.slice(listSource.indexOf("function DirectoryInteractionRow"));
+  const directory = listSource.slice(listSource.indexOf("function DirectoryNotes"));
   assert.match(directory, /<InteractionNotes/);
   assert.doesNotMatch(directory, /font-semibold[\s\S]*item\.notes/);
 });

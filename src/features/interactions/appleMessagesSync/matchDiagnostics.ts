@@ -29,7 +29,7 @@ export function collectMatchDiagnostics(
   let contactsMatches = 0;
   if (context) {
     for (const row of pending) {
-      if (row.reason === "decode_failed") continue;
+      if (row.reason === "decode_failed" || row.reason === "current_team") continue;
       const resolved = resolveHandle(row.handle, context);
       if (resolved.status === "matched") {
         wouldResolve += 1;

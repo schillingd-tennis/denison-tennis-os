@@ -1,3 +1,5 @@
+import { listPeople } from "@/features/people/repository";
+import { filterVisibleRecruitingInteractions } from "@/features/recruiting/eligibility";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { InteractionType, RecruitInteraction, RecruitInteractionInput } from "./types";
 
@@ -34,6 +36,12 @@ export async function listRecruitInteractions(personId?: string): Promise<Recrui
     throw new Error(`Failed to load interactions: ${error.message}`);
   }
   return ((data ?? []) as unknown as Row[]).map(map);
+}
+
+/** Central Recruiting lists/counts: hide current-team members without deleting rows. */
+export async function listVisibleRecruitingInteractions(): Promise<RecruitInteraction[]> {
+  const [interactions, people] = await Promise.all([listRecruitInteractions(), listPeople()]);
+  return filterVisibleRecruitingInteractions(interactions, new Map(people.map((person) => [person.id, person])));
 }
 
 function writeRow(input: RecruitInteractionInput) {

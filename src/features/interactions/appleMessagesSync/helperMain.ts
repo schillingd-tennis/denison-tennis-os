@@ -5,7 +5,8 @@
  * in this phase). --tick runs the inactive helper loop. Tests inject a
  * TickRuntime; the live path is never used from tests.
  */
-import { homedir } from "node:os";
+import { mkdtempSync, readFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { recordBaseline } from "./engine";
@@ -16,6 +17,21 @@ import { SqliteMessagesCatalog } from "./catalog";
 import { runTick, type TickRuntime, type TickResult } from "./tick";
 import { createLiveTickRuntime } from "./liveRuntime";
 import { collectMatchDiagnostics, formatMatchDiagnostics } from "./matchDiagnostics";
+import { copyChatDatabase } from "./messagesCopy";
+import {
+  fetchCurrentTeamPersonIds,
+  fetchPlaceholderAppleInteractions,
+  formatPlaceholderInventory,
+  formatRepairCounts,
+  hasRepairEmptyBodiesFlag,
+  parseRepairFlags,
+  placeholderNotesInventory,
+  planBodyRepair,
+} from "./repairEmptyBodies";
+import {
+  parseDotEnv,
+  productionCredentialsFromEnv,
+} from "../appleMessages";
 
 function argValue(argv: string[], flag: string): string | null {
   const index = argv.indexOf(flag);
@@ -69,6 +85,73 @@ export async function runHelper(argv: string[], injected?: TickRuntime): Promise
     }
   }
 
+  if (hasRepairEmptyBodiesFlag(argv)) {
+    const flags = parseRepairFlags(argv);
+    if (flags.applyProduction) {
+      throw new Error("Refusing to apply production body repair in this run. Dry-run only.");
+    }
+    let productionRead = false;
+    let teamRead = false;
+    let localCopy = false;
+    let rows: Awaited<ReturnType<typeof fetchPlaceholderAppleInteractions>> = [];
+    let currentTeamPersonIds = new Set<string>();
+    try {
+      const envFile = readFileSync(
+        [".env.production.local", ".env.local"]
+          .map((file) => join(process.cwd(), file))
+          .find((file) => {
+            try {
+              readFileSync(file, "utf8");
+              return true;
+            } catch {
+              return false;
+            }
+          }) ?? join(process.cwd(), ".env.production.local"),
+        "utf8",
+      );
+      const credentials = productionCredentialsFromEnv(parseDotEnv(envFile));
+      rows = await fetchPlaceholderAppleInteractions(credentials);
+      productionRead = true;
+      try {
+        currentTeamPersonIds = await fetchCurrentTeamPersonIds(credentials);
+        teamRead = true;
+      } catch {
+        teamRead = false;
+      }
+    } catch {
+      productionRead = false;
+    }
+    const localByGuid = new Map();
+    try {
+      const copyDir = mkdtempSync(join(tmpdir(), "apple-messages-repair-"));
+      const copied = copyChatDatabase(
+        argValue(argv, "--chat-db") ?? join(homedir(), "Library/Messages/chat.db"),
+        copyDir,
+      );
+      const catalog = SqliteMessagesCatalog.open(copied);
+      try {
+        for (const row of rows) {
+          const guid = row.sourceKey?.trim();
+          if (!guid) continue;
+          const local = catalog.messageByGuid(guid);
+          if (local) localByGuid.set(guid, local);
+        }
+        localCopy = true;
+      } finally {
+        catalog.close();
+      }
+    } catch {
+      localCopy = false;
+    }
+    const { counts } = planBodyRepair(rows, localByGuid, currentTeamPersonIds);
+    console.log(formatPlaceholderInventory(placeholderNotesInventory(rows)));
+    console.log(formatRepairCounts(counts, false));
+    console.log(
+      `repair production_read=${productionRead} team_read=${teamRead} local_copy=${localCopy} applied=false`,
+    );
+    return 0;
+  }
+
   if (argv.includes("--tick")) {
     if (injected) {
       const result = await runTick(injected);
@@ -91,13 +174,12 @@ export async function runHelper(argv: string[], injected?: TickRuntime): Promise
     }
   }
 
-  console.error("Usage: apple-messages-helper --home <dir> [--baseline|--tick|--match-report] [--chat-db <chat.db>]");
+  console.error("Usage: apple-messages-helper --home <dir> [--baseline|--tick|--match-report|--repair-empty-bodies] [--chat-db <chat.db>]");
   return 1;
 }
 
 const invokedDirectly =
-  typeof process.argv[1] === "string" &&
-  (process.argv[1].includes("helperMain") || process.argv[1].includes("apple-messages-helper"));
+  typeof process.argv[1] === "string" && process.argv[1].includes("helperMain");
 
 if (invokedDirectly) {
   void runHelper(process.argv.slice(2)).then(

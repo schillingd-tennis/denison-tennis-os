@@ -1,4 +1,4 @@
-import { APPLE_MESSAGES_SOURCE_SYSTEM } from "./appleMessages";
+import { APPLE_MESSAGES_SOURCE_SYSTEM } from "./appleMessageNotes";
 import {
   INTERACTIONS_TIME_ZONE,
   addCivilDays,

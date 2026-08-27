@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import InteractionsDashboard from "@/features/interactions/components/InteractionsDashboard";
 import { emptySyncStatus } from "@/features/interactions/appleMessagesSync/settingsStatus";
 import { getAppleMessagesSyncStatusAction } from "@/features/interactions/appleMessagesSync/actions";
-import { listRecruitInteractions } from "@/features/interactions/repository";
+import { listVisibleRecruitingInteractions } from "@/features/interactions/repository";
 import { loadRecruitingDirectory } from "@/features/recruiting/directory";
 import { listTournaments } from "@/features/tournaments/repository";
 import { getDisplayName, getHometown } from "@/features/people/utils";
@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 export default async function InteractionsPage() {
   const [interactions, directory, tournamentResult, apple] = await Promise.all([
-    listRecruitInteractions(),
+    listVisibleRecruitingInteractions(),
     loadRecruitingDirectory(),
     listTournaments(),
     getAppleMessagesSyncStatusAction(),

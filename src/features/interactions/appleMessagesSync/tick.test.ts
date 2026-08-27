@@ -355,6 +355,7 @@ test("TypeError from BigInt coercion records bigint_coercion instead of import_f
         messagesAfter: () => {
           throw new TypeError("Cannot convert a BigInt value to a Number");
         },
+        messageByGuid: () => null,
       };
       await runtime.queue.enqueueManual("user-1", now);
       const logs: string[] = [];

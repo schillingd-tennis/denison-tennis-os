@@ -9,6 +9,7 @@ import { typeRole } from "@/components/typography";
 import { TEAM_DIRECTORY_NAME } from "@/features/people/directoryHierarchy";
 import { recruitingPersonPath } from "@/lib/module-routes";
 import { formatDate } from "@/lib/formatting";
+import { interactionNotesPresentation } from "../appleMessageNotes";
 import type { RecruitInteraction } from "../types";
 
 function stopRow(event: { stopPropagation(): void }) {
@@ -94,6 +95,85 @@ function InteractionNotes({
   );
 }
 
+function WorkspaceNotes({
+  item,
+  onOpen,
+}: {
+  item: RecruitInteraction;
+  onOpen?: (interaction: RecruitInteraction) => void;
+}) {
+  const presented = interactionNotesPresentation({
+    notes: item.notes,
+    sourceSystem: item.sourceSystem,
+  });
+  if (presented.kind === "unavailable") {
+    return <p className="mt-1 text-sm text-text-secondary">Message content unavailable</p>;
+  }
+  if (presented.kind !== "notes" || !presented.text) return null;
+  return (
+    <p
+      role={onOpen ? "button" : undefined}
+      tabIndex={onOpen ? 0 : undefined}
+      aria-label={onOpen ? `Edit interaction with ${item.recruitName}` : undefined}
+      onClick={
+        onOpen
+          ? (event) => {
+              event.stopPropagation();
+              onOpen(item);
+            }
+          : undefined
+      }
+      onKeyDown={
+        onOpen
+          ? (event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                event.stopPropagation();
+                onOpen(item);
+              }
+            }
+          : undefined
+      }
+      className={`mt-1 whitespace-pre-wrap text-sm text-text-primary ${
+        onOpen ? "cursor-pointer rounded-control hover:bg-app-background" : ""
+      }`}
+    >
+      {presented.text}
+    </p>
+  );
+}
+
+function DirectoryNotes({
+  item,
+  onOpen,
+}: {
+  item: RecruitInteraction;
+  onOpen?: (interaction: RecruitInteraction) => void;
+}) {
+  const presented = interactionNotesPresentation({
+    notes: item.notes,
+    sourceSystem: item.sourceSystem,
+  });
+  if (presented.kind === "unavailable") {
+    return (
+      <p className="min-w-0 flex-1 text-sm leading-5 text-text-secondary">
+        Message content unavailable
+      </p>
+    );
+  }
+  if (presented.kind !== "notes" || !presented.text) return null;
+  return (
+    <div className="min-w-0 flex-1">
+      <InteractionNotes
+        notes={presented.text}
+        recruitName={item.recruitName}
+        clamp
+        onOpen={onOpen ? () => onOpen(item) : undefined}
+      />
+    </div>
+  );
+}
+
 function WorkspaceInteractionRow({
   item,
   showRecruit,
@@ -125,37 +205,7 @@ function WorkspaceInteractionRow({
             {item.recruitName}
           </Link>
         ) : null}
-        {item.notes ? (
-          <p
-            role={onOpen ? "button" : undefined}
-            tabIndex={onOpen ? 0 : undefined}
-            aria-label={onOpen ? `Edit interaction with ${item.recruitName}` : undefined}
-            onClick={
-              onOpen
-                ? (event) => {
-                    event.stopPropagation();
-                    onOpen(item);
-                  }
-                : undefined
-            }
-            onKeyDown={
-              onOpen
-                ? (event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      onOpen(item);
-                    }
-                  }
-                : undefined
-            }
-            className={`mt-1 whitespace-pre-wrap text-sm text-text-primary ${
-              onOpen ? "cursor-pointer rounded-control hover:bg-app-background" : ""
-            }`}
-          >
-            {item.notes}
-          </p>
-        ) : null}
+        <WorkspaceNotes item={item} onOpen={onOpen} />
         <div className="mt-1.5 flex flex-wrap gap-x-3 text-xs text-text-secondary">
           {item.tournamentName ? <span>{item.tournamentName}</span> : null}
           {item.loggedBy ? <span>Logged by {item.loggedBy}</span> : null}
@@ -216,16 +266,7 @@ function DirectoryInteractionRow({
           <time className="text-xs text-text-secondary">{formatDate(item.occurredAt)}</time>
         </div>
         <div className="mt-0.5 flex min-w-0 flex-col gap-1 md:flex-row md:items-start md:gap-3">
-          {item.notes ? (
-            <div className="min-w-0 flex-1">
-              <InteractionNotes
-                notes={item.notes}
-                recruitName={item.recruitName}
-                clamp
-                onOpen={onOpen ? () => onOpen(item) : undefined}
-              />
-            </div>
-          ) : null}
+          <DirectoryNotes item={item} onOpen={onOpen} />
           <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 text-xs leading-5 text-text-secondary md:max-w-[40%] md:justify-end">
             {item.direction ? <span className="truncate">{item.direction}</span> : null}
             {item.tournamentName ? <span className="truncate">{item.tournamentName}</span> : null}

@@ -13,6 +13,7 @@ import type { AppleMessagesSyncStore, UnresolvedMessage, UnresolvedWrite } from 
 export type MessagesCatalog = {
   maxRowId(): number | null;
   messagesAfter(rowId: number): AppleScanRow[];
+  messageByGuid(guid: string): AppleScanRow | null;
 };
 
 export type BaselineResult = {
@@ -105,6 +106,19 @@ export function scanForward(
       importable.push(attachRecruit(classified.parsed, match.match));
       continue;
     }
+    if (match.status === "current_team") {
+      excluded += 1;
+      const write: UnresolvedWrite = {
+        guid: classified.guid,
+        rowId: scanRowId(item.row),
+        appleDate: classified.appleDate,
+        handle: classified.handle,
+        reason: "current_team",
+      };
+      unresolved.push(write);
+      store.upsertUnresolved(write, nowIso);
+      continue;
+    }
     const write: UnresolvedWrite = {
       guid: classified.guid,
       rowId: scanRowId(item.row),
@@ -124,7 +138,7 @@ export function retryUnresolved(
   store: AppleMessagesSyncStore,
   context: ScanMatchContext,
   now: Date = new Date(),
-  options: { persistImported?: boolean } = {},
+  options: { persistImported?: boolean; catalog?: MessagesCatalog } = {},
 ): { newlyMatched: ProposedInteraction[]; stillPending: UnresolvedMessage[] } {
   requireBaseline(store);
   const persistImported = options.persistImported !== false;
@@ -135,32 +149,72 @@ export function retryUnresolved(
   const stillPending: UnresolvedMessage[] = [];
 
   for (const row of pending) {
-    if (row.reason === "decode_failed") {
+    const local = options.catalog?.messageByGuid(row.guid) ?? null;
+    const classified = local ? classifyScanRow(local) : null;
+    if (row.reason === "decode_failed" || classified?.kind === "decode_failed") {
+      if (classified?.kind === "candidate") {
+        const match = matchHandle(classified.handle, context);
+        if (match.status === "matched") {
+          newlyMatched.push(attachRecruit(classified.parsed, match.match));
+          if (persistImported) store.markUnresolvedImported(row.guid, nowIso);
+          continue;
+        }
+        if (match.status === "current_team") {
+          store.bumpUnresolvedAttempt(row.guid, "current_team", nowIso);
+          stillPending.push({
+            ...row,
+            reason: "current_team",
+            attemptCount: row.attemptCount + 1,
+            lastTriedAt: nowIso,
+          });
+          continue;
+        }
+        const reason = match.status === "ambiguous" ? "ambiguous" : "unmatched";
+        store.bumpUnresolvedAttempt(row.guid, reason, nowIso);
+        stillPending.push({
+          ...row,
+          reason,
+          attemptCount: row.attemptCount + 1,
+          lastTriedAt: nowIso,
+        });
+        continue;
+      }
       store.bumpUnresolvedAttempt(row.guid, "decode_failed", nowIso);
-      stillPending.push({ ...row, attemptCount: row.attemptCount + 1, lastTriedAt: nowIso });
+      stillPending.push({ ...row, reason: "decode_failed", attemptCount: row.attemptCount + 1, lastTriedAt: nowIso });
+      continue;
+    }
+    if (classified?.kind === "excluded") {
+      store.bumpUnresolvedAttempt(row.guid, "unmatched", nowIso);
+      stillPending.push({
+        ...row,
+        attemptCount: row.attemptCount + 1,
+        lastTriedAt: nowIso,
+      });
       continue;
     }
     const match = matchHandle(row.handle, context);
+    if (match.status === "current_team" || (row.reason === "current_team" && match.status !== "matched")) {
+      store.bumpUnresolvedAttempt(row.guid, "current_team", nowIso);
+      stillPending.push({
+        ...row,
+        reason: "current_team",
+        attemptCount: row.attemptCount + 1,
+        lastTriedAt: nowIso,
+      });
+      continue;
+    }
     if (match.status === "matched") {
-      newlyMatched.push(
-        attachRecruit(
-          {
-            recruit_person_id: "",
-            tournament_id: null,
-            occurred_at: row.appleDate,
-            interaction_type: "text",
-            channel: null,
-            direction: "inbound",
-            participants: row.handle,
-            notes: "",
-            next_steps: null,
-            logged_by: null,
-            source_system: APPLE_MESSAGES_SOURCE_SYSTEM,
-            source_key: row.guid,
-          },
-          match.match,
-        ),
-      );
+      if (classified?.kind !== "candidate" || !classified.parsed.notes.trim()) {
+        store.bumpUnresolvedAttempt(row.guid, "decode_failed", nowIso);
+        stillPending.push({
+          ...row,
+          reason: "decode_failed",
+          attemptCount: row.attemptCount + 1,
+          lastTriedAt: nowIso,
+        });
+        continue;
+      }
+      newlyMatched.push(attachRecruit(classified.parsed, match.match));
       if (persistImported) store.markUnresolvedImported(row.guid, nowIso);
       continue;
     }

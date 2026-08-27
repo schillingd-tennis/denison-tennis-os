@@ -5,10 +5,11 @@
  * Profile. Historical profiles on Players are kept but are not scored in the
  * live WTN pool.
  */
-import { ROLE_KEYS } from "@/features/lookups/seed";
 import { listPeople } from "@/features/people/repository";
 import type { Person } from "@/features/people/types";
-import { getDisplayName, hasRole } from "@/features/people/utils";
+import { getDisplayName } from "@/features/people/utils";
+
+import { isEligibleForRecruiting, isCurrentRecruitingPerson } from "./eligibility";
 
 import { computeRecruitingAnalytics, subjectsFromPeople } from "./analytics";
 import type { RecruitAnalyticsResult } from "./analytics/types";
@@ -57,10 +58,7 @@ export type RecruitWorkspaceRecord = {
   inCurrentCohort: boolean;
 };
 
-/** Current recruiting set: still a recruit, not a rostered Player/Coach/etc. */
-export function isCurrentRecruitingPerson(person: Person): boolean {
-  return hasRole(person, ROLE_KEYS.recruit);
-}
+export { isCurrentRecruitingPerson, isEligibleForRecruiting } from "./eligibility";
 
 function attachAnalytics(
   joined: { person: Person; profile: RecruitProfile }[],
@@ -98,7 +96,7 @@ export async function loadRecruitingDirectory(): Promise<{
   const joined: { person: Person; profile: RecruitProfile }[] = [];
   for (const profile of profiles) {
     const person = peopleById.get(profile.personId);
-    if (!person || !isCurrentRecruitingPerson(person)) continue;
+    if (!person || !isEligibleForRecruiting(person, profile)) continue;
     joined.push({ person, profile });
   }
 

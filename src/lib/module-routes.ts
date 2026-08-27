@@ -63,6 +63,10 @@ export function recruitingPersonLogPath(personId: string): string {
   return `${recruitingPersonPath(personId)}?workspace=log`;
 }
 
+export function recruitingPersonCommunicationsPath(personId: string): string {
+  return `${recruitingPersonPath(personId)}?workspace=communications`;
+}
+
 export function recruitingTournamentPath(tournamentId: string): string {
   return `${RECRUITING_TOURNAMENTS_ROUTE}/${tournamentId}`;
 }

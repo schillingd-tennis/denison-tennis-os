@@ -13,12 +13,22 @@ import {
   DASHBOARD_TOP_RANKED_LIMIT,
   DASHBOARD_UPCOMING_TOURNAMENT_LIMIT,
   DASHBOARD_UPCOMING_VISIT_LIMIT,
+  activeRecruitCount,
+  communicationAlertEligibleIds,
+  dashboardCommunicationAlerts,
+  dashboardKpis,
+  dashboardNeedsAttentionCount,
+  dashboardPriorities,
   denisonCommitSummary,
+  newMessagesFromSync,
+  pipelineSnapshot,
   recentInteractions,
   topRankedRecruits,
   upcomingTournaments,
   upcomingVisits,
+  visitsNext30DaysCount,
 } from "./dashboard";
+import { RECRUIT_PIPELINE_KEYS } from "./lookupSeed";
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -95,6 +105,7 @@ function row(partial: {
   visitStartDate?: string;
   visitEndDate?: string;
   travelType?: string;
+  pipelineKey?: string;
 }): RecruitDirectoryRow {
   const [firstName, ...rest] = partial.name.split(" ");
   const lastName = rest.join(" ") || "Recruit";
@@ -113,6 +124,9 @@ function row(partial: {
       visitStartDate: partial.visitStartDate,
       visitEndDate: partial.visitEndDate,
       travelType: partial.travelType,
+      pipelineStage: partial.pipelineKey
+        ? { id: partial.pipelineKey, key: partial.pipelineKey, label: partial.pipelineKey }
+        : undefined,
     } as RecruitDirectoryRow["profile"],
     analytics: { id: partial.id } as RecruitDirectoryRow["analytics"],
   };
@@ -243,7 +257,10 @@ test("dashboard page stays on /recruiting and opens existing editors/workspaces"
   assert.doesNotMatch(ui, /Upcoming Events/);
   assert.match(page, /denisonCommitSummary\(directory\.denisonCommitRecruits\)/);
   assert.match(page, /commits=\{commits\.recruits\}/);
+  assert.match(page, /dashboardKpis\(/);
+  assert.match(page, /pipelineSnapshot\(directory\.rows\)/);
   assert.match(page, /recentChangeLogs=\{recentChangeLogs\}/);
+  assert.match(page, /activeRecruitCount\(directory\.rows\)/);
   assert.match(ui, /Recent Updates/);
   assert.match(ui, /RECRUITING_LOG_ROUTE/);
   assert.match(ui, /DashboardChangeLogRows/);
@@ -339,7 +356,7 @@ test("Upcoming Visits card sits below Denison Commits and opens Visit AW", () =>
     "utf8",
   );
 
-  assert.match(page, /upcomingVisits=\{upcomingVisits\(directory\.rows\)\}/);
+  assert.match(page, /upcomingVisits=\{visits\}/);
   assert.match(ui, /title="Upcoming Visits"/);
   assert.match(ui, /meta="Next 4"/);
   assert.match(ui, /tone="blue"/);
@@ -354,11 +371,204 @@ test("Upcoming Visits card sits below Denison Commits and opens Visit AW", () =>
 
   const commitsIdx = ui.indexOf('title="Denison Commits"');
   const visitsIdx = ui.indexOf('title="Upcoming Visits"');
+  const pipelineIdx = ui.indexOf('title="Pipeline Snapshot"');
   const rightColIdx = ui.lastIndexOf("data-recruiting-dashboard-col");
-  assert.ok(commitsIdx > rightColIdx && visitsIdx > commitsIdx);
+  assert.ok(pipelineIdx > rightColIdx && visitsIdx > pipelineIdx && commitsIdx > visitsIdx);
 
   assert.match(personPage, /initialWorkspaceId=\{workspace\}/);
   assert.match(personWorkspace, /initialWorkspaceId \?\? "personal-info"/);
   assert.doesNotMatch(ui, /Jarren Griffini/);
   assert.doesNotMatch(ui, /Landon Marcus/);
+});
+
+test("command-center dashboard renders ten sections and keeps real selectors", () => {
+  const page = readFileSync(join(here, "../../app/recruiting/page.tsx"), "utf8");
+  const ui = readFileSync(join(here, "components/RecruitingDashboard.tsx"), "utf8");
+  const kpis = readFileSync(join(here, "components/dashboard/RecruitingDashboardKpis.tsx"), "utf8");
+  const layoutLock = readFileSync(join(here, "../../app/layout-lock.css"), "utf8");
+
+  for (const section of [
+    "kpis",
+    "priorities",
+    "recent-interactions",
+    "upcoming-tournaments",
+    "pipeline",
+    "upcoming-visits",
+    "recent-updates",
+    "communication-alerts",
+    "top-ranked",
+    "denison-commits",
+  ]) {
+    assert.match(ui, new RegExp(`data-recruiting-dashboard-section="${section}"`));
+  }
+
+  assert.match(ui, /Your recruiting command center/);
+  assert.match(ui, /Today's Recruiting Priorities/);
+  assert.match(ui, /Pipeline Snapshot/);
+  assert.match(ui, /Communication Alerts/);
+  assert.match(ui, /Priority recommendations will appear here/);
+  assert.match(ui, /Recruits needing a communication follow-up will appear here/);
+  assert.match(kpis, /Active Recruits/);
+  assert.match(kpis, /Needs Attention/);
+  assert.match(kpis, /Visits Next 30 Days/);
+  assert.match(kpis, /New Messages/);
+  assert.match(ui, /Recent Updates/);
+  assert.match(ui, /View all updates/);
+
+  assert.match(page, /recentInteractions\(interactions\)/);
+  assert.match(page, /topRankedRecruits\(directory\.rows\)/);
+  assert.match(page, /upcomingTournaments\(tournaments\)/);
+  assert.match(page, /upcomingVisits=\{visits\}/);
+  assert.match(page, /visitsNext30DaysCount\(directory\.rows\)/);
+  assert.match(ui, /recentInteractions\(interactions\)|recentInteractions\.map/);
+  assert.doesNotMatch(ui, /contents md:flex/);
+  assert.doesNotMatch(ui, /md:grid-cols-2/);
+  assert.match(layoutLock, /\[data-recruiting-dashboard-grid\]/);
+  assert.match(layoutLock, /minmax\(0, 3fr\) minmax\(0, 2fr\)/);
+});
+
+test("unsupported dashboard metrics stay placeholders instead of invented counts", () => {
+  const kpis = dashboardKpis({
+    activeRecruits: 12,
+    needsAttention: 4,
+    visitsNext30Days: 3,
+    newTexts: null,
+  });
+  assert.equal(kpis.activeRecruits, 12);
+  assert.equal(kpis.visitsNext30Days, 3);
+  assert.equal(kpis.needsAttention, 4);
+  assert.equal(kpis.newTexts, null);
+
+  const stages = pipelineSnapshot([
+    row({ id: "p", name: "Pat Potential", pipelineKey: RECRUIT_PIPELINE_KEYS.potential }),
+    row({ id: "a", name: "Ava Active", pipelineKey: RECRUIT_PIPELINE_KEYS.active }),
+    row({ id: "c", name: "Cam Committed", pipelineKey: RECRUIT_PIPELINE_KEYS.committed }),
+  ]);
+  assert.deepEqual(
+    stages.map((stage) => [stage.id, stage.label, stage.count]),
+    [
+      ["potential", "Potential", 1],
+      ["active", "Active Recruit", 1],
+      ["offer", "Offer", null],
+      ["committed", "Committed", 1],
+    ],
+  );
+});
+
+test("visits next 30 days counts overlapping stored visit dates only", () => {
+  const count = visitsNext30DaysCount(
+    [
+      row({ id: "in-window", name: "Soon", visitStartDate: "2026-09-10", visitEndDate: "2026-09-12" }),
+      row({ id: "ongoing", name: "Now", visitStartDate: "2026-08-20", visitEndDate: "2026-09-01" }),
+      row({ id: "past", name: "Past", visitStartDate: "2026-08-01", visitEndDate: "2026-08-02" }),
+      row({ id: "later", name: "Later", visitStartDate: "2026-10-15", visitEndDate: "2026-10-16" }),
+      row({ id: "none", name: "None" }),
+    ],
+    "2026-08-24",
+  );
+  assert.equal(count, 2);
+});
+
+test("Active Recruits counts only the canonical active pipeline key", () => {
+  const rows = [
+    row({ id: "active", name: "Active One", pipelineKey: RECRUIT_PIPELINE_KEYS.active }),
+    row({ id: "active-2", name: "Active Two", pipelineKey: RECRUIT_PIPELINE_KEYS.active }),
+    row({ id: "potential", name: "Potential One", pipelineKey: RECRUIT_PIPELINE_KEYS.potential }),
+    row({ id: "committed", name: "Committed One", pipelineKey: RECRUIT_PIPELINE_KEYS.committed }),
+    row({ id: "closed", name: "Closed One", pipelineKey: RECRUIT_PIPELINE_KEYS.closed }),
+    row({ id: "unknown", name: "Unknown One" }),
+  ];
+  assert.equal(activeRecruitCount(rows), 2);
+  assert.equal(RECRUIT_PIPELINE_KEYS.active, "active");
+});
+
+test("Needs Attention and Communication Alerts share canonical follow-up results", () => {
+  const now = new Date("2026-08-27T16:00:00.000Z");
+  const eligible = communicationAlertEligibleIds([
+    row({ id: "alex", name: "Alex One", classYear: 2027, coachRank: 1 }),
+    row({ id: "blair", name: "Blair Two", classYear: 2027, coachRank: 2 }),
+    row({ id: "casey", name: "Casey Three", classYear: 2028, coachRank: 1 }),
+    row({ id: "drew", name: "Drew Four", classYear: 2027 }),
+  ]);
+  assert.deepEqual([...eligible].sort(), ["alex", "blair"]);
+
+  const rows = [
+    interaction({
+      id: "alex-old",
+      recruitPersonId: "alex",
+      recruitName: "Alex One",
+      occurredAt: "2026-08-16T12:00:00.000Z",
+      interactionType: "text",
+    }),
+    interaction({
+      id: "blair-ten",
+      recruitPersonId: "blair",
+      recruitName: "Blair Two",
+      occurredAt: "2026-08-17T12:00:00.000Z",
+      interactionType: "call",
+    }),
+    interaction({
+      id: "casey-old",
+      recruitPersonId: "casey",
+      recruitName: "Casey Three",
+      occurredAt: "2026-08-01T12:00:00.000Z",
+      interactionType: "text",
+    }),
+    interaction({
+      id: "drew-old",
+      recruitPersonId: "drew",
+      recruitName: "Drew Four",
+      occurredAt: "2026-08-01T12:00:00.000Z",
+      interactionType: "text",
+    }),
+  ];
+  assert.equal(dashboardNeedsAttentionCount(rows, eligible, now), 1);
+  assert.deepEqual(
+    dashboardCommunicationAlerts(rows, eligible, now).map((item) => item.recruitPersonId),
+    ["alex"],
+  );
+});
+
+test("priorities deduplicate recruits and prefer communication overdue over visits", () => {
+  const rows = [
+    row({ id: "alex", name: "Alex One", classYear: 2027, coachRank: 1 }),
+    row({ id: "blair", name: "Blair Two", classYear: 2027, coachRank: 2 }),
+  ];
+  const alerts = dashboardCommunicationAlerts(
+    [
+      interaction({
+        id: "alex-old",
+        recruitPersonId: "alex",
+        recruitName: "Alex One",
+        occurredAt: "2026-08-16T12:00:00.000Z",
+        interactionType: "text",
+      }),
+    ],
+    new Set(["alex"]),
+    new Date("2026-08-27T16:00:00.000Z"),
+  );
+  const visits = upcomingVisits(
+    [
+      row({ id: "alex", name: "Alex One", visitStartDate: "2026-09-01", visitEndDate: "2026-09-02" }),
+      row({ id: "blair", name: "Blair Two", visitStartDate: "2026-09-03", visitEndDate: "2026-09-04" }),
+    ],
+    { today: "2026-08-27" },
+  );
+  const items = dashboardPriorities({ alerts, visits, rows });
+  assert.deepEqual(
+    items.map((item) => [item.personId, item.reason]),
+    [
+      ["alex", "Needs a text or call"],
+      ["blair", "Upcoming visit"],
+    ],
+  );
+  assert.match(items[0]?.href ?? "", /workspace=communications/);
+  assert.match(items[1]?.href ?? "", /workspace=visit/);
+});
+
+test("New Messages uses last completed import count or stays unavailable", () => {
+  assert.equal(newMessagesFromSync({ lastCompletedWithImports: { importedCount: 4 } }), 4);
+  assert.equal(newMessagesFromSync({ lastCompletedWithImports: { importedCount: 0 } }), 0);
+  assert.equal(newMessagesFromSync({ lastCompletedWithImports: null }), null);
+  assert.equal(newMessagesFromSync(null), null);
 });

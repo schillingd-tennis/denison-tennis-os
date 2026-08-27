@@ -6,7 +6,9 @@
  * Messages, Contacts, Coda, or recruiting_interactions.
  */
 
-export const APPLE_MESSAGES_SOURCE_SYSTEM = "apple_messages";
+import { APPLE_MESSAGES_SOURCE_SYSTEM } from "./appleMessageNotes";
+
+export { APPLE_MESSAGES_SOURCE_SYSTEM };
 
 /** Apple epoch: 2001-01-01T00:00:00Z. chat.db dates are nanoseconds since then. */
 export const APPLE_EPOCH_MS = Date.UTC(2001, 0, 1);
@@ -45,6 +47,15 @@ export type MatchReport = {
   ambiguous: AmbiguousRecruit[];
 };
 
+import {
+  decodeAttributedBody as decodeAttributedBodyArchive,
+  extractAppleMessageBody,
+  messageBody as extractedMessageBody,
+} from "./appleMessageBody";
+
+export { extractAppleMessageBody } from "./appleMessageBody";
+export { isPlaceholderNotes, interactionNotesPresentation } from "./appleMessageNotes";
+
 export type AppleMessageRow = {
   guid: string | null;
   chatIdentifier: string;
@@ -54,6 +65,7 @@ export type AppleMessageRow = {
   attributedBody?: unknown;
   associatedMessageType?: number | bigint | null;
   serviceName?: string | null;
+  hasAttachments?: boolean;
 };
 
 export type ProposedInteraction = {
@@ -118,38 +130,12 @@ export function isTapback(associatedMessageType: number | bigint | null | undefi
   return Number(associatedMessageType ?? 0) !== 0;
 }
 
-/**
- * Many iMessage rows leave `text` empty and store the body in attributedBody
- * (NSKeyedArchiver). Best-effort extraction so those rows are not dropped.
- */
 export function decodeAttributedBody(buf: unknown): string | null {
-  if (!buf) return null;
-  const bytes =
-    buf instanceof Uint8Array
-      ? Buffer.from(buf)
-      : Buffer.isBuffer(buf)
-        ? buf
-        : Buffer.from(String(buf), "utf8");
-  const marker = bytes.indexOf("NSString");
-  if (marker === -1) return null;
-  let i = marker + 8;
-  while (i < bytes.length && bytes[i]! < 32) i += 1;
-  if (i >= bytes.length) return null;
-  const rest = bytes.subarray(i);
-  let end = 0;
-  while (end < rest.length) {
-    const c = rest[end]!;
-    if (c === 0 || (c < 32 && c !== 9 && c !== 10 && c !== 13)) break;
-    end += 1;
-  }
-  const extracted = rest.subarray(0, end).toString("utf8").replace(/\u0000/g, "").trim();
-  return extracted.length >= 2 ? extracted : null;
+  return decodeAttributedBodyArchive(buf);
 }
 
 export function messageBody(text: string | null | undefined, attributedBody?: unknown): string | null {
-  const direct = text?.trim();
-  if (direct) return direct;
-  return decodeAttributedBody(attributedBody);
+  return extractedMessageBody(text, attributedBody);
 }
 
 export function isEmptyMessage(body: string | null): boolean {
@@ -194,8 +180,13 @@ export function parseAppleMessage(row: AppleMessageRow): ProposedInteraction | n
   if (!guid) return null;
   const handle = normalizeHandle(row.chatIdentifier);
   if (!handle) return null;
-  const notes = messageBody(row.text, row.attributedBody);
-  if (isEmptyMessage(notes) || !notes) return null;
+  const extracted = extractAppleMessageBody({
+    text: row.text,
+    attributedBody: row.attributedBody,
+    hasAttachments: row.hasAttachments,
+  });
+  if (extracted.status !== "ok") return null;
+  const notes = extracted.body;
   return {
     recruit_person_id: "",
     tournament_id: null,
@@ -446,7 +437,7 @@ export type RecruitFilterResult =
   | { status: "none"; query: string }
   | { status: "ambiguous"; query: string; matches: Array<{ id: string; name: string }> };
 
-export type MessageSkipReason = "group" | "tapback" | "empty" | "no_guid" | "invalid_handle";
+export type MessageSkipReason = "group" | "tapback" | "empty" | "decode_failed" | "no_guid" | "invalid_handle";
 
 export type ClassifiedMessage =
   | { status: "ok"; record: ProposedInteraction; handle: string }
@@ -557,6 +548,12 @@ export function classifyAppleMessage(row: AppleMessageRow): ClassifiedMessage {
   if (isTapback(row.associatedMessageType)) return { status: "skip", reason: "tapback", handle };
   if (!row.guid?.trim()) return { status: "skip", reason: "no_guid", handle };
   if (!handle) return { status: "skip", reason: "invalid_handle", handle: null };
+  const extracted = extractAppleMessageBody({
+    text: row.text,
+    attributedBody: row.attributedBody,
+    hasAttachments: row.hasAttachments,
+  });
+  if (extracted.status === "decode_failed") return { status: "skip", reason: "decode_failed", handle };
   const parsed = parseAppleMessage(row);
   if (!parsed) return { status: "skip", reason: "empty", handle };
   return { status: "ok", record: parsed, handle };
@@ -576,7 +573,7 @@ export function summarizeMessageScan(
   let tapbacksExcluded = 0;
   for (const row of classified) {
     if (row.status !== "skip") continue;
-    if (row.reason === "empty") emptyOrFailedDecodes += 1;
+    if (row.reason === "empty" || row.reason === "decode_failed") emptyOrFailedDecodes += 1;
     if (row.reason === "tapback") tapbacksExcluded += 1;
   }
   const dates = proposed.map((row) => row.occurred_at).filter(Boolean).sort();

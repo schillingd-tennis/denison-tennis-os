@@ -11,7 +11,7 @@ export type SyncState = {
   lastImportSuccessAt: string | null;
 };
 
-export type UnresolvedReason = "unmatched" | "ambiguous" | "decode_failed";
+export type UnresolvedReason = "unmatched" | "ambiguous" | "decode_failed" | "current_team";
 export type UnresolvedRetryStatus = "pending" | "imported";
 
 export type UnresolvedMessage = {
@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS unresolved_messages (
   rowid INTEGER NOT NULL,
   apple_date TEXT NOT NULL,
   handle TEXT NOT NULL,
-  reason TEXT NOT NULL CHECK (reason IN ('unmatched', 'ambiguous', 'decode_failed')),
+  reason TEXT NOT NULL CHECK (reason IN ('unmatched', 'ambiguous', 'decode_failed', 'current_team')),
   retry_status TEXT NOT NULL CHECK (retry_status IN ('pending', 'imported')),
   attempt_count INTEGER NOT NULL DEFAULT 0,
   last_tried_at TEXT,
@@ -67,6 +67,33 @@ export class AppleMessagesSyncStore {
     this.db = new DatabaseSync(syncDatabasePath(home));
     this.db.exec(SCHEMA);
     this.db.exec(`INSERT OR IGNORE INTO sync_state (id) VALUES (1)`);
+    this.migrateUnresolvedReasons();
+  }
+
+  private migrateUnresolvedReasons(): void {
+    const schema = this.db
+      .prepare(`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'unresolved_messages'`)
+      .get() as { sql: string | null } | undefined;
+    if (schema?.sql?.includes("current_team")) return;
+    this.db.exec(`
+      CREATE TABLE unresolved_messages_v2 (
+        guid TEXT PRIMARY KEY,
+        rowid INTEGER NOT NULL,
+        apple_date TEXT NOT NULL,
+        handle TEXT NOT NULL,
+        reason TEXT NOT NULL CHECK (reason IN ('unmatched', 'ambiguous', 'decode_failed', 'current_team')),
+        retry_status TEXT NOT NULL CHECK (retry_status IN ('pending', 'imported')),
+        attempt_count INTEGER NOT NULL DEFAULT 0,
+        last_tried_at TEXT,
+        created_at TEXT NOT NULL
+      );
+      INSERT INTO unresolved_messages_v2
+        (guid, rowid, apple_date, handle, reason, retry_status, attempt_count, last_tried_at, created_at)
+      SELECT guid, rowid, apple_date, handle, reason, retry_status, attempt_count, last_tried_at, created_at
+        FROM unresolved_messages;
+      DROP TABLE unresolved_messages;
+      ALTER TABLE unresolved_messages_v2 RENAME TO unresolved_messages;
+    `);
   }
 
   close(): void {
@@ -204,6 +231,7 @@ export class AppleMessagesSyncStore {
     unmatched: number;
     ambiguous: number;
     decodeFailed: number;
+    currentTeam: number;
     imported: number;
   } {
     const rows = this.db
@@ -213,7 +241,7 @@ export class AppleMessagesSyncStore {
           GROUP BY reason, retry_status`,
       )
       .all() as Array<{ reason: UnresolvedReason; retryStatus: UnresolvedRetryStatus; count: number | bigint }>;
-    const counts = { pending: 0, unmatched: 0, ambiguous: 0, decodeFailed: 0, imported: 0 };
+    const counts = { pending: 0, unmatched: 0, ambiguous: 0, decodeFailed: 0, currentTeam: 0, imported: 0 };
     for (const row of rows) {
       const n = Number(row.count);
       if (row.retryStatus === "imported") {
@@ -223,6 +251,7 @@ export class AppleMessagesSyncStore {
       counts.pending += n;
       if (row.reason === "unmatched") counts.unmatched += n;
       else if (row.reason === "ambiguous") counts.ambiguous += n;
+      else if (row.reason === "current_team") counts.currentTeam += n;
       else counts.decodeFailed += n;
     }
     return counts;

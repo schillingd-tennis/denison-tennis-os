@@ -273,9 +273,12 @@ test("pending unmatched imports after a unique handle exists", () => {
     assert.equal(first.importable.length, 0);
     assert.equal(store.listPendingUnresolved()[0]?.reason, "unmatched");
 
-    const retried = retryUnresolved(store, context);
+    const retried = retryUnresolved(store, context, new Date(), {
+      catalog: new MemoryMessagesCatalog([row]),
+    });
     assert.equal(retried.newlyMatched.length, 1);
     assert.equal(retried.newlyMatched[0]?.source_key, "g-later");
+    assert.equal(retried.newlyMatched[0]?.notes, "hello landon");
     assert.equal(retried.newlyMatched[0]?.recruit_person_id, "recruit-1");
     assert.equal(retried.stillPending.length, 0);
     assert.equal(store.listPendingUnresolved().length, 0);
@@ -349,6 +352,82 @@ test("decode_failed rows persist without a body and remain pending on retry", ()
   });
 });
 
+test("current Denison team members are excluded from Apple Messages matching", () => {
+  withStore((_home, store) => {
+    recordBaseline(
+      store,
+      new MemoryMessagesCatalog([
+        scanRow({
+          rowId: 1,
+          guid: "g-1",
+          chatIdentifier: "+15550000000",
+          date: appleNanos("2024-01-01T00:00:00.000Z"),
+        }),
+      ]),
+      new Date("2024-06-01T00:00:00.000Z"),
+    );
+    const row = scanRow({
+      rowId: 8,
+      guid: "g-team",
+      chatIdentifier: "+19735550199",
+      date: appleNanos("2024-07-01T00:00:00.000Z"),
+      text: "should not import",
+    });
+    const result = scanForward(
+      store,
+      new MemoryMessagesCatalog([row]),
+      {
+        recruits: [recruit],
+        currentTeam: [{ id: "luke", name: "Luke Colson", osHandles: ["+19735550199"] }],
+        contacts: new Map(),
+        overrides: {},
+      },
+    );
+    assert.equal(result.importable.length, 0);
+    assert.equal(result.unresolved[0]?.reason, "current_team");
+    assert.notEqual(result.unresolved[0]?.reason, "unmatched");
+  });
+});
+
+test("decode_failed retries after the decoder can read attributedBody", () => {
+  withStore((_home, store) => {
+    recordBaseline(
+      store,
+      new MemoryMessagesCatalog([scanRow({
+        rowId: 1,
+        guid: "g-1",
+        chatIdentifier: "+19735550101",
+        date: appleNanos("2024-01-01T00:00:00.000Z"),
+      })]),
+      new Date("2024-06-01T00:00:00.000Z"),
+    );
+    const failed = scanRow({
+      rowId: 4,
+      guid: "g-retry-decode",
+      chatIdentifier: "+19735550101",
+      date: appleNanos("2024-07-01T00:00:00.000Z"),
+      text: "",
+      attributedBody: Buffer.from("not-an-archive", "utf8"),
+    });
+    scanForward(store, new MemoryMessagesCatalog([failed]), context);
+    assert.equal(store.listPendingUnresolved()[0]?.reason, "decode_failed");
+    const recovered = scanRow({
+      rowId: 4,
+      guid: "g-retry-decode",
+      chatIdentifier: "+19735550101",
+      date: appleNanos("2024-07-01T00:00:00.000Z"),
+      text: "",
+      attributedBody: Buffer.from("xxxxNSString\u0001See you Friday", "utf8"),
+    });
+    const retried = retryUnresolved(store, context, new Date(), {
+      catalog: new MemoryMessagesCatalog([recovered]),
+    });
+    assert.equal(retried.newlyMatched.length, 1);
+    assert.equal(retried.newlyMatched[0]?.notes, "See you Friday");
+    assert.notEqual(retried.newlyMatched[0]?.notes, retried.newlyMatched[0]?.direction);
+  });
+});
+
 test("a second lock acquire fails until the first is released", () => {
   const home = mkdtempSync(join(tmpdir(), "apple-messages-lock-"));
   const path = syncLockPath(home);
@@ -388,11 +467,16 @@ test("Contacts handle uniquely matches a recruit on retry", () => {
       overrides: {},
     });
     assert.equal(store.listPendingUnresolved()[0]?.reason, "unmatched");
-    const retried = retryUnresolved(store, {
-      recruits: [{ id: "recruit-1", name: "Alex One", osHandles: [] }],
-      contacts: new Map([["alex one", new Set(["+19735550101"])]]),
-      overrides: {},
-    });
+    const retried = retryUnresolved(
+      store,
+      {
+        recruits: [{ id: "recruit-1", name: "Alex One", osHandles: [] }],
+        contacts: new Map([["alex one", new Set(["+19735550101"])]]),
+        overrides: {},
+      },
+      new Date(),
+      { catalog: new MemoryMessagesCatalog([row]) },
+    );
     assert.equal(retried.newlyMatched.length, 1);
     assert.equal(retried.newlyMatched[0]?.source_key, "g-contact");
     assert.equal(store.listPendingUnresolved().length, 0);

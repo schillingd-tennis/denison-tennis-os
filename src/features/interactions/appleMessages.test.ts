@@ -9,6 +9,8 @@ import {
   contactHandlesFor,
   dedupeByGuid,
   directionFromApple,
+  extractAppleMessageBody,
+  interactionNotesPresentation,
   isEmptyMessage,
   isGroupChat,
   isGuessedCountryCode,
@@ -286,6 +288,93 @@ test("tapbacks, group chats, and empty bodies are excluded", () => {
   assert.equal(attributed.interaction_type, "text");
   assert.match(attributed.notes, /See you Friday/);
   assert.equal(messageBody("", Buffer.from("xxxxNSString\u0001Hello there", "utf8")), "Hello there");
+
+  const unicode = parseAppleMessage({
+    guid: "g-unicode",
+    chatIdentifier: "+19735550101",
+    isFromMe: 0,
+    date: 0,
+    text: "",
+    attributedBody: Buffer.concat([
+      Buffer.from("streamtypedNSString"),
+      Buffer.from([0x01, 0x2b]),
+      Buffer.from("Café 🎾\nSee you Friday", "utf8"),
+    ]),
+    associatedMessageType: 0,
+  });
+  assert.ok(unicode);
+  assert.match(unicode.notes, /Café/);
+  assert.match(unicode.notes, /See you Friday/);
+  assert.doesNotMatch(unicode.notes, /inbound|outbound/);
+
+  const inboundText = parseAppleMessage({
+    guid: "g-inbound-text",
+    chatIdentifier: "+19735550101",
+    isFromMe: 0,
+    date: 0,
+    text: "inbound",
+    attributedBody: Buffer.from("xxxxNSString\u0001Actual recruit text", "utf8"),
+    associatedMessageType: 0,
+  });
+  assert.ok(inboundText);
+  assert.equal(inboundText.direction, "inbound");
+  assert.equal(inboundText.notes, "Actual recruit text");
+
+  const attachmentOnly = parseAppleMessage({
+    guid: "g-attach",
+    chatIdentifier: "+19735550101",
+    isFromMe: 1,
+    date: 0,
+    text: "",
+    attributedBody: null,
+    associatedMessageType: 0,
+    hasAttachments: true,
+  });
+  assert.ok(attachmentOnly);
+  assert.equal(attachmentOnly.notes, "Attachment");
+  assert.equal(attachmentOnly.direction, "outbound");
+
+  const failed = classifyAppleMessage({
+    guid: "g-fail",
+    chatIdentifier: "+19735550101",
+    isFromMe: 0,
+    date: 0,
+    text: "",
+    attributedBody: Buffer.from("not-an-archive", "utf8"),
+    associatedMessageType: 0,
+  });
+  assert.equal(failed.status, "skip");
+  if (failed.status === "skip") assert.equal(failed.reason, "decode_failed");
+  assert.equal(parseAppleMessage({
+    guid: "g-dir",
+    chatIdentifier: "+19735550101",
+    isFromMe: 0,
+    date: 0,
+    text: "inbound",
+    attributedBody: null,
+    associatedMessageType: 0,
+  }), null);
+
+  assert.equal(
+    interactionNotesPresentation({ notes: "inbound", sourceSystem: APPLE_MESSAGES_SOURCE_SYSTEM }).kind,
+    "unavailable",
+  );
+  assert.equal(
+    interactionNotesPresentation({ notes: "outbound", sourceSystem: APPLE_MESSAGES_SOURCE_SYSTEM }).kind,
+    "unavailable",
+  );
+  assert.equal(
+    interactionNotesPresentation({ notes: "", sourceSystem: APPLE_MESSAGES_SOURCE_SYSTEM }).kind,
+    "unavailable",
+  );
+  assert.equal(
+    interactionNotesPresentation({ notes: "See you Friday", sourceSystem: APPLE_MESSAGES_SOURCE_SYSTEM }).kind,
+    "notes",
+  );
+  assert.equal(
+    interactionNotesPresentation({ notes: "See you Friday", sourceSystem: APPLE_MESSAGES_SOURCE_SYSTEM }).text,
+    "See you Friday",
+  );
 
   const attached = attachRecruit(attributed, {
     recruitId: "person-1",

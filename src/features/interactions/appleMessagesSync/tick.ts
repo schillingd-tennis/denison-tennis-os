@@ -71,7 +71,10 @@ async function runClaimedJob(
   try {
     await runtime.queue.heartbeat(job.id, now, leaseMs);
     const context = await runtime.recruits.loadMatchContext();
-    const retried = retryUnresolved(runtime.store, context, now, { persistImported: false });
+    const retried = retryUnresolved(runtime.store, context, now, {
+      persistImported: false,
+      catalog: runtime.catalog,
+    });
     await runtime.queue.heartbeat(job.id, now, leaseMs);
     const scanned = scanForward(runtime.store, runtime.catalog, context, now);
     await runtime.queue.heartbeat(job.id, now, leaseMs);

@@ -225,6 +225,29 @@ export function isTeamDirectoryPerson(person: Person): boolean {
 }
 
 /**
+ * Canonical current Denison team membership: Team directory role
+ * (Player or Coach) plus Current status. Uses lookup keys, never labels.
+ * Missing role/status is not treated as team membership.
+ */
+export function isCurrentDenisonTeamMember(person: Person): boolean {
+  const roleKey = person.role?.key;
+  const statusKey = person.status?.key;
+  if (!roleKey || !statusKey) return false;
+  return statusKey === STATUS_KEYS.current && isTeamDirectoryPerson(person);
+}
+
+export function isCurrentDenisonTeamMemberFromKeys(
+  roleKey: string | null | undefined,
+  statusKey: string | null | undefined,
+): boolean {
+  if (!roleKey || !statusKey) return false;
+  return (
+    statusKey === STATUS_KEYS.current &&
+    (roleKey === ROLE_KEYS.player || roleKey === ROLE_KEYS.coach)
+  );
+}
+
+/**
  * Coach-oriented directory presentation: role is Coach (or Staff).
  * Status is never inferred from role.
  */

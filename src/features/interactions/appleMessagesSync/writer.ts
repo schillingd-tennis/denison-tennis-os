@@ -43,7 +43,7 @@ export function createMemoryProductionWriter(): ProductionWriterPort & {
         if (row.source_system !== APPLE_MESSAGES_SOURCE_SYSTEM) continue;
         if (!row.source_key) continue;
         if (rows.has(row.source_key)) continue;
-        rows.set(row.source_key, row);
+        rows.set(row.source_key, row as ProposedInteraction);
         inserted += 1;
       }
       return { inserted };
@@ -61,7 +61,7 @@ export function createRecruitingInteractionsWriter(client: InteractionsClient): 
       if (rows.length === 0) return { inserted: 0 };
       const tableName = INTERACTIONS_TABLE;
       if (tableName !== INTERACTIONS_TABLE) throw new WriterTableError(tableName);
-      const { error } = await client.from(INTERACTIONS_TABLE).upsert(rows, {
+      const { error } = await client.from(INTERACTIONS_TABLE).upsert(rows as ProposedInteraction[], {
         onConflict: INTERACTIONS_ON_CONFLICT,
       });
       if (error) throw new Error(error.message);

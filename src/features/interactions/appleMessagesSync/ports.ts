@@ -1,5 +1,15 @@
-import type { ProposedInteraction } from "../appleMessages";
-import type { ScanMatchContext } from "./scan";
+type RecruitMatchInput = {
+  id: string;
+  name: string;
+  osHandles: string[];
+};
+
+type MatchContext = {
+  recruits: RecruitMatchInput[];
+  currentTeam?: RecruitMatchInput[];
+  contacts: Map<string, Set<string>>;
+  overrides: Record<string, string>;
+};
 
 export type SyncJobTrigger = "manual" | "scheduled" | "catch_up";
 export type SyncJobStatus = "queued" | "running" | "completed" | "failed";
@@ -46,11 +56,11 @@ export interface SecretStorePort {
 }
 
 export interface ProductionWriterPort {
-  upsertInteractions(rows: ProposedInteraction[]): Promise<{ inserted: number }>;
+  upsertInteractions(rows: Array<{ source_system: string; source_key: string }>): Promise<{ inserted: number }>;
 }
 
 export interface RecruitCatalogPort {
-  loadMatchContext(): Promise<ScanMatchContext>;
+  loadMatchContext(): Promise<MatchContext>;
 }
 
 export class Phase1UnavailableError extends Error {

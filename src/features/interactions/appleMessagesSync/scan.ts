@@ -2,10 +2,8 @@ import {
   APPLE_MESSAGES_SOURCE_SYSTEM,
   appleTimestampToIso,
   classifyAppleMessage,
-  decodeAttributedBody,
-  isEmptyMessage,
   matchRecruitsToThreads,
-  messageBody,
+  normalizeHandle,
   resolveHandle,
   type AppleMessageRow,
   type MatchReport,
@@ -24,6 +22,7 @@ export function scanRowId(row: Pick<AppleScanRow, "rowId">): number {
 
 export type ScanMatchContext = {
   recruits: RecruitMatchInput[];
+  currentTeam?: RecruitMatchInput[];
   contacts: Map<string, Set<string>>;
   overrides: Record<string, string>;
 };
@@ -47,13 +46,6 @@ export function selectForwardMessages(rows: AppleScanRow[], options: ForwardSele
   return rows.filter((row) => isForwardCandidate(row, options));
 }
 
-function hasAttributedBlob(buf: unknown): boolean {
-  if (buf == null) return false;
-  if (typeof buf === "string") return buf.length > 0;
-  if (buf instanceof Uint8Array || Buffer.isBuffer(buf)) return buf.length > 0;
-  return true;
-}
-
 export function classifyScanRow(row: AppleScanRow): ClassifiedScan {
   const classified = classifyAppleMessage(row);
   if (classified.status === "ok") {
@@ -65,17 +57,7 @@ export function classifyScanRow(row: AppleScanRow): ClassifiedScan {
       appleDate: classified.record.occurred_at,
     };
   }
-
-  const text = row.text?.trim() ?? "";
-  const decoded = decodeAttributedBody(row.attributedBody);
-  const combined = messageBody(row.text, row.attributedBody);
-  if (
-    classified.reason === "empty" &&
-    !text &&
-    hasAttributedBlob(row.attributedBody) &&
-    isEmptyMessage(decoded) &&
-    isEmptyMessage(combined)
-  ) {
+  if (classified.reason === "decode_failed") {
     const guid = row.guid?.trim();
     const handle = classified.handle;
     if (guid && handle) {
@@ -87,8 +69,7 @@ export function classifyScanRow(row: AppleScanRow): ClassifiedScan {
       };
     }
   }
-
-  return { kind: "excluded", reason: classified.reason };
+  return { kind: "excluded", reason: classified.reason === "decode_failed" ? "empty" : classified.reason };
 }
 
 export function buildHandleMatchReport(handles: Iterable<string>, context: ScanMatchContext): MatchReport {
@@ -100,10 +81,21 @@ export function buildHandleMatchReport(handles: Iterable<string>, context: ScanM
   });
 }
 
+export function isCurrentTeamHandle(rawHandle: string, currentTeam: readonly RecruitMatchInput[]): boolean {
+  const handle = normalizeHandle(rawHandle);
+  if (!handle) return false;
+  return currentTeam.some((member) =>
+    member.osHandles.some((value) => normalizeHandle(value) === handle),
+  );
+}
+
 export function matchHandle(
   handle: string,
   context: ScanMatchContext,
-): { status: "matched"; match: MatchedThread } | { status: "ambiguous" } | { status: "unmatched" } {
+): { status: "matched"; match: MatchedThread } | { status: "ambiguous" } | { status: "unmatched" } | { status: "current_team" } {
+  if (isCurrentTeamHandle(handle, context.currentTeam ?? [])) {
+    return { status: "current_team" };
+  }
   return resolveHandle(handle, {
     recruits: context.recruits,
     contacts: context.contacts,
@@ -112,7 +104,10 @@ export function matchHandle(
 }
 
 export function unresolvedReasonForHandle(handle: string, context: ScanMatchContext): UnresolvedReason {
-  return matchHandle(handle, context).status === "ambiguous" ? "ambiguous" : "unmatched";
+  const status = matchHandle(handle, context).status;
+  if (status === "ambiguous") return "ambiguous";
+  if (status === "current_team") return "current_team";
+  return "unmatched";
 }
 
 void APPLE_MESSAGES_SOURCE_SYSTEM;
