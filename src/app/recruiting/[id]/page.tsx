@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import RecruitingPersonWorkspace from "@/features/recruiting/components/RecruitingPersonWorkspace";
 import { getRecruitWorkspaceRecord } from "@/features/recruiting/directory";
+import { listRecruitChangeLogForPerson } from "@/features/recruiting/changeLog/repository";
 import { listRecruitInteractions } from "@/features/interactions/repository";
 import { listTournaments } from "@/features/tournaments/repository";
 
@@ -16,8 +17,11 @@ export default async function RecruitingPersonPage({
 }) {
   const { id } = await params;
   const { workspace } = await searchParams;
-  const [record, interactions, tournamentsResult] = await Promise.all([
-    getRecruitWorkspaceRecord(id), listRecruitInteractions(id), listTournaments(),
+  const [record, interactions, tournamentsResult, changeLogEvents] = await Promise.all([
+    getRecruitWorkspaceRecord(id),
+    listRecruitInteractions(id),
+    listTournaments(),
+    listRecruitChangeLogForPerson(id),
   ]);
 
   if (!record) {
@@ -33,6 +37,7 @@ export default async function RecruitingPersonPage({
       interactions={interactions}
       tournamentOptions={(tournamentsResult.ok ? tournamentsResult.tournaments : []).map((item) => ({ id: item.id, label: item.name }))}
       initialWorkspaceId={workspace}
+      changeLogEvents={changeLogEvents}
     />
   );
 }

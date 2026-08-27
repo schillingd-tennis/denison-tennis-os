@@ -243,6 +243,11 @@ test("dashboard page stays on /recruiting and opens existing editors/workspaces"
   assert.doesNotMatch(ui, /Upcoming Events/);
   assert.match(page, /denisonCommitSummary\(directory\.denisonCommitRecruits\)/);
   assert.match(page, /commits=\{commits\.recruits\}/);
+  assert.match(page, /recentChangeLogs=\{recentChangeLogs\}/);
+  assert.match(ui, /Recent Updates/);
+  assert.match(ui, /RECRUITING_LOG_ROUTE/);
+  assert.match(ui, /DashboardChangeLogRows/);
+  assert.match(ui, /tone="teal"/);
 });
 
 test("upcoming visits are max four, chronological by start, ending today or later", () => {

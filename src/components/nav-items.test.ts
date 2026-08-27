@@ -14,6 +14,7 @@ const dashboard: NavChildItem = { label: "Dashboard", href: "/recruiting", exact
 const list: NavChildItem = { label: "Recruit List", href: "/recruiting/list" };
 const tournaments: NavChildItem = { label: "Tournaments", href: "/recruiting/tournaments" };
 const interactions: NavChildItem = { label: "Interactions", href: "/recruiting/interactions" };
+const log: NavChildItem = { label: "Log", href: "/recruiting/log" };
 
 const recruiting = primaryNavItems.find((item) => item.label === "Recruiting");
 if (!recruiting) throw new Error("expected Recruiting nav item");
@@ -108,4 +109,13 @@ test("/recruiting/[id] does not activate Interactions", () => {
   assert.equal(isNavChildActive("/recruiting/person-123", tournaments), false);
   const state = getNestedNavState("/recruiting/person-123", recruiting);
   assert.equal(state.activeChildHref, null);
+});
+
+test("/recruiting/log is the last Recruiting submenu item", () => {
+  const labels = recruiting.children?.map((item) => item.label) ?? [];
+  assert.deepEqual(labels[labels.length - 1], "Log");
+  assert.equal(isNavChildActive("/recruiting/log", log), true);
+  assert.equal(isNavChildActive("/recruiting/person-123", log), false);
+  const state = getNestedNavState("/recruiting/log", recruiting);
+  assert.equal(state.activeChildHref, "/recruiting/log");
 });

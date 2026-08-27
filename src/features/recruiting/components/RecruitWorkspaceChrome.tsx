@@ -42,7 +42,8 @@ export type RecruitWorkspaceTone =
   | "analytics"
   | "visit"
   | "notes"
-  | "communications";
+  | "communications"
+  | "log";
 
 export type RecruitWorkspaceNavItem = {
   id: RecruitWorkspaceTone;
@@ -96,6 +97,12 @@ const toneSurface: Record<
     active: "border-research bg-research/[0.08]",
     activeIcon: "bg-research/15 text-research",
     chevron: "text-research/70",
+  },
+  log: {
+    icon: "bg-teal-700/10 text-teal-800",
+    active: "border-teal-700 bg-teal-700/[0.07]",
+    activeIcon: "bg-teal-700/15 text-teal-800",
+    chevron: "text-teal-800/70",
   },
 };
 

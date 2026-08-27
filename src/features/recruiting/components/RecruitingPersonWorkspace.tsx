@@ -13,6 +13,7 @@ import {
   NotebookPen,
   Phone,
   Plane,
+  ScrollText,
   SquarePen,
   Trash2,
   UserRound,
@@ -62,6 +63,8 @@ import {
   type RecruitNoteQuickEntryField,
   type RecruitNoteQuickEntryRequest,
 } from "../noteQuickEntry";
+import RecruitingChangeLogWorkspace from "@/features/recruiting/changeLog/RecruitingChangeLogWorkspace";
+import type { ChangeLogEvent } from "@/features/recruiting/changeLog/types";
 import type { RecruitProfile } from "../types";
 import {
   RecruitWorkspaceNav,
@@ -105,6 +108,7 @@ export default function RecruitingPersonWorkspace({
   interactions,
   tournamentOptions,
   initialWorkspaceId,
+  changeLogEvents = [],
 }: {
   person: Person;
   profile: RecruitProfile;
@@ -113,6 +117,7 @@ export default function RecruitingPersonWorkspace({
   interactions: RecruitInteraction[];
   tournamentOptions: InteractionOption[];
   initialWorkspaceId?: string;
+  changeLogEvents?: ChangeLogEvent[];
 }) {
   const [record, setRecord] = useState(person);
   const [trackedPerson, setTrackedPerson] = useState(person);
@@ -302,8 +307,17 @@ export default function RecruitingPersonWorkspace({
         icon: MessageSquare,
         descriptor: interactions.length === 0 ? "No interaction history" : `${interactions.length} interaction${interactions.length === 1 ? "" : "s"}`,
       },
+      {
+        id: "log",
+        title: "Log",
+        icon: ScrollText,
+        descriptor:
+          changeLogEvents.length === 0
+            ? "No tracked updates yet"
+            : `${changeLogEvents.length} update${changeLogEvents.length === 1 ? "" : "s"}`,
+      },
     ],
-    [analytics?.tier, inCurrentCohort, interactions.length, profileRecord, record.utr],
+    [analytics?.tier, changeLogEvents.length, inCurrentCohort, interactions.length, profileRecord, record.utr],
   );
 
   const adaptiveWorkspaces: AdaptiveWorkspaceDefinition[] = useMemo(
@@ -369,8 +383,14 @@ export default function RecruitingPersonWorkspace({
         ),
         content: <RecruitingCommunicationsWorkspace interactions={interactions} onOpen={openExistingInteraction} onDelete={requestDeleteInteraction} />,
       },
+      {
+        id: "log",
+        title: "Log",
+        subtitle: "Recent profile and recruiting-data changes",
+        content: <RecruitingChangeLogWorkspace events={changeLogEvents} />,
+      },
     ],
-    [analytics, clearNoteQuickEntry, inCurrentCohort, interactions, noteQuickEntry, openExistingInteraction, openInteractionDrawer, profileRecord.coachRank, requestDeleteInteraction],
+    [analytics, changeLogEvents, clearNoteQuickEntry, inCurrentCohort, interactions, noteQuickEntry, openExistingInteraction, openInteractionDrawer, profileRecord.coachRank, requestDeleteInteraction],
   );
 
   return (

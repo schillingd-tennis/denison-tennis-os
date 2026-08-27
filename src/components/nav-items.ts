@@ -16,6 +16,7 @@ import {
   RECRUITING_ROUTE,
   RECRUITING_TOURNAMENTS_ROUTE,
   RECRUITING_INTERACTIONS_ROUTE,
+  RECRUITING_LOG_ROUTE,
   TEAM_ROUTE,
 } from "@/lib/module-routes";
 
@@ -47,6 +48,7 @@ export const primaryNavItems: NavItem[] = [
       { label: "Recruit List", href: RECRUITING_LIST_ROUTE },
       { label: "Tournaments", href: RECRUITING_TOURNAMENTS_ROUTE },
       { label: "Interactions", href: RECRUITING_INTERACTIONS_ROUTE },
+      { label: "Log", href: RECRUITING_LOG_ROUTE },
     ],
   },
   { label: "Fundraising", href: "/fundraising", icon: HandCoins },
@@ -88,6 +90,9 @@ export function isNavChildActive(pathname: string, child: NavChildItem): boolean
 export function getPageTitle(pathname: string): string {
   if (pathname === RECRUITING_INTERACTIONS_ROUTE || pathname.startsWith(`${RECRUITING_INTERACTIONS_ROUTE}/`)) {
     return "Interactions";
+  }
+  if (pathname === RECRUITING_LOG_ROUTE || pathname.startsWith(`${RECRUITING_LOG_ROUTE}/`)) {
+    return "Log";
   }
   if (pathname === "/settings/developer" || pathname.startsWith("/settings/developer/")) {
     return "Developer";

@@ -7,6 +7,7 @@ import {
   upcomingVisits,
 } from "@/features/recruiting/dashboard";
 import { loadRecruitingDirectory } from "@/features/recruiting/directory";
+import { listRecentRecruitChangeLog } from "@/features/recruiting/changeLog/repository";
 import { listRecruitInteractions } from "@/features/interactions/repository";
 import { getDisplayName } from "@/features/people/utils";
 import { listTournaments } from "@/features/tournaments/repository";
@@ -14,10 +15,11 @@ import { listTournaments } from "@/features/tournaments/repository";
 export const dynamic = "force-dynamic";
 
 export default async function RecruitingPage() {
-  const [interactions, directory, tournamentResult] = await Promise.all([
+  const [interactions, directory, tournamentResult, recentChangeLogs] = await Promise.all([
     listRecruitInteractions(),
     loadRecruitingDirectory(),
     listTournaments(),
+    listRecentRecruitChangeLog(),
   ]);
   const tournaments = tournamentResult.ok ? tournamentResult.tournaments : [];
   const commits = denisonCommitSummary(directory.denisonCommitRecruits);
@@ -41,6 +43,7 @@ export default async function RecruitingPage() {
       upcomingTournaments={upcomingTournaments(tournaments)}
       upcomingVisits={upcomingVisits(directory.rows)}
       commits={commits.recruits}
+      recentChangeLogs={recentChangeLogs}
     />
   );
 }

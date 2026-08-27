@@ -12,6 +12,7 @@ export const RECRUITING_LIST_ROUTE = "/recruiting/list";
 /** Recruiting tournaments. */
 export const RECRUITING_TOURNAMENTS_ROUTE = "/recruiting/tournaments";
 export const RECRUITING_INTERACTIONS_ROUTE = "/recruiting/interactions";
+export const RECRUITING_LOG_ROUTE = "/recruiting/log";
 
 /** Legacy Team overview shell (no longer in primary nav). */
 export const TEAM_ROUTE = "/team";
@@ -25,6 +26,7 @@ export const TOP_LEVEL_MODULE_PATHS = [
   RECRUITING_LIST_ROUTE,
   RECRUITING_TOURNAMENTS_ROUTE,
   RECRUITING_INTERACTIONS_ROUTE,
+  RECRUITING_LOG_ROUTE,
   "/operations",
   "/fundraising",
   "/research",
@@ -55,6 +57,10 @@ export function recruitingPersonPath(personId: string): string {
 
 export function recruitingPersonVisitPath(personId: string): string {
   return `${recruitingPersonPath(personId)}?workspace=visit`;
+}
+
+export function recruitingPersonLogPath(personId: string): string {
+  return `${recruitingPersonPath(personId)}?workspace=log`;
 }
 
 export function recruitingTournamentPath(tournamentId: string): string {

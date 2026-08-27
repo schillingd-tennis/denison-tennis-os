@@ -11,6 +11,7 @@ import {
   MessageCircle,
   Phone,
   Plane,
+  History,
   Trophy,
   StickyNote,
   Users,
@@ -27,11 +28,15 @@ import { formatDate, formatUtr, parseDisplayDate } from "@/lib/formatting";
 import {
   RECRUITING_INTERACTIONS_ROUTE,
   RECRUITING_LIST_ROUTE,
+  RECRUITING_LOG_ROUTE,
   RECRUITING_TOURNAMENTS_ROUTE,
   recruitingPersonPath,
   recruitingPersonVisitPath,
   recruitingTournamentPath,
 } from "@/lib/module-routes";
+
+import { DashboardChangeLogRows } from "@/features/recruiting/changeLog/ChangeLogList";
+import type { ChangeLogEvent } from "@/features/recruiting/changeLog/types";
 
 import {
   DASHBOARD_COMMIT_CLASS_YEAR,
@@ -41,7 +46,7 @@ import {
 import type { DenisonCommitRecruit } from "../directory";
 import { writeStoredRecruitingDirectoryView } from "../directorySessionState";
 
-type Tone = "red" | "violet" | "orange" | "green" | "blue";
+type Tone = "red" | "violet" | "orange" | "green" | "blue" | "teal";
 
 const TONE: Record<
   Tone,
@@ -81,6 +86,13 @@ const TONE: Record<
     accent: "bg-info",
     meta: "text-info",
     hover: "hover:bg-info/[0.05]",
+  },
+  teal: {
+    tile: "bg-teal-700 text-surface",
+    header: "bg-[linear-gradient(180deg,rgba(15,118,110,0.12),rgba(15,118,110,0.03))]",
+    accent: "bg-teal-700",
+    meta: "text-teal-800",
+    hover: "hover:bg-teal-700/[0.05]",
   },
 };
 
@@ -245,6 +257,7 @@ export default function RecruitingDashboard({
   upcomingTournaments,
   upcomingVisits,
   commits,
+  recentChangeLogs,
 }: {
   recentInteractions: RecruitInteraction[];
   interactionRecruits: InteractionOption[];
@@ -253,6 +266,7 @@ export default function RecruitingDashboard({
   upcomingTournaments: Tournament[];
   upcomingVisits: UpcomingDashboardVisit[];
   commits: DenisonCommitRecruit[];
+  recentChangeLogs: ChangeLogEvent[];
 }) {
   const router = useRouter();
   const { openDrawer, closeDrawer } = useDrawerManager();
@@ -355,6 +369,18 @@ export default function RecruitingDashboard({
                   })}
                 </ul>
               )}
+            </DashboardCard>
+          </section>
+
+          <section>
+            <DashboardCard
+              title="Recent Updates"
+              meta="Latest 5"
+              tone="teal"
+              icon={History}
+              footer={{ href: RECRUITING_LOG_ROUTE, label: "View all updates" }}
+            >
+              <DashboardChangeLogRows events={recentChangeLogs} />
             </DashboardCard>
           </section>
 
