@@ -54,7 +54,7 @@ import {
 } from "./appleMessageBody";
 
 export { extractAppleMessageBody } from "./appleMessageBody";
-export { isPlaceholderNotes, interactionNotesPresentation } from "./appleMessageNotes";
+export { isPlaceholderNotes, interactionNotesPresentation, isCorruptedNotes, isReadableAppleMessageBody } from "./appleMessageNotes";
 
 export type AppleMessageRow = {
   guid: string | null;

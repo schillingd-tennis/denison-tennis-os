@@ -2,12 +2,23 @@ import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 
-import { DIRECTION_PLACEHOLDERS } from "./appleMessageNotes";
+import {
+  DIRECTION_PLACEHOLDERS,
+  isReadableAppleMessageBody,
+  normalizeAppleMessageBody,
+} from "./appleMessageNotes";
 
-export { isDirectionPlaceholderNotes, isPlaceholderNotes, interactionNotesPresentation } from "./appleMessageNotes";
-
-const GENERIC_PLACEHOLDERS = new Set(["inbound", "outbound", "text", "message", "null", "undefined"]);
-const CLASS_NAME = /^NS[A-Z][A-Za-z0-9]+$/;
+export {
+  containsSerializationMarkers,
+  hasExcessiveReplacementChars,
+  isCorruptedNotes,
+  isDirectionPlaceholderNotes,
+  isPlaceholderNotes,
+  isReadableAppleMessageBody,
+  interactionNotesPresentation,
+  normalizeAppleMessageBody,
+  SERIALIZATION_MARKERS,
+} from "./appleMessageNotes";
 
 function swiftDecoderPath(): string {
   return join(process.cwd(), "helpers/apple-messages-decode/DecodeAttributedBody.swift");
@@ -50,25 +61,6 @@ function isMostlyText(bytes: Buffer): boolean {
   return textish / bytes.length >= 0.85;
 }
 
-function normalizeExtractedBody(value: string): string {
-  return value
-    .replace(/\r\n/g, "\n")
-    .replace(/\u0000/g, "")
-    .replace(/[\u0001-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
-    .replace(/[ \t]+\n/g, "\n")
-    .trim();
-}
-
-function isMeaningfulBody(value: string | null | undefined): boolean {
-  if (!value) return false;
-  const trimmed = normalizeExtractedBody(value);
-  if (trimmed.length < 1) return false;
-  if (GENERIC_PLACEHOLDERS.has(trimmed.toLowerCase())) return false;
-  if (CLASS_NAME.test(trimmed)) return false;
-  if (trimmed.length <= 3 && !/[\p{L}\p{N}]/u.test(trimmed)) return false;
-  return true;
-}
-
 function readLengthPrefixed(bytes: Buffer, index: number): { text: string; next: number } | null {
   if (index >= bytes.length) return null;
   const lead = bytes[index]!;
@@ -88,8 +80,8 @@ function readLengthPrefixed(bytes: Buffer, index: number): { text: string; next:
   if (length < 1 || length > 16_384 || dataAt + length > bytes.length) return null;
   const slice = bytes.subarray(dataAt, dataAt + length);
   if (!isMostlyText(slice)) return null;
-  const text = normalizeExtractedBody(slice.toString("utf8"));
-  return isMeaningfulBody(text) ? { text, next: dataAt + length } : null;
+  const text = normalizeAppleMessageBody(slice.toString("utf8"));
+  return isReadableAppleMessageBody(text) ? { text, next: dataAt + length } : null;
 }
 
 function candidatesFromAttributedBody(bytes: Buffer): string[] {
@@ -109,8 +101,8 @@ function candidatesFromAttributedBody(bytes: Buffer): string[] {
         if (c === 0 || (c < 32 && c !== 9 && c !== 10 && c !== 13)) break;
         end += 1;
       }
-      const extracted = normalizeExtractedBody(rest.subarray(0, end).toString("utf8"));
-      if (isMeaningfulBody(extracted)) found.push(extracted);
+      const extracted = normalizeAppleMessageBody(rest.subarray(0, end).toString("utf8"));
+      if (isReadableAppleMessageBody(extracted)) found.push(extracted);
     }
   }
 
@@ -122,8 +114,8 @@ function candidatesFromAttributedBody(bytes: Buffer): string[] {
         if (c === 0 || c === 0x86 || (c < 32 && c !== 9 && c !== 10 && c !== 13)) break;
         end += 1;
       }
-      const extracted = normalizeExtractedBody(bytes.subarray(i + 2, end).toString("utf8"));
-      if (isMeaningfulBody(extracted)) found.push(extracted);
+      const extracted = normalizeAppleMessageBody(bytes.subarray(i + 2, end).toString("utf8"));
+      if (isReadableAppleMessageBody(extracted)) found.push(extracted);
     }
     if (bytes[i] === 0x01) {
       const prefixed = readLengthPrefixed(bytes, i + 1);
@@ -131,7 +123,7 @@ function candidatesFromAttributedBody(bytes: Buffer): string[] {
     }
   }
 
-  return found;
+  return found.filter(isReadableAppleMessageBody);
 }
 
 function looksLikeArchive(bytes: Buffer): boolean {
@@ -152,17 +144,27 @@ function decodeWithFoundation(bytes: Buffer): string | null {
     maxBuffer: 1024 * 1024,
   });
   if (result.status !== 0 || !result.stdout) return null;
-  const extracted = normalizeExtractedBody(Buffer.from(result.stdout).toString("utf8"));
-  return isMeaningfulBody(extracted) ? extracted : null;
+  const extracted = normalizeAppleMessageBody(Buffer.from(result.stdout).toString("utf8"));
+  return isReadableAppleMessageBody(extracted) ? extracted : null;
 }
 
 export function decodeAttributedBody(buf: unknown): string | null {
   const bytes = blobFromUnknown(buf);
   if (!bytes) return null;
+
+  if (looksLikeArchive(bytes)) {
+    const foundation = decodeWithFoundation(bytes);
+    if (foundation) return foundation;
+  }
+
   const candidates = candidatesFromAttributedBody(bytes);
   const best = candidates.sort((a, b) => b.length - a.length)[0] ?? null;
-  if (isMeaningfulBody(best)) return best;
-  return decodeWithFoundation(bytes);
+  if (best) return best;
+
+  if (!looksLikeArchive(bytes)) {
+    return decodeWithFoundation(bytes);
+  }
+  return null;
 }
 
 export function extractAppleMessageBody(input: {
@@ -171,14 +173,18 @@ export function extractAppleMessageBody(input: {
   hasAttachments?: boolean;
 }): AppleMessageBodyResult {
   const direct = input.text?.trim() ?? "";
-  if (isMeaningfulBody(direct) && !DIRECTION_PLACEHOLDERS.has(direct.toLowerCase())) {
-    return { status: "ok", body: normalizeExtractedBody(direct), source: "text" };
+  if (
+    isReadableAppleMessageBody(direct) &&
+    !DIRECTION_PLACEHOLDERS.has(direct.toLowerCase())
+  ) {
+    return { status: "ok", body: normalizeAppleMessageBody(direct), source: "text" };
   }
   const decoded = decodeAttributedBody(input.attributedBody);
   if (decoded) return { status: "ok", body: decoded, source: "attributed_body" };
   if (input.hasAttachments) return { status: "ok", body: "Attachment", source: "attachment" };
   if (blobFromUnknown(input.attributedBody)) return { status: "decode_failed" };
   if (direct && DIRECTION_PLACEHOLDERS.has(direct.toLowerCase())) return { status: "decode_failed" };
+  if (direct && !isReadableAppleMessageBody(direct)) return { status: "decode_failed" };
   return { status: "empty" };
 }
 

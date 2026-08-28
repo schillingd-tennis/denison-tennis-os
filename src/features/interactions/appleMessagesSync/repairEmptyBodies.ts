@@ -1,7 +1,14 @@
-import { APPLE_MESSAGES_SOURCE_SYSTEM, extractAppleMessageBody, isPlaceholderNotes } from "../appleMessages";
+import {
+  APPLE_MESSAGES_SOURCE_SYSTEM,
+  extractAppleMessageBody,
+  isCorruptedNotes,
+  isPlaceholderNotes,
+  isReadableAppleMessageBody,
+} from "../appleMessages";
 import { isLocalSupabaseHost, isProductionSupabaseHost } from "../appleMessages";
 
 import type { AppleScanRow } from "./scan";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const REPAIR_EMPTY_BODIES_FLAG = "--repair-empty-bodies";
 export const APPLY_PRODUCTION_FLAG = "--apply-production";
@@ -17,6 +24,8 @@ export type RepairInteractionRow = {
 
 export type RepairCounts = {
   eligible: number;
+  corruptedCandidates: number;
+  placeholderCandidates: number;
   decoded: number;
   decodedFromText: number;
   decodedFromAttributedBody: number;
@@ -33,6 +42,8 @@ export type PlaceholderNotesInventory = {
   emptyNotes: number;
   inboundNotes: number;
   outboundNotes: number;
+  corruptedNotes: number;
+  cleanNotes: number;
 };
 
 export function hasRepairEmptyBodiesFlag(argv: string[]): boolean {
@@ -70,13 +81,17 @@ export function isRepairEligible(
   currentTeamPersonIds: ReadonlySet<string> = new Set(),
 ): boolean {
   if (row.recruitPersonId && currentTeamPersonIds.has(row.recruitPersonId)) return false;
-  return row.sourceSystem === APPLE_MESSAGES_SOURCE_SYSTEM && Boolean(row.sourceKey?.trim()) && isPlaceholderNotes(row.notes);
+  if (row.sourceSystem !== APPLE_MESSAGES_SOURCE_SYSTEM) return false;
+  if (!row.sourceKey?.trim()) return false;
+  if (isPlaceholderNotes(row.notes)) return true;
+  if (isCorruptedNotes(row.notes)) return true;
+  return false;
 }
 
 export type RepairPlanRow = {
   id: string;
   sourceKey: string;
-  outcome: "decoded" | "attachment" | "decode_failed" | "missing_local_guid";
+  outcome: "decoded" | "attachment" | "decode_failed" | "missing_local_guid" | "unchanged";
   notes: string | null;
 };
 
@@ -94,6 +109,8 @@ export function planBodyRepair(
   const plans: RepairPlanRow[] = [];
   const counts: RepairCounts = {
     eligible: eligible.length,
+    corruptedCandidates: eligible.filter((row) => isCorruptedNotes(row.notes)).length,
+    placeholderCandidates: eligible.filter((row) => isPlaceholderNotes(row.notes)).length,
     decoded: 0,
     decodedFromText: 0,
     decodedFromAttributedBody: 0,
@@ -119,6 +136,15 @@ export function planBodyRepair(
       hasAttachments: local.hasAttachments,
     });
     if (extracted.status === "ok") {
+      const normalizedExisting = row.notes?.trim() ?? "";
+      if (
+        normalizedExisting &&
+        isReadableAppleMessageBody(normalizedExisting) &&
+        normalizeExistingBody(normalizedExisting) === extracted.body
+      ) {
+        plans.push({ id: row.id, sourceKey, outcome: "unchanged", notes: null });
+        continue;
+      }
       if (extracted.source === "attachment") counts.attachmentOnly += 1;
       else {
         counts.decoded += 1;
@@ -141,6 +167,10 @@ export function planBodyRepair(
   return { counts, plans };
 }
 
+function normalizeExistingBody(value: string): string {
+  return value.replace(/\r\n/g, "\n").trim();
+}
+
 export function applyBodyRepair(
   plans: RepairPlanRow[],
   flags: { applyProduction: boolean; confirmProduction: boolean; host: string },
@@ -149,14 +179,48 @@ export function applyBodyRepair(
   return plans.filter((plan) => plan.notes != null);
 }
 
-export async function fetchPlaceholderAppleInteractions(input: {
-  url: string;
-  key: string;
-}): Promise<RepairInteractionRow[]> {
-  const { createClient } = await import("@supabase/supabase-js");
-  const client = createClient(input.url, input.key, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+export async function applyBodyRepairUpdates(
+  client: SupabaseClient,
+  plans: RepairPlanRow[],
+  rowsById: Map<string, RepairInteractionRow>,
+  currentTeamPersonIds: ReadonlySet<string>,
+  flags: { applyProduction: boolean; confirmProduction: boolean; host: string },
+): Promise<{ updated: number; failures: number }> {
+  assertRepairApplyAllowed(flags);
+  let updated = 0;
+  let failures = 0;
+
+  for (const plan of plans) {
+    if (plan.notes == null) continue;
+    if (plan.outcome !== "decoded" && plan.outcome !== "attachment") continue;
+
+    const row = rowsById.get(plan.id);
+    if (!row || !isRepairEligible(row, currentTeamPersonIds)) continue;
+
+    const { data, error } = await client
+      .from("recruiting_interactions")
+      .update({ notes: plan.notes })
+      .eq("id", plan.id)
+      .eq("source_system", APPLE_MESSAGES_SOURCE_SYSTEM)
+      .eq("source_key", plan.sourceKey)
+      .select("id");
+
+    if (error) {
+      failures += 1;
+      continue;
+    }
+    if (!data?.length) continue;
+    updated += 1;
+  }
+
+  return { updated, failures };
+}
+
+type RepairSupabaseClient = SupabaseClient;
+
+export async function fetchAppleInteractionsForRepair(
+  client: RepairSupabaseClient,
+): Promise<RepairInteractionRow[]> {
   const { data, error } = await client
     .from("recruiting_interactions")
     .select("id,source_system,source_key,notes,recruit_person_id")
@@ -165,10 +229,10 @@ export async function fetchPlaceholderAppleInteractions(input: {
   if (error) throw new Error(error.message);
   return (data ?? []).map((row) => ({
     id: String(row.id),
-    sourceSystem: row.source_system ?? null,
-    sourceKey: row.source_key ?? null,
-    notes: row.notes ?? null,
-    recruitPersonId: row.recruit_person_id ?? null,
+    sourceSystem: (row.source_system as string | null) ?? null,
+    sourceKey: (row.source_key as string | null) ?? null,
+    notes: (row.notes as string | null) ?? null,
+    recruitPersonId: (row.recruit_person_id as string | null) ?? null,
   }));
 }
 
@@ -176,13 +240,24 @@ export function placeholderNotesInventory(rows: RepairInteractionRow[]): Placeho
   let emptyNotes = 0;
   let inboundNotes = 0;
   let outboundNotes = 0;
+  let corruptedNotes = 0;
+  let cleanNotes = 0;
   for (const row of rows) {
     const value = row.notes?.trim() ?? "";
     if (!value) emptyNotes += 1;
     else if (value.toLowerCase() === "inbound") inboundNotes += 1;
     else if (value.toLowerCase() === "outbound") outboundNotes += 1;
+    else if (isCorruptedNotes(row.notes)) corruptedNotes += 1;
+    else cleanNotes += 1;
   }
-  return { appleRows: rows.length, emptyNotes, inboundNotes, outboundNotes };
+  return {
+    appleRows: rows.length,
+    emptyNotes,
+    inboundNotes,
+    outboundNotes,
+    corruptedNotes,
+    cleanNotes,
+  };
 }
 
 export function formatPlaceholderInventory(inventory: PlaceholderNotesInventory): string {
@@ -192,18 +267,15 @@ export function formatPlaceholderInventory(inventory: PlaceholderNotesInventory)
     `inbound_or_outbound_notes=${inventory.inboundNotes + inventory.outboundNotes}`,
     `inbound_notes=${inventory.inboundNotes}`,
     `outbound_notes=${inventory.outboundNotes}`,
+    `corrupted_notes=${inventory.corruptedNotes}`,
+    `clean_notes=${inventory.cleanNotes}`,
   ].join(" ");
 }
 
-export async function fetchCurrentTeamPersonIds(input: {
-  url: string;
-  key: string;
-}): Promise<Set<string>> {
-  const { createClient } = await import("@supabase/supabase-js");
+export async function fetchCurrentTeamPersonIdsFromClient(
+  client: RepairSupabaseClient,
+): Promise<Set<string>> {
   const { matchSetsFromProductionRows } = await import("./recruits");
-  const client = createClient(input.url, input.key, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
   const { data, error } = await client
     .from("production_people")
     .select(
@@ -218,6 +290,8 @@ export async function fetchCurrentTeamPersonIds(input: {
 export function formatRepairCounts(counts: RepairCounts, applied: boolean): string {
   return [
     `repair eligible=${counts.eligible}`,
+    `corrupted_candidates=${counts.corruptedCandidates}`,
+    `placeholder_candidates=${counts.placeholderCandidates}`,
     `decoded=${counts.decoded}`,
     `decoded_from_text=${counts.decodedFromText}`,
     `decoded_from_attributed_body=${counts.decodedFromAttributedBody}`,

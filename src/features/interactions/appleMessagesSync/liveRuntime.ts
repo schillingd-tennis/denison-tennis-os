@@ -5,7 +5,7 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { SqliteMessagesCatalog } from "./catalog";
 import { readHelperConfigFile, assertProductionSupabaseUrl } from "./config";
@@ -27,8 +27,8 @@ export type LiveTickOptions = {
   chatDb?: string;
 };
 
-export function createLiveTickRuntime(options: LiveTickOptions): TickRuntime {
-  const home = options.home;
+/** Shared production Supabase client: public URL from apple-messages.json, key from Keychain. */
+export function createProductionSupabaseClient(home: string): SupabaseClient {
   const config = readHelperConfigFile(helperConfigPath(home));
   assertProductionSupabaseUrl(config.supabaseUrl);
   const secrets = createKeychainSecretStore(defaultSecurityRunner);
@@ -36,9 +36,16 @@ export function createLiveTickRuntime(options: LiveTickOptions): TickRuntime {
   if (!serviceRole) {
     throw new Error("keychain_unavailable");
   }
-  const client = createClient(config.supabaseUrl, serviceRole, {
+  return createClient(config.supabaseUrl, serviceRole, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+}
+
+export function createLiveTickRuntime(options: LiveTickOptions): TickRuntime {
+  const home = options.home;
+  const config = readHelperConfigFile(helperConfigPath(home));
+  const client = createProductionSupabaseClient(home);
+  const secrets = createKeychainSecretStore(defaultSecurityRunner);
   const copyDir = join(home, "chat-copy");
   const copied = copyChatDatabase(
     options.chatDb ?? join(homedir(), "Library/Messages/chat.db"),
