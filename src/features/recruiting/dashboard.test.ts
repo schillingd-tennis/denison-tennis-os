@@ -5,6 +5,8 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import type { RecruitInteraction } from "@/features/interactions/types";
+import { COMMUNICATION_ALERT_CLASS_YEAR } from "@/features/interactions/centralInsights";
+import { ROLE_KEYS, STATUS_KEYS } from "@/features/lookups/seed";
 import type { Tournament } from "@/features/tournaments/types";
 
 import type { DenisonCommitRecruit, RecruitDirectoryRow } from "./directory";
@@ -106,9 +108,13 @@ function row(partial: {
   visitEndDate?: string;
   travelType?: string;
   pipelineKey?: string;
+  roleKey?: string;
+  statusKey?: string;
 }): RecruitDirectoryRow {
   const [firstName, ...rest] = partial.name.split(" ");
   const lastName = rest.join(" ") || "Recruit";
+  const roleKey = partial.roleKey ?? ROLE_KEYS.recruit;
+  const statusKey = partial.statusKey ?? STATUS_KEYS.current;
   return {
     person: {
       id: partial.id,
@@ -116,6 +122,10 @@ function row(partial: {
       lastName,
       utr: partial.utr,
       trnRank: partial.trnRank,
+      roleId: `role-${roleKey}`,
+      statusId: `status-${statusKey}`,
+      role: { id: `role-${roleKey}`, key: roleKey, label: roleKey },
+      status: { id: `status-${statusKey}`, key: statusKey, label: statusKey },
     } as RecruitDirectoryRow["person"],
     profile: {
       personId: partial.id,
@@ -151,17 +161,53 @@ test("top ranked recruits uses coach rank, max 5, not UTR", () => {
     row({ id: "one", name: "Ada One", coachRank: 1, utr: 10, classYear: 2027, trnRank: 42 }),
     row({ id: "unranked", name: "No Rank", utr: 14, classYear: 2027 }),
     row({ id: "two", name: "Bea Two", coachRank: 2, utr: 11, classYear: 2027 }),
-    row({ id: "three", name: "Cara Three", coachRank: 3, classYear: 2028 }),
-    row({ id: "five", name: "Eve Five", coachRank: 5, classYear: 2027 }),
-    row({ id: "six", name: "Fay Six", coachRank: 6, classYear: 2027 }),
+    row({ id: "three", name: "Cara Three", coachRank: 3, utr: 12, classYear: 2028 }),
+    row({ id: "five", name: "Eve Five", coachRank: 5, utr: 9, classYear: 2027 }),
+    row({ id: "six", name: "Fay Six", coachRank: 6, utr: 8, classYear: 2027 }),
   ]);
   assert.equal(ranked.length, DASHBOARD_TOP_RANKED_LIMIT);
   assert.deepEqual(
     ranked.map((item) => item.personId),
-    ["one", "two", "three", "high-utr", "five"],
+    ["one", "two", "high-utr", "five", "six"],
   );
   assert.equal(ranked[0]?.coachRank, 1);
   assert.equal(ranked.some((item) => item.personId === "unranked"), false);
+  assert.equal(ranked.some((item) => item.personId === "three"), false);
+});
+
+test("top ranked recruits limits to current class Rank Board members only", () => {
+  const ranked = topRankedRecruits([
+    row({ id: "r2027-1", name: "Ada One", coachRank: 2, classYear: 2027 }),
+    row({ id: "r2027-2", name: "Bea Two", coachRank: 1, classYear: 2027 }),
+    row({ id: "r2028-1", name: "Cara Three", coachRank: 1, classYear: 2028 }),
+    row({ id: "unranked-2027", name: "Drew Four", classYear: 2027 }),
+    row({ id: "missing-year", name: "Eve Five", coachRank: 3 }),
+    row({
+      id: "luke",
+      name: "Luke Colson",
+      coachRank: 1,
+      classYear: 2027,
+      roleKey: ROLE_KEYS.player,
+      statusKey: STATUS_KEYS.current,
+    }),
+    row({ id: "r2027-3", name: "Fay Six", coachRank: 3, classYear: 2027 }),
+    row({ id: "r2027-4", name: "Gia Seven", coachRank: 4, classYear: 2027 }),
+    row({ id: "r2027-5", name: "Hal Eight", coachRank: 5, classYear: 2027 }),
+    row({ id: "r2027-6", name: "Ivy Nine", coachRank: 6, classYear: 2027 }),
+  ]);
+
+  assert.deepEqual(
+    ranked.map((item) => item.personId),
+    ["r2027-2", "r2027-1", "r2027-3", "r2027-4", "r2027-5"],
+  );
+  assert.equal(ranked.length, DASHBOARD_TOP_RANKED_LIMIT);
+  assert.equal(ranked.every((item) => item.classYear === COMMUNICATION_ALERT_CLASS_YEAR), true);
+  assert.equal(ranked.some((item) => item.personId === "r2028-1"), false);
+  assert.equal(ranked.some((item) => item.personId === "unranked-2027"), false);
+  assert.equal(ranked.some((item) => item.personId === "missing-year"), false);
+  assert.equal(ranked.some((item) => item.personId === "luke"), false);
+  assert.equal(ranked[0]?.coachRank, 1);
+  assert.equal(ranked[1]?.coachRank, 2);
 });
 
 test("upcoming tournaments uses canonical schedule split and earliest first", () => {
@@ -417,6 +463,7 @@ test("command-center dashboard renders ten sections and keeps real selectors", (
 
   assert.match(page, /recentInteractions\(interactions\)/);
   assert.match(page, /topRankedRecruits\(directory\.rows\)/);
+  assert.match(readFileSync(join(here, "dashboard.ts"), "utf8"), /rankedPersonIdsForClass\(rows, COMMUNICATION_ALERT_CLASS_YEAR\)/);
   assert.match(page, /upcomingTournaments\(tournaments\)/);
   assert.match(page, /upcomingVisits=\{visits\}/);
   assert.match(page, /visitsNext30DaysCount\(directory\.rows\)/);

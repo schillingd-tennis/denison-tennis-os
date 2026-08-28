@@ -193,6 +193,32 @@ test.describe("desktop Recruiting Dashboard lock", () => {
     const second = await measure();
     expect(second.grid?.display).toBe("grid");
     expect(second.recent!.x).toBeLessThan(second.ranked!.x);
+
+    const readTopRanked = () =>
+      page.evaluate(() => {
+        const section = document.querySelector('[data-recruiting-dashboard-section="top-ranked"]');
+        if (!section) return { count: 0, classYears: [] as string[] };
+        const items = [...section.querySelectorAll("ol li")];
+        const classYears = items.map((li) => {
+          const meta = li.querySelector("p")?.textContent?.trim() ?? "";
+          return meta.split("·")[0]?.trim() ?? "";
+        });
+        return { count: items.length, classYears };
+      });
+
+    const topRanked = await readTopRanked();
+    expect(topRanked.count).toBeLessThanOrEqual(5);
+    for (const year of topRanked.classYears) {
+      if (year) expect(year).toBe("2027");
+    }
+
+    await page.reload({ waitUntil: "networkidle" });
+    const topRankedAfterRefresh = await readTopRanked();
+    expect(topRankedAfterRefresh.count).toBeLessThanOrEqual(5);
+    for (const year of topRankedAfterRefresh.classYears) {
+      if (year) expect(year).toBe("2027");
+    }
+
     expect(
       errors.filter((e) => /hydrat|did not match|Minified React error/i.test(e)),
       errors.join("\n"),

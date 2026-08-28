@@ -16,6 +16,7 @@ import type { Tournament } from "@/features/tournaments/types";
 
 import { rankedPersonIdsForClass } from "./coachRank";
 import type { DenisonCommitRecruit, RecruitDirectoryRow } from "./directory";
+import { isEligibleForRecruiting } from "./eligibility";
 import { RECRUIT_PIPELINE_KEYS } from "./lookupSeed";
 import { calendarDateOnly, visitDayCount } from "./visitDays";
 
@@ -44,29 +45,30 @@ export type RankedDashboardRecruit = {
   trnRank?: number;
 };
 
-/** Same Coach Rank order as Recruit List > Rank (not UTR / TRN). */
+/** Same Coach Rank order as Recruit List > Rank for the current recruiting class. */
 export function topRankedRecruits(
   rows: readonly RecruitDirectoryRow[],
   limit = DASHBOARD_TOP_RANKED_LIMIT,
 ): RankedDashboardRecruit[] {
-  return rows
-    .filter((row) => row.profile.coachRank !== undefined)
-    .sort((a, b) => {
-      const rank = (a.profile.coachRank as number) - (b.profile.coachRank as number);
-      if (rank !== 0) return rank;
-      const year = (a.profile.recruitClassYear ?? 9999) - (b.profile.recruitClassYear ?? 9999);
-      if (year !== 0) return year;
-      return getDisplayName(a.person).localeCompare(getDisplayName(b.person));
+  const byId = new Map(rows.map((row) => [row.person.id, row]));
+  return rankedPersonIdsForClass(rows, COMMUNICATION_ALERT_CLASS_YEAR)
+    .filter((personId) => {
+      const row = byId.get(personId);
+      if (!row) return false;
+      return isEligibleForRecruiting(row.person, row.profile);
     })
     .slice(0, limit)
-    .map((row) => ({
-      personId: row.person.id,
-      name: getDisplayName(row.person),
-      coachRank: row.profile.coachRank as number,
-      classYear: row.profile.recruitClassYear,
-      utr: row.person.utr,
-      trnRank: row.person.trnRank,
-    }));
+    .map((personId) => {
+      const row = byId.get(personId)!;
+      return {
+        personId: row.person.id,
+        name: getDisplayName(row.person),
+        coachRank: row.profile.coachRank as number,
+        classYear: row.profile.recruitClassYear,
+        utr: row.person.utr,
+        trnRank: row.person.trnRank,
+      };
+    });
 }
 
 export function upcomingTournaments(
