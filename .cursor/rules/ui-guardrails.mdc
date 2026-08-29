@@ -5,7 +5,7 @@ alwaysApply: true
 
 # UI Guardrails
 
-Full contract: `docs/UI-GUARDRAILS.md`.
+Adaptive Workspace Header titles use natural title case and the canonical Team/Recruiting header typography (`ModulePageShell`). Feature work must not introduce all-uppercase titles, custom typography, or custom header spacing.
 
 **LOCKED OS UI CONTRACT — do not modify for feature-specific work.**
 
@@ -16,6 +16,7 @@ Do not change these in feature work (Interactions, Tournaments, Dashboard, Visit
 - Adaptive Workspace field grids: `WorkspaceFieldGrid` + `[data-aw-field-grid]` in `src/app/layout-lock.css`
 - Directory Search / Views row
 - Recruiting nested nav geometry
+- Primary in-page module headers: natural title case via `ModulePageShell` only — no all-uppercase titles, custom typography, or custom header spacing
 
 Shared shell owns geometry. Feature modules own content only.
 

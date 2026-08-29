@@ -43,14 +43,14 @@ test.describe("desktop Recruit Log and central Log", () => {
     await expect(page.locator("body")).not.toContainText("Add Log");
 
     await page.goto("/recruiting/log", { waitUntil: "networkidle" });
-    await expect(page.getByRole("heading", { name: "Recruiting Log" })).toBeVisible();
+    await expect(page.locator("main").getByRole("heading", { name: "Log", exact: true })).toBeVisible();
     await expect(page.getByText("Updates today")).toBeVisible();
     await page.goto("/recruiting/log?period=today", { waitUntil: "networkidle" });
     await page.reload({ waitUntil: "networkidle" });
     expect(page.url()).toContain("period=today");
 
     await page.goto("/recruiting", { waitUntil: "networkidle" });
-    await expect(page.getByRole("heading", { name: "Recruiting Dashboard" })).toBeVisible();
+    await expect(page.locator("main").getByRole("heading", { name: "Recruiting Dashboard", exact: true })).toBeVisible();
     await expect(page.getByText("Your recruiting command center")).toBeVisible();
     await expect(page.getByRole("region", { name: "Recent Updates" })).toBeVisible();
     await expect(page.getByRole("link", { name: "View all updates" })).toHaveAttribute("href", "/recruiting/log");
@@ -69,7 +69,7 @@ test.describe("mobile Recruit Log and central Log", () => {
     await openRecruitLog(page);
     await expect(page.getByText("Updates this month").locator("visible=true")).toBeVisible();
     await page.goto("/recruiting/log", { waitUntil: "networkidle" });
-    await expect(page.getByRole("heading", { name: "Recruiting Log" })).toBeVisible();
+    await expect(page.locator("main").getByRole("heading", { name: "Log", exact: true })).toBeVisible();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
     expect(overflow).toBe(false);
     expect(errors.filter((item) => /hydrat|did not match|Minified React error/i.test(item))).toEqual([]);

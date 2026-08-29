@@ -24,6 +24,155 @@ type RecruitGeometry = {
   aw: Array<Box & { cols: string | null; fieldTops: number[] }>;
 };
 
+type ModuleHeaderGeometry = {
+  mainPaddingLeft: number;
+  mainPaddingRight: number;
+  titleLeft: number;
+  titleTop: number;
+  titleFontSize: number;
+  titleFontWeight: string;
+  titleLineHeight: number;
+  subtitleMarginTop: number;
+  subtitleFontSize: number;
+  accentTop: number;
+  accentHeight: number;
+  accentLeft: number;
+  actionTop: number;
+  actionBottom: number;
+  actionRight: number;
+  headerToKpiGap: number;
+};
+
+const HEADER_TOLERANCE_PX = 3;
+
+function expectHeaderMetric(actual: number, expected: number, label: string) {
+  expect(
+    Math.abs(actual - expected),
+    `${label}: expected ${expected}, got ${actual}`,
+  ).toBeLessThanOrEqual(HEADER_TOLERANCE_PX);
+}
+
+async function measureModulePageHeader(
+  page: Page,
+  kpiSelector: string,
+): Promise<ModuleHeaderGeometry | null> {
+  return page.evaluate((selector) => {
+    const main = document.querySelector("main");
+    if (!main) return null;
+    const mainStyle = getComputedStyle(main);
+    const shell = main.querySelector(":scope > div.flex.w-full.flex-col");
+    if (!shell) return null;
+    const headerRow = shell.firstElementChild;
+    const titleBlock = headerRow?.querySelector(".relative.pl-4");
+    const accent = titleBlock?.querySelector('span[aria-hidden="true"]');
+    const title = titleBlock?.querySelector("h1");
+    const subtitle = titleBlock?.querySelector("p");
+    const action = headerRow?.querySelector("button");
+    const kpi = document.querySelector(selector);
+    if (!headerRow || !titleBlock || !title || !accent) return null;
+
+    const titleStyle = getComputedStyle(title);
+    const subtitleStyle = subtitle ? getComputedStyle(subtitle) : null;
+    const headerRowRect = headerRow.getBoundingClientRect();
+    const titleRect = title.getBoundingClientRect();
+    const accentRect = accent.getBoundingClientRect();
+    const actionRect = action?.getBoundingClientRect();
+    const kpiRect = kpi?.getBoundingClientRect();
+    const titleLineHeight = Number.parseFloat(titleStyle.lineHeight);
+    return {
+      mainPaddingLeft: Number.parseFloat(mainStyle.paddingLeft),
+      mainPaddingRight: Number.parseFloat(mainStyle.paddingRight),
+      titleLeft: Math.round(titleRect.left),
+      titleTop: Math.round(titleRect.top),
+      titleFontSize: Number.parseFloat(titleStyle.fontSize),
+      titleFontWeight: titleStyle.fontWeight,
+      titleLineHeight: Number.isFinite(titleLineHeight) ? titleLineHeight : Math.round(titleRect.height),
+      subtitleMarginTop: subtitleStyle ? Number.parseFloat(subtitleStyle.marginTop) : 0,
+      subtitleFontSize: subtitleStyle ? Number.parseFloat(subtitleStyle.fontSize) : 0,
+      accentTop: Math.round(accentRect.top),
+      accentHeight: Math.round(accentRect.height),
+      accentLeft: Math.round(accentRect.left),
+      actionTop: actionRect ? Math.round(actionRect.top) : -1,
+      actionBottom: actionRect ? Math.round(actionRect.bottom) : -1,
+      actionRight: actionRect ? Math.round(actionRect.right) : -1,
+      headerToKpiGap: kpiRect ? Math.round(kpiRect.top - headerRowRect.bottom) : -1,
+    };
+  }, kpiSelector);
+}
+
+function compareModuleHeaders(
+  list: ModuleHeaderGeometry,
+  dashboard: ModuleHeaderGeometry,
+) {
+  expectHeaderMetric(dashboard.mainPaddingLeft, list.mainPaddingLeft, "main padding left");
+  expectHeaderMetric(dashboard.mainPaddingRight, list.mainPaddingRight, "main padding right");
+  expectHeaderMetric(dashboard.titleLeft, list.titleLeft, "title left");
+  expectHeaderMetric(dashboard.titleTop, list.titleTop, "title top");
+  expect(dashboard.titleFontSize).toBe(list.titleFontSize);
+  expect(dashboard.titleFontWeight).toBe(list.titleFontWeight);
+  expectHeaderMetric(dashboard.titleLineHeight, list.titleLineHeight, "title line height");
+  expectHeaderMetric(dashboard.subtitleMarginTop, list.subtitleMarginTop, "subtitle margin top");
+  expect(dashboard.subtitleFontSize).toBe(list.subtitleFontSize);
+  expectHeaderMetric(dashboard.accentTop, list.accentTop, "accent top");
+  expectHeaderMetric(dashboard.accentHeight, list.accentHeight, "accent height");
+  expectHeaderMetric(dashboard.accentLeft, list.accentLeft, "accent left");
+  expectHeaderMetric(dashboard.actionTop, list.actionTop, "action top");
+  expectHeaderMetric(dashboard.actionBottom, list.actionBottom, "action bottom");
+  expectHeaderMetric(dashboard.actionRight, list.actionRight, "action right");
+  expectHeaderMetric(dashboard.headerToKpiGap, list.headerToKpiGap, "header to KPI gap");
+}
+
+type ModuleHeaderTitleGeometry = {
+  title: string;
+  textTransform: string;
+  fontSize: number;
+  fontWeight: string;
+  lineHeight: number;
+  letterSpacing: string;
+  accentTop: number;
+  accentHeight: number;
+  accentLeft: number;
+};
+
+async function measureModuleHeaderTitle(page: Page): Promise<ModuleHeaderTitleGeometry | null> {
+  return page.evaluate(() => {
+    const main = document.querySelector("main");
+    const shell = main?.querySelector(":scope > div.flex.w-full.flex-col");
+    const titleBlock = shell?.querySelector(".relative.pl-4");
+    const title = titleBlock?.querySelector("h1");
+    const accent = titleBlock?.querySelector('span[aria-hidden="true"]');
+    if (!title || !accent) return null;
+    const titleStyle = getComputedStyle(title);
+    const accentRect = accent.getBoundingClientRect();
+    return {
+      title: title.textContent?.trim() ?? "",
+      textTransform: titleStyle.textTransform,
+      fontSize: Number.parseFloat(titleStyle.fontSize),
+      fontWeight: titleStyle.fontWeight,
+      lineHeight: Number.parseFloat(titleStyle.lineHeight),
+      letterSpacing: titleStyle.letterSpacing,
+      accentTop: Math.round(accentRect.top),
+      accentHeight: Math.round(accentRect.height),
+      accentLeft: Math.round(accentRect.left),
+    };
+  });
+}
+
+function expectTitleTypographyMatches(
+  reference: ModuleHeaderTitleGeometry,
+  current: ModuleHeaderTitleGeometry,
+  pageLabel: string,
+) {
+  expect(current.textTransform, `${pageLabel} text transform`).toBe(reference.textTransform);
+  expect(current.fontSize, `${pageLabel} font size`).toBe(reference.fontSize);
+  expect(current.fontWeight, `${pageLabel} font weight`).toBe(reference.fontWeight);
+  expectHeaderMetric(current.lineHeight, reference.lineHeight, `${pageLabel} line height`);
+  expect(current.letterSpacing, `${pageLabel} letter spacing`).toBe(reference.letterSpacing);
+  expectHeaderMetric(current.accentTop, reference.accentTop, `${pageLabel} accent top`);
+  expectHeaderMetric(current.accentHeight, reference.accentHeight, `${pageLabel} accent height`);
+  expectHeaderMetric(current.accentLeft, reference.accentLeft, `${pageLabel} accent left`);
+}
+
 async function loginIfNeeded(page: Page) {
   await page.goto("/recruiting", { waitUntil: "networkidle" });
   if (!page.url().includes("/login")) return;
@@ -218,6 +367,273 @@ test.describe("desktop Recruiting Dashboard lock", () => {
     for (const year of topRankedAfterRefresh.classYears) {
       if (year) expect(year).toBe("2027");
     }
+
+    const headerLayout = await page.evaluate(() => ({
+      buttonCount: [...document.querySelectorAll("button")].filter((el) =>
+        el.textContent?.trim() === "+ ADD RECRUIT",
+      ).length,
+    }));
+    expect(headerLayout.buttonCount).toBe(1);
+
+    expect(
+      errors.filter((e) => /hydrat|did not match|Minified React error/i.test(e)),
+      errors.join("\n"),
+    ).toEqual([]);
+  });
+
+  test("dashboard header matches recruit list module page shell geometry", async ({ page }) => {
+    const errors = await collectPageErrors(page);
+    await loginIfNeeded(page);
+
+    await page.goto("/recruiting/list", { waitUntil: "networkidle" });
+    await page.reload({ waitUntil: "networkidle" });
+    const listHeader = await measureModulePageHeader(
+      page,
+      "main .max-md\\:hidden .grid.grid-cols-1",
+    );
+    expect(listHeader).not.toBeNull();
+
+    await page.goto("/recruiting", { waitUntil: "networkidle" });
+    await page.reload({ waitUntil: "networkidle" });
+    const dashboardHeader = await measureModulePageHeader(
+      page,
+      '[data-recruiting-dashboard-section="kpis"]',
+    );
+    expect(dashboardHeader).not.toBeNull();
+
+    compareModuleHeaders(listHeader!, dashboardHeader!);
+
+    const buttonCount = await page.evaluate(
+      () =>
+        [...document.querySelectorAll("button")].filter(
+          (el) => el.textContent?.trim() === "+ ADD RECRUIT",
+        ).length,
+    );
+    expect(buttonCount).toBe(1);
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth + 1,
+    );
+    expect(overflow, "dashboard desktop overflow").toBe(false);
+
+    expect(
+      errors.filter((e) => /hydrat|did not match|Minified React error/i.test(e)),
+      errors.join("\n"),
+    ).toEqual([]);
+  });
+
+  test("add recruit opens the canonical add-recruit drawer", async ({ page }) => {
+    const errors = await collectPageErrors(page);
+    await loginIfNeeded(page);
+    await page.goto("/recruiting", { waitUntil: "networkidle" });
+    await page.getByRole("button", { name: "+ ADD RECRUIT", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Add Recruit" })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Creates a Person with role Recruit")).toBeVisible();
+    expect(
+      errors.filter((e) => /hydrat|did not match|Minified React error/i.test(e)),
+      errors.join("\n"),
+    ).toEqual([]);
+  });
+
+  test("module headers use title case and shared typography", async ({ page }) => {
+    const errors = await collectPageErrors(page);
+    await loginIfNeeded(page);
+
+    const pages = [
+      { href: "/players-coaches", title: "Team" },
+      { href: "/recruiting", title: "Recruiting Dashboard" },
+      { href: "/recruiting/list", title: "Recruiting" },
+      { href: "/recruiting/tournaments", title: "Tournaments" },
+      { href: "/recruiting/interactions", title: "Interactions" },
+      { href: "/recruiting/log", title: "Log" },
+    ] as const;
+
+    let reference: ModuleHeaderTitleGeometry | null = null;
+
+    for (const entry of pages) {
+      await page.goto(entry.href, { waitUntil: "networkidle" });
+      await page.reload({ waitUntil: "networkidle" });
+      const measured = await measureModuleHeaderTitle(page);
+      expect(measured, entry.href).not.toBeNull();
+      expect(measured!.title, entry.href).toBe(entry.title);
+      expect(measured!.title, entry.href).not.toBe(entry.title.toUpperCase());
+      expect(measured!.textTransform, entry.href).not.toMatch(/uppercase/i);
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth > window.innerWidth + 1,
+      );
+      expect(overflow, `${entry.href} overflow`).toBe(false);
+
+      if (!reference) {
+        reference = measured!;
+      } else {
+        expectTitleTypographyMatches(reference, measured!, entry.href);
+      }
+    }
+
+    expect(
+      errors.filter((e) => /hydrat|did not match|Minified React error/i.test(e)),
+      errors.join("\n"),
+    ).toEqual([]);
+  });
+
+  test("recent interactions metadata row keeps name, type, direction, and date aligned", async ({
+    page,
+  }) => {
+    const errors = await collectPageErrors(page);
+    await loginIfNeeded(page);
+    await page.goto("/recruiting", { waitUntil: "networkidle" });
+
+    const layout = await page.evaluate(() => {
+      const section = document.querySelector('[data-recruiting-dashboard-section="recent-interactions"]');
+      const meta = section?.querySelector("[data-dashboard-recent-interaction-meta]");
+      const notes = section?.querySelector("[data-dashboard-recent-interaction-notes]");
+      const firstItem = section?.querySelector("[data-dashboard-recent-list] > li");
+      if (!meta || !notes || !firstItem) {
+        return { ok: false, reason: "missing nodes" };
+      }
+      const metaRect = meta.getBoundingClientRect();
+      const notesRect = notes.getBoundingClientRect();
+      const name = meta.querySelector("a");
+      const badge = meta.querySelector("span.rounded-full");
+      const time = meta.querySelector("time");
+      const nameRect = name?.getBoundingClientRect();
+      const badgeRect = badge?.getBoundingClientRect();
+      const timeRect = time?.getBoundingClientRect();
+      if (!nameRect || !badgeRect || !timeRect) {
+        return { ok: false, reason: "missing metadata parts" };
+      }
+      const sameRow =
+        Math.abs(nameRect.top - badgeRect.top) < 8 &&
+        Math.abs(nameRect.top - timeRect.top) < 8;
+      const dateRight = timeRect.right <= metaRect.right + 1 && timeRect.left > nameRect.left;
+      const notesBelow = notesRect.top >= metaRect.bottom - 2;
+      return {
+        ok: sameRow && dateRight && notesBelow,
+        sameRow,
+        dateRight,
+        notesBelow,
+        overflow: document.documentElement.scrollWidth > window.innerWidth + 1,
+      };
+    });
+
+    expect(layout.ok, JSON.stringify(layout)).toBe(true);
+    expect(layout.overflow).toBe(false);
+
+    await page.reload({ waitUntil: "networkidle" });
+    const afterRefresh = await page.evaluate(() => {
+      const section = document.querySelector('[data-recruiting-dashboard-section="recent-interactions"]');
+      const meta = section?.querySelector("[data-dashboard-recent-interaction-meta]");
+      const notes = section?.querySelector("[data-dashboard-recent-interaction-notes]");
+      if (!meta || !notes) return { ok: false };
+      return {
+        ok: notes.getBoundingClientRect().top >= meta.getBoundingClientRect().bottom - 2,
+        overflow: document.documentElement.scrollWidth > window.innerWidth + 1,
+      };
+    });
+    expect(afterRefresh.ok).toBe(true);
+    expect(afterRefresh.overflow).toBe(false);
+
+    expect(
+      errors.filter((e) => /hydrat|did not match|Minified React error/i.test(e)),
+      errors.join("\n"),
+    ).toEqual([]);
+  });
+});
+
+test.describe("mobile Recruiting Dashboard header", () => {
+  test.use({ viewport: MOBILE });
+
+  test("add recruit button does not cause horizontal overflow", async ({ page }) => {
+    const errors = await collectPageErrors(page);
+    await loginIfNeeded(page);
+    await page.goto("/recruiting", { waitUntil: "networkidle" });
+
+    const layout = await page.evaluate(() => ({
+      buttonCount: [...document.querySelectorAll("button")].filter(
+        (el) => el.textContent?.trim() === "+ ADD RECRUIT",
+      ).length,
+      overflow: document.documentElement.scrollWidth > window.innerWidth + 1,
+      innerWidth: window.innerWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+    }));
+
+    expect(layout.buttonCount).toBe(1);
+    expect(layout.overflow).toBe(false);
+
+    await page.reload({ waitUntil: "networkidle" });
+    const afterRefresh = await page.evaluate(() => ({
+      buttonCount: [...document.querySelectorAll("button")].filter(
+        (el) => el.textContent?.trim() === "+ ADD RECRUIT",
+      ).length,
+      overflow: document.documentElement.scrollWidth > window.innerWidth + 1,
+    }));
+    expect(afterRefresh.buttonCount).toBe(1);
+    expect(afterRefresh.overflow).toBe(false);
+
+    expect(
+      errors.filter((e) => /hydrat|did not match|Minified React error/i.test(e)),
+      errors.join("\n"),
+    ).toEqual([]);
+  });
+
+  test("recent interactions metadata wraps without horizontal overflow", async ({ page }) => {
+    const errors = await collectPageErrors(page);
+    await loginIfNeeded(page);
+    await page.goto("/recruiting", { waitUntil: "networkidle" });
+
+    const layout = await page.evaluate(() => {
+      const section = document.querySelector('[data-recruiting-dashboard-section="recent-interactions"]');
+      const meta = section?.querySelector("[data-dashboard-recent-interaction-meta]");
+      const notes = section?.querySelector("[data-dashboard-recent-interaction-notes]");
+      return {
+        hasMeta: Boolean(meta),
+        notesBelow: meta && notes ? notes.getBoundingClientRect().top >= meta.getBoundingClientRect().bottom - 2 : false,
+        overflow: document.documentElement.scrollWidth > window.innerWidth + 1,
+      };
+    });
+
+    expect(layout.hasMeta).toBe(true);
+    expect(layout.notesBelow).toBe(true);
+    expect(layout.overflow).toBe(false);
+
+    expect(
+      errors.filter((e) => /hydrat|did not match|Minified React error/i.test(e)),
+      errors.join("\n"),
+    ).toEqual([]);
+  });
+
+  test("dashboard header keeps canonical module shell behavior on mobile", async ({ page }) => {
+    const errors = await collectPageErrors(page);
+    await loginIfNeeded(page);
+
+    const pages = [
+      { href: "/players-coaches", title: "Team" },
+      { href: "/recruiting", title: "Recruiting Dashboard" },
+      { href: "/recruiting/list", title: "Recruiting" },
+      { href: "/recruiting/tournaments", title: "Tournaments" },
+      { href: "/recruiting/interactions", title: "Interactions" },
+      { href: "/recruiting/log", title: "Log" },
+    ] as const;
+
+    for (const entry of pages) {
+      await page.goto(entry.href, { waitUntil: "networkidle" });
+      const measured = await measureModuleHeaderTitle(page);
+      expect(measured, entry.href).not.toBeNull();
+      expect(measured!.title, entry.href).toBe(entry.title);
+      expect(measured!.textTransform, entry.href).not.toMatch(/uppercase/i);
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth > window.innerWidth + 1,
+      );
+      expect(overflow, `${entry.href} overflow`).toBe(false);
+    }
+
+    await page.goto("/recruiting", { waitUntil: "networkidle" });
+    const buttonCount = await page.evaluate(
+      () =>
+        [...document.querySelectorAll("button")].filter(
+          (el) => el.textContent?.trim() === "+ ADD RECRUIT",
+        ).length,
+    );
+    expect(buttonCount).toBe(1);
 
     expect(
       errors.filter((e) => /hydrat|did not match|Minified React error/i.test(e)),

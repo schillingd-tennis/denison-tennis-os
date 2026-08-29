@@ -22,6 +22,7 @@ import {
 import type { ReactNode } from "react";
 
 import { useDrawerManager } from "@/components/workspace-drawer";
+import ModulePageShell from "@/components/ModulePageShell";
 import InteractionForm, { type InteractionOption } from "@/features/interactions/components/InteractionForm";
 import type { InteractionType, RecruitInteraction } from "@/features/interactions/types";
 import { formatTournamentDates } from "@/features/tournaments/display";
@@ -56,6 +57,7 @@ import RecruitingDashboardPlaceholder from "./dashboard/RecruitingDashboardPlace
 import RecruitingDashboardPipeline from "./dashboard/RecruitingDashboardPipeline";
 import type { DenisonCommitRecruit } from "../directory";
 import { writeStoredRecruitingDirectoryView } from "../directorySessionState";
+import { ADD_RECRUIT_BUTTON_CLASS, useAddRecruitDrawer } from "../useAddRecruitDrawer";
 
 type Tone = "red" | "violet" | "orange" | "green" | "blue" | "teal" | "amber";
 
@@ -296,6 +298,7 @@ export default function RecruitingDashboard({
 }) {
   const router = useRouter();
   const { openDrawer, closeDrawer } = useDrawerManager();
+  const openAddRecruitDrawer = useAddRecruitDrawer();
 
   function openInteraction(interaction: RecruitInteraction) {
     openDrawer({
@@ -322,21 +325,23 @@ export default function RecruitingDashboard({
   }
 
   return (
-    <div className="flex w-full flex-col gap-4">
-      <header className="relative pl-3.5">
-        <span
-          aria-hidden="true"
-          className="absolute top-0.5 bottom-0.5 left-0 w-[3px] rounded-full bg-[var(--module-accent)]"
-        />
-        <h1 className="text-2xl font-semibold tracking-tight text-text-primary">Recruiting Dashboard</h1>
-        <p className="mt-0.5 text-[13px] text-text-secondary">Your recruiting command center</p>
-      </header>
-
-      <section data-recruiting-dashboard-section="kpis">
+    <ModulePageShell
+      title="Recruiting Dashboard"
+      subtitle="Your recruiting command center"
+      actions={
+        <button
+          type="button"
+          className={ADD_RECRUIT_BUTTON_CLASS}
+          onClick={openAddRecruitDrawer}
+        >
+          + ADD RECRUIT
+        </button>
+      }
+    >
+      <div className="flex flex-col gap-4">
         <RecruitingDashboardKpis kpis={kpis} />
-      </section>
 
-      <div data-recruiting-dashboard-grid="">
+        <div data-recruiting-dashboard-grid="">
         <div data-recruiting-dashboard-col="">
           <section data-recruiting-dashboard-section="priorities">
             <DashboardCard title="Today's Recruiting Priorities" tone="red" icon={Target}>
@@ -404,31 +409,37 @@ export default function RecruitingDashboard({
                           <TypeIcon className="h-3.5 w-3.5" strokeWidth={2} />
                         </span>
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-baseline gap-2">
-                            <Link
-                              href={recruitingPersonPath(interaction.recruitPersonId)}
-                              className="min-w-0 truncate text-[13px] font-semibold text-text-primary hover:text-[var(--module-accent)] hover:underline"
-                            >
-                              {interaction.recruitName}
-                            </Link>
+                          <div
+                            className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5 sm:flex-nowrap"
+                            data-dashboard-recent-interaction-meta=""
+                          >
+                            <div className="flex min-w-0 flex-1 items-baseline gap-1.5 overflow-hidden">
+                              <Link
+                                href={recruitingPersonPath(interaction.recruitPersonId)}
+                                className="min-w-0 truncate text-[13px] font-semibold text-text-primary hover:text-[var(--module-accent)] hover:underline"
+                              >
+                                {interaction.recruitName}
+                              </Link>
+                              <span
+                                className={`inline-flex h-[18px] shrink-0 items-center rounded-full px-1.5 text-[10px] font-semibold tracking-wide uppercase ${style.chip}`}
+                              >
+                                {typeLabel(interaction.interactionType)}
+                              </span>
+                              {direction ? (
+                                <span className="shrink-0 text-[11px] font-normal text-text-secondary">
+                                  {direction}
+                                </span>
+                              ) : null}
+                            </div>
                             <time className="ml-auto shrink-0 text-[11px] text-text-secondary">
                               {shortDate(interaction.occurredAt)}
                             </time>
-                          </div>
-                          <div className="mt-0.5 flex min-w-0 items-center gap-1.5">
-                            <span
-                              className={`inline-flex h-[18px] items-center rounded-full px-1.5 text-[10px] font-semibold tracking-wide uppercase ${style.chip}`}
-                            >
-                              {typeLabel(interaction.interactionType)}
-                            </span>
-                            {direction && direction !== "Unknown" ? (
-                              <span className="truncate text-[11px] text-text-secondary">{direction}</span>
-                            ) : null}
                           </div>
                           <button
                             type="button"
                             onClick={() => openInteraction(interaction)}
                             className="mt-0.5 w-full truncate text-left text-[12px] text-text-secondary hover:text-text-primary hover:underline"
+                            data-dashboard-recent-interaction-notes=""
                           >
                             {notes ?? "Open interaction"}
                           </button>
@@ -702,6 +713,7 @@ export default function RecruitingDashboard({
 
         </div>
       </div>
-    </div>
+      </div>
+    </ModulePageShell>
   );
 }

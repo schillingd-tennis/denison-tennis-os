@@ -2,7 +2,6 @@
 
 import { BarChart3, GraduationCap, LayoutGrid, List, ListOrdered } from "lucide-react";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { useRouter } from "next/navigation";
 
 import { publishFoundSet } from "@/components/found-set";
 import EmptyState from "@/components/EmptyState";
@@ -16,11 +15,9 @@ import {
 } from "@/components/mobile-dashboard";
 import SearchInput from "@/components/SearchInput";
 import ViewToggle from "@/components/ViewToggle";
-import { useDrawerManager } from "@/components/workspace-drawer";
-import { ROLE_KEYS } from "@/features/lookups/seed";
-import AddPersonFlow from "@/features/people/components/AddPersonFlow";
 
 import type { RecruitDirectoryRow } from "../directory";
+import { ADD_RECRUIT_BUTTON_CLASS, useAddRecruitDrawer } from "../useAddRecruitDrawer";
 import {
   RECRUITING_FOUND_SET_COLUMNS,
   RECRUITING_FOUND_SET_FILENAME_BASE,
@@ -68,8 +65,7 @@ export default function RecruitingDirectory({
   rows: RecruitDirectoryRow[];
   denisonCommits: number;
 }) {
-  const router = useRouter();
-  const { openDrawer, closeDrawer } = useDrawerManager();
+  const openAddRecruitDrawer = useAddRecruitDrawer();
   const [liveRows, setLiveRows] = useState(rows);
   const [serverRows, setServerRows] = useState(rows);
   if (rows !== serverRows) {
@@ -121,33 +117,6 @@ export default function RecruitingDirectory({
     writeStoredActiveRecruitingFilters(normalizeActiveRecruitingFilters(next, allowedIds));
   }
 
-  function handleCreated(personId: string, intent: "stay" | "open" = "stay") {
-    closeDrawer();
-    if (intent === "open") {
-      router.push(`/recruiting/${personId}`);
-      return;
-    }
-    router.refresh();
-  }
-
-  function openAddRecruitDrawer() {
-    openDrawer({
-      id: "recruiting-add-recruit",
-      title: "Add Recruit",
-      subtitle: "Recruiting",
-      hideFooter: true,
-      content: (
-        <AddPersonFlow
-          roleKey={ROLE_KEYS.recruit}
-          description="Creates a Person with role Recruit and a Recruit Profile. Required: first name, last name, and class year. More recruiting details can be edited after opening the record."
-          submitLabel="Create Recruit"
-          onCancel={() => closeDrawer()}
-          onSuccess={handleCreated}
-        />
-      ),
-    });
-  }
-
   return (
     <ModulePageShell
       title="Recruiting"
@@ -155,7 +124,7 @@ export default function RecruitingDirectory({
       actions={
         <button
           type="button"
-          className="inline-flex h-11 items-center justify-center rounded-control bg-denison-red px-5 text-sm font-semibold tracking-wide text-white shadow-[0_8px_18px_rgba(200,16,46,0.28)] transition-opacity hover:opacity-90"
+          className={ADD_RECRUIT_BUTTON_CLASS}
           onClick={openAddRecruitDrawer}
         >
           + ADD RECRUIT

@@ -78,6 +78,22 @@ Implementation lock:
 
 11. Nested Recruiting navigation geometry and indentation are locked.
 
+## Module page headers
+
+12. Adaptive Workspace Header titles use **natural title case** and the
+    canonical Team/Recruiting `ModulePageShell` typography (`text-xl` /
+    `md:text-3xl`, `font-semibold`, `tracking-tight`, red accent alignment).
+13. Feature work must not introduce all-uppercase titles, custom typography, or
+    custom header spacing outside `ModulePageShell`.
+14. Locked titles: `Team`, `Recruiting Dashboard`, `Recruiting`, `Tournaments`,
+    `Interactions`, `Log`.
+15. This rule applies to the large in-page module header only — not sidebar
+    submenu labels, top application bar titles, recruit names, card headings,
+    section headings such as Recent Interactions, or established uppercase
+    button labels.
+
+Enforced by `src/features/recruiting/recruitingModuleHeaders.guardrail.test.ts`.
+
 ## What to do instead of “fixing” layout in a feature
 
 - Put Academic Interests / Schools of Interest in the locked summary slots.

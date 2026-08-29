@@ -24,7 +24,7 @@ export default function RecruitingChangeLogPage({
 }) {
   const summaries = centralChangeLogSummaries(summaryEvents);
   return (
-    <ModulePageShell title="Recruiting Log" subtitle="Recent recruiting-data updates across all recruits">
+    <ModulePageShell title="Log" subtitle="Recent recruiting-data updates across all recruits">
       <div className="flex min-w-0 flex-col gap-3.5" data-recruiting-log-page="">
         <section className={styles.kpis} aria-label="Recruiting log summary">
           <div className={styles.kpi}>

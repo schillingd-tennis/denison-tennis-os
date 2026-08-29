@@ -293,6 +293,13 @@ test("dashboard page stays on /recruiting and opens existing editors/workspaces"
   assert.match(ui, /RECRUITING_LIST_ROUTE/);
   assert.match(ui, /Recent Interactions/);
   assert.match(ui, /Top Ranked Recruits/);
+  assert.match(ui, /\+ ADD RECRUIT/);
+  assert.match(ui, /useAddRecruitDrawer/);
+  assert.match(ui, /ModulePageShell/);
+  assert.match(ui, /title="Recruiting Dashboard"/);
+  assert.match(ui, /subtitle="Your recruiting command center"/);
+  assert.doesNotMatch(ui, /data-recruiting-dashboard-header/);
+  assert.doesNotMatch(ui, /<AddPersonFlow/);
   assert.match(ui, /Upcoming Tournaments/);
   assert.match(ui, /Denison Commits/);
   assert.match(ui, /\{commits\.length\}/);
@@ -434,7 +441,6 @@ test("command-center dashboard renders ten sections and keeps real selectors", (
   const layoutLock = readFileSync(join(here, "../../app/layout-lock.css"), "utf8");
 
   for (const section of [
-    "kpis",
     "priorities",
     "recent-interactions",
     "upcoming-tournaments",
@@ -447,6 +453,8 @@ test("command-center dashboard renders ten sections and keeps real selectors", (
   ]) {
     assert.match(ui, new RegExp(`data-recruiting-dashboard-section="${section}"`));
   }
+  assert.match(kpis, /data-recruiting-dashboard-section="kpis"/);
+  assert.match(ui, /RecruitingDashboardKpis/);
 
   assert.match(ui, /Your recruiting command center/);
   assert.match(ui, /Today's Recruiting Priorities/);
@@ -618,4 +626,42 @@ test("New Messages uses last completed import count or stays unavailable", () =>
   assert.equal(newMessagesFromSync({ lastCompletedWithImports: { importedCount: 0 } }), 0);
   assert.equal(newMessagesFromSync({ lastCompletedWithImports: null }), null);
   assert.equal(newMessagesFromSync(null), null);
+});
+
+test("Recent Interactions metadata row keeps name, type badge, and direction on one line", () => {
+  const ui = readFileSync(join(here, "components/RecruitingDashboard.tsx"), "utf8");
+  assert.match(ui, /data-dashboard-recent-interaction-meta/);
+  assert.match(ui, /data-dashboard-recent-interaction-notes/);
+  assert.match(
+    ui,
+    /data-dashboard-recent-interaction-meta[\s\S]*recruitName[\s\S]*typeLabel\(interaction\.interactionType\)[\s\S]*\{direction \?/,
+  );
+  assert.match(ui, /font-semibold text-text-primary[\s\S]*data-dashboard-recent-interaction-notes/);
+  assert.match(ui, /ml-auto shrink-0 text-\[11px\] text-text-secondary/);
+});
+
+test("Recent Interactions keeps message notes on the line after metadata", () => {
+  const ui = readFileSync(join(here, "components/RecruitingDashboard.tsx"), "utf8");
+  const metaIndex = ui.indexOf("data-dashboard-recent-interaction-meta");
+  const notesIndex = ui.indexOf("data-dashboard-recent-interaction-notes");
+  assert.ok(metaIndex >= 0 && notesIndex > metaIndex);
+  assert.match(ui, /data-dashboard-recent-interaction-notes[\s\S]*\{notes \?\? "Open interaction"\}/);
+});
+
+test("Recent Interactions omits direction when unavailable", () => {
+  const ui = readFileSync(join(here, "components/RecruitingDashboard.tsx"), "utf8");
+  assert.match(ui, /\{direction \? \(/);
+  assert.doesNotMatch(ui, /direction !== "Unknown"/);
+  assert.match(ui, /font-normal text-text-secondary/);
+});
+
+test("Recruiting Dashboard header uses ModulePageShell like Recruit List", () => {
+  const ui = readFileSync(join(here, "components/RecruitingDashboard.tsx"), "utf8");
+  const directory = readFileSync(join(here, "components/RecruitingDirectory.tsx"), "utf8");
+  assert.match(ui, /<ModulePageShell/);
+  assert.match(ui, /actions=\{/);
+  assert.match(directory, /<ModulePageShell/);
+  assert.doesNotMatch(ui, /data-recruiting-dashboard-header/);
+  assert.doesNotMatch(ui, /pl-3\.5[\s\S]*Recruiting Dashboard/);
+  assert.doesNotMatch(ui, /text-2xl font-semibold[\s\S]*Recruiting Dashboard/);
 });
