@@ -922,6 +922,7 @@ export async function recordUtrAgentRecruitOutcome(input: {
   status: UtrAgentCheckStatus;
   errorCode?: string;
   errorMessage?: string;
+  touchLastCheckAt?: boolean;
 }): Promise<void> {
   const client = await createSupabaseServerClient();
   const { data: profileRow, error: readError } = await client
@@ -948,7 +949,7 @@ export async function recordUtrAgentRecruitOutcome(input: {
         ...externalProfiles,
         utrAgent: {
           lastCheckStatus: input.status,
-          lastCheckAt: now,
+          ...(input.touchLastCheckAt === false ? {} : { lastCheckAt: now }),
           lastCheckError: isSuccess ? undefined : errorLabel,
         },
       },

@@ -5,6 +5,7 @@ import {
 } from "@/features/recruiting/todayBeta/utrAgentRun";
 import type { UtrAgentCheckResult } from "@/features/recruiting/todayBeta/utrAgentClient";
 import { UTR_AGENT_BATCH_CHECK_ENABLED } from "@/features/recruiting/todayBeta/utrAgentConfig";
+import { summarizeUtrPayload } from "@/features/recruiting/todayBeta/utrPayloadDiagnostics";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type ImportBody = {
@@ -42,6 +43,28 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+
+    console.info("[utr-agent-import] received", {
+      mode,
+      recruitsReceived: body.agentResult.recruits.length,
+      recruits: body.agentResult.recruits.map((recruit) => {
+        const payloadSummary = summarizeUtrPayload(recruit.payload);
+        return {
+          displayName: recruit.displayName,
+          status: recruit.status,
+          matchesRead: recruit.matchesRead,
+          payloadExists: payloadSummary.payloadPresent,
+          payloadType: payloadSummary.payloadType,
+          isValidUtrResults: payloadSummary.isValidUtrResults,
+          topLevelKeys: payloadSummary.topLevelKeys,
+          eventsCount: payloadSummary.eventsCount,
+          resultsCount: payloadSummary.resultsCount,
+          drawsCount: payloadSummary.drawsCount,
+          rawMatchCount: payloadSummary.rawMatchCount,
+          importableMatchCount: payloadSummary.importableMatchCount,
+        };
+      }),
+    });
 
     const summary = await importUtrAgentCheckResults({
       mode,

@@ -7,6 +7,11 @@ import {
 } from "./repository";
 import type { SaveMatchResultsOutcome, UtrCapturedMatch } from "./types";
 import {
+  countImportableUtrPayloadMatches,
+  countRawUtrPayloadMatches,
+  isUtrResultsPayload,
+} from "./utrPayloadDiagnostics";
+import {
   filterUtrResultsPayload,
 } from "./utrPayloadWindow";
 
@@ -19,6 +24,47 @@ export type UtrAgentImportRecruitOutcome = {
   errorCode?: string;
   errorMessage?: string;
 };
+
+export function validateUtrAgentImportPayload(input: {
+  status: string;
+  matchesRead?: number;
+  payload?: unknown;
+  utrPlayerId?: string;
+}):
+  | { ok: true; payload: UtrApiResultsPayload; importableMatchCount: number }
+  | { ok: false; errorCode: string; errorMessage: string } {
+  if (input.status !== "OK" || !input.payload || !input.utrPlayerId) {
+    return {
+      ok: false,
+      errorCode: "UTR_RESULTS_FAILED",
+      errorMessage: "UTR acquisition did not return importable results.",
+    };
+  }
+
+  if (!isUtrResultsPayload(input.payload)) {
+    return {
+      ok: false,
+      errorCode: "IMPORT_PAYLOAD_MISSING",
+      errorMessage:
+        "UTR agent returned a summary without importable match payload. Re-run after confirming UTR login.",
+    };
+  }
+
+  const matchesRead = input.matchesRead ?? 0;
+  const rawMatchCount = countRawUtrPayloadMatches(input.payload);
+  const importableMatchCount = countImportableUtrPayloadMatches(input.payload);
+
+  if (matchesRead > 0 && rawMatchCount === 0) {
+    return {
+      ok: false,
+      errorCode: "IMPORT_PAYLOAD_MISSING",
+      errorMessage:
+        "UTR agent reported matches acquired, but no importable match payload reached Denison OS.",
+    };
+  }
+
+  return { ok: true, payload: input.payload, importableMatchCount };
+}
 
 export async function importUtrAgentRecruitPayload(input: {
   recruitPersonId: string;
@@ -66,6 +112,7 @@ export async function processUtrAgentRecruitResult(input: {
   displayName: string;
   utrPlayerId?: string;
   status: string;
+  matchesRead?: number;
   errorCode?: string;
   errorMessage?: string;
   sourceUrl?: string;
@@ -111,6 +158,7 @@ export async function processUtrAgentRecruitResult(input: {
       status: "Failed",
       errorCode: input.errorCode ?? "UTR_RESULTS_FAILED",
       errorMessage: input.errorMessage,
+      touchLastCheckAt: false,
     });
     return {
       recruitPersonId: input.recruitPersonId,
@@ -122,14 +170,56 @@ export async function processUtrAgentRecruitResult(input: {
     };
   }
 
+  const validation = validateUtrAgentImportPayload(input);
+  if (!validation.ok) {
+    await recordUtrAgentRecruitOutcome({
+      recruitPersonId: input.recruitPersonId,
+      status: "Failed",
+      errorCode: validation.errorCode,
+      errorMessage: validation.errorMessage,
+      touchLastCheckAt: false,
+    });
+    return {
+      recruitPersonId: input.recruitPersonId,
+      displayName: input.displayName,
+      acquisitionStatus: input.status,
+      agentCheckStatus: "Failed",
+      errorCode: validation.errorCode,
+      errorMessage: validation.errorMessage,
+    };
+  }
+
+  const matchesRead = input.matchesRead ?? 0;
+  const importableMatchCount = validation.importableMatchCount;
+
   try {
     const importOutcome = await importUtrAgentRecruitPayload({
       recruitPersonId: input.recruitPersonId,
       utrPlayerId: input.utrPlayerId,
       recruitName: input.displayName,
       sourceUrl: input.sourceUrl ?? `https://app.utrsports.net/profiles/${input.utrPlayerId}?t=2`,
-      payload: input.payload as UtrApiResultsPayload,
+      payload: validation.payload,
     });
+
+    if (matchesRead > 0 && importableMatchCount > 0 && importOutcome.found === 0) {
+      const message =
+        "UTR matches were acquired but none were available to import after normalization.";
+      await recordUtrAgentRecruitOutcome({
+        recruitPersonId: input.recruitPersonId,
+        status: "Failed",
+        errorCode: "IMPORT_PAYLOAD_MISSING",
+        errorMessage: message,
+        touchLastCheckAt: false,
+      });
+      return {
+        recruitPersonId: input.recruitPersonId,
+        displayName: input.displayName,
+        acquisitionStatus: input.status,
+        agentCheckStatus: "Failed",
+        errorCode: "IMPORT_PAYLOAD_MISSING",
+        errorMessage: message,
+      };
+    }
 
     const agentCheckStatus: UtrAgentImportRecruitOutcome["agentCheckStatus"] =
       importOutcome.savedAsNew > 0
@@ -158,6 +248,7 @@ export async function processUtrAgentRecruitResult(input: {
       status: "Failed",
       errorCode: "DENISON_IMPORT_FAILED",
       errorMessage: message,
+      touchLastCheckAt: false,
     });
     return {
       recruitPersonId: input.recruitPersonId,

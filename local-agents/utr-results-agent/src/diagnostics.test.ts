@@ -101,4 +101,19 @@ describe("UTR agent diagnostics", () => {
 
     assert.equal(classified.diagnosticStatus, "AUTH_REQUIRED");
   });
+
+  it("8. fallback HTTP 400 with parseable JSON is not treated as empty success", () => {
+    const classified = classifyAcquisition({
+      signInGateVisible: false,
+      profileLoaded: true,
+      pageRequestObserved: false,
+      fallbackAttempted: true,
+      fallbackStatus: 400,
+      fallbackJsonCaptured: true,
+      fallbackBodySummary: "Type must be singles or doubles",
+      matchesRead: 0,
+    });
+
+    assert.equal(classified.diagnosticStatus, "UTR_RESULTS_HTTP_ERROR");
+  });
 });

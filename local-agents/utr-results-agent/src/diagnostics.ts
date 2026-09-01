@@ -148,6 +148,17 @@ export function classifyAcquisition(input: AcquisitionClassificationInput): {
       };
     }
 
+    if (status >= 400) {
+      const bearerHint = suggestsBearerTokenRequired(bodySummary)
+        ? " UTR frontend may require a programmatic Bearer token."
+        : "";
+      return {
+        diagnosticStatus: "UTR_RESULTS_HTTP_ERROR",
+        auth: false,
+        message: `Page results request HTTP ${status}: ${bodySummary || "No body summary."}${bearerHint}`,
+      };
+    }
+
     if (input.matchesRead === 0) {
       return {
         diagnosticStatus: "UTR_RESULTS_EMPTY",
@@ -190,6 +201,17 @@ export function classifyAcquisition(input: AcquisitionClassificationInput): {
         diagnosticStatus: "UTR_RESULTS_PARSE_FAILED",
         auth: false,
         message: bodySummary || "Fallback fetch returned invalid JSON.",
+      };
+    }
+
+    if (status >= 400) {
+      const bearerHint = suggestsBearerTokenRequired(bodySummary)
+        ? " Plain credentials:include fetch may be insufficient if UTR adds Bearer tokens in the frontend."
+        : "";
+      return {
+        diagnosticStatus: "UTR_RESULTS_HTTP_ERROR",
+        auth: false,
+        message: `Fallback fetch HTTP ${status}: ${bodySummary || "No body summary."}${bearerHint}`,
       };
     }
 
