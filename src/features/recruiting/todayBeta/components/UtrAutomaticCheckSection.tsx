@@ -1,10 +1,15 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, useTransition } from "react";
 
 import {
+  fetchUtrAgentHealthFromBrowser,
+  requestUtrAgentCheckFromBrowser,
+} from "../utrAgentBrowserClient";
+import {
+  getUtrAgentRecruitRequestsAction,
   getUtrAgentStatusAction,
-  runUtrAutomaticCheckAction,
 } from "../actions";
 import type { TodayBetaPlayerRow, UtrAgentCheckStatus } from "../types";
 import type { UtrAgentRunSummary } from "../utrAgentRun";
@@ -90,6 +95,7 @@ export default function UtrAutomaticCheckSection({
   onComplete,
   onViewMissingUtr,
 }: Props) {
+  const router = useRouter();
   const [agentOnline, setAgentOnline] = useState<boolean | null>(null);
   const [batchCheckEnabled, setBatchCheckEnabled] = useState(false);
   const [rankBoardCount, setRankBoardCount] = useState(0);
@@ -104,15 +110,16 @@ export default function UtrAutomaticCheckSection({
 
   const refreshAgentStatus = useCallback(() => {
     startTransition(async () => {
-      const result = await getUtrAgentStatusAction();
-      if (result.success) {
-        setAgentOnline(result.data.online);
-        setBatchCheckEnabled(result.data.batchCheckEnabled);
-        setRankBoardCount(result.data.rankBoardCount);
-        setConfiguredCount(result.data.configuredCount);
-        setMissingUtrCount(result.data.missingUtrCount);
-      } else {
-        setAgentOnline(false);
+      const [health, cohortResult] = await Promise.all([
+        fetchUtrAgentHealthFromBrowser(),
+        getUtrAgentStatusAction(),
+      ]);
+      setAgentOnline(health.online);
+      if (cohortResult.success) {
+        setBatchCheckEnabled(cohortResult.data.batchCheckEnabled);
+        setRankBoardCount(cohortResult.data.rankBoardCount);
+        setConfiguredCount(cohortResult.data.configuredCount);
+        setMissingUtrCount(cohortResult.data.missingUtrCount);
       }
     });
   }, []);
@@ -142,33 +149,87 @@ export default function UtrAutomaticCheckSection({
     setErrorMessage(null);
     setLastSummary(null);
     setRunningMode(mode);
-    setProgressLabel(
-      mode === "all"
-        ? `Checking UTR Results — 0 / ${cohortConfigured} complete`
-        : "Checking UTR results…",
-    );
+    const queue =
+      mode === "isaac-only"
+        ? configuredPlayers.filter((player) => player.displayName === "Isaac Lewis")
+        : configuredPlayers;
+    setProgressLabel(`Checking UTR Results — 0 / ${queue.length} complete`);
 
     startTransition(async () => {
-      const result = await runUtrAutomaticCheckAction({ mode });
-      setRunningMode(null);
-      setProgressLabel(null);
+      try {
+        const recruitsResult = await getUtrAgentRecruitRequestsAction();
+        if (!recruitsResult.success) {
+          setErrorMessage(recruitsResult.error);
+          setRunningMode(null);
+          setProgressLabel(null);
+          return;
+        }
 
-      if (!result.success) {
-        setErrorMessage(result.error);
-        if (result.error.includes("login expired") || result.error.includes("AUTH_REQUIRED")) {
+        let recruitRequests = recruitsResult.data;
+        if (mode === "isaac-only") {
+          recruitRequests = recruitRequests.filter(
+            (recruit) => recruit.displayName === "Isaac Lewis",
+          );
+        }
+
+        setProgressLabel(
+          `Acquiring UTR results locally — 0 / ${recruitRequests.length} (keep this tab open)`,
+        );
+
+        const agentResult = await requestUtrAgentCheckFromBrowser({
+          mode,
+          recruits: recruitRequests,
+        });
+
+        setProgressLabel(`Importing to Denison OS — 0 / ${agentResult.recruits.length}`);
+
+        const importResponse = await fetch("/api/recruiting/today-beta/utr-agent-import", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode, agentResult }),
+        });
+
+        const importBody = (await importResponse.json()) as {
+          success?: boolean;
+          error?: string;
+          data?: UtrAgentRunSummary;
+        };
+
+        setRunningMode(null);
+        setProgressLabel(null);
+
+        if (!importResponse.ok || !importBody.success || !importBody.data) {
+          setErrorMessage(importBody.error ?? "UTR import failed.");
+          return;
+        }
+
+        setLastSummary(importBody.data);
+        onComplete(formatAfterRunSummary(importBody.data));
+
+        if (importBody.data.stopReason === "AUTH_REQUIRED") {
           setErrorMessage("UTR login expired — run npm run utr:login, log in, then retry.");
         }
-        return;
+
+        refreshAgentStatus();
+        router.refresh?.();
+      } catch (error) {
+        setRunningMode(null);
+        setProgressLabel(null);
+        const message = error instanceof Error ? error.message : "UTR automatic check failed.";
+        if (message === "AGENT_OFFLINE") {
+          setErrorMessage(
+            "UTR Results Agent is offline. Run npm run utr:agent on this Mac, then refresh.",
+          );
+        } else if (message === "AGENT_BUSY") {
+          setErrorMessage("UTR Results Agent is busy with another check.");
+        } else if (message === "AGENT_FORBIDDEN") {
+          setErrorMessage(
+            "Browser origin not allowed by the local agent. Use Denison OS on localhost or denison-tennis-os.vercel.app.",
+          );
+        } else {
+          setErrorMessage(message);
+        }
       }
-
-      setLastSummary(result.data);
-      onComplete(formatAfterRunSummary(result.data));
-
-      if (result.data.stopReason === "AUTH_REQUIRED") {
-        setErrorMessage("UTR login expired — run npm run utr:login, log in, then retry.");
-      }
-
-      refreshAgentStatus();
     });
   }
 

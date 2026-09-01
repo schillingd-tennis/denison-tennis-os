@@ -22,13 +22,14 @@ import {
   setUtrMonitoringEnabled,
   TodayBetaRepositoryError,
 } from "./repository";
-import { fetchUtrAgentHealth } from "./utrAgentClient";
 import {
   UTR_AGENT_BATCH_CHECK_ENABLED,
 } from "./utrAgentConfig";
+import type { UtrAgentCheckResult } from "./utrAgentClient";
 import {
+  buildUtrAgentRecruitRequests,
   countMonitoredRecruitsForBatch,
-  runUtrAutomaticCheck,
+  importUtrAgentCheckResults,
   type UtrAgentRunSummary,
 } from "./utrAgentRun";
 import {
@@ -194,7 +195,6 @@ export async function setUtrMonitoringEnabledAction(input: {
 
 export async function getUtrAgentStatusAction(): Promise<
   TodayBetaActionResult<{
-    online: boolean;
     batchCheckEnabled: boolean;
     rankBoardCount: number;
     configuredCount: number;
@@ -204,14 +204,10 @@ export async function getUtrAgentStatusAction(): Promise<
   const auth = await requireUser();
   if (!auth.ok) return { success: false, error: auth.error };
 
-  const [health, cohort] = await Promise.all([
-    fetchUtrAgentHealth(),
-    countMonitoredRecruitsForBatch(),
-  ]);
+  const cohort = await countMonitoredRecruitsForBatch();
   return {
     success: true,
     data: {
-      online: health.online,
       batchCheckEnabled: UTR_AGENT_BATCH_CHECK_ENABLED,
       rankBoardCount: cohort.rankBoardCount,
       configuredCount: cohort.configured,
@@ -220,8 +216,21 @@ export async function getUtrAgentStatusAction(): Promise<
   };
 }
 
-export async function runUtrAutomaticCheckAction(input: {
+export async function getUtrAgentRecruitRequestsAction(): Promise<
+  TodayBetaActionResult<
+    Array<{ recruitPersonId: string; displayName: string; utrPlayerId?: string }>
+  >
+> {
+  const auth = await requireUser();
+  if (!auth.ok) return { success: false, error: auth.error };
+
+  const recruits = await buildUtrAgentRecruitRequests();
+  return { success: true, data: recruits };
+}
+
+export async function importUtrAgentCheckAction(input: {
   mode: "isaac-only" | "all";
+  agentResult: UtrAgentCheckResult;
 }): Promise<TodayBetaActionResult<UtrAgentRunSummary>> {
   const auth = await requireUser();
   if (!auth.ok) return { success: false, error: auth.error };
@@ -234,20 +243,28 @@ export async function runUtrAutomaticCheckAction(input: {
   }
 
   try {
-    const summary = await runUtrAutomaticCheck(input.mode);
+    const summary = await importUtrAgentCheckResults({
+      mode: input.mode,
+      agentResult: input.agentResult,
+    });
     revalidatePath(RECRUITING_TODAY_BETA_ROUTE);
     return { success: true, data: summary };
   } catch (error) {
     const message =
-      error instanceof Error && error.message === "AGENT_OFFLINE"
-        ? "UTR Results Agent is offline. Start the local agent and try again."
-        : error instanceof Error && error.message === "AGENT_BUSY"
-          ? "UTR Results Agent is busy with another check."
-          : error instanceof Error
-            ? error.message
-            : "UTR automatic check failed.";
+      error instanceof Error ? error.message : "UTR automatic import failed.";
     return { success: false, error: message };
   }
+}
+
+/** @deprecated Use browser-local agent acquisition + importUtrAgentCheckAction */
+export async function runUtrAutomaticCheckAction(input: {
+  mode: "isaac-only" | "all";
+}): Promise<TodayBetaActionResult<UtrAgentRunSummary>> {
+  return {
+    success: false,
+    error:
+      "UTR checks must run from your browser against the local agent. Refresh and use Check Recruits.",
+  };
 }
 
 export async function saveUtrCapturedResultsAction(

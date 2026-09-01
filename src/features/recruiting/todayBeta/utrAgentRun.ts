@@ -2,7 +2,7 @@ import {
   listAllMonitoredRecruits,
   listUtrConfiguredMonitoredRecruits,
 } from "./monitoringCohort";
-import { requestUtrAgentCheck, type UtrAgentRecruitRequest } from "./utrAgentClient";
+import type { UtrAgentCheckResult, UtrAgentRecruitRequest } from "./utrAgentClient";
 import {
   processUtrAgentRecruitResult,
   type UtrAgentImportRecruitOutcome,
@@ -276,14 +276,14 @@ export function summarizeUtrAgentRun(input: {
   };
 }
 
-export async function runUtrAutomaticCheck(
-  mode: "isaac-only" | "all",
-): Promise<UtrAgentRunSummary> {
-  const recruitRequests = await buildUtrAgentRecruitRequests();
-  const agentResult = await requestUtrAgentCheck({
-    mode: mode === "isaac-only" ? "isaac-only" : "all",
-    recruits: recruitRequests,
-  });
+export async function importUtrAgentCheckResults(input: {
+  mode: "isaac-only" | "all";
+  agentResult: UtrAgentCheckResult;
+  recruitRequests?: UtrAgentRecruitRequest[];
+}): Promise<UtrAgentRunSummary> {
+  const recruitRequests =
+    input.recruitRequests ?? (await buildUtrAgentRecruitRequests());
+  const agentResult = input.agentResult;
 
   const acquisitionByPersonId = new Map(
     agentResult.recruits.map((recruit) => [
@@ -320,6 +320,15 @@ export async function runUtrAutomaticCheck(
   await recordUtrAgentBatchRun(summary.batchMetrics, monitoredPersonIds);
 
   return summary;
+}
+
+/** @deprecated Server cannot reach loopback agent — use browser client + importUtrAgentCheckResults */
+export async function runUtrAutomaticCheck(
+  mode: "isaac-only" | "all",
+): Promise<UtrAgentRunSummary> {
+  throw new Error(
+    "UTR agent checks must run from the browser. Vercel cannot reach the local agent.",
+  );
 }
 
 export async function countMonitoredRecruitsForBatch(): Promise<{
