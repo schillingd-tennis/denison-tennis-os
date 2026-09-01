@@ -56,6 +56,8 @@ function writeRow(input: RecruitInteractionInput) {
     notes: input.notes,
     next_steps: input.nextSteps,
     logged_by: input.loggedBy,
+    source_system: input.sourceSystem ?? null,
+    source_key: input.sourceKey ?? null,
   };
 }
 

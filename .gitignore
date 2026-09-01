@@ -51,6 +51,13 @@ private-imports/
 /apple-messages-report.json
 /apple-messages-report.csv
 
+# local UTR Results Agent (browser profile, secret, logs)
+.local/utr-browser-profile/
+.local/utr-agent-secret
+.local/utr-agent-logs/
+.local/isaac-utr-payload-sample.json
+local-agents/utr-results-agent/node_modules/
+
 # compiled Apple Messages helper (install-time output)
 /helpers/apple-messages-sync/
 

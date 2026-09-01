@@ -17,6 +17,7 @@ import {
   RECRUITING_TOURNAMENTS_ROUTE,
   RECRUITING_INTERACTIONS_ROUTE,
   RECRUITING_LOG_ROUTE,
+  RECRUITING_TODAY_BETA_ROUTE,
   TEAM_ROUTE,
 } from "@/lib/module-routes";
 
@@ -44,6 +45,7 @@ export const primaryNavItems: NavItem[] = [
     href: RECRUITING_ROUTE,
     icon: UserPlus,
     children: [
+      { label: "Today Beta", href: RECRUITING_TODAY_BETA_ROUTE },
       { label: "Dashboard", href: RECRUITING_ROUTE, exact: true },
       { label: "Recruit List", href: RECRUITING_LIST_ROUTE },
       { label: "Tournaments", href: RECRUITING_TOURNAMENTS_ROUTE },
@@ -102,6 +104,9 @@ export function getPageTitle(pathname: string): string {
   }
   if (pathname === RECRUITING_LIST_ROUTE || pathname.startsWith(`${RECRUITING_LIST_ROUTE}/`)) {
     return "Recruit List";
+  }
+  if (pathname === RECRUITING_TODAY_BETA_ROUTE || pathname.startsWith(`${RECRUITING_TODAY_BETA_ROUTE}/`)) {
+    return "Today Beta";
   }
   if (pathname === RECRUITING_ROUTE) {
     return "Dashboard";

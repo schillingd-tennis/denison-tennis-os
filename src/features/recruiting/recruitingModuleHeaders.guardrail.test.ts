@@ -38,6 +38,11 @@ const MODULE_HEADERS = [
     file: "features/recruiting/changeLog/RecruitingChangeLogPage.tsx",
     title: "Log",
   },
+  {
+    page: "Today Beta",
+    file: "features/recruiting/todayBeta/components/TodayBetaPage.tsx",
+    title: "Today Beta",
+  },
 ] as const;
 
 test("ModulePageShell locks title-case header typography without uppercase transform", () => {

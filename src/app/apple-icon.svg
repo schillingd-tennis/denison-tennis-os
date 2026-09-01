@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" role="img" aria-label="Denison Tennis OS">
+  <rect width="180" height="180" rx="40" fill="#C8102E"/>
+  <circle cx="90" cy="90" r="58" fill="#FFFFFF"/>
+  <path
+    d="M46 62c22 8 35 25 44 54"
+    fill="none"
+    stroke="#C8102E"
+    stroke-width="9"
+    stroke-linecap="round"
+  />
+  <path
+    d="M134 118c-22-8-35-25-44-54"
+    fill="none"
+    stroke="#C8102E"
+    stroke-width="9"
+    stroke-linecap="round"
+  />
+</svg>

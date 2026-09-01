@@ -1,0 +1,19 @@
+{
+  "name": "denison-utr-results-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local Playwright agent for Today Beta UTR results checking (five-player POC).",
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "login": "tsx src/login.ts",
+    "test": "tsx --test src/*.test.ts"
+  },
+  "dependencies": {
+    "playwright": "^1.62.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.5",
+    "typescript": "^5"
+  }
+}

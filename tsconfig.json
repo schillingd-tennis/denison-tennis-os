@@ -32,5 +32,13 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "src/features/recruiting/components/dashboard"]
+  "exclude": [
+    "node_modules",
+    "src/features/recruiting/components/dashboard",
+    "scripts",
+    "local-agents",
+    "browser-extensions",
+    "**/*.test.ts",
+    "**/*.test.tsx"
+  ]
 }

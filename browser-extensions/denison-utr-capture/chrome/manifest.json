@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "Denison UTR Capture",
+  "version": "0.1.0",
+  "description": "Send UTR match results to Denison Tennis OS (local Chrome development proof-of-concept).",
+  "permissions": ["activeTab", "notifications"],
+  "host_permissions": [
+    "https://app.utrsports.net/*",
+    "https://api.utrsports.net/*",
+    "http://localhost:3000/*",
+    "http://127.0.0.1:3000/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://app.utrsports.net/profiles/*"],
+      "js": ["content/utr-page.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "http://localhost:3000/recruiting/today-beta*",
+        "http://127.0.0.1:3000/recruiting/today-beta*"
+      ],
+      "js": ["content/denison-page.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "Send Results to Denison OS",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

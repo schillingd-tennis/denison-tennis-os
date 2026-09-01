@@ -27,4 +27,7 @@ export type RecruitInteraction = {
 export type RecruitInteractionInput = Omit<
   RecruitInteraction,
   "id" | "recruitName" | "tournamentName" | "sourceSystem" | "sourceKey" | "createdAt" | "updatedAt"
->;
+> & {
+  sourceSystem?: string | null;
+  sourceKey?: string | null;
+};

@@ -10,6 +10,7 @@ import {
 } from "./nav-items";
 import { getNestedNavState } from "./nestedNavState";
 
+const todayBeta: NavChildItem = { label: "Today Beta", href: "/recruiting/today-beta" };
 const dashboard: NavChildItem = { label: "Dashboard", href: "/recruiting", exact: true };
 const list: NavChildItem = { label: "Recruit List", href: "/recruiting/list" };
 const tournaments: NavChildItem = { label: "Tournaments", href: "/recruiting/tournaments" };
@@ -109,6 +110,14 @@ test("/recruiting/[id] does not activate Interactions", () => {
   assert.equal(isNavChildActive("/recruiting/person-123", tournaments), false);
   const state = getNestedNavState("/recruiting/person-123", recruiting);
   assert.equal(state.activeChildHref, null);
+});
+
+test("Today Beta is the first Recruiting submenu item", () => {
+  const labels = recruiting.children?.map((item) => item.label) ?? [];
+  assert.deepEqual(labels[0], "Today Beta");
+  assert.equal(isNavChildActive("/recruiting/today-beta", todayBeta), true);
+  const state = getNestedNavState("/recruiting/today-beta", recruiting);
+  assert.equal(state.activeChildHref, "/recruiting/today-beta");
 });
 
 test("/recruiting/log is the last Recruiting submenu item", () => {
