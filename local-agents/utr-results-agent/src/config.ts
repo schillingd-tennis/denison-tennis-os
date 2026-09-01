@@ -1,11 +1,16 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+export const REPO_ROOT = join(import.meta.dirname, "../../..");
+
 export const AGENT_HOST = "127.0.0.1";
 export const AGENT_PORT = 4317;
-export const AGENT_BASE_URL = `http://${AGENT_HOST}:${AGENT_PORT}`;
+/** Public loopback URL — use localhost so Safari trusts mkcert SAN. */
+export const AGENT_PUBLIC_HOST = "localhost";
+export const AGENT_BASE_URL = `https://${AGENT_PUBLIC_HOST}:${AGENT_PORT}`;
 
-export const REPO_ROOT = join(import.meta.dirname, "../../..");
+export const CERT_FILE = join(REPO_ROOT, ".local/utr-agent-cert.pem");
+export const KEY_FILE = join(REPO_ROOT, ".local/utr-agent-key.pem");
 export const PROFILE_DIR = join(REPO_ROOT, ".local/utr-browser-profile");
 export const SECRET_FILE = join(REPO_ROOT, ".local/utr-agent-secret");
 export const LOG_DIR = join(REPO_ROOT, ".local/utr-agent-logs");

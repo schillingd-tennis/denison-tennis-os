@@ -12,13 +12,20 @@ export function isAllowedBrowserOrigin(origin: string | undefined | null): boole
   return (ALLOWED_BROWSER_ORIGINS as readonly string[]).includes(origin.trim());
 }
 
-export function corsHeadersForOrigin(origin: string | undefined | null): Record<string, string> | null {
+export function corsHeadersForOrigin(
+  origin: string | undefined | null,
+  options?: { privateNetwork?: boolean },
+): Record<string, string> | null {
   if (!isAllowedBrowserOrigin(origin)) return null;
-  return {
+  const headers: Record<string, string> = {
     "Access-Control-Allow-Origin": origin!.trim(),
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, X-Denison-Utr-Agent-Secret",
     "Access-Control-Max-Age": "86400",
     Vary: "Origin",
   };
+  if (options?.privateNetwork) {
+    headers["Access-Control-Allow-Private-Network"] = "true";
+  }
+  return headers;
 }

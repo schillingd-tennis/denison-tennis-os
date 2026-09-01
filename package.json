@@ -34,6 +34,7 @@
     "test:tournaments": "tsx --test src/features/tournaments/*.test.ts",
     "test:interactions": "tsx --test src/features/interactions/*.test.ts src/features/interactions/components/*.test.ts src/features/interactions/appleMessagesSync/*.test.ts src/app/settings/*.test.ts",
     "utr:agent": "npm --prefix local-agents/utr-results-agent start",
+    "utr:https-setup": "tsx scripts/utr-https-setup.ts",
     "utr:login": "npm --prefix local-agents/utr-results-agent run login",
     "test:utr-agent": "tsx --test src/features/recruiting/todayBeta/utrAgent.test.ts && npm --prefix local-agents/utr-results-agent test"
   },

@@ -1,5 +1,5 @@
 /** Local UTR Results Agent — Denison OS integration config. */
-export const UTR_AGENT_BASE_URL = "http://127.0.0.1:4317";
+export const UTR_AGENT_BASE_URL = "https://localhost:4317";
 export const UTR_AGENT_SECRET_HEADER = "X-Denison-Utr-Agent-Secret";
 
 /** Pilot automatic batch check enabled (15–20 recruit cohort). */

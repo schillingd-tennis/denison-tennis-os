@@ -19,9 +19,12 @@ describe("UTR agent CORS", () => {
   });
 
   it("returns CORS headers for allowed origin", () => {
-    const headers = corsHeadersForOrigin("https://denison-tennis-os.vercel.app");
+    const headers = corsHeadersForOrigin("https://denison-tennis-os.vercel.app", {
+      privateNetwork: true,
+    });
     assert.ok(headers);
     assert.equal(headers?.["Access-Control-Allow-Origin"], "https://denison-tennis-os.vercel.app");
     assert.match(headers?.["Access-Control-Allow-Methods"] ?? "", /OPTIONS/);
+    assert.equal(headers?.["Access-Control-Allow-Private-Network"], "true");
   });
 });

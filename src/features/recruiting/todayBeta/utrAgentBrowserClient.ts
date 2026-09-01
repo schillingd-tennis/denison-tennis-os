@@ -2,7 +2,7 @@
 
 /**
  * Browser-only UTR Results Agent client.
- * The local agent listens on 127.0.0.1 — reachable from the user's browser, not Vercel.
+ * The local agent listens on https://localhost:4317 — reachable from the user's browser, not Vercel.
  */
 import { UTR_AGENT_BASE_URL } from "./utrAgentConfig";
 import type {

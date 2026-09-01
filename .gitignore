@@ -54,6 +54,8 @@ private-imports/
 # local UTR Results Agent (browser profile, secret, logs)
 .local/utr-browser-profile/
 .local/utr-agent-secret
+.local/utr-agent-cert.pem
+.local/utr-agent-key.pem
 .local/utr-agent-logs/
 .local/isaac-utr-payload-sample.json
 local-agents/utr-results-agent/node_modules/

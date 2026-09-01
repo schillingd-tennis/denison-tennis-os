@@ -28,6 +28,15 @@ describe("UTR agent browser architecture", () => {
     join(here, "../../../../local-agents/utr-results-agent/src/server.ts"),
     "utf8",
   );
+  const agentRequestHandlerSource = readFileSync(
+    join(here, "../../../../local-agents/utr-results-agent/src/requestHandler.ts"),
+    "utf8",
+  );
+  const agentConfigSourceAgent = readFileSync(
+    join(here, "../../../../local-agents/utr-results-agent/src/config.ts"),
+    "utf8",
+  );
+  const gitignoreSource = readFileSync(join(here, "../../../../.gitignore"), "utf8");
   const agentCorsSource = readFileSync(
     join(here, "../../../../local-agents/utr-results-agent/src/cors.ts"),
     "utf8",
@@ -38,8 +47,9 @@ describe("UTR agent browser architecture", () => {
     assert.doesNotMatch(sectionSource, /result\.data\.online/);
   });
 
-  it("2. browser client calls loopback agent with CORS", () => {
-    assert.match(agentConfigSource, /127\.0\.0\.1:4317/);
+  it("2. browser client calls loopback agent over HTTPS with CORS", () => {
+    assert.match(agentConfigSource, /https:\/\/localhost:4317/);
+    assert.doesNotMatch(agentConfigSource, /http:\/\/127\.0\.0\.1:4317/);
     assert.match(browserClientSource, /UTR_AGENT_BASE_URL/);
     assert.match(browserClientSource, /mode: "cors"/);
     assert.match(browserClientSource, /\/health/);
@@ -64,8 +74,8 @@ describe("UTR agent browser architecture", () => {
   });
 
   it("7. agent rejects disallowed browser origin on OPTIONS", () => {
-    assert.match(agentServerSource, /req\.method === "OPTIONS"/);
-    assert.match(agentServerSource, /Origin not allowed/);
+    assert.match(agentRequestHandlerSource, /req\.method === "OPTIONS"/);
+    assert.match(agentRequestHandlerSource, /Origin not allowed/);
   });
 
   it("8. production import endpoint requires authenticated Denison user", () => {
@@ -80,7 +90,7 @@ describe("UTR agent browser architecture", () => {
   });
 
   it("10. agent allows browser auth via Origin without exposing secret in client", () => {
-    assert.match(agentServerSource, /isAuthorizedBrowserRequest/);
+    assert.match(agentRequestHandlerSource, /isAuthorizedBrowserRequest/);
     assert.doesNotMatch(browserClientSource, /UTR_AGENT_SECRET/);
     assert.doesNotMatch(browserClientSource, /X-Denison-Utr-Agent-Secret/);
   });
@@ -94,5 +104,16 @@ describe("UTR agent browser architecture", () => {
     assert.match(utrAgentRunSource, /processUtrAgentRecruitResult/);
     assert.match(actionsSource, /getUtrAgentRecruitRequestsAction/);
     assert.match(actionsSource, /countMonitoredRecruitsForBatch/);
+  });
+
+  it("14–16. local agent uses HTTPS with mkcert certs and gitignored storage", () => {
+    assert.match(agentServerSource, /createHttpsServer|node:https/);
+    assert.match(agentServerSource, /loadAgentTlsCredentials/);
+    assert.match(agentConfigSourceAgent, /utr-agent-cert\.pem/);
+    assert.match(agentConfigSourceAgent, /AGENT_PUBLIC_HOST = "localhost"/);
+    assert.match(agentConfigSourceAgent, /https:\/\/\$\{AGENT_PUBLIC_HOST\}/);
+    assert.match(gitignoreSource, /\.local\/utr-agent-cert\.pem/);
+    assert.match(gitignoreSource, /\.local\/utr-agent-key\.pem/);
+    assert.doesNotMatch(browserClientSource, /http:\/\/127\.0\.0\.1:4317/);
   });
 });

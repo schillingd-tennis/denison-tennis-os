@@ -79,6 +79,8 @@ Run logs are in:
 
 ## Notes
 
-- The agent listens on `http://127.0.0.1:4317` (this Mac only).
+- The agent listens on `https://localhost:4317` (this Mac only, loopback-bound).
+- One-time HTTPS setup: `npm run utr:https-setup` (requires [mkcert](https://github.com/FiloSottile/mkcert): `brew install mkcert`).
+- Start the agent: `npm run utr:agent` (fails with a setup hint if certificates are missing).
 - Checks run one recruit at a time — no scheduling yet.
 - TRN manual import remains available as fallback.
