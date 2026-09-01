@@ -1,4 +1,4 @@
-import type { BrowserContext, Response } from "playwright";
+import type { Page } from "playwright";
 
 import { DEBUG_BROWSER_CLOSE_DELAY_MS, isDebugBrowser, MAX_RETRIES } from "./config.js";
 import {
@@ -13,6 +13,11 @@ import type {
   RecruitCheckDiagnostics,
   UtrDiagnosticStatus,
 } from "./types.js";
+import {
+  buildUtrResultsApiUrl,
+  isUtrPlayerResultsPath,
+  isUtrPlayerResultsRequestUrl,
+} from "./utrResultsApi.js";
 
 function countMatchesInPayload(payload: unknown): number {
   if (!payload || typeof payload !== "object") return 0;
@@ -50,7 +55,7 @@ function emptyDiagnostics(sourceUrl: string): RecruitCheckDiagnostics {
 }
 
 async function inspectPageState(
-  page: import("playwright").Page,
+  page: Page,
   expectedProfileName: string,
 ): Promise<Pick<
   RecruitCheckDiagnostics,
@@ -116,7 +121,7 @@ type ApiPathObservation = {
   payload?: unknown;
 };
 
-async function observeApiResponse(response: Response): Promise<ApiPathObservation> {
+async function observeApiResponse(response: import("playwright").Response): Promise<ApiPathObservation> {
   const requestUrl = sanitizeRequestUrl(response.url());
   const method = response.request().method();
   const httpStatus = response.status();
@@ -144,6 +149,34 @@ async function observeApiResponse(response: Response): Promise<ApiPathObservatio
   };
 }
 
+async function clickResultsTab(page: Page): Promise<boolean> {
+  return page.evaluate(() => {
+    const candidates = [
+      ...Array.from(document.querySelectorAll('[role="tab"]')),
+      ...Array.from(document.querySelectorAll("button, a")),
+    ];
+    const match = candidates.find((el) => /results/i.test(el.textContent ?? ""));
+    if (!match || !(match instanceof HTMLElement)) return false;
+    match.click();
+    return true;
+  });
+}
+
+function waitForPlayerResultsResponse(
+  page: Page,
+  playerId: string,
+  timeoutMs: number,
+): Promise<import("playwright").Response | null> {
+  return page
+    .waitForResponse(
+      (response) =>
+        isUtrPlayerResultsPath(response.url(), playerId) &&
+        response.request().method() === "GET",
+      { timeout: timeoutMs },
+    )
+    .catch(() => null);
+}
+
 type FetchAttemptResult =
   | {
       ok: true;
@@ -161,25 +194,17 @@ type FetchAttemptResult =
     };
 
 async function fetchResultsViaPage(
-  context: BrowserContext,
+  context: import("playwright").BrowserContext,
   playerId: string,
   sourceUrl: string,
   displayName: string,
 ): Promise<FetchAttemptResult> {
   const diagnostics = emptyDiagnostics(sourceUrl);
   const page = await context.newPage();
-  const apiUrlPart = `/v4/player/${playerId}/results`;
-  const observedResponses: Response[] = [];
-
-  const onResponse = (response: Response) => {
-    if (!response.url().includes(apiUrlPart)) return;
-    if (response.request().method() !== "GET") return;
-    observedResponses.push(response);
-  };
-
-  page.on("response", onResponse);
 
   try {
+    const pageResultsPromise = waitForPlayerResultsResponse(page, playerId, 20_000);
+
     let navigationStatus: number | undefined;
     try {
       const navigation = await page.goto(sourceUrl, {
@@ -210,14 +235,21 @@ async function fetchResultsViaPage(
     }
 
     diagnostics.navigationStatus = navigationStatus;
-    await page.waitForTimeout(2_500);
+
+    let pageResponse = await pageResultsPromise;
+    if (!pageResponse) {
+      const clicked = await clickResultsTab(page);
+      if (clicked) {
+        pageResponse = await waitForPlayerResultsResponse(page, playerId, 10_000);
+      }
+    }
 
     const pageState = await inspectPageState(page, displayName);
     Object.assign(diagnostics, pageState);
 
     let pageObservation: ApiPathObservation | undefined;
-    for (const response of observedResponses) {
-      pageObservation = await observeApiResponse(response);
+    if (pageResponse) {
+      pageObservation = await observeApiResponse(pageResponse);
       diagnostics.pageRequestPath = {
         observed: true,
         requestUrl: pageObservation.requestUrl,
@@ -227,7 +259,6 @@ async function fetchResultsViaPage(
         bodySummary: pageObservation.bodySummary,
         jsonCaptured: pageObservation.jsonCaptured,
       };
-      break;
     }
 
     if (pageObservation?.jsonCaptured && pageObservation.payload !== undefined) {
@@ -262,25 +293,20 @@ async function fetchResultsViaPage(
     }
 
     diagnostics.fallbackFetchPath.attempted = true;
-    const fallbackUrl = sanitizeRequestUrl(
-      `https://api.utrsports.net/v4/player/${playerId}/results?type=singles`,
-    );
+    const fallbackUrl = sanitizeRequestUrl(buildUtrResultsApiUrl(playerId));
 
-    const pageResult = await page.evaluate(async (id) => {
-      const response = await fetch(
-        `https://api.utrsports.net/v4/player/${id}/results?type=singles`,
-        {
-          credentials: "include",
-          headers: { Accept: "application/json" },
-        },
-      );
+    const pageResult = await page.evaluate(async (fetchUrl) => {
+      const response = await fetch(fetchUrl, {
+        credentials: "include",
+        headers: { Accept: "application/json" },
+      });
       const text = await response.text();
       return {
         status: response.status,
         contentType: response.headers.get("content-type") ?? undefined,
         text,
       };
-    }, playerId);
+    }, buildUtrResultsApiUrl(playerId));
 
     diagnostics.fallbackFetchPath = {
       attempted: true,
@@ -388,7 +414,6 @@ async function fetchResultsViaPage(
       diagnostics,
     };
   } finally {
-    page.off("response", onResponse);
     if (isDebugBrowser()) {
       console.log(
         `Debug browser: leaving Isaac page visible for ${DEBUG_BROWSER_CLOSE_DELAY_MS}ms`,
@@ -457,7 +482,7 @@ function mapDiagnosticToErrorCode(
 }
 
 export async function checkRecruit(
-  context: BrowserContext,
+  context: import("playwright").BrowserContext,
   recruit: AgentRecruitInput,
 ): Promise<AgentRecruitResult> {
   const base: AgentRecruitResult = {
@@ -525,3 +550,6 @@ export async function checkRecruit(
 
   return base;
 }
+
+// Re-export for tests
+export { isUtrPlayerResultsRequestUrl };
