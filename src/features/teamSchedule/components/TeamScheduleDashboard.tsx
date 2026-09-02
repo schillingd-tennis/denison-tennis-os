@@ -318,6 +318,7 @@ export default function TeamScheduleDashboard({
               onEdit={openForm}
               onDuplicate={duplicate}
               onDelete={openDelete}
+              onEventUpdated={upsert}
             />
           )}
         </div>

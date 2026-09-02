@@ -82,6 +82,7 @@ function InlineEditInput({
   error,
   density,
   rows,
+  editorClassName,
   onCancel,
   onCommit,
   onExitFocus,
@@ -94,11 +95,12 @@ function InlineEditInput({
   error?: string;
   density: InlineDensity;
   rows?: number;
+  editorClassName?: string;
   onCancel: () => void;
   onCommit: (nextRaw: string, reason: InlineCommitReason) => void | Promise<void>;
   onExitFocus: () => void;
 }) {
-  const editorClass = density === "compact" ? compactInputClassName : inputClassName;
+  const editorClass = editorClassName ?? (density === "compact" ? compactInputClassName : inputClassName);
   const [draft, setDraft] = useState(initialValue);
   const inputRef = useRef<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null>(null);
   const ignoreBlurRef = useRef(false);
@@ -319,6 +321,7 @@ export default function InlineEditCell({
   density = "default",
   rows,
   className,
+  editorClassName,
   emptyDisplay = EMPTY_VALUE,
   onRequestEdit,
   onCancel,
@@ -349,6 +352,8 @@ export default function InlineEditCell({
   density?: InlineDensity;
   rows?: number;
   className?: string;
+  /** Override default input/select/textarea styling while editing. */
+  editorClassName?: string;
   emptyDisplay?: string;
   onRequestEdit: () => void;
   onCancel: () => void;
@@ -414,6 +419,7 @@ export default function InlineEditCell({
           error={error}
           density={density}
           rows={rows}
+          editorClassName={editorClassName}
           onCancel={onCancel}
           onCommit={onCommit}
           onExitFocus={() => cellRef.current?.focus()}

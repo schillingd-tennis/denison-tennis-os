@@ -69,18 +69,18 @@ export type TypeBadge = { label: string; className: string };
 
 export function typeBadgeForEvent(event: TeamScheduleEvent): TypeBadge {
   if (event.eventType === "non_team_event") {
-    return { label: "NON-TEAM", className: "bg-zinc-100 text-zinc-700" };
+    return { label: "Non-Team", className: "bg-zinc-100 text-zinc-700" };
   }
   if (event.eventType === "tournament") {
-    return { label: "TOURNAMENT", className: "bg-purple-50 text-purple-700" };
+    return { label: "Tournament", className: "bg-purple-50 text-purple-700" };
   }
   if (event.eventName?.toLowerCase().includes("spring break")) {
-    return { label: "SPRING BREAK", className: "bg-sky-50 text-sky-700" };
+    return { label: "Spring Break", className: "bg-sky-50 text-sky-700" };
   }
   if (event.ncac) {
     return { label: "NCAC", className: "bg-blue-50 text-blue-700" };
   }
-  return { label: "NON-CONF", className: "bg-slate-100 text-slate-700" };
+  return { label: "Non-Conf", className: "bg-slate-100 text-slate-700" };
 }
 
 export function statusBadgeClass(status: TeamScheduleEvent["status"]): string {

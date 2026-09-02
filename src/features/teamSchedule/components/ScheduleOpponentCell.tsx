@@ -9,6 +9,9 @@ import {
   type TeamScheduleEvent,
 } from "../types";
 import ScheduleIdentityMark from "./ScheduleIdentityMark";
+import { ScheduleOpponentInlineCell } from "./ScheduleInlineCells";
+import { SCHEDULE_LOGO_OFFSET, SCHEDULE_OPPONENT_CELL, SCHEDULE_OPPONENT_PRIMARY } from "./scheduleTableChrome";
+import type { ScheduleInlineEditApi } from "../useScheduleInlineEdit";
 
 function opponentSecondaryLine(event: TeamScheduleEvent): string | null {
   if (event.eventType === "team_match") {
@@ -32,16 +35,28 @@ function opponentSecondaryLine(event: TeamScheduleEvent): string | null {
   return null;
 }
 
-export default function ScheduleOpponentCell({ event }: { event: TeamScheduleEvent }) {
+export default function ScheduleOpponentCell({
+  event,
+  edit,
+}: {
+  event: TeamScheduleEvent;
+  edit?: ScheduleInlineEditApi;
+}) {
   const identity = resolveScheduleIdentity(event);
   const primary = displayOpponentOrEvent(event);
   const secondary = opponentSecondaryLine(event);
 
   return (
-    <div className="flex min-w-[10rem] items-start gap-2">
-      <ScheduleIdentityMark identity={identity} />
+    <div className={SCHEDULE_OPPONENT_CELL}>
+      <div className={SCHEDULE_LOGO_OFFSET}>
+        <ScheduleIdentityMark identity={identity} />
+      </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-xs font-semibold text-text-primary">{primary}</p>
+        {edit ? (
+          <ScheduleOpponentInlineCell event={event} edit={edit} />
+        ) : (
+          <p className={SCHEDULE_OPPONENT_PRIMARY}>{primary}</p>
+        )}
         {secondary ? <p className="truncate text-[11px] text-text-secondary">{secondary}</p> : null}
         {event.travelRequired ? (
           <p className="mt-0.5 flex items-center gap-1 text-[10px] text-text-secondary">

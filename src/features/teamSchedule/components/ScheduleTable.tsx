@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, MapPin, MoreHorizontal, Plane } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import { useMemo, useState, type KeyboardEvent, type MouseEvent } from "react";
 
 import SortableColumnHeader from "@/components/data-table/SortableColumnHeader";
@@ -9,21 +9,23 @@ import { useSortableData } from "@/components/data-table/useSortableData";
 import ViewChrome, { ViewContextHeader } from "@/components/view-chrome";
 import { RECRUITING_TABLE } from "@/features/recruiting/components/recruitingTableChrome";
 
-import {
-  formatCompDateNumber,
-  formatItaRank,
-  formatScheduleDateDisplay,
-  locationLine,
-  sharedDateOrDhLabel,
-  statusBadgeClass,
-  truncateNotes,
-  typeBadgeForEvent,
-} from "../display";
+import { formatScheduleDateDisplay } from "../display";
 import { SCHEDULE_TABLE_COLUMNS, type ScheduleTableColumnId } from "../scheduleTableColumns";
 import { sortScheduleEvents } from "../sorting";
-import { SCHEDULE_STATUS_LABELS, SITE_DESIGNATION_LABELS, displayOpponentOrEvent, type TeamScheduleEvent } from "../types";
+import { displayOpponentOrEvent, type TeamScheduleEvent } from "../types";
+import { useScheduleInlineEdit } from "../useScheduleInlineEdit";
+import {
+  ScheduleCompDateCell,
+  ScheduleDoubleheaderCell,
+  ScheduleItaRankCell,
+  ScheduleOfficialsCell,
+  ScheduleSiteCell,
+  ScheduleStatusCell,
+  ScheduleTimeCell,
+  ScheduleTypeCell,
+} from "./ScheduleInlineCells";
 import ScheduleOpponentCell from "./ScheduleOpponentCell";
-import { ScheduleTableSectionBar } from "./scheduleTableChrome";
+import { SCHEDULE_OPPONENT_TD, ScheduleTableSectionBar } from "./scheduleTableChrome";
 
 const SORT_STORAGE_KEY = "denison-tennis-os:team-schedule-sort";
 const SORTABLE_COLUMNS = new Set<ScheduleTableColumnId>([
@@ -79,20 +81,6 @@ function handleRowKeyDown(
   }
 }
 
-function SiteCell({ event }: { event: TeamScheduleEvent }) {
-  const Icon =
-    event.siteDesignation === "home" ? Home : event.siteDesignation === "away" ? Plane : MapPin;
-  return (
-    <div className="min-w-[5.5rem]">
-      <p className="flex items-center gap-1 text-xs font-medium text-text-primary">
-        <Icon className="h-3 w-3 shrink-0 text-text-secondary" aria-hidden />
-        {SITE_DESIGNATION_LABELS[event.siteDesignation]}
-      </p>
-      <p className="mt-0.5 truncate text-[11px] text-text-secondary">{locationLine(event)}</p>
-    </div>
-  );
-}
-
 function DateCell({ event }: { event: TeamScheduleEvent }) {
   const display = formatScheduleDateDisplay(event.startDate, event.endDate);
   return (
@@ -106,20 +94,29 @@ function DateCell({ event }: { event: TeamScheduleEvent }) {
   );
 }
 
+function truncateNotes(notes: string | null, maxLength = 48): string {
+  if (!notes) return "—";
+  if (notes.length <= maxLength) return notes;
+  return `${notes.slice(0, maxLength - 1)}…`;
+}
+
 export default function ScheduleTable({
   events,
   allEvents,
   onEdit,
   onDuplicate,
   onDelete,
+  onEventUpdated,
 }: {
   events: TeamScheduleEvent[];
   allEvents: TeamScheduleEvent[];
   onEdit: (event: TeamScheduleEvent) => void;
   onDuplicate: (event: TeamScheduleEvent) => void;
   onDelete: (event: TeamScheduleEvent) => void;
+  onEventUpdated: (event: TeamScheduleEvent) => void;
 }) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const inlineEdit = useScheduleInlineEdit({ onEventUpdated });
   const defaultOrdered = useMemo(() => sortScheduleEvents(events), [events]);
   const { sortedItems, sort, toggleSort } = useSortableData(defaultOrdered, SCHEDULE_TABLE_COLUMNS, {
     getInitialSort: readStoredSort,
@@ -139,7 +136,8 @@ export default function ScheduleTable({
           subtitle="Competition schedule for the selected season"
         />
       }
-      saveStatus="idle"
+      saveStatus={inlineEdit.saveStatus}
+      saveError={inlineEdit.saveError}
       actionButtons={null}
     >
       <ScheduleTableSectionBar title="Matches" count={sortedItems.length} />
@@ -201,9 +199,6 @@ export default function ScheduleTable({
           </thead>
           <tbody>
             {sortedItems.map((event) => {
-              const compDate = formatCompDateNumber(event);
-              const typeBadge = typeBadgeForEvent(event);
-              const dhLabel = sharedDateOrDhLabel(event, allEvents);
               const groupSize =
                 event.competitionDateGroup != null
                   ? allEvents.filter((e) => e.competitionDateGroup === event.competitionDateGroup).length
@@ -221,45 +216,35 @@ export default function ScheduleTable({
                   onKeyDown={(keyboardEvent) => handleRowKeyDown(keyboardEvent, event, onEdit)}
                   className={`cursor-pointer ${RECRUITING_TABLE.rowHover} border-b border-border/40 last:border-0 ${grouped ? "bg-background/30" : ""}`}
                 >
-                  <td className="px-3 py-2 align-top text-xs tabular-nums text-text-secondary">
-                    {compDate ?? "—"}
+                  <td className="px-3 py-2 align-top">
+                    <ScheduleCompDateCell event={event} edit={inlineEdit} />
                   </td>
                   <td className="px-3 py-2 align-top">
                     <DateCell event={event} />
                   </td>
-                  <td className="px-3 py-2 align-top">
-                    <ScheduleOpponentCell event={event} />
-                  </td>
-                  <td className="px-3 py-2 align-top text-xs tabular-nums text-text-primary">
-                    {formatItaRank(event.itaRank)}
+                  <td className={SCHEDULE_OPPONENT_TD}>
+                    <ScheduleOpponentCell event={event} edit={inlineEdit} />
                   </td>
                   <td className="px-3 py-2 align-top">
-                    <SiteCell event={event} />
-                  </td>
-                  <td className="px-3 py-2 align-top text-xs whitespace-nowrap text-text-primary">
-                    {event.timeText ?? "—"}
+                    <ScheduleItaRankCell event={event} edit={inlineEdit} />
                   </td>
                   <td className="px-3 py-2 align-top">
-                    <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${typeBadge.className}`}>
-                      {typeBadge.label}
-                    </span>
+                    <ScheduleSiteCell event={event} edit={inlineEdit} />
                   </td>
                   <td className="px-3 py-2 align-top">
-                    <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${statusBadgeClass(event.status)}`}>
-                      {SCHEDULE_STATUS_LABELS[event.status]}
-                    </span>
+                    <ScheduleTimeCell event={event} edit={inlineEdit} />
                   </td>
                   <td className="px-3 py-2 align-top">
-                    {dhLabel ? (
-                      <span className="inline-flex rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
-                        {dhLabel}
-                      </span>
-                    ) : (
-                      <span className="text-xs text-text-secondary">—</span>
-                    )}
+                    <ScheduleTypeCell event={event} edit={inlineEdit} />
                   </td>
-                  <td className="px-3 py-2 align-top text-xs tabular-nums text-text-primary">
-                    {event.officialsNeeded ?? "—"}
+                  <td className="px-3 py-2 align-top">
+                    <ScheduleStatusCell event={event} edit={inlineEdit} />
+                  </td>
+                  <td className="px-3 py-2 align-top">
+                    <ScheduleDoubleheaderCell event={event} allEvents={allEvents} edit={inlineEdit} />
+                  </td>
+                  <td className="px-3 py-2 align-top">
+                    <ScheduleOfficialsCell event={event} edit={inlineEdit} />
                   </td>
                   <td className="max-w-[12rem] px-3 py-2 align-top text-[11px] text-text-secondary" title={event.notes ?? undefined}>
                     {truncateNotes(event.notes)}

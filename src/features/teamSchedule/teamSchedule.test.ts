@@ -296,4 +296,9 @@ describe("schedule table interactions", () => {
     assert.match(scheduleTableSource, /ScheduleOpponentCell/);
     assert.match(scheduleTableSource, /RECRUITING_TABLE\.rowHover/);
   });
+
+  it("29. inline editing uses shared InlineEditCell with click activation", () => {
+    assert.match(scheduleTableSource, /useScheduleInlineEdit/);
+    assert.match(scheduleDashboardSource, /onEventUpdated=\{upsert\}/);
+  });
 });
