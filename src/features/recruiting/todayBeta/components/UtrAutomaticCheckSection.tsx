@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
 import {
   fetchUtrAgentHealthFromBrowser,
@@ -14,6 +14,18 @@ import {
 import type { TodayBetaPlayerRow, UtrAgentCheckStatus } from "../types";
 import type { UtrAgentRunSummary } from "../utrAgentRun";
 import { formatMonitoringTimestamp } from "../resultsCheckStatus";
+import {
+  filterRecruitsForPilot,
+  formatIncrementalProgressLabel,
+  type LiveRecruitRow,
+} from "../utrAgentIncremental";
+import { runIncrementalUtrAgentBatch } from "../utrAgentIncrementalBatch";
+import {
+  finalizeIncrementalBatchImport,
+  importSingleRecruitToDenison,
+} from "../utrAgentIncrementalImport";
+
+type RunMode = "isaac-only" | "all" | "two-player";
 
 type Props = {
   players: TodayBetaPlayerRow[];
@@ -25,7 +37,7 @@ function agentStatusTone(online: boolean): string {
   return online ? "text-green-700" : "text-red-700";
 }
 
-function utrAgentCheckTone(status?: UtrAgentCheckStatus): string {
+function utrAgentCheckTone(status?: UtrAgentCheckStatus | LiveRecruitRow["liveStatus"]): string {
   switch (status) {
     case "Checked":
       return "text-green-700";
@@ -39,9 +51,32 @@ function utrAgentCheckTone(status?: UtrAgentCheckStatus): string {
       return "text-red-700";
     case "Not Configured":
       return "text-text-secondary";
+    case "Checking":
+      return "text-[var(--module-accent)]";
+    case "Pending":
+      return "text-text-secondary";
     default:
       return "text-text-secondary";
   }
+}
+
+function formatCompletionSummary(summary: UtrAgentRunSummary, rankBoardCount: number): string {
+  const { totals } = summary;
+  const duration = formatDurationMs(summary.startedAt, summary.finishedAt);
+  return [
+    `${rankBoardCount} Rank Board recruit${rankBoardCount === 1 ? "" : "s"}`,
+    `${totals.configured} configured`,
+    `${totals.recruitsChecked} checked`,
+    totals.failed > 0 ? `${totals.failed} failed` : null,
+    `${totals.matchesProcessed} matches processed`,
+    `${totals.matchedExisting} matched existing`,
+    `${totals.savedAsBaseline} baseline`,
+    `${totals.savedAsNew} new`,
+    `${totals.needsReview} needs review`,
+    duration ? `Runtime: ${duration}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 function formatAfterRunSummary(summary: UtrAgentRunSummary): string {
@@ -73,7 +108,7 @@ function formatRecruitRuntime(runtimeMs?: number): string {
   return seconds >= 60 ? `${Math.floor(seconds / 60)}m ${seconds % 60}s` : `${seconds}s`;
 }
 
-function statusLabel(status: UtrAgentCheckStatus): string {
+function statusLabel(status: UtrAgentCheckStatus | LiveRecruitRow["liveStatus"]): string {
   switch (status) {
     case "Checked":
       return "CHECKED";
@@ -87,6 +122,10 @@ function statusLabel(status: UtrAgentCheckStatus): string {
       return "AUTH REQUIRED";
     case "Failed":
       return "FAILED";
+    case "Checking":
+      return "CHECKING";
+    case "Pending":
+      return "PENDING";
   }
 }
 
@@ -101,12 +140,14 @@ export default function UtrAutomaticCheckSection({
   const [rankBoardCount, setRankBoardCount] = useState(0);
   const [configuredCount, setConfiguredCount] = useState(0);
   const [missingUtrCount, setMissingUtrCount] = useState(0);
-  const [runningMode, setRunningMode] = useState<"isaac-only" | "all" | null>(null);
+  const [runningMode, setRunningMode] = useState<RunMode | null>(null);
   const [progressLabel, setProgressLabel] = useState<string | null>(null);
+  const [liveRecruitRows, setLiveRecruitRows] = useState<LiveRecruitRow[]>([]);
   const [lastSummary, setLastSummary] = useState<UtrAgentRunSummary | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showDebugActions, setShowDebugActions] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const batchRunningRef = useRef(false);
 
   const refreshAgentStatus = useCallback(() => {
     startTransition(async () => {
@@ -128,6 +169,18 @@ export default function UtrAutomaticCheckSection({
     refreshAgentStatus();
   }, [refreshAgentStatus]);
 
+  useEffect(() => {
+    if (!runningMode) return undefined;
+
+    function handleBeforeUnload(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [runningMode]);
+
   const readyPlayers = players.filter((player) => player.status === "Ready");
   const configuredPlayers = readyPlayers.filter((player) => player.utrPlayerId);
   const cohortRankBoard =
@@ -140,100 +193,131 @@ export default function UtrAutomaticCheckSection({
     missingUtrCount > 0
       ? missingUtrCount
       : Math.max(0, cohortRankBoard - cohortConfigured);
-  const runQueue =
-    runningMode === "isaac-only"
-      ? configuredPlayers.filter((player) => player.displayName === "Isaac Lewis")
-      : configuredPlayers;
 
-  function runCheck(mode: "isaac-only" | "all") {
+  async function runIncrementalCheck(mode: RunMode) {
+    if (batchRunningRef.current) return;
+    batchRunningRef.current = true;
     setErrorMessage(null);
     setLastSummary(null);
+    setLiveRecruitRows([]);
     setRunningMode(mode);
-    const queue =
-      mode === "isaac-only"
-        ? configuredPlayers.filter((player) => player.displayName === "Isaac Lewis")
-        : configuredPlayers;
-    setProgressLabel(`Checking UTR Results — 0 / ${queue.length} complete`);
 
-    startTransition(async () => {
-      try {
-        const recruitsResult = await getUtrAgentRecruitRequestsAction();
-        if (!recruitsResult.success) {
-          setErrorMessage(recruitsResult.error);
-          setRunningMode(null);
-          setProgressLabel(null);
-          return;
-        }
-
-        let recruitRequests = recruitsResult.data;
-        if (mode === "isaac-only") {
-          recruitRequests = recruitRequests.filter(
-            (recruit) => recruit.displayName === "Isaac Lewis",
-          );
-        }
-
-        setProgressLabel(
-          `Acquiring UTR results locally — 0 / ${recruitRequests.length} (keep this tab open)`,
-        );
-
-        const agentResult = await requestUtrAgentCheckFromBrowser({
-          mode,
-          recruits: recruitRequests,
-        });
-
-        setProgressLabel(`Importing to Denison OS — 0 / ${agentResult.recruits.length}`);
-
-        const importResponse = await fetch("/api/recruiting/today-beta/utr-agent-import", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mode, agentResult }),
-        });
-
-        const importBody = (await importResponse.json()) as {
-          success?: boolean;
-          error?: string;
-          data?: UtrAgentRunSummary;
-        };
-
-        setRunningMode(null);
-        setProgressLabel(null);
-
-        if (!importResponse.ok || !importBody.success || !importBody.data) {
-          setErrorMessage(importBody.error ?? "UTR import failed.");
-          return;
-        }
-
-        setLastSummary(importBody.data);
-        onComplete(formatAfterRunSummary(importBody.data));
-
-        if (importBody.data.stopReason === "AUTH_REQUIRED") {
-          setErrorMessage("UTR login expired — run npm run utr:login, log in, then retry.");
-        }
-
-        refreshAgentStatus();
-        router.refresh?.();
-      } catch (error) {
-        setRunningMode(null);
-        setProgressLabel(null);
-        const message = error instanceof Error ? error.message : "UTR automatic check failed.";
-        if (message === "AGENT_OFFLINE") {
-          setErrorMessage(
-            "UTR Results Agent is offline. Run npm run utr:agent on this Mac, then refresh.",
-          );
-        } else if (message === "AGENT_BUSY") {
-          setErrorMessage("UTR Results Agent is busy with another check.");
-        } else if (message === "AGENT_FORBIDDEN") {
-          setErrorMessage(
-            "Browser origin not allowed by the local agent. Use Denison OS on localhost or denison-tennis-os.vercel.app.",
-          );
-        } else {
-          setErrorMessage(message);
-        }
+    try {
+      const recruitsResult = await getUtrAgentRecruitRequestsAction();
+      if (!recruitsResult.success) {
+        setErrorMessage(recruitsResult.error);
+        return;
       }
-    });
+
+      const recruitRequests = filterRecruitsForPilot(recruitsResult.data, mode);
+      if (recruitRequests.length === 0) {
+        setErrorMessage("No recruits matched this check mode.");
+        return;
+      }
+
+      const runId = crypto.randomUUID();
+      const startedAt = new Date().toISOString();
+      const configured = recruitRequests.filter((recruit) => Boolean(recruit.utrPlayerId)).length;
+
+      setProgressLabel(
+        formatIncrementalProgressLabel({
+          completed: 0,
+          total: recruitRequests.length,
+          currentName: recruitRequests[0]?.displayName,
+          totals: {
+            cohortSize: recruitRequests.length,
+            configured,
+            recruitsChecked: 0,
+            notConfigured: 0,
+            matchesRead: 0,
+            matchesProcessed: 0,
+            matchedExisting: 0,
+            savedAsBaseline: 0,
+            savedAsNew: 0,
+            needsReview: 0,
+            failed: 0,
+            duplicatesIgnored: 0,
+            authRequired: 0,
+          },
+        }),
+      );
+
+      const result = await runIncrementalUtrAgentBatch({
+        recruitRequests,
+        runId,
+        startedAt,
+        cohortSize: recruitRequests.length,
+        configured,
+        checkOneRecruit: async (recruit) =>
+          requestUtrAgentCheckFromBrowser({
+            mode: "all",
+            recruits: [recruit],
+          }),
+        importOneRecruit: (agentResult) => importSingleRecruitToDenison({ agentResult }),
+        finalizeBatch: finalizeIncrementalBatchImport,
+        onProgress: (progress) => {
+          setLiveRecruitRows(progress.liveRows);
+          setProgressLabel(
+            formatIncrementalProgressLabel({
+              completed: progress.completed,
+              total: progress.total,
+              currentName: progress.currentName,
+              totals: progress.totals,
+            }),
+          );
+          router.refresh?.();
+        },
+      });
+
+      setProgressLabel(null);
+      setLiveRecruitRows(
+        result.recruitRows.map((row) => ({
+          ...row,
+          liveStatus: row.status,
+        })),
+      );
+
+      if (result.summary) {
+        setLastSummary(result.summary);
+        onComplete(formatAfterRunSummary(result.summary));
+      }
+
+      if (result.stopReason === "AUTH_REQUIRED") {
+        setErrorMessage("UTR login expired — run npm run utr:login, log in, then retry.");
+      }
+
+      refreshAgentStatus();
+      router.refresh?.();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "UTR automatic check failed.";
+      if (message === "AGENT_OFFLINE") {
+        setErrorMessage(
+          "UTR Results Agent is offline. Run npm run utr:agent on this Mac, then refresh.",
+        );
+      } else if (message === "AGENT_BUSY") {
+        setErrorMessage("UTR Results Agent is busy with another check.");
+      } else if (message === "AGENT_FORBIDDEN") {
+        setErrorMessage(
+          "Browser origin not allowed by the local agent. Use Denison OS on localhost or denison-tennis-os.vercel.app.",
+        );
+      } else {
+        setErrorMessage(message);
+      }
+    } finally {
+      batchRunningRef.current = false;
+      setRunningMode(null);
+      setProgressLabel(null);
+    }
   }
 
   const busy = isPending || runningMode !== null;
+  const displayRows: LiveRecruitRow[] =
+    liveRecruitRows.length > 0
+      ? liveRecruitRows
+      : (lastSummary?.recruitRows.map((row) => ({
+          ...row,
+          liveStatus: row.status,
+        })) ?? []);
 
   return (
     <section className="rounded-control border border-border/70 bg-surface px-4 py-3">
@@ -266,7 +350,7 @@ export default function UtrAutomaticCheckSection({
           type="button"
           disabled={busy || !agentOnline || !batchCheckEnabled || cohortConfigured === 0}
           className="inline-flex h-8 items-center rounded-control border border-[var(--module-accent)] bg-[var(--module-accent)]/10 px-3 text-xs font-semibold text-[var(--module-accent)] disabled:opacity-50"
-          onClick={() => runCheck("all")}
+          onClick={() => runIncrementalCheck("all")}
         >
           Check {cohortConfigured} Recruit{cohortConfigured === 1 ? "" : "s"}
         </button>
@@ -306,28 +390,30 @@ export default function UtrAutomaticCheckSection({
       ) : null}
 
       {showDebugActions ? (
-        <div className="mt-2">
+        <div className="mt-2 flex flex-wrap gap-2">
           <button
             type="button"
             disabled={busy || !agentOnline}
             className="inline-flex h-7 items-center rounded-control border border-border px-2 text-[11px] font-semibold text-text-secondary disabled:opacity-50"
-            onClick={() => runCheck("isaac-only")}
+            onClick={() => runIncrementalCheck("isaac-only")}
           >
             Check Isaac Only
+          </button>
+          <button
+            type="button"
+            disabled={busy || !agentOnline || !batchCheckEnabled}
+            className="inline-flex h-7 items-center rounded-control border border-[var(--module-accent)]/40 bg-[var(--module-accent)]/5 px-2 text-[11px] font-semibold text-[var(--module-accent)] disabled:opacity-50"
+            onClick={() => runIncrementalCheck("two-player")}
+          >
+            Check Isaac + Finn (2-player pilot)
           </button>
         </div>
       ) : null}
 
-      {busy && runQueue.length > 0 ? (
-        <div className="mt-3 text-sm text-text-secondary">
+      {busy && progressLabel ? (
+        <div className="mt-3 whitespace-pre-line text-sm text-text-secondary">
           <p className="font-medium text-text-primary">{progressLabel}</p>
-          <ul className="mt-2 space-y-1">
-            {runQueue.map((player, index) => (
-              <li key={player.recruitPersonId ?? player.displayName}>
-                {index + 1} / {runQueue.length} {player.displayName}
-              </li>
-            ))}
-          </ul>
+          <p className="mt-1 text-xs text-amber-800">Keep this tab open until the batch finishes.</p>
         </div>
       ) : null}
 
@@ -337,9 +423,13 @@ export default function UtrAutomaticCheckSection({
         </p>
       ) : null}
 
-      {lastSummary ? (
+      {displayRows.length > 0 ? (
         <div className="mt-3 space-y-2">
-          <p className="text-sm text-text-primary">{formatAfterRunSummary(lastSummary)}</p>
+          {lastSummary && !busy ? (
+            <p className="text-sm text-text-primary">
+              {formatCompletionSummary(lastSummary, cohortRankBoard)}
+            </p>
+          ) : null}
           <div className="overflow-x-auto">
             <table className="min-w-full text-xs">
               <thead>
@@ -355,11 +445,13 @@ export default function UtrAutomaticCheckSection({
                 </tr>
               </thead>
               <tbody>
-                {lastSummary.recruitRows.map((row) => (
+                {displayRows.map((row) => (
                   <tr key={row.recruitPersonId} className="border-b border-border/40">
                     <td className="py-1 pr-3 text-text-primary">{row.displayName}</td>
-                    <td className={`py-1 pr-3 font-medium ${utrAgentCheckTone(row.status)}`}>
-                      {statusLabel(row.status)}
+                    <td
+                      className={`py-1 pr-3 font-medium ${utrAgentCheckTone(row.liveStatus ?? row.status)}`}
+                    >
+                      {statusLabel(row.liveStatus ?? row.status)}
                     </td>
                     <td className="py-1 pr-3 tabular-nums">{row.matchesProcessed}</td>
                     <td className="py-1 pr-3 tabular-nums">{row.matchedExisting}</td>

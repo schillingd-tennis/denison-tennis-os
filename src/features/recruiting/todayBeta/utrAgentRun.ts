@@ -2,11 +2,15 @@ import {
   listAllMonitoredRecruits,
   listUtrConfiguredMonitoredRecruits,
 } from "./monitoringCohort";
-import type { UtrAgentCheckResult, UtrAgentRecruitRequest } from "./utrAgentClient";
+import type {
+  UtrAgentCheckResult,
+  UtrAgentRecruitRequest,
+} from "./utrAgentClient";
 import {
   processUtrAgentRecruitResult,
   type UtrAgentImportRecruitOutcome,
 } from "./utrAgentImport";
+import { accumulateTotalsFromRecruitRows, estimateJsonPayloadBytes } from "./utrAgentIncremental";
 import { recordUtrAgentBatchRun } from "./repository";
 import type { UtrAgentBatchRunSummary, UtrAgentCheckStatus } from "./types";
 
@@ -274,6 +278,121 @@ export function summarizeUtrAgentRun(input: {
       authRequired,
     },
   };
+}
+
+export function buildRunSummaryFromRecruitRows(input: {
+  runId: string;
+  startedAt: string;
+  finishedAt: string;
+  stoppedEarly: boolean;
+  stopReason?: string;
+  recruitRows: UtrAgentRecruitRunRow[];
+  cohortSize: number;
+  configured: number;
+  outcomes?: UtrAgentImportRecruitOutcome[];
+}): UtrAgentRunSummary {
+  const totals = accumulateTotalsFromRecruitRows(input.recruitRows, {
+    cohortSize: input.cohortSize,
+    configured: input.configured,
+  });
+  const durationMs = Math.max(0, Date.parse(input.finishedAt) - Date.parse(input.startedAt));
+  const batchMetrics: UtrAgentBatchRunSummary = {
+    runId: input.runId,
+    startedAt: input.startedAt,
+    finishedAt: input.finishedAt,
+    durationMs,
+    cohortSize: input.cohortSize,
+    configured: input.configured,
+    recruitsChecked: totals.recruitsChecked,
+    notConfigured: totals.notConfigured,
+    authRequired: totals.authRequired,
+    failed: totals.failed,
+    matchesAcquired: totals.matchesRead,
+    matchesProcessed: totals.matchesProcessed,
+    matchedExisting: totals.matchedExisting,
+    baselineInserted: totals.savedAsBaseline,
+    newInserted: totals.savedAsNew,
+    needsReview: totals.needsReview,
+    duplicatesIgnored: totals.duplicatesIgnored,
+    averageSecondsPerRecruit:
+      totals.recruitsChecked > 0 ? Math.round(durationMs / totals.recruitsChecked / 1000) : 0,
+  };
+
+  return {
+    runId: input.runId,
+    startedAt: input.startedAt,
+    finishedAt: input.finishedAt,
+    stoppedEarly: input.stoppedEarly,
+    stopReason: input.stopReason,
+    recruits: input.outcomes ?? [],
+    recruitRows: input.recruitRows,
+    batchMetrics,
+    totals,
+  };
+}
+
+export async function importSingleUtrAgentRecruitResult(input: {
+  agentResult: UtrAgentCheckResult;
+  recruitRequest?: UtrAgentRecruitRequest;
+}): Promise<{
+  recruitRow: UtrAgentRecruitRunRow;
+  outcome: UtrAgentImportRecruitOutcome;
+  payloadBytes: number;
+  authRequired: boolean;
+}> {
+  const recruit = input.agentResult.recruits[0];
+  if (!recruit) {
+    throw new Error("Missing recruit in agent result.");
+  }
+
+  const recruitRequest: UtrAgentRecruitRequest =
+    input.recruitRequest ?? {
+      recruitPersonId: recruit.recruitPersonId,
+      displayName: recruit.displayName,
+      utrPlayerId: recruit.utrPlayerId,
+    };
+
+  const payloadBytes = estimateJsonPayloadBytes({
+    mode: "single",
+    agentResult: input.agentResult,
+  });
+
+  const outcome = await processUtrAgentRecruitResult(recruit);
+  const runtimeMs =
+    recruit.startedAt && recruit.finishedAt
+      ? Math.max(0, Date.parse(recruit.finishedAt) - Date.parse(recruit.startedAt))
+      : undefined;
+
+  const recruitRow = buildRecruitRunRow({
+    request: recruitRequest,
+    outcome,
+    matchesRead: recruit.matchesRead ?? 0,
+    runtimeMs,
+  });
+
+  return {
+    recruitRow,
+    outcome,
+    payloadBytes,
+    authRequired:
+      recruit.status === "AUTH_REQUIRED" || outcome.agentCheckStatus === "Auth Required",
+  };
+}
+
+export async function finalizeIncrementalUtrAgentBatch(input: {
+  runId: string;
+  startedAt: string;
+  finishedAt: string;
+  stoppedEarly: boolean;
+  stopReason?: string;
+  recruitRows: UtrAgentRecruitRunRow[];
+  cohortSize: number;
+  configured: number;
+}): Promise<UtrAgentRunSummary> {
+  const summary = buildRunSummaryFromRecruitRows(input);
+  const monitoredPersonIds = (await listAllMonitoredRecruits()).map((recruit) => recruit.personId);
+  await recordUtrAgentBatchRun(summary.batchMetrics, monitoredPersonIds);
+  return summary;
 }
 
 export async function importUtrAgentCheckResults(input: {

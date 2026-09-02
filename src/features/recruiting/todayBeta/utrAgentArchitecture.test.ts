@@ -80,13 +80,15 @@ describe("UTR agent browser architecture", () => {
 
   it("8. production import endpoint requires authenticated Denison user", () => {
     assert.match(importRouteSource, /getUser\(\)/);
-    assert.match(importRouteSource, /importUtrAgentCheckResults/);
+    assert.match(importRouteSource, /importSingleUtrAgentRecruitResult/);
     assert.match(importRouteSource, /status: 401/);
   });
 
-  it("9. browser posts agent payload to same-origin import API", () => {
-    assert.match(sectionSource, /\/api\/recruiting\/today-beta\/utr-agent-import/);
+  it("9. browser posts one recruit at a time to same-origin import API", () => {
+    assert.match(sectionSource, /importSingleRecruitToDenison/);
+    assert.match(sectionSource, /runIncrementalUtrAgentBatch/);
     assert.match(sectionSource, /requestUtrAgentCheckFromBrowser/);
+    assert.match(sectionSource, /recruits: \[recruit\]/);
   });
 
   it("10. agent allows browser auth via Origin without exposing secret in client", () => {
