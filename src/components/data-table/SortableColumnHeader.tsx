@@ -16,30 +16,38 @@ export default function SortableColumnHeader({
   sortDirection,
   onSort,
   className,
+  titleCase = false,
 }: {
   label: string;
-  align?: "left" | "right";
+  align?: "left" | "center" | "right";
   /** `null` when this column is not the active sort. */
   sortDirection: SortDirection | null;
   onSort: () => void;
   /** Extra classes (e.g. sticky leading column from `stickyLeadingColumn`). */
   className?: string;
+  /** Natural title-style labels instead of uppercase table headers. */
+  titleCase?: boolean;
 }) {
   const Icon = sortDirection === "asc" ? ArrowUp : sortDirection === "desc" ? ArrowDown : ChevronsUpDown;
   const isActive = sortDirection !== null;
+  const headerTypography = titleCase
+    ? "text-xs font-medium tracking-wide text-text-secondary"
+    : typeRole.tableHeader;
 
   return (
     <th
       scope="col"
       aria-sort={ariaSortValue[sortDirection ?? "none"]}
-      className={`px-4 py-3 ${typeRole.tableHeader} ${align === "right" ? "text-right" : "text-left"}${className ? ` ${className}` : ""}`}
+      className={`px-4 py-3 ${headerTypography} ${
+        align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left"
+      }${className ? ` ${className}` : ""}`}
     >
       <button
         type="button"
         onClick={onSort}
         className={`inline-flex items-center gap-1 rounded-control transition-colors duration-150 hover:text-text-primary focus-visible:ring-2 focus-visible:ring-[var(--module-accent)] focus-visible:ring-offset-2 focus-visible:outline-none ${
           align === "right" ? "flex-row-reverse" : ""
-        } ${isActive ? "text-text-primary" : "text-text-secondary"}`}
+        } ${align === "center" ? "mx-auto" : ""} ${isActive ? "text-text-primary" : "text-text-secondary"}`}
       >
         {label}
         <Icon

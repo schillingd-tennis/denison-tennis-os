@@ -23,6 +23,10 @@ const scheduleFormSource = readFileSync(
   path.join(process.cwd(), "src/features/teamSchedule/components/ScheduleForm.tsx"),
   "utf8",
 );
+const scheduleChromeSource = readFileSync(
+  path.join(process.cwd(), "src/features/teamSchedule/components/scheduleTableChrome.tsx"),
+  "utf8",
+);
 
 describe("team schedule migration", () => {
   it("0038 defines team_schedule_events with enums, RLS, and seed", () => {
@@ -300,5 +304,26 @@ describe("schedule table interactions", () => {
   it("29. inline editing uses shared InlineEditCell with click activation", () => {
     assert.match(scheduleTableSource, /useScheduleInlineEdit/);
     assert.match(scheduleDashboardSource, /onEventUpdated=\{upsert\}/);
+  });
+
+  it("30. date column header and cells are center-aligned", () => {
+    assert.match(scheduleTableSource, /label="Date"\s*\n\s*align="center"/);
+    assert.match(scheduleTableSource, /SCHEDULE_DATE_TD/);
+    assert.match(scheduleTableSource, /SCHEDULE_DATE_CELL/);
+    assert.match(scheduleChromeSource, /SCHEDULE_DATE_TD.*text-center/);
+    assert.match(scheduleChromeSource, /SCHEDULE_DATE_CELL.*inline-block.*text-center/);
+    assert.match(scheduleTableSource, /toggleSort\("startDate"\)/);
+  });
+
+  it("31. table headers use title case without uppercase transform", () => {
+    assert.match(scheduleChromeSource, /SCHEDULE_TABLE_HEADER/);
+    assert.doesNotMatch(scheduleChromeSource, /SCHEDULE_TABLE_HEADER.*uppercase/);
+    assert.doesNotMatch(scheduleTableSource, /uppercase tracking-wide/);
+    assert.match(scheduleTableSource, /titleCase/);
+    assert.match(scheduleTableSource, />Count</);
+    assert.match(scheduleTableSource, /label="ITA Rank"/);
+    assert.match(scheduleTableSource, /label="Opponent \/ Event"/);
+    assert.match(scheduleTableSource, />DH</);
+    assert.match(scheduleTableSource, />Actions</);
   });
 });

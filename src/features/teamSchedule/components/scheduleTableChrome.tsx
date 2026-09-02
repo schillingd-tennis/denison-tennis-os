@@ -16,8 +16,13 @@ export const SCHEDULE_OP_FIELD = {
 /** Primary opponent/event name — semibold hierarchy restored. */
 export const SCHEDULE_OPPONENT_PRIMARY = "truncate text-xs font-semibold text-text-primary";
 
-/** Opponent / Event `<td>` — allow translated logo to extend into cell padding without clipping. */
-export const SCHEDULE_OPPONENT_TD = "align-top overflow-visible py-2 pl-3 pr-3";
+/** Schedule table column header — title case, not uppercase. */
+export const SCHEDULE_TABLE_HEADER = "px-3 py-2 text-[11px] font-semibold tracking-wide text-text-secondary";
+
+/** Date column cell — centered date block under Date header. */
+export const SCHEDULE_DATE_TD = "px-3 py-2 align-top text-center";
+
+export const SCHEDULE_DATE_CELL = "inline-block min-w-[3.5rem] text-center leading-none";
 
 /** Opponent/event cell row — logo vertically centered against text block. */
 export const SCHEDULE_OPPONENT_CELL = "flex min-w-[10rem] items-center gap-2";
@@ -29,6 +34,9 @@ export const SCHEDULE_OPPONENT_CELL = "flex min-w-[10rem] items-center gap-2";
  * translateX moves the painted logo without shifting flex siblings (text).
  */
 export const SCHEDULE_LOGO_OFFSET = "flex shrink-0 items-center -translate-x-[9px]";
+
+/** Opponent / Event `<td>` — allow translated logo to extend into cell padding without clipping. */
+export const SCHEDULE_OPPONENT_TD = "align-top overflow-visible py-2 pl-3 pr-3";
 
 export function ScheduleTableSectionBar({ title, count }: { title: string; count: number }) {
   return (

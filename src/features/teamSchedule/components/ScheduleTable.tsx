@@ -25,7 +25,7 @@ import {
   ScheduleTypeCell,
 } from "./ScheduleInlineCells";
 import ScheduleOpponentCell from "./ScheduleOpponentCell";
-import { SCHEDULE_OPPONENT_TD, ScheduleTableSectionBar } from "./scheduleTableChrome";
+import { SCHEDULE_DATE_CELL, SCHEDULE_DATE_TD, SCHEDULE_OPPONENT_TD, SCHEDULE_TABLE_HEADER, ScheduleTableSectionBar } from "./scheduleTableChrome";
 
 const SORT_STORAGE_KEY = "denison-tennis-os:team-schedule-sort";
 const SORTABLE_COLUMNS = new Set<ScheduleTableColumnId>([
@@ -84,12 +84,10 @@ function handleRowKeyDown(
 function DateCell({ event }: { event: TeamScheduleEvent }) {
   const display = formatScheduleDateDisplay(event.startDate, event.endDate);
   return (
-    <div className="flex min-w-[3.5rem] items-start gap-2">
-      <div className="text-center leading-none">
-        <p className="text-[10px] font-semibold tracking-wide text-text-secondary">{display.month}</p>
-        <p className="mt-0.5 text-sm font-semibold tabular-nums text-text-primary">{display.day}</p>
-        <p className="mt-0.5 text-[9px] font-medium text-text-secondary">{display.weekday}</p>
-      </div>
+    <div className={SCHEDULE_DATE_CELL}>
+      <p className="text-[10px] font-semibold tracking-wide text-text-secondary">{display.month}</p>
+      <p className="mt-0.5 text-sm font-semibold tabular-nums text-text-primary">{display.day}</p>
+      <p className="mt-0.5 text-[9px] font-medium text-text-secondary">{display.weekday}</p>
     </div>
   );
 }
@@ -146,55 +144,49 @@ export default function ScheduleTable({
         <table className="min-w-[1100px] w-full border-collapse text-left">
           <thead>
             <tr className="border-b border-border/70 bg-background/40">
-              <th className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-text-secondary">
-                Date #
-              </th>
+              <th className={SCHEDULE_TABLE_HEADER}>Count</th>
               <SortableColumnHeader
                 label="Date"
+                align="center"
+                titleCase
                 sortDirection={sortDirection("startDate")}
                 onSort={() => toggleSort("startDate")}
-                className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide"
+                className={SCHEDULE_TABLE_HEADER}
               />
               <SortableColumnHeader
                 label="Opponent / Event"
+                titleCase
                 sortDirection={sortDirection("opponent")}
                 onSort={() => toggleSort("opponent")}
-                className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide"
+                className={SCHEDULE_TABLE_HEADER}
               />
               <SortableColumnHeader
                 label="ITA Rank"
+                titleCase
                 sortDirection={sortDirection("itaRank")}
                 onSort={() => toggleSort("itaRank")}
-                className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide"
+                className={SCHEDULE_TABLE_HEADER}
               />
               <SortableColumnHeader
                 label="Site"
+                titleCase
                 sortDirection={sortDirection("site")}
                 onSort={() => toggleSort("site")}
-                className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide"
+                className={SCHEDULE_TABLE_HEADER}
               />
-              <th className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-text-secondary">
-                Time
-              </th>
-              <th className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-text-secondary">
-                Type
-              </th>
+              <th className={SCHEDULE_TABLE_HEADER}>Time</th>
+              <th className={SCHEDULE_TABLE_HEADER}>Type</th>
               <SortableColumnHeader
                 label="Status"
+                titleCase
                 sortDirection={sortDirection("status")}
                 onSort={() => toggleSort("status")}
-                className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide"
+                className={SCHEDULE_TABLE_HEADER}
               />
-              <th className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-text-secondary">
-                DH
-              </th>
-              <th className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-text-secondary">
-                Officials
-              </th>
-              <th className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-text-secondary">
-                Notes
-              </th>
-              <th className="px-3 py-2" aria-label="Actions" />
+              <th className={SCHEDULE_TABLE_HEADER}>DH</th>
+              <th className={SCHEDULE_TABLE_HEADER}>Officials</th>
+              <th className={SCHEDULE_TABLE_HEADER}>Notes</th>
+              <th className={`${SCHEDULE_TABLE_HEADER} text-right`}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -219,7 +211,7 @@ export default function ScheduleTable({
                   <td className="px-3 py-2 align-top">
                     <ScheduleCompDateCell event={event} edit={inlineEdit} />
                   </td>
-                  <td className="px-3 py-2 align-top">
+                  <td className={SCHEDULE_DATE_TD}>
                     <DateCell event={event} />
                   </td>
                   <td className={SCHEDULE_OPPONENT_TD}>
