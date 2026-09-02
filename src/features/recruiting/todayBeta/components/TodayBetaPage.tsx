@@ -20,7 +20,6 @@ import type { ContactOpportunity } from "../contactOpportunityScore";
 import {
   formatMonitoringStatusLabel,
   formatMonitoringTimestamp,
-  formatUtrAgentLastBatchLabel,
 } from "../resultsCheckStatus";
 import { formatMatchSourceLabel } from "../utrMatchSource";
 import { formatTournamentNameDisplay } from "../formatTournamentNameDisplay";
@@ -44,15 +43,24 @@ import type {
   RecruitUpcomingTournament,
   ResultsMonitoringStatus,
   SaveMatchResultsOutcome,
-  TodayBetaActivitySummary,
   TodayBetaPageData,
   TodayBetaPlayerRow,
 } from "../types";
 import MarkTextSentConfirm from "./MarkTextSentConfirm";
+import TodayBetaAgentStatusChip from "./TodayBetaAgentStatusChip";
+import TodayBetaKpiCards from "./TodayBetaKpiCards";
 import UpcomingTournamentForm from "./UpcomingTournamentForm";
-import UtrCaptureInstructions, { buildUtrResultsUrl } from "./UtrCaptureInstructions";
+import UtrCaptureInstructions from "./UtrCaptureInstructions";
 import UtrAutomaticCheckSection, { formatUtrAgentCheckCell } from "./UtrAutomaticCheckSection";
 import UtrProfileForm from "./UtrProfileForm";
+import {
+  TB_BTN_PRIMARY,
+  TB_BTN_SECONDARY,
+  TB_PANEL,
+  TB_PANEL_BODY,
+  TB_SECTION_SUBTITLE,
+  TB_SECTION_TITLE,
+} from "./todayBetaDashboardStyles";
 
 const INPUT_CLASS =
   "w-full rounded-control border border-border bg-surface px-3 py-2 text-sm text-text-primary";
@@ -60,9 +68,9 @@ const INPUT_CLASS =
 const TABLE_HEAD_CLASS = "px-3 py-2 text-left text-xs font-semibold text-text-secondary";
 const TABLE_CELL_CLASS = "px-3 py-2 text-sm text-text-primary align-top";
 
-/** Shared Today Beta bordered section shell + header/content inset. */
-const TODAY_BETA_SECTION_SHELL = "rounded-card border border-border bg-surface";
-const TODAY_BETA_SECTION_PADDING = "px-4 pt-4 pb-3";
+/** Shared Today Beta dashboard section shell. */
+const TODAY_BETA_SECTION_SHELL = TB_PANEL;
+const TODAY_BETA_SECTION_PADDING = TB_PANEL_BODY;
 
 function TodayBetaSection({
   children,
@@ -149,114 +157,43 @@ function formatMatchDate(result: RecruitMatchResult): string {
   );
 }
 
-function ActivitySummarySection({ summary }: { summary: TodayBetaActivitySummary }) {
-  const checkedTodayLabel =
-    summary.recruitsMonitored === 0
-      ? "0 checked today"
-      : `${summary.checkedTodayCount} / ${summary.recruitsMonitored} checked today`;
-
-  return (
-    <TodayBetaSection>
-      <h2 className="text-sm font-semibold text-text-primary">Activity Summary</h2>
-      <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
-        <div>
-          <dt className="text-text-secondary">Rank Board recruits</dt>
-          <dd className="font-semibold text-text-primary">{summary.recruitsMonitored}</dd>
-        </div>
-        <div>
-          <dt className="text-text-secondary">Checked today</dt>
-          <dd className="font-semibold text-text-primary">{checkedTodayLabel}</dd>
-        </div>
-        <div>
-          <dt className="text-text-secondary">New results</dt>
-          <dd className="font-semibold text-text-primary">{summary.newResultsCount}</dd>
-        </div>
-        <div>
-          <dt className="text-text-secondary">Matches stored</dt>
-          <dd className="font-semibold text-text-primary">{summary.matchesStored}</dd>
-        </div>
-        <div>
-          <dt className="text-text-secondary">UTR configured</dt>
-          <dd className="font-semibold text-text-primary">{summary.utrConfiguredCount}</dd>
-        </div>
-        <div className="sm:col-span-2 lg:col-span-3">
-          <dt className="text-text-secondary">Last monitoring activity</dt>
-          <dd className="font-semibold text-text-primary">
-            {summary.lastMonitoringActivityAt
-              ? formatMonitoringTimestamp(summary.lastMonitoringActivityAt)
-              : "Never"}
-          </dd>
-        </div>
-        {summary.utrAgentLastBatch ? (
-          <div className="sm:col-span-2 lg:col-span-4">
-            <dt className="text-text-secondary">UTR agent last run</dt>
-            <dd className="font-semibold text-text-primary">
-              {formatUtrAgentLastBatchLabel(summary.utrAgentLastBatch)}
-            </dd>
-          </div>
-        ) : null}
-      </dl>
-    </TodayBetaSection>
-  );
-}
-
 function NewResultsSection({ results }: { results: TodayBetaPageData["newResults"] }) {
   return (
-    <TodayBetaSection className="border-[var(--module-accent)]/30">
+    <TodayBetaSection className="border-[var(--module-accent)]/20">
       <div className="flex flex-wrap items-center gap-2">
-        <h2 className="text-sm font-semibold text-text-primary">New Results</h2>
-        <span className="rounded-full bg-[var(--module-accent)]/10 px-2 py-0.5 text-xs font-semibold text-[var(--module-accent)]">
-          Newly detected
-        </span>
+        <h2 className={TB_SECTION_TITLE}>New Results</h2>
+        {results.length > 0 ? (
+          <span className="rounded-full bg-[var(--module-accent)]/10 px-2 py-0.5 text-[11px] font-semibold text-[var(--module-accent)]">
+            {results.length} newly detected
+          </span>
+        ) : null}
       </div>
-      <p className="mt-1 text-xs text-text-secondary">
+      <p className={TB_SECTION_SUBTITLE}>
         Results first discovered after baseline was established.
       </p>
       {results.length === 0 ? (
-        <p className="mt-3 text-sm text-text-secondary">No new results since the last update.</p>
+        <p className="mt-3 rounded-control border border-border/60 bg-background/50 px-3 py-2 text-sm text-text-secondary">
+          No new results since the last update.
+        </p>
       ) : (
-        <ul className="mt-3 space-y-3">
+        <ul className="mt-3 space-y-2">
           {results.map((result) => (
             <li
               key={result.id}
-              className="rounded-control border-2 border-[var(--module-accent)]/25 bg-background px-3 py-3"
+              className="rounded-control border border-[var(--module-accent)]/25 bg-[var(--module-accent)]/[0.03] px-3 py-2.5 shadow-sm"
             >
-              <div className="flex flex-wrap items-center gap-2 text-sm">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
                 <span className="font-semibold text-text-primary">{result.recruitName}</span>
                 <span className={resultTone(result.result)}>{resultLabel(result.result)}</span>
-                <span className="rounded-full border border-[var(--module-accent)]/30 px-2 py-0.5 text-xs font-medium text-[var(--module-accent)]">
+                <span className="rounded-full border border-[var(--module-accent)]/30 px-2 py-0.5 text-[11px] font-semibold text-[var(--module-accent)]">
                   NEW
                 </span>
               </div>
-              <dl className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
-                <div>
-                  <dt className="text-text-secondary">Opponent</dt>
-                  <dd className="text-text-primary">{result.opponentName ?? "Unknown"}</dd>
-                </div>
-                <div>
-                  <dt className="text-text-secondary">Opponent TRN ranking</dt>
-                  <dd className="text-text-primary">{formatOpponentRank(result.opponentRanking)}</dd>
-                </div>
-                <div>
-                  <dt className="text-text-secondary">Score</dt>
-                  <dd className="text-text-primary">{result.score ?? "Unknown"}</dd>
-                </div>
-                <div>
-                  <dt className="text-text-secondary">Tournament</dt>
-                  <dd className="text-text-primary">
-                    {formatTournamentNameDisplay(result.tournamentName)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-text-secondary">Round</dt>
-                  <dd className="text-text-primary">{result.round ?? "Unknown"}</dd>
-                </div>
-                <div>
-                  <dt className="text-text-secondary">Match / tournament date</dt>
-                  <dd className="text-text-primary">{result.tournamentDateLabel}</dd>
-                </div>
-              </dl>
-              <p className="mt-2 text-xs text-text-secondary">
+              <p className="mt-1 text-xs text-text-secondary">
+                vs {result.opponentName ?? "Unknown"} · {result.score ?? "—"} ·{" "}
+                {formatTournamentNameDisplay(result.tournamentName)} · {result.tournamentDateLabel}
+              </p>
+              <p className="mt-1 text-[11px] text-text-secondary">
                 First detected {result.firstDetectedAtLabel}
               </p>
             </li>
@@ -268,16 +205,18 @@ function NewResultsSection({ results }: { results: TodayBetaPageData["newResults
 }
 
 const LATEST_RESULT_HEAD_CLASS =
-  "px-3 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wide text-text-secondary";
+  "px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-text-secondary bg-background/80";
 const LATEST_RESULT_CELL_CLASS =
   "px-3 py-1.5 text-sm text-text-primary align-middle whitespace-nowrap";
 
 /** Primary recruit row — subtle tint only (group boundary is a bottom border on the last row). */
-const LATEST_RESULT_PRIMARY_ROW_CLASS = "bg-app-background/60";
+const LATEST_RESULT_PRIMARY_ROW_CLASS =
+  "bg-app-background/70 transition-colors hover:bg-app-background/90";
 /** Toggle row belongs to the recruit above (not a new group). */
 const LATEST_RESULT_TOGGLE_ROW_CLASS = "border-t border-border/40 bg-app-background/40";
 /** Nested historical rows stay subordinate within the group. */
-const LATEST_RESULT_NESTED_ROW_CLASS = "border-t border-border/40 bg-surface";
+const LATEST_RESULT_NESTED_ROW_CLASS =
+  "border-t border-border/40 bg-surface transition-colors hover:bg-background/50";
 /** End-of-recruit-group divider — applied after Show/Hide + nested rows, not before them. */
 const LATEST_RESULT_GROUP_END_ROW_CLASS = "border-b-2 border-border";
 
@@ -497,14 +436,14 @@ function LatestResultsSection({ rows }: { rows: LatestResultRow[] }) {
 
   return (
     <TodayBetaSection>
-      <h2 className="text-sm font-semibold text-text-primary">Latest Results</h2>
-      <p className="mt-1 text-xs text-text-secondary">
-        Recent stored results across monitored recruits, sorted by match date.
+      <h2 className={TB_SECTION_TITLE}>Latest Results</h2>
+      <p className={TB_SECTION_SUBTITLE}>
+        Recent stored results across Rank Board recruits, sorted by match date.
       </p>
-      <div className="mt-3 overflow-x-auto rounded-control border border-border/80">
+      <div className="mt-3 overflow-x-auto rounded-control border border-border/70 shadow-sm">
         <table className="min-w-full border-collapse">
-          <thead className="bg-background">
-            <tr>
+          <thead>
+            <tr className="border-b border-border/70">
               {[
                 "Recruit",
                 "Match Date",
@@ -596,99 +535,90 @@ function ResultBasedContactCard({
   }
 
   return (
-    <li className="rounded-control border border-border/80 bg-background px-3 py-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <p className="text-sm font-semibold text-text-primary">{opportunity.recruitName}</p>
-        {matchResult ? (
-          <span className={resultTone(matchResult.result)}>{resultLabel(matchResult.result)}</span>
-        ) : null}
-      </div>
+    <li className="rounded-control border border-[var(--module-accent)]/15 bg-background px-3 py-2.5 shadow-sm">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm font-semibold text-text-primary">{opportunity.recruitName}</p>
+            {matchResult ? (
+              <span className={resultTone(matchResult.result)}>{resultLabel(matchResult.result)}</span>
+            ) : null}
+          </div>
 
-      {matchResult ? (
-        <div className="mt-2 text-sm text-text-primary">
-          <p>
-            vs {matchResult.opponentName ?? "Unknown opponent"} (
-            {formatOpponentRank(matchResult.opponentRanking)})
-          </p>
-          <p className="text-text-secondary">
-            {[matchResult.score, matchResult.tournamentName, matchResult.round]
-              .filter(Boolean)
-              .join(" · ")}
-          </p>
+          {matchResult ? (
+            <p className="mt-1 text-xs text-text-secondary">
+              vs {matchResult.opponentName ?? "Unknown opponent"} (
+              {formatOpponentRank(matchResult.opponentRanking)}) ·{" "}
+              {[matchResult.score, matchResult.tournamentName, matchResult.round]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          ) : null}
+
+          {opportunity.factors.length > 0 ? (
+            <p className="mt-1 text-xs text-text-primary">
+              <span className="font-medium text-text-secondary">Why: </span>
+              {opportunity.factors.map((factor) => factor.reason).join(" · ")}
+            </p>
+          ) : null}
+
+          {hasCadence ? (
+            <p className="mt-1 text-[11px] text-text-secondary">
+              Also overdue for cadence follow-up (score {opportunity.cadenceScore ?? "—"}).
+            </p>
+          ) : null}
+
+          <div className="mt-2">
+            {opportunity.suggestedText != null ? (
+              <textarea
+                className={`${INPUT_CLASS} min-h-[56px] resize-y text-xs`}
+                value={draftText}
+                onChange={(event) => setDraftText(event.target.value)}
+              />
+            ) : (
+              <p className="text-xs text-text-secondary">No suggested message</p>
+            )}
+          </div>
         </div>
-      ) : null}
 
-      {opportunity.factors.length > 0 ? (
-        <div className="mt-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
-            Why this surfaced
-          </p>
-          <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-text-primary">
-            {opportunity.factors.map((factor) => (
-              <li key={factor.key}>{factor.reason}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {hasCadence ? (
-        <p className="mt-2 text-xs text-text-secondary">
-          Also overdue for relationship follow-up (cadence score {opportunity.cadenceScore ?? "—"}).
-        </p>
-      ) : null}
-
-      <div className="mt-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
-          Suggested Text
-        </p>
-        {opportunity.suggestedText != null ? (
-          <textarea
-            className={`${INPUT_CLASS} mt-2 min-h-[72px] resize-y`}
-            value={draftText}
-            onChange={(event) => setDraftText(event.target.value)}
-          />
-        ) : (
-          <p className="mt-2 text-sm text-text-secondary">No suggested message</p>
-        )}
-      </div>
-
-      <div className="mt-3 flex flex-wrap gap-2">
-        <button
-          type="button"
-          className="inline-flex h-9 items-center rounded-control border border-border px-3 text-sm font-semibold text-text-primary disabled:opacity-50"
-          onClick={() => void handleCopy()}
-          disabled={!draftText.trim()}
-        >
-          {copied ? "Copied" : "Copy Text"}
-        </button>
-        <button
-          type="button"
-          className="inline-flex h-9 items-center rounded-control bg-[var(--module-accent)] px-3 text-sm font-semibold text-white disabled:opacity-50"
-          onClick={handleMarkTextSent}
-          disabled={!draftText.trim() || isPending}
-        >
-          Mark Text Sent
-        </button>
-        <Link
-          href={recruitingPersonPath(opportunity.recruitPersonId)}
-          className="inline-flex h-9 items-center rounded-control border border-border px-3 text-sm font-semibold text-text-primary hover:bg-surface"
-        >
-          View Recruit
-        </Link>
-        {matchResult?.id ? (
+        <div className="flex shrink-0 flex-wrap gap-2 lg:flex-col lg:items-stretch">
           <button
             type="button"
-            className="inline-flex h-9 items-center rounded-control border border-border px-3 text-sm font-semibold text-text-primary disabled:opacity-50"
-            onClick={handleDismissResult}
-            disabled={isPending}
+            className={TB_BTN_SECONDARY}
+            onClick={() => void handleCopy()}
+            disabled={!draftText.trim()}
           >
-            Dismiss
+            {copied ? "Copied" : "Copy Text"}
           </button>
-        ) : null}
+          <button
+            type="button"
+            className={TB_BTN_PRIMARY}
+            onClick={handleMarkTextSent}
+            disabled={!draftText.trim() || isPending}
+          >
+            Mark Text Sent
+          </button>
+          <Link
+            href={recruitingPersonPath(opportunity.recruitPersonId)}
+            className={`${TB_BTN_SECONDARY} justify-center`}
+          >
+            View Recruit
+          </Link>
+          {matchResult?.id ? (
+            <button
+              type="button"
+              className={TB_BTN_SECONDARY}
+              onClick={handleDismissResult}
+              disabled={isPending}
+            >
+              Dismiss
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {actionError ? (
-        <p className="mt-2 rounded-control border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+        <p className="mt-2 rounded-control border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
           {actionError}
         </p>
       ) : null}
@@ -740,23 +670,23 @@ function RelationshipFollowUpRow({
   }
 
   return (
-    <li className="rounded-control border border-border/60 bg-background px-3 py-2">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <li className="rounded-control border border-border/60 bg-background/60 px-3 py-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1 text-sm">
           <p className="font-semibold text-text-primary">{opportunity.recruitName}</p>
-          <p className="text-text-secondary">
+          <p className="text-xs text-text-secondary">
             {formatCadencePriorityLabel(opportunity.recruitPriorityLabel)} · {cadenceReason}
           </p>
           {suggested ? (
-            <p className="mt-1 text-text-primary">
-              Suggested: <span className="text-text-secondary">&ldquo;{suggested}&rdquo;</span>
+            <p className="mt-1 line-clamp-2 text-xs text-text-secondary">
+              Suggested: &ldquo;{suggested}&rdquo;
             </p>
           ) : null}
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex shrink-0 flex-wrap gap-2">
           <button
             type="button"
-            className="inline-flex h-8 items-center rounded-control border border-border px-2 text-xs font-semibold text-text-primary disabled:opacity-50"
+            className={TB_BTN_SECONDARY}
             onClick={() => void handleCopy()}
             disabled={!suggested.trim()}
           >
@@ -764,7 +694,7 @@ function RelationshipFollowUpRow({
           </button>
           <button
             type="button"
-            className="inline-flex h-8 items-center rounded-control bg-[var(--module-accent)] px-2 text-xs font-semibold text-white disabled:opacity-50"
+            className={TB_BTN_PRIMARY}
             disabled={!suggested.trim() || isPending}
             onClick={() =>
               openMarkTextSentConfirm({
@@ -780,7 +710,7 @@ function RelationshipFollowUpRow({
           </button>
           <button
             type="button"
-            className="inline-flex h-8 items-center rounded-control border border-border px-2 text-xs font-semibold text-text-primary disabled:opacity-50"
+            className={TB_BTN_SECONDARY}
             onClick={handleSnooze}
             disabled={isPending}
           >
@@ -795,149 +725,16 @@ function RelationshipFollowUpRow({
   );
 }
 
-function latestStoredResultLabel(
-  player: TodayBetaPlayerRow,
-  latestRows: LatestResultRow[],
-): string {
-  const row = latestRows.find((entry) => entry.recruitPersonId === player.recruitPersonId);
-  const latest = row?.latestResult;
-  if (!latest) return "—";
-  const opponent = latest.opponent.opponentName;
-  const score = latest.result.score ?? "—";
-  return `${opponent} (${score})`;
-}
-
-function UtrQueueActions({
-  player,
-  highlighted,
-  onChecked,
-  onAddUtrProfile,
-  onCaptureHelp,
-  onNext,
-}: {
-  player: TodayBetaPlayerRow;
-  highlighted: boolean;
-  onChecked: () => void;
-  onAddUtrProfile: () => void;
-  onCaptureHelp: () => void;
-  onNext?: () => void;
-}) {
-  const [confirmChecked, setConfirmChecked] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
-  const router = useRouter();
-
-  function handleCheckedNoNew() {
-    if (!player.recruitPersonId) return;
-    setActionError(null);
-    startTransition(async () => {
-      const result = await markRecruitResultsCheckedNoNewAction({
-        recruitPersonId: player.recruitPersonId!,
-        source: "UTR",
-      });
-      if (!result.success) {
-        setActionError(result.error);
-        return;
-      }
-      setConfirmChecked(false);
-      onChecked();
-      router.refresh();
-    });
-  }
-
-  if (player.status !== "Ready") {
-    return <span className="text-text-secondary">—</span>;
-  }
-
-  const resultsUrl = buildUtrResultsUrl(player);
-
-  return (
-    <div
-      className={`flex flex-col gap-2 ${highlighted ? "rounded-control border border-[var(--module-accent)]/40 bg-[var(--module-accent)]/5 p-2" : ""}`}
-    >
-      {!player.utrPlayerId ? (
-        <button
-          type="button"
-          className="inline-flex h-8 w-fit items-center rounded-control border border-border px-2 text-xs font-semibold text-text-primary"
-          onClick={onAddUtrProfile}
-        >
-          Add UTR Profile
-        </button>
-      ) : (
-        <>
-          {resultsUrl ? (
-            <a
-              href={resultsUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex h-8 w-fit items-center rounded-control border border-border px-2 text-xs font-semibold text-[var(--module-accent)] hover:underline"
-            >
-              Open UTR Results
-            </a>
-          ) : null}
-          <button
-            type="button"
-            className="inline-flex h-8 w-fit items-center rounded-control border border-border px-2 text-xs font-semibold text-text-primary"
-            onClick={onCaptureHelp}
-          >
-            Capture UTR Results
-          </button>
-        </>
-      )}
-      {confirmChecked ? (
-        <div className="rounded-control border border-border/80 bg-background p-2">
-          <p className="text-xs text-text-secondary">Mark UTR as reviewed with no new matches?</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <button
-              type="button"
-              className="inline-flex h-7 items-center rounded-control bg-[var(--module-accent)] px-2 text-xs font-semibold text-white disabled:opacity-50"
-              onClick={handleCheckedNoNew}
-              disabled={isPending}
-            >
-              Confirm
-            </button>
-            <button
-              type="button"
-              className="inline-flex h-7 items-center rounded-control border border-border px-2 text-xs font-semibold text-text-primary"
-              onClick={() => setConfirmChecked(false)}
-              disabled={isPending}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      ) : (
-        <button
-          type="button"
-          className="inline-flex h-8 w-fit items-center rounded-control border border-border px-2 text-xs font-semibold text-text-primary disabled:opacity-50"
-          onClick={() => setConfirmChecked(true)}
-          disabled={isPending || !player.utrPlayerId}
-        >
-          Checked — No New Results
-        </button>
-      )}
-      {onNext ? (
-        <button
-          type="button"
-          className="inline-flex h-8 w-fit items-center rounded-control border border-[var(--module-accent)] px-2 text-xs font-semibold text-[var(--module-accent)]"
-          onClick={onNext}
-        >
-          Next Recruit
-        </button>
-      ) : null}
-      {actionError ? <p className="text-xs text-red-700">{actionError}</p> : null}
-    </div>
-  );
-}
-
 function MonitoringPlayerActions({
   player,
   onImport,
   onChecked,
+  onCaptureHelp,
 }: {
   player: TodayBetaPlayerRow;
   onImport: () => void;
   onChecked: () => void;
+  onCaptureHelp?: () => void;
 }) {
   const [confirmChecked, setConfirmChecked] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -982,6 +779,15 @@ function MonitoringPlayerActions({
       >
         Import Results
       </button>
+      {player.utrPlayerId && onCaptureHelp ? (
+        <button
+          type="button"
+          className="inline-flex h-8 w-fit items-center rounded-control border border-border px-2 text-xs font-semibold text-text-primary"
+          onClick={onCaptureHelp}
+        >
+          Capture UTR Results
+        </button>
+      ) : null}
       {confirmChecked ? (
         <div className="rounded-control border border-border/80 bg-background p-2">
           <p className="text-xs text-text-secondary">Mark as reviewed with no new matches?</p>
@@ -1179,7 +985,6 @@ export default function TodayBetaPage({ data }: { data: TodayBetaPageData }) {
   const [workflowMessage, setWorkflowMessage] = useState<string | null>(null);
   const [monitoringFilter, setMonitoringFilter] = useState<MonitoringFilter>("all");
   const [classFilter, setClassFilter] = useState<ClassFilter>("all");
-  const [utrQueueFocusId, setUtrQueueFocusId] = useState<string | null>(null);
   const monitoringSectionRef = useRef<HTMLElement | null>(null);
 
   const latestResultByRecruit = useMemo(() => {
@@ -1198,34 +1003,10 @@ export default function TodayBetaPage({ data }: { data: TodayBetaPageData }) {
     return [...years].sort((a, b) => a - b);
   }, [data.players]);
 
-  const latestResultsByRecruit = useMemo(
-    () => sortLatestResultRows(data.latestResults),
-    [data.latestResults],
-  );
-
   const readyPlayers = useMemo(
     () => data.players.filter((player) => player.status === "Ready"),
     [data.players],
   );
-
-  const nextNeedsCheckPlayer = useMemo(() => {
-    return readyPlayers.find(
-      (player) =>
-        player.monitoringStatus === "NEEDS_CHECK" &&
-        player.recruitPersonId !== utrQueueFocusId,
-    );
-  }, [readyPlayers, utrQueueFocusId]);
-
-  function focusNextNeedsCheck(currentPersonId?: string) {
-    const queue = readyPlayers.filter((player) => player.monitoringStatus === "NEEDS_CHECK");
-    if (queue.length === 0) {
-      setUtrQueueFocusId(null);
-      return;
-    }
-    const currentIndex = queue.findIndex((player) => player.recruitPersonId === currentPersonId);
-    const next = queue[currentIndex + 1] ?? queue[0];
-    setUtrQueueFocusId(next?.recruitPersonId ?? null);
-  }
 
   const resultBasedContacts = useMemo(
     () => data.contactOpportunities.filter((o) => o.opportunityTypes.includes("RESULT")),
@@ -1363,37 +1144,39 @@ export default function TodayBetaPage({ data }: { data: TodayBetaPageData }) {
     <ModulePageShell
       title="Today Beta"
       subtitle="Monitor recent recruit tennis activity, new results, and who deserves contact."
+      actions={<TodayBetaAgentStatusChip />}
     >
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3">
         {workflowMessage ? (
-          <p className="rounded-control border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-900">
+          <p className="rounded-control border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-900 shadow-sm">
             {workflowMessage}
           </p>
         ) : null}
 
-        <ActivitySummarySection summary={data.activitySummary} />
+        <TodayBetaKpiCards summary={data.activitySummary} />
 
         <UtrAutomaticCheckSection
           players={data.players}
+          lastBatchFromPage={data.activitySummary.utrAgentLastBatch}
           onComplete={(message) => handleWorkflowComplete(message)}
           onViewMissingUtr={focusMissingUtrProfiles}
         />
 
-        <NewResultsSection results={data.newResults} />
-
         <LatestResultsSection rows={data.latestResults} />
 
+        <NewResultsSection results={data.newResults} />
+
         <TodayBetaSection>
-          <h2 className="text-sm font-semibold text-text-primary">Result-Based Contact</h2>
-          <p className="mt-1 text-xs text-text-secondary">
+          <h2 className={TB_SECTION_TITLE}>Result-Based Contact</h2>
+          <p className={TB_SECTION_SUBTITLE}>
             Recruits with a new or notable match result worth acting on.
           </p>
           {resultBasedContacts.length === 0 ? (
-            <p className="mt-3 text-sm text-text-secondary">
+            <p className="mt-3 rounded-control border border-border/60 bg-background/50 px-3 py-2 text-sm text-text-secondary">
               No result-driven contact opportunities right now.
             </p>
           ) : (
-            <ul className="mt-3 space-y-3">
+            <ul className="mt-3 space-y-2">
               {resultBasedContacts.map((opportunity) => (
                 <ResultBasedContactCard
                   key={opportunity.recruitPersonId}
@@ -1407,12 +1190,14 @@ export default function TodayBetaPage({ data }: { data: TodayBetaPageData }) {
         </TodayBetaSection>
 
         <TodayBetaSection>
-          <h2 className="text-sm font-semibold text-text-primary">Relationship Follow-Up</h2>
-          <p className="mt-1 text-xs text-text-secondary">
+          <h2 className={TB_SECTION_TITLE}>Relationship Follow-Up</h2>
+          <p className={TB_SECTION_SUBTITLE}>
             Cadence reminders for priority recruits overdue on text or call contact.
           </p>
           {relationshipFollowUp.length === 0 ? (
-            <p className="mt-3 text-sm text-text-secondary">No cadence follow-ups due right now.</p>
+            <p className="mt-3 rounded-control border border-border/60 bg-background/50 px-3 py-2 text-sm text-text-secondary">
+              No cadence follow-ups due right now.
+            </p>
           ) : (
             <ul className="mt-3 space-y-2">
               {relationshipFollowUp.map((opportunity) => (
@@ -1427,100 +1212,15 @@ export default function TodayBetaPage({ data }: { data: TodayBetaPageData }) {
           )}
         </TodayBetaSection>
 
-        <TodayBetaSection>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="text-sm font-semibold text-text-primary">UTR Check Queue</h2>
-              <p className="mt-1 text-xs text-text-secondary">
-                Rank Board recruits with configured UTR profiles. TRN paste import remains
-                available below as fallback.
-              </p>
-            </div>
-            <p className="text-sm font-semibold text-text-primary">
-              {data.activitySummary.checkedTodayCount} / {data.activitySummary.recruitsMonitored}{" "}
-              checked today
-            </p>
-          </div>
-          <div className="mt-3 overflow-x-auto">
-            <table className="min-w-full border-collapse">
-              <thead>
-                <tr className="border-b border-border/70">
-                  {["Recruit", "UTR", "Last Checked", "Latest Stored Result", "Status", "Actions"].map(
-                    (heading) => (
-                      <th key={heading} className={TABLE_HEAD_CLASS}>
-                        {heading}
-                      </th>
-                    ),
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {data.players.map((player) => (
-                  <tr
-                    key={`utr-queue-${player.trnPlayerId}`}
-                    className={`border-t border-border/70 ${player.recruitPersonId && player.recruitPersonId === utrQueueFocusId ? "bg-[var(--module-accent)]/5" : ""}`}
-                  >
-                    <td className={TABLE_CELL_CLASS}>
-                      <p className="font-medium text-text-primary">{player.displayName}</p>
-                    </td>
-                    <td className={TABLE_CELL_CLASS}>
-                      {player.utrPlayerId ? (
-                        <a
-                          href={player.utrProfileUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="font-medium text-[var(--module-accent)] hover:underline"
-                        >
-                          {player.utrPlayerId}
-                        </a>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td className={TABLE_CELL_CLASS}>
-                      {formatMonitoringTimestamp(player.utrLastCheckedAt ?? player.lastCheckedAt)}
-                    </td>
-                    <td className={TABLE_CELL_CLASS}>
-                      {latestStoredResultLabel(player, latestResultsByRecruit)}
-                    </td>
-                    <td className={TABLE_CELL_CLASS}>
-                      <span className={monitoringStatusTone(player.monitoringStatus)}>
-                        {formatMonitoringStatusLabel(player.monitoringStatus)}
-                      </span>
-                    </td>
-                    <td className={TABLE_CELL_CLASS}>
-                      <UtrQueueActions
-                        player={player}
-                        highlighted={player.recruitPersonId === utrQueueFocusId}
-                        onAddUtrProfile={() => openUtrProfileForm(player)}
-                        onCaptureHelp={() => openUtrCaptureHelp(player)}
-                        onChecked={() => {
-                          handleWorkflowComplete("Marked UTR checked — no new results");
-                          focusNextNeedsCheck(player.recruitPersonId);
-                        }}
-                        onNext={
-                          player.recruitPersonId === utrQueueFocusId && nextNeedsCheckPlayer
-                            ? () => setUtrQueueFocusId(nextNeedsCheckPlayer.recruitPersonId ?? null)
-                            : undefined
-                        }
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </TodayBetaSection>
-
         <section
           ref={monitoringSectionRef}
-          className={`${TODAY_BETA_SECTION_SHELL} overflow-x-auto`}
+          className={`${TODAY_BETA_SECTION_SHELL} overflow-x-auto opacity-95`}
         >
           <div className={`${TODAY_BETA_SECTION_PADDING} border-b border-border/70`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h2 className="text-sm font-semibold text-text-primary">Monitoring / Import</h2>
-                <p className="mt-1 text-sm text-text-secondary">
+                <h2 className={TB_SECTION_TITLE}>Monitoring / Import</h2>
+                <p className={TB_SECTION_SUBTITLE}>
                   Rank Board recruits only. TRN paste import and UTR browser-assisted capture.
                 </p>
               </div>
@@ -1698,6 +1398,7 @@ export default function TodayBetaPage({ data }: { data: TodayBetaPageData }) {
                     <MonitoringPlayerActions
                       player={player}
                       onImport={() => openImportDrawer(player)}
+                      onCaptureHelp={() => openUtrCaptureHelp(player)}
                       onChecked={() =>
                         handleWorkflowComplete("Marked checked — no new results")
                       }

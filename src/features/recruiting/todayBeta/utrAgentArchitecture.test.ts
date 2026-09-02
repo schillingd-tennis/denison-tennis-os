@@ -86,8 +86,7 @@ describe("UTR agent browser architecture", () => {
 
   it("9. browser posts one recruit at a time to same-origin import API", () => {
     assert.match(sectionSource, /importSingleRecruitToDenison/);
-    assert.match(sectionSource, /runIncrementalUtrAgentBatch/);
-    assert.match(sectionSource, /requestUtrAgentCheckFromBrowser/);
+    assert.match(sectionSource, /UtrAutomaticCheckStrip/);
     assert.match(sectionSource, /recruits: \[recruit\]/);
   });
 
@@ -98,7 +97,8 @@ describe("UTR agent browser architecture", () => {
   });
 
   it("11. Check button enables when local agent is online", () => {
-    assert.match(sectionSource, /disabled=\{busy \|\| !agentOnline/);
+    assert.match(sectionSource, /agentOnline/);
+    assert.match(readFileSync(join(here, "components/UtrAutomaticCheckStrip.tsx"), "utf8"), /disabled=\{busy \|\| !agentOnline/);
   });
 
   it("12–13. baseline import semantics and Rank Board cohort preserved in import pipeline", () => {

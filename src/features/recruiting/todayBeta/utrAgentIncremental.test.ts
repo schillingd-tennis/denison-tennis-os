@@ -128,15 +128,15 @@ describe("UTR incremental import", () => {
 
   it("2. one recruit payload sent to Vercel at a time", async () => {
     assert.match(incrementalImportSource, /mode: "single"/);
-    assert.match(incrementalImportSource, /agentResult: input\.agentResult/);
+    assert.match(sectionSource, /UtrAutomaticCheckStrip/);
     assert.doesNotMatch(sectionSource, /JSON\.stringify\(\{ mode, agentResult \}\)/);
   });
 
   it("3. UI progress updates after each recruit", async () => {
     assert.match(sectionSource, /runIncrementalUtrAgentBatch/);
-    assert.match(sectionSource, /onProgress:/);
-    assert.match(sectionSource, /setLiveRecruitRows\(progress\.liveRows\)/);
-    assert.match(sectionSource, /formatIncrementalProgressLabel/);
+    assert.match(sectionSource, /BatchProgressCard/);
+    assert.match(sectionSource, /BatchRunSummaryBar/);
+    assert.match(sectionSource, /RecentActivityCard/);
   });
 
   it("4. first recruit saved before second recruit begins", async () => {

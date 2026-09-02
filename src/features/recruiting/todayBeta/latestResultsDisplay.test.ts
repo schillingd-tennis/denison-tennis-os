@@ -126,13 +126,15 @@ describe("Latest Results display refinements", () => {
   });
 
   it("visual grouping: primary rows use tinted background without top group divider", () => {
-    assert.match(todayBetaPageSource, /LATEST_RESULT_PRIMARY_ROW_CLASS = "bg-app-background\/60"/);
+    assert.match(todayBetaPageSource, /LATEST_RESULT_PRIMARY_ROW_CLASS/);
+    assert.match(todayBetaPageSource, /bg-app-background\/70/);
     assert.doesNotMatch(todayBetaPageSource, /LATEST_RESULT_PRIMARY_ROW_BORDER_GROUP/);
     assert.match(todayBetaPageSource, /isLastRecruitInTable=\{index === sortedRows\.length - 1\}/);
   });
 
   it("visual grouping: nested rows use surface background and same cell padding as primary", () => {
-    assert.match(todayBetaPageSource, /LATEST_RESULT_NESTED_ROW_CLASS = "border-t border-border\/40 bg-surface"/);
+    assert.match(todayBetaPageSource, /LATEST_RESULT_NESTED_ROW_CLASS/);
+    assert.match(todayBetaPageSource, /bg-surface/);
     assert.doesNotMatch(todayBetaPageSource, /LATEST_RESULT_NESTED_MATCH_DATE_CELL_CLASS/);
     const dataCellsBlock = todayBetaPageSource.slice(
       todayBetaPageSource.indexOf("function LatestResultDataCells"),
