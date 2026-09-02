@@ -1,5 +1,7 @@
 "use client";
 
+import { DENISON_BRAND_LOGO_SRC } from "@/features/teamSchedule/schoolIdentity";
+
 import Navigation from "./Navigation";
 import { primaryNavItems, settingsNavItem } from "./nav-items";
 
@@ -7,9 +9,14 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="flex h-full w-[var(--sidebar-width)] flex-col bg-sidebar">
       <div className="flex shrink-0 items-center gap-3 px-6 pt-9 pb-7">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control bg-denison-red text-base font-semibold text-surface">
-          D
-        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element -- local brand asset from public/school-logos */}
+        <img
+          src={DENISON_BRAND_LOGO_SRC}
+          alt="Denison"
+          width={45}
+          height={45}
+          className="h-[2.8125rem] w-auto max-h-[2.8125rem] max-w-[3.4375rem] shrink-0 object-contain"
+        />
         <div>
           <p className="text-[15px] font-semibold leading-tight tracking-wide text-surface">
             DENISON

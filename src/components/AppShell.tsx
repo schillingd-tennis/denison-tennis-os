@@ -17,7 +17,7 @@ function moduleForPath(pathname: string) {
   if (pathname.startsWith(PLAYERS_COACHES_ROUTE)) return "team";
   if (pathname.startsWith("/team")) return "team";
   if (pathname.startsWith("/recruiting")) return "recruiting";
-  if (pathname.startsWith("/operations")) return "operations";
+  if (pathname.startsWith("/team-operations") || pathname.startsWith("/operations")) return "operations";
   if (pathname.startsWith("/fundraising")) return "fundraising";
   if (pathname.startsWith("/research")) return "research";
   if (pathname.startsWith("/knowledge")) return "knowledge";

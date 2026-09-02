@@ -18,6 +18,8 @@ import {
   RECRUITING_INTERACTIONS_ROUTE,
   RECRUITING_LOG_ROUTE,
   RECRUITING_TODAY_BETA_ROUTE,
+  TEAM_OPERATIONS_ROUTE,
+  TEAM_OPERATIONS_SCHEDULE_ROUTE,
   TEAM_ROUTE,
 } from "@/lib/module-routes";
 
@@ -39,7 +41,9 @@ export type NavItem = {
 export const primaryNavItems: NavItem[] = [
   { label: "Home", href: "/", icon: Home },
   { label: "Team", href: PLAYERS_COACHES_ROUTE, icon: Users },
-  { label: "Team Operations", href: "/operations", icon: ClipboardList },
+  { label: "Team Operations", href: TEAM_OPERATIONS_ROUTE, icon: ClipboardList, children: [
+      { label: "Schedule", href: TEAM_OPERATIONS_SCHEDULE_ROUTE },
+    ] },
   {
     label: "Recruiting",
     href: RECRUITING_ROUTE,
@@ -120,7 +124,10 @@ export function getPageTitle(pathname: string): string {
   if (pathname === TEAM_ROUTE || pathname.startsWith(`${TEAM_ROUTE}/`)) {
     return "Team";
   }
-  if (pathname.startsWith("/operations")) {
+  if (pathname === TEAM_OPERATIONS_SCHEDULE_ROUTE || pathname.startsWith(`${TEAM_OPERATIONS_SCHEDULE_ROUTE}/`)) {
+    return "Schedule";
+  }
+  if (pathname.startsWith("/team-operations") || pathname.startsWith("/operations")) {
     return "Team Operations";
   }
   if (pathname.startsWith("/fundraising")) {

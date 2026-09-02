@@ -1,10 +1,7 @@
-import PagePlaceholder from "@/components/PagePlaceholder";
+import { redirect } from "next/navigation";
 
-export default function OperationsPage() {
-  return (
-    <PagePlaceholder
-      title="Team Operations"
-      description="Coordinate schedules, travel, and day-to-day logistics."
-    />
-  );
+import { TEAM_OPERATIONS_ROUTE } from "@/lib/module-routes";
+
+export default function OperationsLegacyPage() {
+  redirect(TEAM_OPERATIONS_ROUTE);
 }
