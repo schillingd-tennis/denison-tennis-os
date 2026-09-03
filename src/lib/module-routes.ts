@@ -21,6 +21,9 @@ export const TEAM_OPERATIONS_ROUTE = "/team-operations";
 /** Team Operations competition schedule. */
 export const TEAM_OPERATIONS_SCHEDULE_ROUTE = "/team-operations/schedule";
 
+/** Team Operations intra-squad singles results. */
+export const TEAM_OPERATIONS_INTRA_SQUAD_ROUTE = "/team-operations/intra-squad";
+
 /** Legacy Team overview shell (no longer in primary nav). */
 export const TEAM_ROUTE = "/team";
 
@@ -37,6 +40,7 @@ export const TOP_LEVEL_MODULE_PATHS = [
   RECRUITING_TODAY_BETA_ROUTE,
   TEAM_OPERATIONS_ROUTE,
   TEAM_OPERATIONS_SCHEDULE_ROUTE,
+  TEAM_OPERATIONS_INTRA_SQUAD_ROUTE,
   "/operations",
   "/fundraising",
   "/research",
