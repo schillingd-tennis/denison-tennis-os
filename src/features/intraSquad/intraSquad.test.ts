@@ -701,7 +701,9 @@ describe("intra-squad add match and delete", () => {
     assert.equal(after.activePlayers, 2);
     assert.equal(after.avgMatchWeight, 1);
     assert.equal(after.lastMatch?.id, "new");
-    assert.match(workspaceSource, /onSaved=\{upsert\}/);
+    assert.match(workspaceSource, /onSaved=\{commitSavedMatch\}/);
+    assert.match(workspaceSource, /rebuildIntraSquadDerivedState/);
+    assert.match(workspaceSource, /router\.refresh\(\)/);
   });
 
   it("7. successful save clears and resets the form", () => {

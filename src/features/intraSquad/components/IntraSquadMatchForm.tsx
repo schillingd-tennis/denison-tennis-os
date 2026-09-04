@@ -4,6 +4,8 @@ import { useState, type FormEvent } from "react";
 
 import { saveIntraSquadMatchAction } from "../actions";
 import { playedAtForMatchForm } from "../dates";
+import { scoreImpliesMatchStatus } from "../normalizeEditedMatch";
+import { parseScoreSets } from "../parseScore";
 import {
   INTRA_SQUAD_WEIGHTS,
   MATCH_STATUSES,
@@ -17,6 +19,17 @@ import { rosterPlayerFullName } from "../roster";
 const control =
   "mt-1 h-9 w-full rounded-control border border-border bg-surface px-2.5 text-sm text-text-primary";
 const labelClass = "block text-xs font-semibold text-text-secondary";
+
+function syncStatusFromScore(scoreText: string, current: MatchStatus): MatchStatus {
+  const parsed = parseScoreSets(scoreText, { allowPartialSets: true });
+  if ("error" in parsed) return current;
+  const implied = scoreImpliesMatchStatus(parsed.sets);
+  if (implied === "completed" || implied === "unfinished") return implied;
+  // One finished set: prefer Intra Squad one-set completed while typing.
+  // Coach can still flip Status to Unfinished explicitly before save.
+  if (implied === "ambiguous") return "completed";
+  return current;
+}
 
 export default function IntraSquadMatchForm({
   match,
@@ -41,11 +54,17 @@ export default function IntraSquadMatchForm({
     setSaving(true);
     setError(null);
     const form = new FormData(event.currentTarget);
-    const nextStatus = String(form.get("status") || "completed") as MatchStatus;
+    const scoreText = String(form.get("scoreText") || "");
+    const statusHint = syncStatusFromScore(
+      scoreText,
+      String(form.get("status") || status) as MatchStatus,
+    );
+    setStatus(statusHint);
     const primaryId = String(form.get("primaryPlayerId") || "");
     const opponentId = String(form.get("opponentPlayerId") || "");
+    // Server reclassifies from score; send players as primary/opponent under the synced hint.
     const input: Partial<IntraSquadMatchInput> =
-      nextStatus === "unfinished"
+      statusHint === "unfinished"
         ? {
             playedAt: String(form.get("playedAt") || ""),
             status: "unfinished",
@@ -53,7 +72,7 @@ export default function IntraSquadMatchForm({
             loserPlayerId: null,
             leaderPlayerId: primaryId,
             trailingPlayerId: opponentId,
-            scoreText: String(form.get("scoreText") || ""),
+            scoreText,
             weight: Number(form.get("weight") || 1) as IntraSquadMatchInput["weight"],
             sourceText: match?.sourceText ?? null,
           }
@@ -64,7 +83,7 @@ export default function IntraSquadMatchForm({
             loserPlayerId: opponentId,
             leaderPlayerId: null,
             trailingPlayerId: null,
-            scoreText: String(form.get("scoreText") || ""),
+            scoreText,
             weight: Number(form.get("weight") || 1) as IntraSquadMatchInput["weight"],
             sourceText: match?.sourceText ?? null,
           };
@@ -138,6 +157,12 @@ export default function IntraSquadMatchForm({
           defaultValue={match?.scoreText ?? ""}
           placeholder={unfinished ? "6-4, 3-2" : "6-1, 6-1"}
           required
+          onChange={(event) => {
+            setStatus((current) => syncStatusFromScore(event.target.value, current));
+          }}
+          onBlur={(event) => {
+            setStatus((current) => syncStatusFromScore(event.target.value, current));
+          }}
         />
       </label>
       <label className={labelClass}>

@@ -480,8 +480,8 @@ describe("intra-squad Elo engine", () => {
     const weighted = computeProvisionalRankings(matches, records, roster);
     assert.equal(weighted[0]!.playerId, "balraj");
     assert.equal(weighted[0]!.weightedNet, 3);
-    assert.match(workspaceSource, /computeProvisionalRankings/);
-    assert.match(workspaceSource, /topProvisionalRankings/);
+    assert.match(workspaceSource, /rebuildIntraSquadDerivedState/);
+    assert.match(workspaceSource, /applyCanonicalMatchAndRebuild/);
     assert.match(howSource, /Weighted Points/);
     assert.match(howSource, /Elo:/);
     assert.match(trendSource, /Elo Rating Trend/);

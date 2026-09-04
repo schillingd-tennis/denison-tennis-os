@@ -1,5 +1,9 @@
 import { isIsoCalendarDate } from "./dates";
-import { parseScoreSets } from "./parseScore";
+import {
+  assertCanonicalMatchCoherent,
+  deriveCanonicalMatchResult,
+} from "./normalizeEditedMatch";
+import { formatScoreSets } from "./parseScore";
 import {
   INTRA_SQUAD_WEIGHTS,
   MATCH_STATUSES,
@@ -103,48 +107,48 @@ export function normalizeIntraSquadInput(
 
   const statusRaw = String(input.status ?? "completed").trim();
   if (!isMatchStatus(statusRaw)) return { error: "Status must be completed or unfinished." };
-  const status = statusRaw;
+  const statusHint = statusRaw;
 
   const winnerPlayerId = nullableId(input.winnerPlayerId);
   const loserPlayerId = nullableId(input.loserPlayerId);
   const leaderPlayerId = nullableId(input.leaderPlayerId);
   const trailingPlayerId = nullableId(input.trailingPlayerId);
 
-  if (status === "unfinished") {
-    if (!leaderPlayerId || !trailingPlayerId) {
+  const primaryPlayerId =
+    statusHint === "unfinished" ? leaderPlayerId ?? winnerPlayerId : winnerPlayerId ?? leaderPlayerId;
+  const opponentPlayerId =
+    statusHint === "unfinished" ? trailingPlayerId ?? loserPlayerId : loserPlayerId ?? trailingPlayerId;
+
+  if (statusHint === "unfinished") {
+    if (!primaryPlayerId || !opponentPlayerId) {
       return { error: "Select a leader and a trailing player." };
     }
-    if (leaderPlayerId === trailingPlayerId) {
-      return { error: "Leader and trailing player must be different players." };
-    }
-  } else {
-    if (!winnerPlayerId || !loserPlayerId) return { error: "Select a winner and a loser." };
-    if (winnerPlayerId === loserPlayerId) return { error: "Winner and loser must be different players." };
+  } else if (!primaryPlayerId || !opponentPlayerId) {
+    return { error: "Select a winner and a loser." };
   }
-
-  const parsedScore = parseScoreSets(String(input.scoreText ?? ""), {
-    allowPartialSets: status === "unfinished",
-  });
-  if ("error" in parsedScore) return parsedScore;
 
   const weight = Number(input.weight ?? 1);
   if (!isIntraSquadWeight(weight)) return { error: "Weight must be 1, 2, or 3." };
 
   const sourceText = input.sourceText?.trim() ? input.sourceText.trim() : null;
-  const scoreSets = input.scoreSets && input.scoreSets.length > 0 ? input.scoreSets : parsedScore.sets;
+  const scoreText =
+    String(input.scoreText ?? "").trim() ||
+    (input.scoreSets && input.scoreSets.length > 0 ? formatScoreSets(input.scoreSets) : "");
 
-  return {
-    input: {
-      playedAt,
-      status,
-      winnerPlayerId: status === "completed" ? winnerPlayerId : null,
-      loserPlayerId: status === "completed" ? loserPlayerId : null,
-      leaderPlayerId: status === "unfinished" ? leaderPlayerId : null,
-      trailingPlayerId: status === "unfinished" ? trailingPlayerId : null,
-      scoreText: parsedScore.scoreText,
-      scoreSets,
-      weight,
-      sourceText,
-    },
-  };
+  // Score drives status/roles — do not trust a stale completed/unfinished hint alone.
+  const derived = deriveCanonicalMatchResult({
+    playedAt,
+    primaryPlayerId: primaryPlayerId!,
+    opponentPlayerId: opponentPlayerId!,
+    scoreText,
+    weight,
+    sourceText,
+    statusHint,
+  });
+  if ("error" in derived) return derived;
+
+  const coherent = assertCanonicalMatchCoherent(derived.input);
+  if ("error" in coherent) return coherent;
+
+  return derived;
 }

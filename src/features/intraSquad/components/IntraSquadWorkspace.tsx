@@ -1,21 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import ModulePageShell from "@/components/ModulePageShell";
 import { useDrawerManager } from "@/components/workspace-drawer";
 import { TEAM_OPERATIONS_ROUTE } from "@/lib/module-routes";
 
-import { intraSquadTabHref, sortMatchesNewestFirst } from "../display";
-import { computeEloRankings, rebuildEloFromMatches } from "../elo";
+import { intraSquadTabHref } from "../display";
+import { playerNameFor } from "../records";
 import {
-  computeMatchValueRankings,
-  computeMatchValueStandings,
-} from "../matchValue";
-import { computeProvisionalRankings, topProvisionalRankings } from "../rankings";
-import { computePlayerRecords, playerNameFor } from "../records";
+  applyCanonicalMatchAndRebuild,
+  rebuildIntraSquadDerivedState,
+  removeCanonicalMatchAndRebuild,
+} from "../rebuildDerivedState";
 import type { IntraSquadMatch, IntraSquadTab, MatchStatus, RosterPlayer } from "../types";
 import EloRankingsTable from "./EloRankingsTable";
 import EloRatingTrendCard from "./EloRatingTrendCard";
@@ -46,60 +46,99 @@ export default function IntraSquadWorkspace({
   tab: IntraSquadTab;
   loadError?: string | null;
 }) {
-  const { openDrawer, closeDrawer, replaceDrawer } = useDrawerManager();
+  const router = useRouter();
+  const { openDrawer, closeDrawer, replaceDrawer, activeDrawer } = useDrawerManager();
   const [matches, setMatches] = useState(initialMatches);
   const [serverMatches, setServerMatches] = useState(initialMatches);
   const [logStatusFilter, setLogStatusFilter] = useState<"all" | MatchStatus>("all");
+  const playerDetailFocusRef = useRef<{
+    playerId: string;
+    context: IntraSquadPlayerDetailContext;
+  } | null>(null);
 
   if (initialMatches !== serverMatches) {
     setServerMatches(initialMatches);
     setMatches(initialMatches);
   }
 
-  const ordered = useMemo(() => sortMatchesNewestFirst(matches), [matches]);
+  const derived = useMemo(() => rebuildIntraSquadDerivedState(matches, roster), [matches, roster]);
+  const {
+    orderedMatches: ordered,
+    records,
+    rankings,
+    top5,
+    elo: eloRebuild,
+    eloRankings,
+    matchValueByPlayerId,
+    matchValueRankings,
+  } = derived;
   const logMatches = useMemo(
     () => (logStatusFilter === "all" ? ordered : ordered.filter((row) => row.status === logStatusFilter)),
     [ordered, logStatusFilter],
   );
-  const records = useMemo(() => computePlayerRecords(ordered), [ordered]);
-  const rankings = useMemo(
-    () => computeProvisionalRankings(ordered, records, roster),
-    [ordered, records, roster],
-  );
-  const top5 = useMemo(
-    () => topProvisionalRankings(ordered, records, roster, 5),
-    [ordered, records, roster],
-  );
-  const eloRebuild = useMemo(() => rebuildEloFromMatches(matches), [matches]);
-  const eloRankings = useMemo(
-    () => computeEloRankings(matches, records, roster),
-    [matches, records, roster],
-  );
-  const matchValueStandings = useMemo(() => computeMatchValueStandings(matches), [matches]);
-  const matchValueByPlayerId = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const [playerId, standing] of matchValueStandings) {
-      map.set(playerId, standing.totalMatchValue);
-    }
-    return map;
-  }, [matchValueStandings]);
-  const matchValueRankings = useMemo(
-    () => computeMatchValueRankings(matches, roster),
-    [matches, roster],
-  );
 
-  function upsert(saved: IntraSquadMatch) {
-    setMatches((current) => {
-      const exists = current.some((row) => row.id === saved.id);
-      return exists ? current.map((row) => (row.id === saved.id ? saved : row)) : [saved, ...current];
+  function refreshOpenPlayerDetail(
+    nextMatches: readonly IntraSquadMatch[],
+    focus = playerDetailFocusRef.current,
+  ) {
+    if (!focus) return;
+    if (!activeDrawer?.id.startsWith(`intra-squad-player-${focus.playerId}-`)) return;
+
+    const nextDerived = rebuildIntraSquadDerivedState(nextMatches, roster);
+    const record = nextDerived.records.find((row) => row.playerId === focus.playerId) ?? null;
+    const rankingRow = nextDerived.rankings.find((row) => row.playerId === focus.playerId) ?? null;
+    const matchValueRow =
+      nextDerived.matchValueRankings.find((row) => row.playerId === focus.playerId) ?? null;
+    const eloRow = nextDerived.eloRankings.find((row) => row.playerId === focus.playerId) ?? null;
+
+    replaceDrawer({
+      id: `intra-squad-player-${focus.playerId}-${focus.context}`,
+      title: playerNameFor(focus.playerId, roster),
+      subtitle: playerDetailSubtitle(focus.context),
+      hideFooter: true,
+      onClose: () => {
+        playerDetailFocusRef.current = null;
+      },
+      content: (
+        <IntraSquadPlayerDetail
+          playerId={focus.playerId}
+          context={focus.context}
+          matches={nextDerived.orderedMatches}
+          roster={roster}
+          record={record}
+          rankingRow={rankingRow}
+          matchValueRow={matchValueRow}
+          eloRow={eloRow}
+        />
+      ),
     });
   }
 
-  function remove(id: string) {
-    setMatches((current) => current.filter((row) => row.id !== id));
+  /** After a successful canonical persist: replace history, rebuild all derived surfaces, refresh RSC. */
+  function commitSavedMatch(saved: IntraSquadMatch) {
+    setMatches((current) => {
+      const { matches: next } = applyCanonicalMatchAndRebuild(current, saved, roster);
+      queueMicrotask(() => {
+        refreshOpenPlayerDetail(next);
+        router.refresh();
+      });
+      return next;
+    });
+  }
+
+  function commitDeletedMatch(id: string) {
+    setMatches((current) => {
+      const { matches: next } = removeCanonicalMatchAndRebuild(current, id, roster);
+      queueMicrotask(() => {
+        refreshOpenPlayerDetail(next);
+        router.refresh();
+      });
+      return next;
+    });
   }
 
   function openDelete(match: IntraSquadMatch) {
+    playerDetailFocusRef.current = null;
     replaceDrawer({
       id: `intra-squad-delete-${match.id}`,
       title: "Delete Match",
@@ -111,7 +150,7 @@ export default function IntraSquadWorkspace({
           roster={roster}
           onCancelled={closeDrawer}
           onDeleted={(id) => {
-            remove(id);
+            commitDeletedMatch(id);
             closeDrawer();
           }}
         />
@@ -120,6 +159,7 @@ export default function IntraSquadWorkspace({
   }
 
   function openForm(match?: IntraSquadMatch) {
+    playerDetailFocusRef.current = null;
     openDrawer({
       id: `intra-squad-form-${match?.id ?? "new"}`,
       title: match ? "Edit Match" : "Add Match",
@@ -131,7 +171,7 @@ export default function IntraSquadWorkspace({
           roster={roster}
           onCancel={closeDrawer}
           onSaved={(saved) => {
-            upsert(saved);
+            commitSavedMatch(saved);
             closeDrawer();
           }}
           onRequestDelete={match ? () => openDelete(match) : undefined}
@@ -146,11 +186,15 @@ export default function IntraSquadWorkspace({
     const matchValueRow = matchValueRankings.find((row) => row.playerId === playerId) ?? null;
     const eloRow = eloRankings.find((row) => row.playerId === playerId) ?? null;
 
+    playerDetailFocusRef.current = { playerId, context };
     openDrawer({
       id: `intra-squad-player-${playerId}-${context}`,
       title: playerNameFor(playerId, roster),
       subtitle: playerDetailSubtitle(context),
       hideFooter: true,
+      onClose: () => {
+        playerDetailFocusRef.current = null;
+      },
       content: (
         <IntraSquadPlayerDetail
           playerId={playerId}
@@ -199,7 +243,7 @@ export default function IntraSquadWorkspace({
         {tab === "dashboard" ? (
           <div data-intra-squad-dashboard="" className={styles.dashboard}>
             <div data-intra-squad-quick-entry="" className={styles.quick}>
-              <QuickMatchEntry roster={roster} onSaved={upsert} />
+              <QuickMatchEntry roster={roster} onSaved={commitSavedMatch} />
             </div>
             <div data-intra-squad-rankings="" className={styles.rankings}>
               <LiveRankingsPreview
