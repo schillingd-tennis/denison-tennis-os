@@ -20,6 +20,7 @@ import {
   RECRUITING_TODAY_BETA_ROUTE,
   TEAM_OPERATIONS_ROUTE,
   TEAM_OPERATIONS_INTRA_SQUAD_ROUTE,
+  TEAM_OPERATIONS_PRACTICE_ROUTE,
   TEAM_OPERATIONS_SCHEDULE_ROUTE,
   TEAM_ROUTE,
 } from "@/lib/module-routes";
@@ -44,6 +45,7 @@ export const primaryNavItems: NavItem[] = [
   { label: "Team", href: PLAYERS_COACHES_ROUTE, icon: Users },
   { label: "Team Operations", href: TEAM_OPERATIONS_ROUTE, icon: ClipboardList, children: [
       { label: "Schedule", href: TEAM_OPERATIONS_SCHEDULE_ROUTE },
+      { label: "Practice", href: TEAM_OPERATIONS_PRACTICE_ROUTE },
       { label: "Intra Squad", href: TEAM_OPERATIONS_INTRA_SQUAD_ROUTE },
     ] },
   {
@@ -131,6 +133,9 @@ export function getPageTitle(pathname: string): string {
   }
   if (pathname === TEAM_OPERATIONS_INTRA_SQUAD_ROUTE || pathname.startsWith(`${TEAM_OPERATIONS_INTRA_SQUAD_ROUTE}/`)) {
     return "Intra Squad";
+  }
+  if (pathname === TEAM_OPERATIONS_PRACTICE_ROUTE || pathname.startsWith(`${TEAM_OPERATIONS_PRACTICE_ROUTE}/`)) {
+    return "Practice";
   }
   if (pathname.startsWith("/team-operations") || pathname.startsWith("/operations")) {
     return "Team Operations";

@@ -24,6 +24,9 @@ export const TEAM_OPERATIONS_SCHEDULE_ROUTE = "/team-operations/schedule";
 /** Team Operations intra-squad singles results. */
 export const TEAM_OPERATIONS_INTRA_SQUAD_ROUTE = "/team-operations/intra-squad";
 
+/** Team Operations practice planning and drill library. */
+export const TEAM_OPERATIONS_PRACTICE_ROUTE = "/team-operations/practice";
+
 /** Legacy Team overview shell (no longer in primary nav). */
 export const TEAM_ROUTE = "/team";
 
@@ -41,6 +44,7 @@ export const TOP_LEVEL_MODULE_PATHS = [
   TEAM_OPERATIONS_ROUTE,
   TEAM_OPERATIONS_SCHEDULE_ROUTE,
   TEAM_OPERATIONS_INTRA_SQUAD_ROUTE,
+  TEAM_OPERATIONS_PRACTICE_ROUTE,
   "/operations",
   "/fundraising",
   "/research",

@@ -132,9 +132,10 @@ test("/recruiting/log is the last Recruiting submenu item", () => {
 const teamOperations = primaryNavItems.find((item) => item.label === "Team Operations");
 if (!teamOperations) throw new Error("expected Team Operations nav item");
 
-test("Intra Squad sits below Schedule in Team Operations", () => {
+test("Practice sits between Schedule and Intra Squad in Team Operations", () => {
   const labels = teamOperations.children?.map((item) => item.label) ?? [];
-  assert.deepEqual(labels, ["Schedule", "Intra Squad"]);
+  assert.deepEqual(labels, ["Schedule", "Practice", "Intra Squad"]);
+  assert.equal(isNavChildActive("/team-operations/practice", { label: "Practice", href: "/team-operations/practice" }), true);
   assert.equal(isNavChildActive("/team-operations/intra-squad", { label: "Intra Squad", href: "/team-operations/intra-squad" }), true);
   assert.equal(isNavChildActive("/team-operations/schedule", { label: "Schedule", href: "/team-operations/schedule" }), true);
   const state = getNestedNavState("/team-operations/intra-squad", teamOperations);
