@@ -23,6 +23,8 @@ import {
   TEAM_OPERATIONS_PRACTICE_ROUTE,
   TEAM_OPERATIONS_SCHEDULE_ROUTE,
   TEAM_ROUTE,
+  KNOWLEDGE_ROUTE,
+  KNOWLEDGE_HOTELS_ROUTE,
 } from "@/lib/module-routes";
 
 export type NavChildItem = {
@@ -55,7 +57,7 @@ export const primaryNavItems: NavItem[] = [
     children: [
       { label: "Today Beta", href: RECRUITING_TODAY_BETA_ROUTE },
       { label: "Dashboard", href: RECRUITING_ROUTE, exact: true },
-      { label: "Recruit List", href: RECRUITING_LIST_ROUTE },
+      { label: "Recruits", href: RECRUITING_LIST_ROUTE },
       { label: "Tournaments", href: RECRUITING_TOURNAMENTS_ROUTE },
       { label: "Interactions", href: RECRUITING_INTERACTIONS_ROUTE },
       { label: "Log", href: RECRUITING_LOG_ROUTE },
@@ -63,7 +65,9 @@ export const primaryNavItems: NavItem[] = [
   },
   { label: "Fundraising", href: "/fundraising", icon: HandCoins },
   { label: "Research Lab", href: "/research", icon: FlaskConical },
-  { label: "Knowledge", href: "/knowledge", icon: BookOpen },
+  { label: "Resources", href: KNOWLEDGE_ROUTE, icon: BookOpen, children: [
+      { label: "Hotels", href: KNOWLEDGE_HOTELS_ROUTE },
+    ] },
 ];
 
 export const settingsNavItem: NavItem = {
@@ -111,7 +115,7 @@ export function getPageTitle(pathname: string): string {
     return "Tournaments";
   }
   if (pathname === RECRUITING_LIST_ROUTE || pathname.startsWith(`${RECRUITING_LIST_ROUTE}/`)) {
-    return "Recruit List";
+    return "Recruits";
   }
   if (pathname === RECRUITING_TODAY_BETA_ROUTE || pathname.startsWith(`${RECRUITING_TODAY_BETA_ROUTE}/`)) {
     return "Today Beta";
@@ -142,6 +146,9 @@ export function getPageTitle(pathname: string): string {
   }
   if (pathname.startsWith("/fundraising")) {
     return "Fundraising";
+  }
+  if (pathname === KNOWLEDGE_HOTELS_ROUTE || pathname.startsWith(`${KNOWLEDGE_HOTELS_ROUTE}/`)) {
+    return "Hotels";
   }
   return allNavItems.find((item) => item.href === pathname)?.label ?? "Denison Tennis OS";
 }

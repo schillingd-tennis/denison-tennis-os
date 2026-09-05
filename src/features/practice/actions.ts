@@ -21,15 +21,19 @@ export async function deletePracticeDayAction(id: string) {
   return { success: true } as const;
 }
 
+function parseDrillTags(formData: FormData) {
+  return String(formData.get("tags") ?? "")
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+}
+
 export async function updatePracticeDrillAction(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const name = String(formData.get("name") ?? "").trim();
   if (!id || !name) return { success: false, message: "A drill name is required." } as const;
 
-  const tags = String(formData.get("tags") ?? "")
-    .split(",")
-    .map((tag) => tag.trim())
-    .filter(Boolean);
+  const tags = parseDrillTags(formData);
   const client = await createSupabaseServerClient();
   const { error } = await client.from("practice_drills").update({
     name,
@@ -41,6 +45,33 @@ export async function updatePracticeDrillAction(formData: FormData) {
     notes: String(formData.get("notes") ?? "").trim(),
     updated_at: new Date().toISOString(),
   }).eq("id", id);
+  if (error) return { success: false, message: error.message } as const;
+  revalidatePath("/team-operations/practice");
+  return { success: true } as const;
+}
+
+export async function createPracticeDrillAction(formData: FormData) {
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) return { success: false, message: "A drill name is required." } as const;
+
+  const tags = parseDrillTags(formData);
+  const description = String(formData.get("description") ?? "").trim();
+  const category = String(formData.get("category") ?? "").trim();
+  const notes = String(formData.get("notes") ?? "").trim();
+  const frequency = String(formData.get("frequency") ?? "").trim();
+  const sourceTags = tags.join(",");
+  const importKey = `custom:${crypto.randomUUID()}`;
+  const client = await createSupabaseServerClient();
+  const { error } = await client.from("practice_drills").insert({
+    import_key: importKey,
+    name,
+    description,
+    category,
+    source_tags: sourceTags,
+    tags,
+    frequency,
+    notes,
+  });
   if (error) return { success: false, message: error.message } as const;
   revalidatePath("/team-operations/practice");
   return { success: true } as const;

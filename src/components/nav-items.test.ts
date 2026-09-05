@@ -12,7 +12,7 @@ import { getNestedNavState } from "./nestedNavState";
 
 const todayBeta: NavChildItem = { label: "Today Beta", href: "/recruiting/today-beta" };
 const dashboard: NavChildItem = { label: "Dashboard", href: "/recruiting", exact: true };
-const list: NavChildItem = { label: "Recruit List", href: "/recruiting/list" };
+const list: NavChildItem = { label: "Recruits", href: "/recruiting/list" };
 const tournaments: NavChildItem = { label: "Tournaments", href: "/recruiting/tournaments" };
 const interactions: NavChildItem = { label: "Interactions", href: "/recruiting/interactions" };
 const log: NavChildItem = { label: "Log", href: "/recruiting/log" };
@@ -53,7 +53,7 @@ test("Recruiting submenu label is Dashboard, still at /recruiting", () => {
   );
 });
 
-test("Recruit List and Tournaments do not steal person workspaces", () => {
+test("Recruits and Tournaments do not steal person workspaces", () => {
   assert.equal(isNavChildActive("/recruiting/list", list), true);
   assert.equal(isNavChildActive("/recruiting/tournaments", tournaments), true);
   assert.equal(isNavChildActive("/recruiting/abc", list), false);

@@ -27,6 +27,10 @@ export const TEAM_OPERATIONS_INTRA_SQUAD_ROUTE = "/team-operations/intra-squad";
 /** Team Operations practice planning and drill library. */
 export const TEAM_OPERATIONS_PRACTICE_ROUTE = "/team-operations/practice";
 
+/** Knowledge module root and hotel directory. */
+export const KNOWLEDGE_ROUTE = "/knowledge";
+export const KNOWLEDGE_HOTELS_ROUTE = "/knowledge/hotels";
+
 /** Legacy Team overview shell (no longer in primary nav). */
 export const TEAM_ROUTE = "/team";
 
@@ -49,6 +53,7 @@ export const TOP_LEVEL_MODULE_PATHS = [
   "/fundraising",
   "/research",
   "/knowledge",
+  KNOWLEDGE_HOTELS_ROUTE,
   "/people",
 ] as const;
 

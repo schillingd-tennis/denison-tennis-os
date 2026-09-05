@@ -1,92 +1,563 @@
 "use client";
 
-import { ChevronDown, Library, SlidersHorizontal, Sparkles, Target } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
-import EmptyState from "@/components/EmptyState";
-import SearchInput from "@/components/SearchInput";
-import { FilterMenuOption, FilterTrigger } from "@/components/toolbar";
-import { useDrawerManager } from "@/components/workspace-drawer";
-import { updatePracticeDrillAction } from "../actions";
-import type { PracticeDrill } from "../types";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+  type MouseEvent,
+} from "react";
 
-export default function DrillLibrary({ drills }: { drills: PracticeDrill[] }) {
+import { useSortableData } from "@/components/data-table/useSortableData";
+import EmptyState from "@/components/EmptyState";
+import {
+  MobileDirectoryControls,
+  MobileDirectorySearchRegion,
+  MobileViewSelector,
+} from "@/components/mobile-dashboard";
+import SearchInput from "@/components/SearchInput";
+import ViewChrome, { ViewContextHeader } from "@/components/view-chrome";
+import { useDrawerManager } from "@/components/workspace-drawer";
+import {
+  TEAM_DIRECTORY_EMPTY,
+  TEAM_DIRECTORY_META,
+  TEAM_DIRECTORY_NAME,
+  directoryCellValue,
+} from "@/features/people/directoryHierarchy";
+import {
+  RecruitingHeaderLabel,
+  RecruitingTableSectionBar,
+} from "@/features/recruiting/components/RecruitingTableShared";
+import { RECRUITING_TABLE } from "@/features/recruiting/components/recruitingTableChrome";
+import { ADD_RECRUIT_BUTTON_CLASS } from "@/features/recruiting/useAddRecruitDrawer";
+
+import { createPracticeDrillAction, updatePracticeDrillAction } from "../actions";
+import {
+  DRILL_LIBRARY_COLUMNS,
+  DRILL_LIBRARY_VIEW_OPTIONS,
+  buildDrillFilterDefinitions,
+  buildDrillLibraryRows,
+  filterDrillLibraryRows,
+  formatDrillLastUsed,
+  type DrillLibraryRow,
+  type DrillLibraryView,
+  type DrillSortKey,
+} from "../drillLibraryModel";
+import type { DailyPracticePlan, PracticeDrill } from "../types";
+import DrillFilterControl from "./DrillFilterControl";
+
+const BOARD = RECRUITING_TABLE;
+const ROW_CLICK_DELAY_MS = 250;
+
+const ADD_DRILL_BUTTON_CLASS = ADD_RECRUIT_BUTTON_CLASS;
+
+const DRILL_TABLE_COLUMNS = {
+  drill: 400,
+  category: 120,
+  focus: 220,
+  players: 88,
+  competitive: 120,
+  lastUsed: 132,
+  timesUsed: 112,
+  actions: 96,
+} as const;
+
+export default function DrillLibrary({
+  drills,
+  plans,
+}: {
+  drills: PracticeDrill[];
+  plans: DailyPracticePlan[];
+}) {
   const router = useRouter();
   const { openDrawer, closeDrawer } = useDrawerManager();
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState("All");
-  const [skill, setSkill] = useState("All");
-  const [openFilter, setOpenFilter] = useState<"category" | "skill" | null>(null);
-  const categories = useMemo(() => ["All", ...new Set(drills.map((d) => d.category || "Uncategorized"))], [drills]);
-  const skills = useMemo(() => ["All", ...new Set(drills.flatMap((drill) => drill.tags).filter(Boolean).sort())], [drills]);
-  const filtered = useMemo(() => drills.filter((d) => {
-    const text = [d.name, d.description, d.sourceTags, d.category, d.notes].join(" ").toLowerCase();
-    return (category === "All" || (d.category || "Uncategorized") === category) && (skill === "All" || d.tags.includes(skill)) && text.includes(query.trim().toLowerCase());
-  }), [category, drills, query, skill]);
-  const skillCount = new Set(drills.flatMap((drill) => drill.tags)).size;
+  const [view, setView] = useState<DrillLibraryView>("all");
+  const [activeFilterIds, setActiveFilterIds] = useState<readonly string[]>([]);
+  const rowClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  function editDrill(drill: PracticeDrill) {
-    openDrawer({
-      id: `practice-drill-${drill.id}`,
-      title: "Edit Drill",
-      subtitle: "Team Operations · Practice",
-      hideFooter: true,
-      content: <DrillEditForm drill={drill} onCancel={closeDrawer} onSaved={() => { closeDrawer(); router.refresh(); }}/>,
+  const rows = useMemo(() => buildDrillLibraryRows(drills, plans), [drills, plans]);
+  const definitions = useMemo(() => buildDrillFilterDefinitions(rows), [rows]);
+  const filtered = useMemo(
+    () =>
+      filterDrillLibraryRows(rows, {
+        query,
+        view,
+        activeFilterIds,
+        definitions,
+      }),
+    [rows, query, view, activeFilterIds, definitions],
+  );
+
+  const { sortedItems, sort, toggleSort } = useSortableData(filtered, DRILL_LIBRARY_COLUMNS, {
+    getInitialSort: () => ({ key: "name", direction: "asc" }),
+  });
+
+  useEffect(
+    () => () => {
+      if (rowClickTimerRef.current) clearTimeout(rowClickTimerRef.current);
+    },
+    [],
+  );
+
+  function cancelPendingRowClick() {
+    if (rowClickTimerRef.current) {
+      clearTimeout(rowClickTimerRef.current);
+      rowClickTimerRef.current = null;
+    }
+  }
+
+  function stopRowNavigation(event: MouseEvent) {
+    event.stopPropagation();
+    cancelPendingRowClick();
+  }
+
+  const openDrillDrawer = useCallback(
+    (drill: DrillLibraryRow, mode: "edit" | "create" = "edit") => {
+      openDrawer({
+        id: mode === "create" ? "practice-drill-create" : `practice-drill-${drill.id}`,
+        title: mode === "create" ? "Add Drill" : "Drill Detail",
+        subtitle: "Team Operations · Practice",
+        hideFooter: true,
+        content: (
+          <DrillDetailForm
+            drill={mode === "create" ? null : drill}
+            onCancel={closeDrawer}
+            onSaved={() => {
+              closeDrawer();
+              router.refresh();
+            }}
+          />
+        ),
+      });
+    },
+    [closeDrawer, openDrawer, router],
+  );
+
+  const handleRowClick = useCallback(
+    (row: DrillLibraryRow) => {
+      cancelPendingRowClick();
+      rowClickTimerRef.current = setTimeout(() => {
+        openDrillDrawer(row);
+      }, ROW_CLICK_DELAY_MS);
+    },
+    [openDrillDrawer],
+  );
+
+  function sortDir(key: DrillSortKey) {
+    return sort?.key === key ? sort.direction : null;
+  }
+
+  const emptyCreateRow = useMemo(
+    (): DrillLibraryRow => ({
+      id: "",
+      name: "",
+      description: "",
+      tags: [],
+      sourceTags: "",
+      category: "",
+      notes: "",
+      frequency: "",
+      focus: "",
+      focusTags: [],
+      players: "",
+      competitive: false,
+      timesUsed: 0,
+      lastUsed: null,
+    }),
+    [],
+  );
+
+  return (
+    <div className="grid gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h2 className="text-base font-semibold text-text-primary">Drill Library</h2>
+          <p className="mt-0.5 text-xs text-text-secondary">
+            Dense sortable list of imported and custom practice drills.
+          </p>
+        </div>
+        <button
+          type="button"
+          className={ADD_DRILL_BUTTON_CLASS}
+          onClick={() => openDrillDrawer(emptyCreateRow, "create")}
+        >
+          <Plus className="mr-1.5 h-4 w-4" strokeWidth={2} aria-hidden />
+          Add Drill
+        </button>
+      </div>
+
+      <MobileDirectorySearchRegion
+        toolbar={
+          <div className="grid min-w-0 gap-2.5">
+            <div className="min-w-0">
+              <SearchInput
+                value={query}
+                onChange={setQuery}
+                placeholder="Search by name, description, category, or focus"
+                aria-label="Search drills"
+              />
+            </div>
+            <nav
+              aria-label="Drill library views"
+              className="flex max-w-full gap-1 overflow-x-auto rounded-card border border-border bg-surface p-1 shadow-[0_4px_14px_rgba(17,24,39,0.03)] max-md:hidden"
+            >
+              {DRILL_LIBRARY_VIEW_OPTIONS.map((tab) => (
+                <button
+                  key={tab.value}
+                  type="button"
+                  onClick={() => setView(tab.value)}
+                  aria-current={view === tab.value ? "page" : undefined}
+                  className={`min-h-9 shrink-0 rounded-control px-4 text-xs font-semibold transition-colors ${
+                    view === tab.value
+                      ? "bg-[var(--module-accent)] text-white"
+                      : "text-text-secondary hover:bg-app-background hover:text-text-primary"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+            <div className="min-w-0">
+              <DrillFilterControl
+                value={activeFilterIds}
+                onChange={setActiveFilterIds}
+                definitions={definitions}
+                renderMobileTrigger={(filtersButton) => (
+                  <MobileDirectoryControls>
+                    <MobileViewSelector
+                      value={view}
+                      onChange={setView}
+                      options={DRILL_LIBRARY_VIEW_OPTIONS}
+                      ariaLabel="Change drill library view"
+                    />
+                    {filtersButton}
+                  </MobileDirectoryControls>
+                )}
+              />
+            </div>
+          </div>
+        }
+      >
+        {filtered.length === 0 ? (
+          <EmptyState
+            title="No drills found"
+            description="Try a different search term, view, or filter."
+          />
+        ) : (
+          <ViewChrome
+            contextHeader={
+              <ViewContextHeader
+                eyebrow="Practice"
+                title="Drill Library"
+                subtitle={`${sortedItems.length} ${sortedItems.length === 1 ? "drill" : "drills"}`}
+              />
+            }
+            saveStatus="idle"
+            actionButtons={null}
+          >
+            <div className="min-w-0" data-drill-library-table="">
+            {/* Desktop / tablet table */}
+            <div className={`${BOARD.section} max-md:hidden`}>
+              <RecruitingTableSectionBar title="Drills" count={sortedItems.length} />
+              <div className="max-w-full overflow-x-auto">
+                <table className="w-full min-w-[80rem] table-fixed border-collapse text-left">
+                  <colgroup>
+                    <col style={{ width: DRILL_TABLE_COLUMNS.drill }} />
+                    <col style={{ width: DRILL_TABLE_COLUMNS.category }} />
+                    <col style={{ width: DRILL_TABLE_COLUMNS.focus }} />
+                    <col style={{ width: DRILL_TABLE_COLUMNS.players }} />
+                    <col style={{ width: DRILL_TABLE_COLUMNS.competitive }} />
+                    <col style={{ width: DRILL_TABLE_COLUMNS.lastUsed }} />
+                    <col style={{ width: DRILL_TABLE_COLUMNS.timesUsed }} />
+                    <col style={{ width: DRILL_TABLE_COLUMNS.actions }} />
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <RecruitingHeaderLabel
+                        label="Drill"
+                        sortDirection={sortDir("name")}
+                        onSort={() => toggleSort("name")}
+                      />
+                      <RecruitingHeaderLabel
+                        label="Category"
+                        sortDirection={sortDir("category")}
+                        onSort={() => toggleSort("category")}
+                      />
+                      <RecruitingHeaderLabel label="Focus" />
+                      <RecruitingHeaderLabel
+                        label="Players"
+                        sortDirection={sortDir("players")}
+                        onSort={() => toggleSort("players")}
+                      />
+                      <RecruitingHeaderLabel
+                        label="Competitive"
+                        sortDirection={sortDir("competitive")}
+                        onSort={() => toggleSort("competitive")}
+                      />
+                      <RecruitingHeaderLabel
+                        label="Last Used"
+                        sortDirection={sortDir("lastUsed")}
+                        onSort={() => toggleSort("lastUsed")}
+                      />
+                      <RecruitingHeaderLabel
+                        label="Times Used"
+                        align="right"
+                        sortDirection={sortDir("timesUsed")}
+                        onSort={() => toggleSort("timesUsed")}
+                      />
+                      <RecruitingHeaderLabel label="Edit" align="center" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedItems.map((row) => (
+                      <tr
+                        key={row.id}
+                        onClick={() => handleRowClick(row)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            openDrillDrawer(row);
+                          }
+                        }}
+                        tabIndex={0}
+                        className={`cursor-pointer ${BOARD.rowHover}`}
+                      >
+                        <td className={`${BOARD.td} px-3 py-2`}>
+                          <div className="min-w-0">
+                            <span className={`block truncate ${TEAM_DIRECTORY_NAME}`}>{row.name}</span>
+                            {row.description ? (
+                              <span className={`mt-1 block truncate text-[12px] leading-snug ${TEAM_DIRECTORY_META}`}>
+                                {row.description}
+                              </span>
+                            ) : null}
+                          </div>
+                        </td>
+                        <td className={`${BOARD.td} ${TEAM_DIRECTORY_META}`}>
+                          {directoryCellValue(row.category || "Uncategorized")}
+                        </td>
+                        <td className={`${BOARD.td} ${TEAM_DIRECTORY_META}`}>
+                          <span className="line-clamp-2" title={row.focus || undefined}>
+                            {directoryCellValue(row.focus)}
+                          </span>
+                        </td>
+                        <td className={`${BOARD.td} ${TEAM_DIRECTORY_META}`}>
+                          {directoryCellValue(row.players)}
+                        </td>
+                        <td className={`${BOARD.td} ${TEAM_DIRECTORY_META}`}>
+                          {row.competitive ? "Yes" : "No"}
+                        </td>
+                        <td className={`${BOARD.td} ${TEAM_DIRECTORY_META}`}>
+                          {formatDrillLastUsed(row.lastUsed)}
+                        </td>
+                        <td className={`${BOARD.td} ${BOARD.metric}`}>
+                          {row.timesUsed}
+                        </td>
+                        <td
+                          className={`${BOARD.td} text-center`}
+                          onClick={stopRowNavigation}
+                          onMouseDown={stopRowNavigation}
+                        >
+                          <button
+                            type="button"
+                            aria-label={`Edit ${row.name}`}
+                            title="Open edit panel"
+                            onClick={(event) => {
+                              stopRowNavigation(event);
+                              openDrillDrawer(row);
+                            }}
+                            className="inline-flex h-8 items-center justify-center gap-1.5 rounded-control border border-[var(--module-accent)]/20 bg-[var(--module-tint)] px-2.5 text-[11px] font-semibold text-[var(--module-accent)] transition-colors hover:border-[var(--module-accent)]/35 hover:bg-[var(--module-tint)]/70"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                            Edit
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Mobile compact list */}
+            <div className="overflow-hidden rounded-card border border-black/[0.06] bg-surface md:hidden">
+              <RecruitingTableSectionBar title="Drills" count={sortedItems.length} />
+              <ul className="divide-y divide-black/[0.06]">
+                {sortedItems.map((row) => (
+                  <li key={row.id}>
+                    <button
+                      type="button"
+                      onClick={() => openDrillDrawer(row)}
+                      className="grid w-full grid-cols-[minmax(0,1fr)_auto] gap-3 px-3 py-3 text-left hover:bg-black/[0.015]"
+                      aria-label={`Open ${row.name}`}
+                    >
+                      <div className="min-w-0">
+                        <span className={`block truncate ${TEAM_DIRECTORY_NAME}`}>{row.name}</span>
+                        <span className={`mt-1 block truncate text-[12px] ${TEAM_DIRECTORY_META}`}>
+                          {directoryCellValue(row.category || "Uncategorized")}
+                          {" · "}
+                          {row.competitive ? "Competitive" : "Non-competitive"}
+                        </span>
+                      </div>
+                      <span className={`self-center text-[12px] tabular-nums ${TEAM_DIRECTORY_META}`}>
+                        {row.timesUsed > 0 ? `${row.timesUsed}×` : TEAM_DIRECTORY_EMPTY}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            </div>
+          </ViewChrome>
+        )}
+      </MobileDirectorySearchRegion>
+    </div>
+  );
+}
+
+function DrillDetailForm({
+  drill,
+  onCancel,
+  onSaved,
+}: {
+  drill: DrillLibraryRow | null;
+  onCancel: () => void;
+  onSaved: () => void;
+}) {
+  const [message, setMessage] = useState("");
+  const [pending, startTransition] = useTransition();
+  const isCreate = drill == null;
+
+  function save(formData: FormData) {
+    setMessage("");
+    startTransition(async () => {
+      const result = isCreate
+        ? await createPracticeDrillAction(formData)
+        : await updatePracticeDrillAction(formData);
+      if (!result.success) {
+        setMessage(result.message);
+        return;
+      }
+      onSaved();
     });
   }
 
-  return <section className="overflow-hidden rounded-card border border-border bg-surface shadow-[0_8px_24px_rgba(17,24,39,0.04)]">
-    <div style={heroStyle}>
-      <div><p className="text-[11px] font-bold tracking-[0.14em] text-[var(--module-accent)] uppercase">Practice workspace</p><h2 className="mt-1 text-xl font-bold text-text-primary">Build better sessions</h2><p className="mt-1 max-w-xl text-sm text-text-secondary">Find a drill by skill or category, then select any card to review and edit it.</p></div>
-      <div style={statsStyle}><Stat icon={Library} value={drills.length} label="Total drills"/><Stat icon={Target} value={categories.length - 1} label="Categories"/><Stat icon={Sparkles} value={skillCount} label="Skill types"/></div>
-    </div>
-    <div className="border-y border-border bg-surface px-3 py-3 sm:px-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <div className="min-w-0 flex-1"><SearchInput value={query} onChange={setQuery} placeholder="Search drills by name, type, or description" aria-label="Search drills"/></div>
-        <div className="flex shrink-0 gap-2">
-          <div className="relative"><FilterTrigger icon={SlidersHorizontal} active={category !== "All"} label={category === "All" ? "Category" : category} count={category === "All" ? undefined : 1} trailing={<ChevronDown className="h-3.5 w-3.5"/>} onClick={() => setOpenFilter((open) => open === "category" ? null : "category")} aria-expanded={openFilter === "category"}/>
-            {openFilter === "category" ? <div className="absolute top-12 right-0 z-20 w-52 rounded-card border border-border bg-surface p-1.5 shadow-xl" role="listbox" aria-label="Drill category">{categories.map((value) => <FilterMenuOption key={value} selected={category === value} onClick={() => { setCategory(value); setOpenFilter(null); }}>{value}</FilterMenuOption>)}</div> : null}
-          </div>
-          <div className="relative"><FilterTrigger active={skill !== "All"} label={skill === "All" ? "Type / Skill" : skill} count={skill === "All" ? undefined : 1} trailing={<ChevronDown className="h-3.5 w-3.5"/>} onClick={() => setOpenFilter((open) => open === "skill" ? null : "skill")} aria-expanded={openFilter === "skill"}/>
-            {openFilter === "skill" ? <div className="absolute top-12 right-0 z-20 max-h-80 w-56 overflow-y-auto rounded-card border border-border bg-surface p-1.5 shadow-xl" role="listbox" aria-label="Drill type or skill">{skills.map((value) => <FilterMenuOption key={value} selected={skill === value} onClick={() => { setSkill(value); setOpenFilter(null); }}>{value}</FilterMenuOption>)}</div> : null}
-          </div>
+  return (
+    <form action={save} className="flex min-h-full flex-col">
+      {!isCreate ? <input type="hidden" name="id" value={drill.id} /> : null}
+      <div className="grid flex-1 content-start gap-4 p-5">
+        <div className="rounded-card border border-[var(--module-accent)]/15 bg-[var(--module-tint)]/25 p-4">
+          <p className="text-[10px] font-bold tracking-wider text-[var(--module-accent)] uppercase">
+            {isCreate ? "New drill" : "Drill detail"}
+          </p>
+          <p className="mt-1 text-sm font-semibold text-text-primary">
+            {isCreate
+              ? "Add a reusable drill to the Practice library."
+              : "Scan details here, then edit fields and save."}
+          </p>
         </div>
+
+        <Field label="Drill name">
+          <input name="name" required defaultValue={drill?.name ?? ""} className={inputClass} />
+        </Field>
+        <Field label="Category">
+          <input
+            name="category"
+            defaultValue={drill?.category ?? ""}
+            placeholder="Drills or Games"
+            className={inputClass}
+          />
+        </Field>
+        <Field label="Focus">
+          <input
+            name="tags"
+            defaultValue={drill?.tags.join(", ") ?? ""}
+            placeholder="Serve, Forehand, Volley"
+            className={inputClass}
+          />
+          <span className="text-[10px] font-normal text-text-secondary">
+            Separate multiple focus tags with commas.
+          </span>
+        </Field>
+        <Field label="Objective">
+          <textarea
+            name="description"
+            rows={3}
+            defaultValue={drill?.description ?? ""}
+            className={inputClass}
+          />
+        </Field>
+
+        <div className="grid grid-cols-2 gap-3">
+          <ReadOnlyField label="Setup" value={TEAM_DIRECTORY_EMPTY} />
+          <ReadOnlyField label="Players" value={directoryCellValue(drill?.players)} />
+          <ReadOnlyField label="Scoring" value={TEAM_DIRECTORY_EMPTY} />
+          <ReadOnlyField
+            label="Competitive"
+            value={drill ? (drill.competitive ? "Yes" : "No") : "No (set category to Games)"}
+          />
+        </div>
+
+        <Field label="Instructions / Notes">
+          <textarea name="notes" rows={4} defaultValue={drill?.notes ?? ""} className={inputClass} />
+        </Field>
+        <Field label="Frequency">
+          <input name="frequency" defaultValue={drill?.frequency ?? ""} className={inputClass} />
+        </Field>
+
+        {!isCreate ? (
+          <div className="grid grid-cols-2 gap-3 rounded-card border border-border bg-app-background/60 p-3">
+            <ReadOnlyField label="Times Used" value={String(drill.timesUsed)} />
+            <ReadOnlyField label="Last Used" value={formatDrillLastUsed(drill.lastUsed)} />
+          </div>
+        ) : null}
+
+        {message ? (
+          <p className="rounded-control bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">
+            {message}
+          </p>
+        ) : null}
       </div>
-      <div className="mt-2 flex items-center justify-between px-0.5 text-xs text-text-secondary"><span>{filtered.length} {filtered.length === 1 ? "result" : "results"}</span>{category !== "All" || skill !== "All" || query ? <button type="button" onClick={() => { setCategory("All"); setSkill("All"); setQuery(""); }} className="font-semibold text-[var(--module-accent)] hover:underline">Clear filters</button> : null}</div>
+      <div className="sticky bottom-0 flex justify-end gap-2 border-t border-border bg-surface p-4">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="h-10 rounded-control border border-border bg-surface px-4 text-sm font-semibold hover:bg-app-background"
+        >
+          Cancel
+        </button>
+        <button
+          disabled={pending}
+          className="h-10 rounded-control bg-[var(--module-accent)] px-5 text-sm font-bold text-white shadow-sm disabled:opacity-60"
+        >
+          {pending ? "Saving…" : isCreate ? "Add Drill" : "Save Drill"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function ReadOnlyField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="grid gap-1">
+      <span className="text-[10px] font-bold tracking-wide text-text-secondary uppercase">{label}</span>
+      <span className={`text-sm ${TEAM_DIRECTORY_META}`}>{value}</span>
     </div>
-    {filtered.length === 0 ? <div className="p-5"><EmptyState title="No drills found" description="Try another search or clear the category filter."/></div> : <div className="bg-app-background/55 p-3 sm:p-4"><div style={gridStyle}>{filtered.map((drill) => <button key={drill.id} type="button" onClick={() => editDrill(drill)} className="group" style={cardStyle} aria-label={`Edit ${drill.name}`}>
-      <div style={cardAccentStyle}/><div className="flex items-center justify-between gap-2"><span style={categoryStyle}>{drill.category || "Uncategorized"}</span>{drill.frequency ? <span className="text-[10px] font-bold text-text-secondary">FREQ. {drill.frequency}</span> : null}</div>
-      <h3 className="mt-3 text-[15px] font-bold leading-5 text-text-primary">{drill.name}</h3><p className="mt-1.5 line-clamp-2 min-h-10 text-xs leading-5 text-text-secondary">{drill.description || "No description provided."}</p>
-      <div className="mt-3 flex flex-wrap gap-1.5">{drill.tags.length ? drill.tags.map((tag, index) => <span key={`${tag}-${index}`} style={skillStyle}>{tag}</span>) : <span style={emptySkillStyle}>No skill type</span>}</div><span className="mt-3 block text-[10px] font-bold tracking-wide text-[var(--module-accent)] uppercase">Open drill →</span>
-    </button>)}</div></div>}
-  </section>;
+  );
 }
 
-function Stat({ icon: Icon, value, label }: { icon: typeof Library; value: number; label: string }) { return <div style={statStyle}><Icon className="h-4 w-4 shrink-0 text-[var(--module-accent)]"/><div><strong className="block text-[15px] leading-none text-text-primary">{value}</strong><span className="mt-1 block whitespace-nowrap text-[9px] font-bold tracking-wide text-text-secondary uppercase">{label}</span></div></div>; }
+const inputClass =
+  "w-full rounded-control border border-border bg-surface px-3 py-2.5 text-[16px] outline-none focus:border-[var(--module-accent)] focus:ring-2 focus:ring-[var(--module-tint)] md:text-sm";
 
-function DrillEditForm({ drill, onCancel, onSaved }: { drill: PracticeDrill; onCancel: () => void; onSaved: () => void }) {
-  const [message, setMessage] = useState("");
-  const [pending, startTransition] = useTransition();
-  function save(formData: FormData) { setMessage(""); startTransition(async () => { const result = await updatePracticeDrillAction(formData); if (!result.success) return setMessage(result.message); onSaved(); }); }
-  return <form action={save} className="flex min-h-full flex-col"><input type="hidden" name="id" value={drill.id}/><div className="grid flex-1 content-start gap-4 p-5">
-    <div className="rounded-card border border-[var(--module-accent)]/15 bg-[var(--module-tint)]/25 p-4"><p className="text-[10px] font-bold tracking-wider text-[var(--module-accent)] uppercase">Editing drill</p><p className="mt-1 text-sm font-semibold text-text-primary">Changes update this drill everywhere it is used.</p></div>
-    <Field label="Drill name"><input name="name" required defaultValue={drill.name} className={inputClass}/></Field><Field label="Description"><textarea name="description" rows={4} defaultValue={drill.description} className={inputClass}/></Field>
-    <div className="grid grid-cols-2 gap-3"><Field label="Category"><input name="category" defaultValue={drill.category} placeholder="Drills or Games" className={inputClass}/></Field><Field label="Frequency"><input name="frequency" defaultValue={drill.frequency} className={inputClass}/></Field></div>
-    <Field label="Type / skills"><input name="tags" defaultValue={drill.tags.join(", ")} placeholder="Serve, Forehand, Volley" className={inputClass}/><span className="text-[10px] font-normal text-text-secondary">Separate multiple types with commas.</span></Field><Field label="Coaching notes"><textarea name="notes" rows={4} defaultValue={drill.notes} className={inputClass}/></Field>
-    {message ? <p className="rounded-control bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">{message}</p> : null}</div>
-    <div className="sticky bottom-0 flex justify-end gap-2 border-t border-border bg-surface p-4"><button type="button" onClick={onCancel} className="h-10 rounded-control border border-border bg-surface px-4 text-sm font-semibold hover:bg-app-background">Cancel</button><button disabled={pending} className="h-10 rounded-control bg-[var(--module-accent)] px-5 text-sm font-bold text-white shadow-sm disabled:opacity-60">{pending ? "Saving…" : "Save Drill"}</button></div>
-  </form>;
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="grid gap-1.5 text-xs font-bold text-text-primary">
+      <span>{label}</span>
+      {children}
+    </label>
+  );
 }
-
-const inputClass = "w-full rounded-control border border-border bg-surface px-3 py-2.5 text-[16px] outline-none focus:border-[var(--module-accent)] focus:ring-2 focus:ring-[var(--module-tint)] md:text-sm";
-function Field({ label, children }: { label: string; children: React.ReactNode }) { return <label className="grid gap-1.5 text-xs font-bold text-text-primary"><span>{label}</span>{children}</label>; }
-
-const heroStyle: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 360px), 1fr))", alignItems: "center", gap: 18, padding: 20, background: "linear-gradient(115deg, #ffffff 0%, #f8f5ff 52%, #fff1f3 100%)" };
-const statsStyle: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 };
-const statStyle: React.CSSProperties = { display: "flex", alignItems: "center", gap: 9, minWidth: 0, padding: "10px 12px", border: "1px solid rgba(200,16,46,.12)", borderRadius: 10, background: "rgba(255,255,255,.86)" };
-const gridStyle: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 310px), 1fr))", gap: 12 };
-const cardStyle: React.CSSProperties = { position: "relative", overflow: "hidden", minHeight: 184, padding: 16, border: "1px solid #e2e5ea", borderRadius: 12, background: "#fff", textAlign: "left", boxShadow: "0 2px 7px rgba(17,24,39,.05)", cursor: "pointer" };
-const cardAccentStyle: React.CSSProperties = { position: "absolute", inset: "0 auto 0 0", width: 4, background: "linear-gradient(#c8102e, #7c3aed)", opacity: .85 };
-const categoryStyle: React.CSSProperties = { borderRadius: 999, padding: "5px 9px", background: "#f3e8ff", color: "#6b21a8", fontSize: 10, fontWeight: 800, letterSpacing: ".07em", textTransform: "uppercase" };
-const skillStyle: React.CSSProperties = { border: "1px solid #bfdbfe", borderRadius: 6, padding: "4px 8px", background: "#eff6ff", color: "#1e40af", fontSize: 10, fontWeight: 700 };
-const emptySkillStyle: React.CSSProperties = { borderRadius: 6, padding: "4px 8px", background: "#f1f5f9", color: "#64748b", fontSize: 10, fontWeight: 650 };
