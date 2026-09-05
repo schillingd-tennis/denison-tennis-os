@@ -51,6 +51,7 @@ import {
   RECRUIT_PRIORITY_SEED,
   RECRUIT_TYPE_SEED,
 } from "../lookupSeed";
+import { parseRecruitTier, TIER_DETAIL_SELECT_OPTIONS } from "../tier";
 import type { RecruitProfile, RecruitProfileWritePatch } from "../types";
 
 export type RecruitProfileEditableField =
@@ -63,6 +64,7 @@ export type RecruitProfileEditableField =
   | "prereadStatusId"
   | "prereadScholarshipAmount"
   | "recruitClassYear"
+  | "tier"
   | "academicInterests"
   | "schoolsOfInterest"
   | "schoolChosen"
@@ -319,6 +321,34 @@ export function RecruitProfileFieldSession({
         return;
       }
 
+      if (field === "tier") {
+        const parsed = parseRecruitTier(raw);
+        if (parsed === undefined) {
+          setFieldError("Tier must be 1–5 or Unassigned.");
+          return;
+        }
+        const currentTier = profile.tier ?? null;
+        if (currentTier === parsed) {
+          finish();
+          return;
+        }
+        const previous = profile;
+        onProfileChange({
+          ...profile,
+          tier: parsed === null ? undefined : parsed,
+        });
+        finish();
+        const ok = await runSave(async () => {
+          const result = await updateRecruitProfileAction(profile.personId, {
+            tier: parsed,
+          });
+          if (!result.success) throw new Error(result.error);
+          onProfileChange(result.profile);
+        });
+        if (!ok) onProfileChange(previous);
+        return;
+      }
+
       if (field === "travelType") {
         const next = raw.trim();
         if (next && !TRAVEL_TYPE_OPTIONS.some((option) => option.value === next)) {
@@ -530,6 +560,12 @@ export function RecruitProfileField({
     options = TRAVEL_TYPE_OPTIONS;
     value = session.profile.travelType ?? "";
     displayValue = session.profile.travelType;
+  } else if (field === "tier") {
+    resolvedType = "select";
+    options = [...TIER_DETAIL_SELECT_OPTIONS];
+    value = session.profile.tier != null ? String(session.profile.tier) : "";
+    displayValue =
+      session.profile.tier != null ? `Tier ${session.profile.tier}` : "Unassigned";
   } else if (
     field === "recruitClassYear" ||
     field === "sat" ||

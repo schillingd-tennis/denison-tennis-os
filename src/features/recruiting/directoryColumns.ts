@@ -14,6 +14,7 @@ export type RecruitDirectoryColumnId =
   | "recruitClassYear"
   | "pipelineStage"
   | "priority"
+  | "tier"
   | "interest"
   | "outcome"
   | "utr"
@@ -79,6 +80,14 @@ export const RECRUITING_DIRECTORY_TABLE_COLUMNS: ColumnDef<
     sortable: true,
     sortType: "text",
     accessor: (row) => row.profile.priority?.label,
+    defaultSort: "asc",
+  },
+  {
+    id: "tier",
+    title: "Tier",
+    sortable: true,
+    sortType: "number",
+    accessor: (row) => row.profile.tier ?? 6,
     defaultSort: "asc",
   },
   {

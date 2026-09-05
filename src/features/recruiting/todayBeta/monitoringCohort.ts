@@ -29,6 +29,8 @@ export type MonitoredRecruit = {
   nameAliases: string[];
   recruitClassYear?: number;
   coachRank?: number;
+  /** Coach Rank Board tier 1–5; undefined = unassigned. */
+  tier?: 1 | 2 | 3 | 4 | 5;
   trnPlayerId?: string;
   trnProfileUrl?: string;
   utrPlayerId?: string;
@@ -80,6 +82,7 @@ export function resolveMonitoredRecruit(input: {
   externalProfiles: RecruitExternalProfiles;
   recruitClassYear?: number;
   coachRank?: number;
+  tier?: 1 | 2 | 3 | 4 | 5;
 }): MonitoredRecruit {
   const legacyConfig = legacyConfigForPerson(input.displayName);
   const utrPlayerId =
@@ -99,6 +102,7 @@ export function resolveMonitoredRecruit(input: {
     nameAliases: legacyConfig?.nameAliases ?? [input.displayName],
     recruitClassYear: input.recruitClassYear,
     coachRank: input.coachRank,
+    tier: input.tier,
     trnPlayerId,
     trnProfileUrl,
     utrPlayerId,
@@ -154,6 +158,7 @@ export function filterRankBoardRecruits(input: {
         externalProfiles: input.externalProfilesByPersonId.get(profile.personId) ?? {},
         recruitClassYear: profile.recruitClassYear,
         coachRank: profile.coachRank,
+        tier: profile.tier,
       }),
     );
   }

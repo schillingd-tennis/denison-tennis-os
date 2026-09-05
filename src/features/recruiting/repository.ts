@@ -113,6 +113,57 @@ export async function createRecruitProfile(
   return rowToRecruitProfile(data as RecruitProfileRow);
 }
 
+/** Lightweight board read-back: person_id + tier + coach_rank only. */
+export type RankBoardPersistRow = {
+  personId: string;
+  tier: RecruitProfile["tier"] | null;
+  coachRank: number | null;
+};
+
+export async function getRankBoardPersistRow(
+  personId: string,
+): Promise<RankBoardPersistRow | null> {
+  const trimmed = personId.trim();
+  if (!trimmed) {
+    throw new RecruitingRepositoryError("person_id is required.");
+  }
+
+  const client = await createSupabaseServerClient();
+  const { data, error } = await client
+    .from(TABLE)
+    .select("person_id, tier, coach_rank")
+    .eq("person_id", trimmed)
+    .maybeSingle();
+
+  if (error) {
+    throw new RecruitingRepositoryError(
+      formatRecruitProfileWriteError(trimmed, error.message),
+    );
+  }
+  if (!data) return null;
+
+  const row = data as { person_id: string; tier: number | null; coach_rank: number | null };
+  const tierValue =
+    row.tier === 1 || row.tier === 2 || row.tier === 3 || row.tier === 4 || row.tier === 5
+      ? row.tier
+      : null;
+  return {
+    personId: row.person_id,
+    tier: tierValue,
+    coachRank: row.coach_rank,
+  };
+}
+
+function formatRecruitProfileWriteError(personId: string, message: string): string {
+  if (/column .*tier.*does not exist|Could not find the .*tier.* column/i.test(message)) {
+    return (
+      `Failed to update recruit profile for person "${personId}": ` +
+      `recruit_profiles.tier is missing — apply migration 0052_recruit_tier.sql.`
+    );
+  }
+  return `Failed to update recruit profile for person "${personId}": ${message}`;
+}
+
 export async function updateRecruitProfile(
   personId: string,
   patch: RecruitProfileWritePatch,
@@ -185,9 +236,7 @@ export async function updateRecruitProfile(
     .maybeSingle();
 
   if (error) {
-    throw new RecruitingRepositoryError(
-      `Failed to update recruit profile for person "${trimmed}": ${error.message}`,
-    );
+    throw new RecruitingRepositoryError(formatRecruitProfileWriteError(trimmed, error.message));
   }
 
   if (!data) {
@@ -196,7 +245,25 @@ export async function updateRecruitProfile(
     );
   }
 
-  return rowToRecruitProfile(data as RecruitProfileRow);
+  const profile = rowToRecruitProfile(data as RecruitProfileRow);
+
+  // Explicit tier round-trip: missing column / silent no-op must not succeed.
+  if ("tier" in patchRow) {
+    const expected = (patchRow.tier as number | null | undefined) ?? null;
+    const proven = await getRankBoardPersistRow(trimmed);
+    if (!proven) {
+      throw new RecruitingRepositoryError(
+        `Cannot update recruit profile for person "${trimmed}": no such profile.`,
+      );
+    }
+    if ((proven.tier ?? null) !== expected) {
+      throw new RecruitingRepositoryError(
+        `Tier persist mismatch for "${trimmed}": expected ${String(expected)}, got ${String(proven.tier)}.`,
+      );
+    }
+  }
+
+  return profile;
 }
 
 /** Load ranked + unranked person ids for one class year. */

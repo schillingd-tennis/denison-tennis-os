@@ -51,6 +51,12 @@ export type RecruitProfile = {
    */
   coachRank?: number;
 
+  /**
+   * Rank Board Tier — coach-controlled 1 (highest) … 5.
+   * NULL / undefined = Unassigned. Independent of coachRank and Analytics Tier.
+   */
+  tier?: 1 | 2 | 3 | 4 | 5;
+
   gpa?: string;
   sat?: number;
   act?: number;

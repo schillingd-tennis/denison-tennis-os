@@ -6,6 +6,7 @@ import {
   Flag,
   GitBranch,
   Heart,
+  Layers,
   Star,
   Target,
 } from "lucide-react";
@@ -53,6 +54,7 @@ const RECRUITING_VISIBLE_FILTER_FACETS: readonly { category: string; label: stri
   { category: "recruitClassYear", label: "Class Year" },
   { category: "pipelineStage", label: "Pipeline" },
   { category: "priority", label: "Priority" },
+  { category: "tier", label: "Tier" },
   { category: "interest", label: "Interest" },
   { category: "outcome", label: "Outcome" },
   { category: "getability", label: "Getability" },
@@ -63,6 +65,7 @@ const facetIcons: Record<string, ComponentType<{ className?: string; strokeWidth
   interest: Heart,
   outcome: Flag,
   priority: Star,
+  tier: Layers,
   getability: Target,
   recruitClassYear: Calendar,
 };

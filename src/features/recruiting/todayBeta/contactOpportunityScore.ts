@@ -22,6 +22,8 @@ export type ContactOpportunity = {
   recruitPersonId: string;
   recruitName: string;
   recruitPriorityLabel: string | null;
+  /** Coach Rank Board tier 1–5; omitted/undefined = unassigned. */
+  recruitTier?: 1 | 2 | 3 | 4 | 5;
   opportunityTypes: ContactOpportunityType[];
   opportunityTypeLabel: string;
   /** Overall score = max(resultScore, cadenceScore, tournamentScore). */

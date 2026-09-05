@@ -183,6 +183,8 @@ export type TodayBetaPlayerRow = {
   recruitPersonId?: string;
   recruitClassYear?: number;
   coachRank?: number;
+  /** Coach Rank Board tier 1–5; undefined = unassigned. */
+  tier?: 1 | 2 | 3 | 4 | 5;
   trnPlayerId: string;
   trnProfileUrl: string;
   utrPlayerId?: string;

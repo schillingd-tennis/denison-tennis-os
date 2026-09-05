@@ -22,8 +22,10 @@ import {
   OUTCOME_SELECT_OPTIONS,
   PIPELINE_SELECT_OPTIONS,
   PRIORITY_SELECT_OPTIONS,
+  TIER_SELECT_OPTIONS,
 } from "../directoryInline";
 import type { RecruitingDirectoryEditableField } from "../directoryInline";
+import { formatTierCompact } from "../tier";
 import RecruitStatusBadge from "./RecruitStatusBadge";
 import {
   RECRUITING_TABLE,
@@ -83,6 +85,7 @@ export function RecruitingTableColgroup({
         <col style={{ width: C.classYear }} />
         <col style={{ width: C.pipeline }} />
         <col style={{ width: C.priority }} />
+        <col style={{ width: C.tier }} />
         <col style={{ width: C.outcome }} />
         <col style={{ width: C.schoolChosen }} />
         <col style={{ width: C.utr }} />
@@ -102,6 +105,7 @@ export function RecruitingTableColgroup({
       <col style={{ width: C.classYear }} />
       <col style={{ width: C.pipeline }} />
       <col style={{ width: C.priority }} />
+      <col style={{ width: C.tier }} />
       <col style={{ width: C.interest }} />
       <col style={{ width: C.outcome }} />
       <col style={{ width: C.utr }} />
@@ -317,6 +321,29 @@ export function RecruitingPriorityCell({ row, edit }: { row: RecruitDirectoryRow
   );
 }
 
+export function RecruitingTierCell({ row, edit }: { row: RecruitDirectoryRow; edit: EditApi }) {
+  const personId = row.person.id;
+  return (
+    <InlineEditCell
+      label="Tier"
+      type="select"
+      options={[...TIER_SELECT_OPTIONS]}
+      value={row.profile.tier != null ? String(row.profile.tier) : ""}
+      editOn="click"
+      editing={edit.isEditing(personId, "tier")}
+      error={edit.isEditing(personId, "tier") ? edit.fieldError : undefined}
+      renderDisplay={
+        <span className="font-semibold tabular-nums text-text-primary">
+          {formatTierCompact(row.profile.tier)}
+        </span>
+      }
+      onRequestEdit={() => edit.startEdit(personId, "tier")}
+      onCancel={edit.cancelEdit}
+      onCommit={(raw, reason) => edit.commit(personId, "tier", raw, reason)}
+    />
+  );
+}
+
 export function RecruitingInterestCell({ row, edit }: { row: RecruitDirectoryRow; edit: EditApi }) {
   const personId = row.person.id;
   return (
@@ -503,6 +530,9 @@ export function RecruitingCommitDataCells({
       <td className={BOARD.td}>
         <RecruitingPriorityCell row={row} edit={edit} />
       </td>
+      <td className={BOARD.td}>
+        <RecruitingTierCell row={row} edit={edit} />
+      </td>
       <td className={`${BOARD.td} !px-0`}>
         <RecruitingOutcomeCell row={row} edit={edit} />
       </td>
@@ -538,6 +568,9 @@ export function RecruitingSharedDataCells({
       </td>
       <td className={BOARD.td}>
         <RecruitingPriorityCell row={row} edit={edit} />
+      </td>
+      <td className={BOARD.td}>
+        <RecruitingTierCell row={row} edit={edit} />
       </td>
       <td className={BOARD.td}>
         <RecruitingInterestCell row={row} edit={edit} />

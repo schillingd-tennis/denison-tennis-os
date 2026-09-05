@@ -18,12 +18,16 @@ import {
   RECRUIT_PRIORITY_SEED,
   RECRUIT_TYPE_SEED,
 } from "./lookupSeed";
+import { parseRecruitTier } from "./tier";
 import type { RecruitProfile } from "./types";
+
+export { TIER_SELECT_OPTIONS } from "./tier";
 
 export const RECRUITING_LIST_EDITABLE_FIELDS = [
   "recruitClassYear",
   "pipelineStage",
   "priority",
+  "tier",
   "interest",
   "outcome",
   "utr",

@@ -40,6 +40,7 @@ export type RecruitProfileRow = {
   focus: boolean | null;
   recruit_class_year: number | null;
   coach_rank: number | null;
+  tier: number | null;
   gpa: string | null;
   sat: number | null;
   act: number | null;
@@ -130,6 +131,12 @@ export function rowToRecruitProfile(row: RecruitProfileRow): RecruitProfile {
 
     recruitClassYear: asNumber(row.recruit_class_year),
     coachRank: asNumber(row.coach_rank),
+    tier: (() => {
+      const value = asNumber(row.tier);
+      return value === 1 || value === 2 || value === 3 || value === 4 || value === 5
+        ? value
+        : undefined;
+    })(),
     gpa: undefinedIfNull(row.gpa),
     sat: asNumber(row.sat),
     act: asNumber(row.act),

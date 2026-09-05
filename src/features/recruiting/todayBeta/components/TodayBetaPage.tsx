@@ -17,6 +17,7 @@ import {
   snoozeCadenceOpportunityAction,
 } from "../actions";
 import type { ContactOpportunity } from "../contactOpportunityScore";
+import { formatTierCompact } from "../../tier";
 import {
   formatMonitoringStatusLabel,
   formatMonitoringTimestamp,
@@ -540,6 +541,14 @@ function ResultBasedContactCard({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-sm font-semibold text-text-primary">{opportunity.recruitName}</p>
+            {opportunity.recruitTier != null ? (
+              <span
+                className="text-[11px] font-semibold tabular-nums text-text-secondary"
+                title={`Tier ${opportunity.recruitTier}`}
+              >
+                {formatTierCompact(opportunity.recruitTier)}
+              </span>
+            ) : null}
             {matchResult ? (
               <span className={resultTone(matchResult.result)}>{resultLabel(matchResult.result)}</span>
             ) : null}
@@ -673,7 +682,17 @@ function RelationshipFollowUpRow({
     <li className="rounded-control border border-border/60 bg-background/60 px-3 py-2">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1 text-sm">
-          <p className="font-semibold text-text-primary">{opportunity.recruitName}</p>
+          <p className="flex min-w-0 items-baseline gap-1.5 font-semibold text-text-primary">
+            <span className="min-w-0 truncate">{opportunity.recruitName}</span>
+            {opportunity.recruitTier != null ? (
+              <span
+                className="shrink-0 text-[11px] font-semibold tabular-nums text-text-secondary"
+                title={`Tier ${opportunity.recruitTier}`}
+              >
+                {formatTierCompact(opportunity.recruitTier)}
+              </span>
+            ) : null}
+          </p>
           <p className="text-xs text-text-secondary">
             {formatCadencePriorityLabel(opportunity.recruitPriorityLabel)} · {cadenceReason}
           </p>
@@ -1318,7 +1337,17 @@ export default function TodayBetaPage({ data }: { data: TodayBetaPageData }) {
                   className="border-t border-border/70"
                 >
                   <td className={TABLE_CELL_CLASS}>
-                    <p className="font-medium text-text-primary">{player.displayName}</p>
+                    <p className="flex min-w-0 items-baseline gap-1.5 font-medium text-text-primary">
+                      <span className="min-w-0 truncate">{player.displayName}</span>
+                      {player.tier != null ? (
+                        <span
+                          className="shrink-0 text-[11px] font-semibold tabular-nums text-text-secondary"
+                          title={`Tier ${player.tier}`}
+                        >
+                          {formatTierCompact(player.tier)}
+                        </span>
+                      ) : null}
+                    </p>
                     {player.status === "Ready" && player.upcomingTournaments.length > 0 ? (
                       <div className="mt-2 space-y-1 text-xs text-text-secondary">
                         {player.upcomingTournaments.map((tournament) => (

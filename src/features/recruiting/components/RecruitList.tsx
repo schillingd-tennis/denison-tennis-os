@@ -236,6 +236,11 @@ export default function RecruitList({
                           <span className={BOARD.rankMuted}>#{row.profile.coachRank}</span>
                         ) : null}
                         <span className="min-w-0 truncate">{displayName}</span>
+                        {row.profile.tier != null ? (
+                          <span className="shrink-0 text-[11px] font-semibold tabular-nums text-text-secondary">
+                            T{row.profile.tier}
+                          </span>
+                        ) : null}
                       </p>
                       <p className={`mt-0.5 truncate ${TEAM_DIRECTORY_META}`}>
                         {recruitListSummaryLine(row) || TEAM_DIRECTORY_EMPTY}
@@ -285,6 +290,11 @@ export default function RecruitList({
                     label="Priority"
                     sortDirection={sortDir("priority")}
                     onSort={() => toggleSort("priority")}
+                  />
+                  <RecruitingHeaderLabel
+                    label="Tier"
+                    sortDirection={sortDir("tier")}
+                    onSort={() => toggleSort("tier")}
                   />
                   <RecruitingHeaderLabel
                     label="Interest"

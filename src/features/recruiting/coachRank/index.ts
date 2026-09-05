@@ -32,3 +32,33 @@ export {
   resolveRankClassYearFromFilters,
   type RankClassResolution,
 } from "./classYear";
+export {
+  appendRankedToTierSection,
+  flattenRankedTier,
+  globalIndexForTierInsert,
+  isTierSequentialBoardOrder,
+  moveRankedToTierSection,
+  moveRankedVisualByDelta,
+  sectionCounts,
+  tierValueForSection,
+} from "./tierBoard";
+export {
+  RANK_BOARD_SCROLL_EDGE_PX,
+  RANK_BOARD_SCROLL_MAX_DELTA,
+  insertIndexFromMidYs,
+  previewMultiTierDrag,
+  rankBoardEdgeScrollDelta,
+  resolveRankBoardPointerTarget,
+  type RankBoardHitSection,
+  type RankBoardPointerTarget,
+} from "./rankBoardPointer";
+export {
+  buildRankBoardReorderArgs,
+  enqueueRankBoardPersist,
+  refreshModelVisibleOrder,
+  resolveOrderPersistAfterDrag,
+  resolveTierPersistAfterDrag,
+  sameRankedPersonIds,
+  type RankBoardPersistQueue,
+  type RankBoardTierPersist,
+} from "./rankBoardPersist";

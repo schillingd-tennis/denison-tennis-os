@@ -45,6 +45,7 @@ export function mergeContactOpportunities(input: {
   recruitName: string;
   recruitFirstName?: string;
   recruitPriorityLabel: string | null;
+  recruitTier?: 1 | 2 | 3 | 4 | 5;
   daysSinceLastContact: number | null;
   lastContactDateLabel?: string | null;
   resultOpportunity: ContactOpportunity | null;
@@ -96,6 +97,7 @@ export function mergeContactOpportunities(input: {
     recruitPersonId: input.recruitPersonId,
     recruitName: input.recruitName,
     recruitPriorityLabel: input.recruitPriorityLabel,
+    recruitTier: input.recruitTier,
     opportunityTypes,
     opportunityTypeLabel: contactOpportunityTypeLabel(opportunityTypes),
     opportunityScore: overallScore,

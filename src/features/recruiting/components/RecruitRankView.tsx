@@ -1,6 +1,7 @@
 "use client";
 
-import { GripVertical } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, GripVertical } from "lucide-react";
+import Link from "next/link";
 import {
   useEffect,
   useMemo,
@@ -10,12 +11,16 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
-  type Ref,
 } from "react";
 
 import type { SortDirection } from "@/components/data-table/types";
 import ViewChrome, { ViewContextHeader } from "@/components/view-chrome";
+import {
+  TEAM_DIRECTORY_EMPTY,
+  TEAM_DIRECTORY_META,
+} from "@/features/people/directoryHierarchy";
 import { getDisplayName } from "@/features/people/utils";
+import { EMPTY_VALUE, formatUtr } from "@/lib/formatting";
 
 import { parseDirectCoachRank } from "../coachRank";
 import {
@@ -32,11 +37,15 @@ import {
   compareUnrankedRows,
   type UnrankedSortKey,
 } from "../rankViewSort";
+import {
+  groupRankedRowsByTier,
+  type TierSectionId,
+} from "../tier";
 import { useRecruitDirectoryInlineEdit } from "../useRecruitDirectoryInlineEdit";
 import { useRecruitingFoundSetActions } from "../useRecruitingFoundSetActions";
+import RecruitStatusBadge from "./RecruitStatusBadge";
 import {
   RECRUITING_TABLE,
-  RECRUITING_TABLE_COLUMNS,
   rankBoardClassContextLabel,
 } from "./recruitingTableChrome";
 import {
@@ -45,8 +54,10 @@ import {
   RecruitingSharedDataCells,
   RecruitingTableColgroup,
   RecruitingTableSectionBar,
+  RecruitingTierCell,
   classYearSelectOptions,
 } from "./RecruitingTableShared";
+import { pipelineTone } from "./statusPresentation";
 import { useRankedBoardDrag } from "./useRankedBoardDrag";
 
 /** @deprecated Use RECRUITING_TABLE_COLUMNS from recruitingTableChrome. */
@@ -54,81 +65,113 @@ export { RECRUIT_RANK_COLUMNS } from "./recruitingTableChrome";
 
 const BOARD = RECRUITING_TABLE;
 const UNRANKED_PREVIEW = 12;
-/** Keep in sync with `RECRUITING_TABLE.th` (`h-9`). */
-const RANKED_THEAD_HEIGHT = 36;
-
-type DropSlot = {
-  section: "ranked" | "unranked";
-  top: number;
-  height: number;
-  rank: number | null;
-};
-
-function RankDropSlot({
-  slot,
-  empty,
-}: {
-  slot: DropSlot;
-  empty?: boolean;
-}) {
-  const top = empty ? 0 : RANKED_THEAD_HEIGHT + slot.top;
-  return (
-    <div
-      aria-hidden="true"
-      data-rank-drop-slot={slot.section}
-      className="pointer-events-none absolute inset-x-0 z-[20]"
-      style={{ top, height: slot.height }}
-    >
-      <div className="h-[2px] w-full bg-[var(--module-accent)]" />
-      <div className="flex h-[54px] items-center bg-[var(--module-tint)]/60">
-        {slot.rank !== null ? (
-          <>
-            <span style={{ width: RECRUITING_TABLE_COLUMNS.handle }} />
-            <span className={BOARD.rankValue}>#{slot.rank}</span>
-          </>
-        ) : null}
-      </div>
-    </div>
-  );
-}
 
 type BoardSortState = {
   key: UnrankedSortKey;
   direction: SortDirection;
 };
 
-function DragHandlePlaceholder() {
-  return (
-    <span
-      className="inline-flex h-7 w-5 items-center justify-center text-text-secondary/35"
-      aria-hidden="true"
-    >
-      <GripVertical className="h-3.5 w-3.5" strokeWidth={2} />
-    </span>
-  );
-}
-
+/** Practice Sequence drag handle (GripVertical + pointer capture handlers). */
 function RankedDragHandle({
+  name,
   disabled,
   dragging,
   onPointerDown,
+  onPointerMove,
+  onPointerUp,
 }: {
+  name: string;
   disabled: boolean;
   dragging: boolean;
   onPointerDown: (event: ReactPointerEvent<HTMLButtonElement>) => void;
+  onPointerMove: (event: ReactPointerEvent<HTMLButtonElement>) => void;
+  onPointerUp: (event: ReactPointerEvent<HTMLButtonElement>) => void;
 }) {
   return (
     <button
       type="button"
-      aria-label="Drag to reorder Coach Rank"
+      aria-label={`Drag ${name} to reorder`}
       disabled={disabled}
-      onPointerDown={onPointerDown}
-      className={`flex h-full w-full items-center justify-center text-text-secondary/35 touch-none hover:text-text-secondary/65 disabled:cursor-default disabled:hover:text-text-secondary/35 ${
-        dragging ? "cursor-grabbing" : "cursor-grab"
+      onPointerDown={(event) => {
+        event.stopPropagation();
+        onPointerDown(event);
+      }}
+      onPointerMove={(event) => {
+        event.stopPropagation();
+        onPointerMove(event);
+      }}
+      onPointerUp={(event) => {
+        event.stopPropagation();
+        onPointerUp(event);
+      }}
+      onPointerCancel={(event) => {
+        event.stopPropagation();
+        onPointerUp(event);
+      }}
+      onClick={(event) => event.stopPropagation()}
+      className={`cursor-grab touch-none rounded p-1 text-[var(--module-accent)] active:cursor-grabbing disabled:cursor-default disabled:opacity-35 ${
+        dragging ? "cursor-grabbing" : ""
       }`}
     >
-      <GripVertical className="h-3.5 w-3.5" strokeWidth={2} />
+      <GripVertical className="h-5 w-5" />
     </button>
+  );
+}
+
+function DragHandlePlaceholder() {
+  return (
+    <span
+      className="inline-flex items-center justify-center rounded p-1 text-text-secondary/35"
+      aria-hidden="true"
+    >
+      <GripVertical className="h-5 w-5" />
+    </span>
+  );
+}
+
+/** Practice Sequence up/down controls. */
+function BoardMoveButtons({
+  name,
+  disabled,
+  canUp,
+  canDown,
+  onUp,
+  onDown,
+}: {
+  name: string;
+  disabled: boolean;
+  canUp: boolean;
+  canDown: boolean;
+  onUp: () => void;
+  onDown: () => void;
+}) {
+  return (
+    <span className="hidden items-center sm:flex">
+      <button
+        type="button"
+        disabled={disabled || !canUp}
+        onClick={(event) => {
+          event.stopPropagation();
+          onUp();
+        }}
+        aria-label={`Move ${name} up`}
+        className="rounded p-1 text-[var(--module-accent)] disabled:opacity-25"
+      >
+        <ArrowUp className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        disabled={disabled || !canDown}
+        onClick={(event) => {
+          event.stopPropagation();
+          onDown();
+        }}
+        aria-label={`Move ${name} down`}
+        className="rounded p-1 text-[var(--module-accent)] disabled:opacity-25"
+      >
+        <ArrowDown className="h-4 w-4" />
+      </button>
+    </span>
   );
 }
 
@@ -168,6 +211,7 @@ function RecruitRankHeader({
           sortDirection={sortDir("priority")}
           onSort={() => onSort("priority")}
         />
+        <RecruitingHeaderLabel label="Tier" />
         <RecruitingHeaderLabel
           label="Interest"
           sortDirection={sortDir("interest")}
@@ -353,9 +397,8 @@ function RecruitRankRow({
   commit,
   dragHandle,
   isDragging,
-  dragSession,
-  shiftY,
   rankCell,
+  boardAttrs,
 }: {
   row: RecruitDirectoryRow;
   coachRank: number | null;
@@ -368,31 +411,28 @@ function RecruitRankRow({
   commit: ReturnType<typeof useRecruitDirectoryInlineEdit>["commit"];
   dragHandle?: ReactNode;
   isDragging?: boolean;
-  dragSession?: boolean;
-  shiftY?: number;
   rankCell?: ReactNode;
+  boardAttrs?: {
+    personId: string;
+    tierSection: string;
+    sectionIndex: number;
+  };
 }) {
   const edit = { isEditing, fieldError, startEdit, cancelEdit, commit };
-  const shift = shiftY ?? 0;
 
   return (
     <tr
-      style={{
-        ["--rank-shift" as string]: `${shift}px`,
-        transform: dragSession ? `translateY(${shift}px)` : undefined,
-        transition: isDragging
-          ? "none"
-          : dragSession
-            ? "transform 150ms ease-out"
-            : undefined,
-        position: isDragging ? "relative" : undefined,
-        zIndex: isDragging ? 8 : undefined,
-      }}
+      data-rank-board-item={boardAttrs ? "" : undefined}
+      data-person-id={boardAttrs?.personId}
+      data-tier-section={boardAttrs?.tierSection}
+      data-section-index={
+        boardAttrs ? String(boardAttrs.sectionIndex) : undefined
+      }
       className={`${BOARD.rowHover} last:[&>td]:border-b-0${
         isDragging
           ? " opacity-55 [&>td]:bg-surface [&>td]:shadow-[0_1px_3px_rgba(17,24,39,0.08)]"
           : ""
-      }${dragSession ? " [&>td]:[transform:translateY(var(--rank-shift,0px))]" : ""}`}
+      }`}
     >
       <td className={`${BOARD.td} ${dragHandle ? "!p-0" : "pr-0 pl-1.5"}`}>
         {dragHandle ?? <DragHandlePlaceholder />}
@@ -436,7 +476,10 @@ function RankActionButton({
     <button
       type="button"
       disabled={disabled}
-      onClick={onClick}
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick();
+      }}
       className={isRemove ? BOARD.removeActionButton : BOARD.actionButton}
       aria-label={
         isRemove ? `Remove ${name} from ranked` : `Add ${name} to ranked`
@@ -456,39 +499,28 @@ function RecruitRankSection({
   onSort,
   children,
   footer,
-  tbodyRef,
-  sectionRef,
   dragging,
-  dropActive,
-  dropSlot,
 }: {
   title: string;
   count: number;
-  sectionKey: "ranked" | "unranked";
+  sectionKey: "unranked";
   empty: string;
   sort: BoardSortState;
   onSort: (key: UnrankedSortKey) => void;
   children: ReactNode;
   footer?: ReactNode;
-  tbodyRef?: Ref<HTMLTableSectionElement>;
-  sectionRef?: Ref<HTMLElement>;
   dragging?: boolean;
-  dropActive?: boolean;
-  dropSlot?: DropSlot | null;
 }) {
-  const showSlot = dropSlot?.section === sectionKey;
   return (
     <section
-      ref={sectionRef}
-      className={`${BOARD.section}${dragging ? " !overflow-visible" : ""}${
-        dropActive ? " ring-2 ring-[var(--module-accent)]/40" : ""
-      }`}
+      className={`${BOARD.section}${dragging ? " !overflow-visible" : ""}`}
       data-rank-section={sectionKey}
+      data-tier-drop-zone="unranked"
     >
       <RecruitingTableSectionBar title={title} count={count} />
       {count > 0 ? (
         <>
-          <div className="relative">
+          <div className="relative max-md:hidden">
             <table
               className={`${BOARD.table}${
                 dragging ? " select-none border-separate border-spacing-0" : ""
@@ -497,22 +529,346 @@ function RecruitRankSection({
             >
               <RecruitingTableColgroup />
               <RecruitRankHeader sort={sort} onSort={onSort} />
-              <tbody ref={tbodyRef}>{children}</tbody>
+              <tbody>{children}</tbody>
             </table>
-            {showSlot && dropSlot ? <RankDropSlot slot={dropSlot} /> : null}
           </div>
           {footer}
         </>
       ) : (
-        <div
-          className={`relative px-3 py-7 text-sm text-text-secondary${
-            dropActive ? " bg-[var(--module-tint)]/50" : ""
-          }`}
-        >
+        <div className="relative px-3 py-7 text-sm text-text-secondary">
           {empty}
-          {showSlot && dropSlot ? <RankDropSlot slot={dropSlot} empty /> : null}
         </div>
       )}
+    </section>
+  );
+}
+
+function TierSectionBar({
+  title,
+  count,
+  expanded,
+  onToggle,
+  section,
+}: {
+  title: string;
+  count: number;
+  expanded: boolean;
+  onToggle: () => void;
+  section: TierSectionId;
+}) {
+  const countLabel = `${count} Recruit${count === 1 ? "" : "s"}`;
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={expanded}
+      data-tier-drop-zone={expanded ? undefined : String(section)}
+      className={`${BOARD.sectionBar} w-full cursor-pointer text-left transition-colors hover:bg-black/[0.015]`}
+    >
+      <span className="flex min-w-0 items-center gap-1.5">
+        <ChevronDown
+          className={`h-3.5 w-3.5 shrink-0 text-text-secondary/70 transition-transform ${
+            expanded ? "" : "-rotate-90"
+          }`}
+          strokeWidth={2}
+          aria-hidden="true"
+        />
+        <h3 className={BOARD.sectionLabel}>{title}</h3>
+      </span>
+      <span className={BOARD.sectionCount}>{countLabel}</span>
+    </button>
+  );
+}
+
+/**
+ * Practice Sequence-style sortable card for one ranked recruit.
+ * [handle] [rank] [name + info] [UTR] [Tier] [status/actions]
+ */
+function RankBoardSequenceCard({
+  row,
+  section,
+  sectionIndex,
+  visualIndex,
+  visualCount,
+  editingRankPersonId,
+  setEditingRankPersonId,
+  rankedCount,
+  persistPending,
+  dragging,
+  draggedPersonId,
+  reorderEnabled,
+  isEditing,
+  fieldError,
+  startEdit,
+  cancelEdit,
+  commit,
+  onUnrank,
+  onMoveRank,
+  onMoveInBoard,
+  onHandlePointerDown,
+  onHandlePointerMove,
+  onHandlePointerUp,
+}: {
+  row: RecruitDirectoryRow;
+  section: TierSectionId;
+  sectionIndex: number;
+  visualIndex: number;
+  visualCount: number;
+  editingRankPersonId: string | null;
+  setEditingRankPersonId: (id: string | null) => void;
+  rankedCount: number;
+  persistPending: boolean;
+  dragging: boolean;
+  draggedPersonId: string | null;
+  reorderEnabled: boolean;
+  isEditing: ReturnType<typeof useRecruitDirectoryInlineEdit>["isEditing"];
+  fieldError: string | undefined;
+  startEdit: ReturnType<typeof useRecruitDirectoryInlineEdit>["startEdit"];
+  cancelEdit: ReturnType<typeof useRecruitDirectoryInlineEdit>["cancelEdit"];
+  commit: ReturnType<typeof useRecruitDirectoryInlineEdit>["commit"];
+  onUnrank: (personId: string) => void;
+  onMoveRank: (personId: string, toRank: number) => void;
+  onMoveInBoard: (personId: string, delta: -1 | 1) => void;
+  onHandlePointerDown: (
+    event: ReactPointerEvent<HTMLButtonElement>,
+    personId: string,
+    source: "ranked" | "unranked",
+  ) => void;
+  onHandlePointerMove: (
+    event: ReactPointerEvent<HTMLButtonElement>,
+    personId: string,
+  ) => void;
+  onHandlePointerUp: (event: ReactPointerEvent<HTMLButtonElement>) => void;
+}) {
+  const name = getDisplayName(row.person);
+  const displayRank = row.profile.coachRank ?? null;
+  const utrDisplay = formatUtr(row.person.utr);
+  const isDragging = draggedPersonId === row.person.id;
+  const edit = { isEditing, fieldError, startEdit, cancelEdit, commit };
+
+  return (
+    <div
+      data-rank-board-item=""
+      data-person-id={row.person.id}
+      data-tier-section={String(section)}
+      data-section-index={String(sectionIndex)}
+      className={`flex items-center gap-2 rounded-control border p-2.5 transition ${
+        isDragging
+          ? "scale-[1.01] border-[var(--module-accent)] bg-white shadow-lg"
+          : "border-[color-mix(in_srgb,var(--module-accent)_35%,transparent)] bg-[var(--module-tint)]/55"
+      }`}
+    >
+      {reorderEnabled ? (
+        <RankedDragHandle
+          name={name}
+          disabled={persistPending}
+          dragging={isDragging}
+          onPointerDown={(event) => {
+            setEditingRankPersonId(null);
+            onHandlePointerDown(event, row.person.id, "ranked");
+          }}
+          onPointerMove={(event) =>
+            onHandlePointerMove(event, row.person.id)
+          }
+          onPointerUp={onHandlePointerUp}
+        />
+      ) : (
+        <DragHandlePlaceholder />
+      )}
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--module-accent)] text-xs font-bold text-white">
+        {displayRank ?? "–"}
+      </span>
+      <Link
+        href={`/recruiting/${row.person.id}`}
+        className="min-w-0 flex-1"
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        <span className="block truncate text-xs font-semibold text-text-primary">
+          {name}
+        </span>
+        <span className={`mt-0.5 block truncate ${TEAM_DIRECTORY_META}`}>
+          {row.profile.recruitClassYear ?? TEAM_DIRECTORY_EMPTY}
+          {utrDisplay !== EMPTY_VALUE ? ` · UTR ${utrDisplay}` : ""}
+        </span>
+      </Link>
+      <span className="hidden w-14 shrink-0 text-right text-xs font-semibold tabular-nums text-text-primary sm:block">
+        {utrDisplay === EMPTY_VALUE ? "—" : utrDisplay}
+      </span>
+      <div
+        className="w-14 shrink-0"
+        onPointerDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <RecruitingTierCell row={row} edit={edit} />
+      </div>
+      <div className="hidden shrink-0 sm:block">
+        <RecruitStatusBadge
+          label={row.profile.pipelineStage?.label}
+          tone={pipelineTone(row.profile.pipelineStage?.key)}
+        />
+      </div>
+      {reorderEnabled ? (
+        <BoardMoveButtons
+          name={name}
+          disabled={persistPending || dragging}
+          canUp={visualIndex > 0}
+          canDown={visualIndex < visualCount - 1}
+          onUp={() => onMoveInBoard(row.person.id, -1)}
+          onDown={() => onMoveInBoard(row.person.id, 1)}
+        />
+      ) : null}
+      <div
+        className="hidden w-10 shrink-0 sm:block"
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        <CoachRankValue
+          displayRank={displayRank}
+          currentRank={row.profile.coachRank ?? null}
+          rankedCount={rankedCount}
+          editing={editingRankPersonId === row.person.id && !dragging}
+          disabled={persistPending || dragging}
+          onStartEdit={() => setEditingRankPersonId(row.person.id)}
+          onMove={(toRank) => onMoveRank(row.person.id, toRank)}
+          onClose={() => setEditingRankPersonId(null)}
+        />
+      </div>
+      <RankActionButton
+        row={row}
+        variant="remove"
+        busy={persistPending}
+        disabled={persistPending || dragging}
+        onClick={() => onUnrank(row.person.id)}
+      />
+    </div>
+  );
+}
+
+function RankedTierSection({
+  section,
+  title,
+  rows,
+  expanded,
+  onToggle,
+  rankedCount,
+  visualIndexById,
+  visualCount,
+  editingRankPersonId,
+  setEditingRankPersonId,
+  isEditing,
+  fieldError,
+  startEdit,
+  cancelEdit,
+  commit,
+  persistPending,
+  onUnrank,
+  onMoveRank,
+  onMoveInBoard,
+  dragging,
+  draggedPersonId,
+  hoverTarget,
+  reorderEnabled,
+  onHandlePointerDown,
+  onHandlePointerMove,
+  onHandlePointerUp,
+}: {
+  section: TierSectionId;
+  title: string;
+  rows: RecruitDirectoryRow[];
+  expanded: boolean;
+  onToggle: () => void;
+  rankedCount: number;
+  visualIndexById: Map<string, number>;
+  visualCount: number;
+  editingRankPersonId: string | null;
+  setEditingRankPersonId: (id: string | null) => void;
+  isEditing: ReturnType<typeof useRecruitDirectoryInlineEdit>["isEditing"];
+  fieldError: string | undefined;
+  startEdit: ReturnType<typeof useRecruitDirectoryInlineEdit>["startEdit"];
+  cancelEdit: ReturnType<typeof useRecruitDirectoryInlineEdit>["cancelEdit"];
+  commit: ReturnType<typeof useRecruitDirectoryInlineEdit>["commit"];
+  persistPending: boolean;
+  onUnrank: (personId: string) => void;
+  onMoveRank: (personId: string, toRank: number) => void;
+  onMoveInBoard: (personId: string, delta: -1 | 1) => void;
+  dragging: boolean;
+  draggedPersonId: string | null;
+  hoverTarget: boolean;
+  reorderEnabled: boolean;
+  onHandlePointerDown: (
+    event: ReactPointerEvent<HTMLButtonElement>,
+    personId: string,
+    source: "ranked" | "unranked",
+  ) => void;
+  onHandlePointerMove: (
+    event: ReactPointerEvent<HTMLButtonElement>,
+    personId: string,
+  ) => void;
+  onHandlePointerUp: (event: ReactPointerEvent<HTMLButtonElement>) => void;
+}) {
+  return (
+    <section
+      className={`${BOARD.section}${
+        dragging ? " !overflow-visible" : ""
+      }${
+        hoverTarget
+          ? " ring-2 ring-[var(--module-accent)]/45 ring-inset"
+          : ""
+      }`}
+      data-rank-tier-section={String(section)}
+      data-rank-tier-collapsed={expanded ? "false" : "true"}
+      data-tier-drop-zone={String(section)}
+    >
+      <TierSectionBar
+        title={title}
+        count={rows.length}
+        expanded={expanded}
+        onToggle={onToggle}
+        section={section}
+      />
+      {expanded ? (
+        rows.length > 0 ? (
+          <div className="space-y-2 p-2.5">
+            <p className="px-0.5 text-[11px] text-text-secondary">
+              {rows.length} in tier · drag the handle to reorder
+            </p>
+            {rows.map((row, sectionIndex) => (
+              <RankBoardSequenceCard
+                key={row.person.id}
+                row={row}
+                section={section}
+                sectionIndex={sectionIndex}
+                visualIndex={visualIndexById.get(row.person.id) ?? 0}
+                visualCount={visualCount}
+                editingRankPersonId={editingRankPersonId}
+                setEditingRankPersonId={setEditingRankPersonId}
+                rankedCount={rankedCount}
+                persistPending={persistPending}
+                dragging={dragging}
+                draggedPersonId={draggedPersonId}
+                reorderEnabled={reorderEnabled}
+                isEditing={isEditing}
+                fieldError={fieldError}
+                startEdit={startEdit}
+                cancelEdit={cancelEdit}
+                commit={commit}
+                onUnrank={onUnrank}
+                onMoveRank={onMoveRank}
+                onMoveInBoard={onMoveInBoard}
+                onHandlePointerDown={onHandlePointerDown}
+                onHandlePointerMove={onHandlePointerMove}
+                onHandlePointerUp={onHandlePointerUp}
+              />
+            ))}
+          </div>
+        ) : (
+          <div
+            data-tier-drop-zone={String(section)}
+            className="mx-2.5 mb-2.5 rounded-control border border-dashed border-[color-mix(in_srgb,var(--module-accent)_40%,transparent)] bg-[var(--module-tint)]/40 px-3 py-5 text-center text-sm text-text-secondary"
+          >
+            Drop recruit here
+          </div>
+        )
+      ) : null}
     </section>
   );
 }
@@ -522,11 +878,13 @@ export default function RecruitRankView({
   filteredRows,
   activeFilterIds,
   onCohortChange,
+  onPersistLockChange,
 }: {
   rows: RecruitDirectoryRow[];
   filteredRows: RecruitDirectoryRow[];
   activeFilterIds: readonly string[];
   onCohortChange: (rows: RecruitDirectoryRow[]) => void;
+  onPersistLockChange?: (locked: boolean) => void;
 }) {
   const filterResolution = resolveRankClassYearFromFilters(activeFilterIds);
   const storedYear = useSyncExternalStore(
@@ -535,8 +893,13 @@ export default function RecruitRankView({
     () => null,
   );
   const [error, setError] = useState<string | undefined>();
-  const [editingRankPersonId, setEditingRankPersonId] = useState<string | null>(null);
+  const [editingRankPersonId, setEditingRankPersonId] = useState<string | null>(
+    null,
+  );
   const [unrankedExpandKey, setUnrankedExpandKey] = useState<string | null>(null);
+  const [collapsedTiers, setCollapsedTiers] = useState<ReadonlySet<TierSectionId>>(
+    () => new Set(),
+  );
   const [boardSort, setBoardSort] = useState<BoardSortState>({
     key: "utr",
     direction: "desc",
@@ -575,12 +938,34 @@ export default function RecruitRankView({
     [filteredRows],
   );
 
+  const classRankedCount = useMemo(
+    () => classRows.filter((row) => row.profile.coachRank !== undefined).length,
+    [classRows],
+  );
+
   const ranked = useMemo(() => {
     return classRows
       .filter((row) => row.profile.coachRank !== undefined)
       .filter((row) => visibleIds.has(row.person.id))
-      .sort((a, b) => (a.profile.coachRank as number) - (b.profile.coachRank as number));
+      .sort(
+        (a, b) =>
+          (a.profile.coachRank as number) - (b.profile.coachRank as number),
+      );
   }, [classRows, visibleIds]);
+
+  const reorderEnabled = ranked.length === classRankedCount;
+
+  const tierGroups = useMemo(() => groupRankedRowsByTier(ranked), [ranked]);
+
+  const visualIds = useMemo(
+    () => tierGroups.flatMap((group) => group.rows.map((row) => row.person.id)),
+    [tierGroups],
+  );
+  const visualIndexById = useMemo(() => {
+    const map = new Map<string, number>();
+    visualIds.forEach((id, index) => map.set(id, index));
+    return map;
+  }, [visualIds]);
 
   const unranked = useMemo(() => {
     return classRows
@@ -598,8 +983,10 @@ export default function RecruitRankView({
     classRows,
     cohort: rows,
     addPending: false,
+    reorderEnabled,
     onCohortChange,
     onError: setError,
+    onPersistLockChange,
   });
 
   const unrankedBoardKey = [
@@ -640,9 +1027,18 @@ export default function RecruitRankView({
     });
   }
 
+  function toggleTierSection(section: TierSectionId) {
+    setCollapsedTiers((current) => {
+      const next = new Set(current);
+      if (next.has(section)) next.delete(section);
+      else next.add(section);
+      return next;
+    });
+  }
+
   function handleAddToRanked(personId: string) {
     if (classYear === null) return;
-    if (rankedDrag.dragging || rankedDrag.persistPending) return;
+    if (rankedDrag.persistPending) return;
     setError(undefined);
     rankedDrag.rankPerson(personId);
   }
@@ -700,165 +1096,175 @@ export default function RecruitRankView({
         ) : undefined
       }
     >
-      <div className="flex min-w-0 flex-col gap-3">
-      <RecruitRankSection
-        title="Ranked"
-        count={ranked.length}
-        sectionKey="ranked"
-        empty="No ranked recruits yet. Add someone from Unranked to start the board."
-        sort={boardSort}
-        onSort={toggleBoardSort}
-        tbodyRef={rankedDrag.tbodyRef}
-        sectionRef={rankedDrag.rankedSectionRef}
-        dragging={rankedDrag.dragging}
-        dropActive={rankedDrag.dragSource === "unranked" && rankedDrag.dropZone === "ranked"}
-        dropSlot={rankedDrag.dropSlot}
+      <div
+        className={`flex min-w-0 flex-col gap-3${
+          rankedDrag.dragging ? " select-none" : ""
+        }`}
+        data-rank-board-root=""
       >
-        {rankedDrag.displayRanked.map((row, index) => {
-          const previewRank = rankedDrag.previewRankById?.get(row.person.id);
-          const leavingBoard =
-            rankedDrag.draggedPersonId === row.person.id && rankedDrag.dropZone === "unranked";
-          const busy = rankedDrag.persistPending;
-          // Visible board densifies 1…N (no gaps). Master class order still
-          // densifies separately on persist via applyCoachRanksToCohort.
-          const displayRank = leavingBoard ? null : (previewRank ?? index + 1);
-          const rankEditDisabled =
-            rankedDrag.dragging || rankedDrag.persistPending;
-          return (
-            <RecruitRankRow
-              key={row.person.id}
-              row={row}
-              coachRank={displayRank}
-              rankCell={
-                <CoachRankValue
-                  displayRank={displayRank}
-                  currentRank={displayRank}
-                  rankedCount={ranked.length}
-                  editing={
-                    editingRankPersonId === row.person.id && !rankedDrag.dragging
-                  }
-                  disabled={rankEditDisabled}
-                  onStartEdit={() => setEditingRankPersonId(row.person.id)}
-                  onMove={(toRank) => rankedDrag.movePersonToRank(row.person.id, toRank)}
-                  onClose={() => setEditingRankPersonId(null)}
-                />
-              }
-              rankAction={
-                <RankActionButton
-                  row={row}
-                  variant="remove"
-                  busy={busy}
-                  disabled={rankedDrag.dragging || rankedDrag.persistPending}
-                  onClick={() => rankedDrag.unrankPerson(row.person.id)}
-                />
-              }
-              classOptions={classOptions}
-              isEditing={isEditing}
-              fieldError={fieldError}
-              startEdit={startEdit}
-              cancelEdit={cancelEdit}
-              commit={commit}
-              isDragging={rankedDrag.draggedPersonId === row.person.id}
-              dragSession={rankedDrag.dragging}
-              shiftY={rankedDrag.shiftYByPersonId.get(row.person.id)}
-              dragHandle={
-                <RankedDragHandle
-                  disabled={rankedDrag.persistPending}
-                  dragging={rankedDrag.draggedPersonId === row.person.id}
-                  onPointerDown={(event) => {
-                    setEditingRankPersonId(null);
-                    rankedDrag.onHandlePointerDown(event, row.person.id, "ranked");
-                  }}
-                />
-              }
-            />
-          );
-        })}
-      </RecruitRankSection>
+        {!reorderEnabled && ranked.length > 0 ? (
+          <p className="text-xs text-text-secondary" role="status">
+            Clear filters or search to reorder the Rank Board. Tier can still be
+            edited from the dropdown.
+          </p>
+        ) : null}
 
-      <RecruitRankSection
-        title="Unranked"
-        count={unranked.length}
-        sectionKey="unranked"
-        empty="Every visible recruit in this class is ranked."
-        sort={boardSort}
-        onSort={toggleBoardSort}
-        sectionRef={rankedDrag.unrankedSectionRef}
-        dragging={rankedDrag.dragging}
-        dropActive={rankedDrag.dragSource === "ranked" && rankedDrag.dropZone === "unranked"}
-        dropSlot={rankedDrag.dropSlot}
-        footer={
-          <>
-            {!unrankedExpanded && hiddenUnrankedCount > 0 ? (
-              <div className="border-t border-black/[0.06] px-3 py-2.5">
-                <button
-                  type="button"
-                  onClick={() => setUnrankedExpandKey(unrankedBoardKey)}
-                  className="text-[12px] font-medium text-text-secondary transition-colors hover:text-[var(--module-accent)]"
-                >
-                  Show {hiddenUnrankedCount} more unranked ↓
-                </button>
+        {tierGroups.map((group) => (
+          <RankedTierSection
+            key={String(group.section)}
+            section={group.section}
+            title={group.title}
+            rows={group.rows}
+            expanded={!collapsedTiers.has(group.section)}
+            onToggle={() => toggleTierSection(group.section)}
+            rankedCount={ranked.length}
+            visualIndexById={visualIndexById}
+            visualCount={visualIds.length}
+            editingRankPersonId={editingRankPersonId}
+            setEditingRankPersonId={setEditingRankPersonId}
+            isEditing={isEditing}
+            fieldError={fieldError}
+            startEdit={startEdit}
+            cancelEdit={cancelEdit}
+            commit={commit}
+            persistPending={rankedDrag.persistPending}
+            onUnrank={(personId) => rankedDrag.unrankPerson(personId)}
+            onMoveRank={(personId, toRank) =>
+              rankedDrag.movePersonToRank(personId, toRank)
+            }
+            onMoveInBoard={(personId, delta) =>
+              rankedDrag.movePersonInBoard(personId, delta)
+            }
+            dragging={rankedDrag.dragging}
+            draggedPersonId={rankedDrag.draggedPersonId}
+            hoverTarget={
+              rankedDrag.dragging && rankedDrag.hoverSection === group.section
+            }
+            reorderEnabled={reorderEnabled}
+            onHandlePointerDown={rankedDrag.onHandlePointerDown}
+            onHandlePointerMove={rankedDrag.onHandlePointerMove}
+            onHandlePointerUp={rankedDrag.onHandlePointerUp}
+          />
+        ))}
+
+        <RecruitRankSection
+          title="Unranked"
+          count={unranked.length}
+          sectionKey="unranked"
+          empty="Every visible recruit in this class is ranked."
+          sort={boardSort}
+          onSort={toggleBoardSort}
+          dragging={rankedDrag.dragging}
+          footer={
+            <>
+              <div className="max-md:hidden">
+                {!unrankedExpanded && hiddenUnrankedCount > 0 ? (
+                  <div className="border-t border-black/[0.06] px-3 py-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setUnrankedExpandKey(unrankedBoardKey)}
+                      className="text-[12px] font-medium text-text-secondary transition-colors hover:text-[var(--module-accent)]"
+                    >
+                      Show {hiddenUnrankedCount} more unranked ↓
+                    </button>
+                  </div>
+                ) : null}
+                {unrankedExpanded && unranked.length > UNRANKED_PREVIEW ? (
+                  <div className="border-t border-black/[0.06] px-3 py-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setUnrankedExpandKey(null)}
+                      className="text-[12px] font-medium text-text-secondary transition-colors hover:text-[var(--module-accent)]"
+                    >
+                      Show fewer ↑
+                    </button>
+                  </div>
+                ) : null}
               </div>
-            ) : null}
-            {unrankedExpanded && unranked.length > UNRANKED_PREVIEW ? (
-              <div className="border-t border-black/[0.06] px-3 py-2.5">
-                <button
-                  type="button"
-                  onClick={() => setUnrankedExpandKey(null)}
-                  className="text-[12px] font-medium text-text-secondary transition-colors hover:text-[var(--module-accent)]"
-                >
-                  Show fewer ↑
-                </button>
-              </div>
-            ) : null}
-          </>
-        }
-      >
-        {visibleUnranked.map((row) => {
-          const busy = rankedDrag.persistPending;
-          const previewRank = rankedDrag.previewRankById?.get(row.person.id);
-          return (
-            <RecruitRankRow
-              key={row.person.id}
-              row={row}
-              coachRank={previewRank ?? null}
-              rankAction={
-                <RankActionButton
-                  row={row}
-                  variant="add"
-                  busy={busy}
-                  disabled={rankedDrag.dragging || rankedDrag.persistPending}
-                  onClick={() => handleAddToRanked(row.person.id)}
-                />
-              }
-              classOptions={classOptions}
-              isEditing={isEditing}
-              fieldError={fieldError}
-              startEdit={startEdit}
-              cancelEdit={cancelEdit}
-              commit={commit}
-              isDragging={rankedDrag.draggedPersonId === row.person.id}
-              dragSession={rankedDrag.dragging}
-              shiftY={
-                rankedDrag.dragSource === "ranked" && rankedDrag.dropZone === "unranked"
-                  ? (rankedDrag.dropSlot?.height ?? 56)
-                  : rankedDrag.shiftYByPersonId.get(row.person.id)
-              }
-              dragHandle={
-                <RankedDragHandle
-                  disabled={rankedDrag.persistPending}
-                  dragging={rankedDrag.draggedPersonId === row.person.id}
-                  onPointerDown={(event) => {
-                    setEditingRankPersonId(null);
-                    rankedDrag.onHandlePointerDown(event, row.person.id, "unranked");
-                  }}
-                />
-              }
-            />
-          );
-        })}
-      </RecruitRankSection>
+              {unranked.length > 0 ? (
+                <ul className="divide-y divide-border/50 md:hidden">
+                  {visibleUnranked.map((row) => {
+                    const name = getDisplayName(row.person);
+                    return (
+                      <li
+                        key={row.person.id}
+                        className="flex min-w-0 items-center gap-2 px-4 py-3.5"
+                      >
+                        <Link
+                          href={`/recruiting/${row.person.id}`}
+                          className="min-w-0 flex-1 truncate text-sm font-semibold"
+                        >
+                          {name}
+                        </Link>
+                        <RankActionButton
+                          row={row}
+                          variant="add"
+                          busy={rankedDrag.persistPending}
+                          disabled={
+                            rankedDrag.persistPending || rankedDrag.dragging
+                          }
+                          onClick={() => handleAddToRanked(row.person.id)}
+                        />
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : null}
+            </>
+          }
+        >
+          {visibleUnranked.map((row) => {
+            const name = getDisplayName(row.person);
+            return (
+              <RecruitRankRow
+                key={row.person.id}
+                row={row}
+                coachRank={null}
+                rankAction={
+                  <RankActionButton
+                    row={row}
+                    variant="add"
+                    busy={rankedDrag.persistPending}
+                    disabled={rankedDrag.persistPending || rankedDrag.dragging}
+                    onClick={() => handleAddToRanked(row.person.id)}
+                  />
+                }
+                classOptions={classOptions}
+                isEditing={isEditing}
+                fieldError={fieldError}
+                startEdit={startEdit}
+                cancelEdit={cancelEdit}
+                commit={commit}
+                isDragging={rankedDrag.draggedPersonId === row.person.id}
+                dragHandle={
+                  reorderEnabled ? (
+                    <RankedDragHandle
+                      name={name}
+                      disabled={rankedDrag.persistPending}
+                      dragging={rankedDrag.draggedPersonId === row.person.id}
+                      onPointerDown={(event) => {
+                        setEditingRankPersonId(null);
+                        rankedDrag.onHandlePointerDown(
+                          event,
+                          row.person.id,
+                          "unranked",
+                        );
+                      }}
+                      onPointerMove={(event) =>
+                        rankedDrag.onHandlePointerMove(event, row.person.id)
+                      }
+                      onPointerUp={rankedDrag.onHandlePointerUp}
+                    />
+                  ) : (
+                    <DragHandlePlaceholder />
+                  )
+                }
+              />
+            );
+          })}
+        </RecruitRankSection>
       </div>
     </ViewChrome>
   );
 }
+

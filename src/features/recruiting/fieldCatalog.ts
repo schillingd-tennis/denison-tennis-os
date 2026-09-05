@@ -202,6 +202,19 @@ export const RECRUIT_PROFILE_FIELD_CATALOG: readonly RecruitProfileFieldDefiniti
       "Manual preference order within recruit class year. NULL = unranked. Not Priority or Analytics Tier. Mutations use Coach Rank APIs only.",
   },
   {
+    key: "tier",
+    label: "Tier",
+    section: "evaluation",
+    type: "number",
+    editable: true,
+    sortable: true,
+    filterable: true,
+    exportable: true,
+    dbColumn: "tier",
+    description:
+      "Coach Rank Board tier 1–5. NULL = Unassigned. Not Coach Rank order and not calculated Analytics Tier.",
+  },
+  {
     key: "gpa",
     label: "GPA",
     section: "academic",

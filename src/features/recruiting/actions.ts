@@ -14,6 +14,7 @@ import {
   applyCoachRankOrder,
   createRecruitProfile,
   getCoachRankBoard,
+  getRankBoardPersistRow,
   getRecruitProfileByPersonId,
   moveCoachRank,
   RecruitingRepositoryError,
@@ -147,6 +148,110 @@ export async function applyCoachRankOrderAction(
   } catch (error) {
     logCoachRankError("applyCoachRankOrderAction", error);
     return { success: false, error: "We couldn't update Coach Rank. Please try again." };
+  }
+}
+
+export type RankBoardReorderResult =
+  | {
+      success: true;
+      board: CoachRankBoard;
+      tierProfile?: RecruitProfile;
+    }
+  | { success: false; error: string };
+
+/**
+ * One coherent Rank Board save: optional tier patch + dense coachRank order.
+ * Single revalidate at the end so mid-flight RSC refresh cannot wipe optimistic order.
+ */
+export async function applyRankBoardReorderAction(input: {
+  classYear: number;
+  rankedPersonIds: string[];
+  tierUpdate?: { personId: string; tier: 1 | 2 | 3 | 4 | 5 | null };
+}): Promise<RankBoardReorderResult> {
+  const auth = await requireUser();
+  if (!auth.ok) return { success: false, error: auth.error };
+
+  try {
+    let tierProfile: RecruitProfile | undefined;
+    if (input.tierUpdate) {
+      const personId = input.tierUpdate.personId.trim();
+      if (!personId) {
+        return { success: false, error: "We couldn't update the Rank Board. Please try again." };
+      }
+      tierProfile = await updateRecruitProfile(personId, {
+        tier: input.tierUpdate.tier,
+      });
+      const expected = input.tierUpdate.tier;
+      const actual = tierProfile.tier ?? null;
+      if (actual !== expected) {
+        throw new RecruitingRepositoryError(
+          `Tier persist mismatch for "${personId}": expected ${String(expected)}, got ${String(actual)}.`,
+        );
+      }
+    }
+    const board = await applyCoachRankOrder(
+      input.classYear,
+      input.rankedPersonIds,
+    );
+    // Round-trip: dense global order must match what we wrote (within-tier
+    // position after refresh depends on this, not on tier alone).
+    if (
+      board.rankedPersonIds.length !== input.rankedPersonIds.length ||
+      !board.rankedPersonIds.every(
+        (id, index) => id === input.rankedPersonIds[index],
+      )
+    ) {
+      throw new RecruitingRepositoryError(
+        `Coach Rank order persist mismatch for class ${input.classYear}.`,
+      );
+    }
+    if (input.tierUpdate) {
+      const movedId = input.tierUpdate.personId.trim();
+      const expectedIndex = input.rankedPersonIds.indexOf(movedId);
+      const actualIndex = board.rankedPersonIds.indexOf(movedId);
+      if (actualIndex < 0 || actualIndex !== expectedIndex) {
+        throw new RecruitingRepositoryError(
+          `Moved recruit "${movedId}" order mismatch after persist (expected index ${expectedIndex}, got ${actualIndex}).`,
+        );
+      }
+      // Neighbor check: immediate before/after in the read-back board.
+      const expectedBefore = input.rankedPersonIds[expectedIndex - 1];
+      const expectedAfter = input.rankedPersonIds[expectedIndex + 1];
+      const actualBefore = board.rankedPersonIds[actualIndex - 1];
+      const actualAfter = board.rankedPersonIds[actualIndex + 1];
+      if (expectedBefore !== actualBefore || expectedAfter !== actualAfter) {
+        throw new RecruitingRepositoryError(
+          `Moved recruit "${movedId}" neighbor mismatch after persist.`,
+        );
+      }
+      // Prove A vs B: coach_rank RPC must not wipe tier. Re-read after order write.
+      const expectedTier = input.tierUpdate.tier;
+      const persisted = await getRankBoardPersistRow(movedId);
+      if (!persisted) {
+        throw new RecruitingRepositoryError(
+          `Moved recruit "${movedId}" missing after persist.`,
+        );
+      }
+      if ((persisted.tier ?? null) !== expectedTier) {
+        throw new RecruitingRepositoryError(
+          `Tier wiped after coach rank rewrite for "${movedId}": expected ${String(expectedTier)}, got ${String(persisted.tier)}.`,
+        );
+      }
+      const expectedCoachRank = expectedIndex + 1;
+      if (persisted.coachRank !== expectedCoachRank) {
+        throw new RecruitingRepositoryError(
+          `Coach rank mismatch after persist for "${movedId}": expected ${expectedCoachRank}, got ${String(persisted.coachRank)}.`,
+        );
+      }
+    }
+    revalidatePath("/recruiting");
+    return { success: true, board, tierProfile };
+  } catch (error) {
+    logCoachRankError("applyRankBoardReorderAction", error);
+    return {
+      success: false,
+      error: "We couldn't update the Rank Board. Please try again.",
+    };
   }
 }
 

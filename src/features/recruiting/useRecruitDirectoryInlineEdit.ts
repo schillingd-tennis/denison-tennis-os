@@ -15,8 +15,12 @@ import { updatePersonAction } from "@/features/people/actions";
 import { toPersonWritePatch } from "@/features/people/personWritePatch";
 import type { Person } from "@/features/people/types";
 
-import { updateRecruitProfileAction } from "./actions";
-import { applyCoachRanksToCohort, rankedPersonIdsForClass } from "./coachRank";
+import { applyCoachRankOrderAction, updateRecruitProfileAction } from "./actions";
+import {
+  appendRankedToTierSection,
+  applyCoachRanksToCohort,
+  rankedPersonIdsForClass,
+} from "./coachRank";
 import type { RecruitDirectoryRow } from "./directory";
 import {
   optimisticLookupProfile,
@@ -24,6 +28,7 @@ import {
   replaceProfileInCohort,
   type RecruitingDirectoryEditableField,
 } from "./directoryInline";
+import { parseRecruitTier, type TierSectionId } from "./tier";
 
 type EditingCell = {
   personId: string;
@@ -132,6 +137,88 @@ export function useRecruitDirectoryInlineEdit({
         const ok = await runSave(async () => {
           const result = await updateRecruitProfileAction(personId, {
             [patchKey]: raw || null,
+          });
+          if (!result.success) throw new Error(result.error);
+          onCohortChange(replaceProfileInCohort(previous, personId, result.profile));
+        });
+        if (!ok) onCohortChange(previous);
+        return;
+      }
+
+      if (field === "tier") {
+        const parsed = parseRecruitTier(raw);
+        if (parsed === undefined) {
+          setFieldError("Tier must be 1–5 or blank.");
+          return;
+        }
+        const currentTier = current.profile.tier ?? null;
+        if (currentTier === parsed) {
+          finishCommit(reason);
+          return;
+        }
+
+        const previous = cohort;
+        const classYear = current.profile.recruitClassYear;
+        const isRanked = current.profile.coachRank !== undefined;
+        const toSection: TierSectionId = parsed === null ? "unassigned" : parsed;
+
+        // Ranked: append to bottom of destination tier and densify board order.
+        if (isRanked && classYear != null) {
+          const classRanked = cohort.filter(
+            (row) =>
+              row.profile.recruitClassYear === classYear &&
+              row.profile.coachRank !== undefined,
+          );
+          const boardMove = appendRankedToTierSection({
+            rankedRows: classRanked,
+            personId,
+            toSection,
+          });
+          let optimisticCohort = applyCoachRanksToCohort(
+            cohort,
+            classYear,
+            boardMove.nextVisibleOrder,
+          );
+          optimisticCohort = replaceProfileInCohort(optimisticCohort, personId, {
+            ...current.profile,
+            tier: parsed === null ? undefined : parsed,
+            coachRank: boardMove.nextVisibleOrder.indexOf(personId) + 1,
+          });
+          onCohortChange(optimisticCohort);
+          finishCommit(reason);
+
+          const ok = await runSave(async () => {
+            const tierResult = await updateRecruitProfileAction(personId, {
+              tier: parsed,
+            });
+            if (!tierResult.success) throw new Error(tierResult.error);
+            const orderResult = await applyCoachRankOrderAction(
+              classYear,
+              boardMove.nextVisibleOrder,
+            );
+            if (!orderResult.success) throw new Error(orderResult.error);
+            let next = applyCoachRanksToCohort(
+              previous,
+              classYear,
+              orderResult.board.rankedPersonIds,
+            );
+            next = replaceProfileInCohort(next, personId, tierResult.profile);
+            onCohortChange(next);
+          });
+          if (!ok) onCohortChange(previous);
+          return;
+        }
+
+        const optimistic = {
+          ...current.profile,
+          tier: parsed === null ? undefined : parsed,
+        };
+        onCohortChange(replaceProfileInCohort(cohort, personId, optimistic));
+        finishCommit(reason);
+
+        const ok = await runSave(async () => {
+          const result = await updateRecruitProfileAction(personId, {
+            tier: parsed,
           });
           if (!result.success) throw new Error(result.error);
           onCohortChange(replaceProfileInCohort(previous, personId, result.profile));

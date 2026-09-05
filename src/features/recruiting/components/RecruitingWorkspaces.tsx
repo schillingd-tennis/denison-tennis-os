@@ -171,6 +171,27 @@ function RecruitClassYearBadgeField() {
   );
 }
 
+function RecruitTierBadgeField() {
+  const session = useRecruitProfileFieldSession();
+  const tier = session.profile.tier;
+  const label = tier != null ? `Tier ${tier}` : "Unassigned";
+
+  return (
+    <RecruitProfileField
+      field="tier"
+      label="Tier"
+      type="select"
+      align="left"
+      className="!mx-0 !px-0"
+      renderDisplay={
+        <span title={label} className="inline-flex max-w-full">
+          <RecruitStatusBadge label={label} tone="muted" />
+        </span>
+      }
+    />
+  );
+}
+
 function CoachNotesCallout() {
   const session = useRecruitProfileFieldSession();
   const notes = session.profile.notes ?? "";
@@ -704,6 +725,9 @@ export function RecruitingPersonalInfoWorkspace() {
                 label="Priority"
                 tone={priorityTone}
               />
+            </WorkspaceStatusStripItem>
+            <WorkspaceStatusStripItem label="Tier">
+              <RecruitTierBadgeField />
             </WorkspaceStatusStripItem>
             <WorkspaceStatusStripItem label="Interest">
               <RecruitLookupBadgeField

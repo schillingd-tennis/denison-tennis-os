@@ -15,6 +15,7 @@ export const RECRUITING_TABLE_COLUMNS = {
   classYear: 72,
   pipeline: 140,
   priority: 132,
+  tier: 56,
   interest: 110,
   outcome: 148,
   schoolChosen: 148,

@@ -1,7 +1,7 @@
 "use client";
 
 import { BarChart3, GraduationCap, LayoutGrid, List, ListOrdered } from "lucide-react";
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { publishFoundSet } from "@/components/found-set";
 import EmptyState from "@/components/EmptyState";
@@ -68,9 +68,17 @@ export default function RecruitingDirectory({
   const openAddRecruitDrawer = useAddRecruitDrawer();
   const [liveRows, setLiveRows] = useState(rows);
   const [serverRows, setServerRows] = useState(rows);
+  const persistLockRef = useRef(false);
+  const pendingServerRowsRef = useRef<RecruitDirectoryRow[] | null>(null);
   if (rows !== serverRows) {
     setServerRows(rows);
-    setLiveRows(rows);
+    // Skip adopting server props while Rank Board persist is in flight —
+    // mid-flight revalidate used to wipe optimistic coachRank/tier order.
+    if (persistLockRef.current) {
+      pendingServerRowsRef.current = rows;
+    } else {
+      setLiveRows(rows);
+    }
   }
   const query = useSyncExternalStore(
     subscribeRecruitingDirectoryQuery,
@@ -203,6 +211,15 @@ export default function RecruitingDirectory({
             filteredRows={filtered}
             activeFilterIds={activeFilterIds}
             onCohortChange={setLiveRows}
+            onPersistLockChange={(locked) => {
+              persistLockRef.current = locked;
+              if (!locked) {
+                // Drop mid-flight RSC snapshots. Applying them here used to
+                // overwrite the action-reconciled tier/order after a successful
+                // save (stale props → recruit snaps back to old Tier).
+                pendingServerRowsRef.current = null;
+              }
+            }}
           />
         ) : view === "commit" ? (
           <RecruitCommitView
