@@ -2,9 +2,11 @@
 
 import { LogOut, Search } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { logout } from "@/app/login/actions";
 import { useCommandPalette } from "@/components/command-palette";
+import { timeGreeting } from "@/components/timeGreeting";
 
 import { getPageTitle } from "./nav-items";
 
@@ -13,6 +15,14 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
   const { setOpen } = useCommandPalette();
   const isHome = pathname === "/";
   const title = getPageTitle(pathname);
+  const [greeting, setGreeting] = useState("Welcome");
+
+  useEffect(() => {
+    const updateGreeting = () => setGreeting(timeGreeting(new Date().getHours()));
+    updateGreeting();
+    const timer = window.setInterval(updateGreeting, 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   // Computed on both server and client; suppressed below since the exact
   // wall-clock date can legitimately differ between the two renders.
@@ -53,7 +63,7 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
           {isHome ? (
             <>
               <h1 className="truncate text-lg font-semibold text-text-primary md:text-xl">
-                Good Evening, David
+                {greeting}, David
               </h1>
               <p
                 className="truncate text-xs text-text-secondary"

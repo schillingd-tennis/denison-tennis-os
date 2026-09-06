@@ -5,6 +5,7 @@ import AppShell from "@/components/AppShell";
 
 import "./globals.css";
 import "./layout-lock.css";
+import "../features/home/home-dashboard.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
