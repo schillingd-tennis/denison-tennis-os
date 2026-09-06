@@ -1,6 +1,6 @@
 "use client";
 
-import { Pencil, Plus } from "lucide-react";
+import { Pencil, Plus, Tag, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   useCallback,
@@ -20,7 +20,7 @@ import {
   MobileViewSelector,
 } from "@/components/mobile-dashboard";
 import SearchInput from "@/components/SearchInput";
-import ViewChrome, { ViewContextHeader } from "@/components/view-chrome";
+import ViewChrome from "@/components/view-chrome";
 import { useDrawerManager } from "@/components/workspace-drawer";
 import {
   TEAM_DIRECTORY_EMPTY,
@@ -58,8 +58,7 @@ const ADD_DRILL_BUTTON_CLASS = ADD_RECRUIT_BUTTON_CLASS;
 const DRILL_TABLE_COLUMNS = {
   drill: 400,
   category: 120,
-  focus: 220,
-  players: 88,
+  focus: 308,
   competitive: 120,
   lastUsed: 132,
   timesUsed: 112,
@@ -82,6 +81,10 @@ export default function DrillLibrary({
 
   const rows = useMemo(() => buildDrillLibraryRows(drills, plans), [drills, plans]);
   const definitions = useMemo(() => buildDrillFilterDefinitions(rows), [rows]);
+  const availableTags = useMemo(
+    () => [...new Set(rows.flatMap((row) => row.focusTags))].sort((a, b) => a.localeCompare(b)),
+    [rows],
+  );
   const filtered = useMemo(
     () =>
       filterDrillLibraryRows(rows, {
@@ -126,6 +129,7 @@ export default function DrillLibrary({
         content: (
           <DrillDetailForm
             drill={mode === "create" ? null : drill}
+            availableTags={availableTags}
             onCancel={closeDrawer}
             onSaved={() => {
               closeDrawer();
@@ -135,7 +139,7 @@ export default function DrillLibrary({
         ),
       });
     },
-    [closeDrawer, openDrawer, router],
+    [availableTags, closeDrawer, openDrawer, router],
   );
 
   const handleRowClick = useCallback(
@@ -174,54 +178,27 @@ export default function DrillLibrary({
 
   return (
     <div className="grid gap-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <h2 className="text-base font-semibold text-text-primary">Drill Library</h2>
-          <p className="mt-0.5 text-xs text-text-secondary">
-            Dense sortable list of imported and custom practice drills.
-          </p>
-        </div>
-        <button
-          type="button"
-          className={ADD_DRILL_BUTTON_CLASS}
-          onClick={() => openDrillDrawer(emptyCreateRow, "create")}
-        >
-          <Plus className="mr-1.5 h-4 w-4" strokeWidth={2} aria-hidden />
-          Add Drill
-        </button>
-      </div>
-
       <MobileDirectorySearchRegion
         toolbar={
           <div className="grid min-w-0 gap-2.5">
-            <div className="min-w-0">
-              <SearchInput
-                value={query}
-                onChange={setQuery}
-                placeholder="Search by name, description, category, or focus"
-                aria-label="Search drills"
-              />
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <SearchInput
+                  value={query}
+                  onChange={setQuery}
+                  placeholder="Search by name, description, category, or tag"
+                  aria-label="Search drills"
+                />
+              </div>
+              <button
+                type="button"
+                className={ADD_DRILL_BUTTON_CLASS}
+                onClick={() => openDrillDrawer(emptyCreateRow, "create")}
+              >
+                <Plus className="mr-1.5 h-4 w-4" strokeWidth={2} aria-hidden />
+                Add Drill
+              </button>
             </div>
-            <nav
-              aria-label="Drill library views"
-              className="flex max-w-full gap-1 overflow-x-auto rounded-card border border-border bg-surface p-1 shadow-[0_4px_14px_rgba(17,24,39,0.03)] max-md:hidden"
-            >
-              {DRILL_LIBRARY_VIEW_OPTIONS.map((tab) => (
-                <button
-                  key={tab.value}
-                  type="button"
-                  onClick={() => setView(tab.value)}
-                  aria-current={view === tab.value ? "page" : undefined}
-                  className={`min-h-9 shrink-0 rounded-control px-4 text-xs font-semibold transition-colors ${
-                    view === tab.value
-                      ? "bg-[var(--module-accent)] text-white"
-                      : "text-text-secondary hover:bg-app-background hover:text-text-primary"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </nav>
             <div className="min-w-0">
               <DrillFilterControl
                 value={activeFilterIds}
@@ -250,13 +227,7 @@ export default function DrillLibrary({
           />
         ) : (
           <ViewChrome
-            contextHeader={
-              <ViewContextHeader
-                eyebrow="Practice"
-                title="Drill Library"
-                subtitle={`${sortedItems.length} ${sortedItems.length === 1 ? "drill" : "drills"}`}
-              />
-            }
+            contextHeader={null}
             saveStatus="idle"
             actionButtons={null}
           >
@@ -270,7 +241,6 @@ export default function DrillLibrary({
                     <col style={{ width: DRILL_TABLE_COLUMNS.drill }} />
                     <col style={{ width: DRILL_TABLE_COLUMNS.category }} />
                     <col style={{ width: DRILL_TABLE_COLUMNS.focus }} />
-                    <col style={{ width: DRILL_TABLE_COLUMNS.players }} />
                     <col style={{ width: DRILL_TABLE_COLUMNS.competitive }} />
                     <col style={{ width: DRILL_TABLE_COLUMNS.lastUsed }} />
                     <col style={{ width: DRILL_TABLE_COLUMNS.timesUsed }} />
@@ -288,12 +258,7 @@ export default function DrillLibrary({
                         sortDirection={sortDir("category")}
                         onSort={() => toggleSort("category")}
                       />
-                      <RecruitingHeaderLabel label="Focus" />
-                      <RecruitingHeaderLabel
-                        label="Players"
-                        sortDirection={sortDir("players")}
-                        onSort={() => toggleSort("players")}
-                      />
+                      <RecruitingHeaderLabel label="Tags" />
                       <RecruitingHeaderLabel
                         label="Competitive"
                         sortDirection={sortDir("competitive")}
@@ -340,13 +305,8 @@ export default function DrillLibrary({
                         <td className={`${BOARD.td} ${TEAM_DIRECTORY_META}`}>
                           {directoryCellValue(row.category || "Uncategorized")}
                         </td>
-                        <td className={`${BOARD.td} ${TEAM_DIRECTORY_META}`}>
-                          <span className="line-clamp-2" title={row.focus || undefined}>
-                            {directoryCellValue(row.focus)}
-                          </span>
-                        </td>
-                        <td className={`${BOARD.td} ${TEAM_DIRECTORY_META}`}>
-                          {directoryCellValue(row.players)}
+                        <td className={BOARD.td}>
+                          <DrillTags tags={row.focusTags} />
                         </td>
                         <td className={`${BOARD.td} ${TEAM_DIRECTORY_META}`}>
                           {row.competitive ? "Yes" : "No"}
@@ -402,6 +362,11 @@ export default function DrillLibrary({
                           {" · "}
                           {row.competitive ? "Competitive" : "Non-competitive"}
                         </span>
+                        {row.focusTags.length > 0 ? (
+                          <div className="mt-2">
+                            <DrillTags tags={row.focusTags} compact />
+                          </div>
+                        ) : null}
                       </div>
                       <span className={`self-center text-[12px] tabular-nums ${TEAM_DIRECTORY_META}`}>
                         {row.timesUsed > 0 ? `${row.timesUsed}×` : TEAM_DIRECTORY_EMPTY}
@@ -421,10 +386,12 @@ export default function DrillLibrary({
 
 function DrillDetailForm({
   drill,
+  availableTags,
   onCancel,
   onSaved,
 }: {
   drill: DrillLibraryRow | null;
+  availableTags: string[];
   onCancel: () => void;
   onSaved: () => void;
 }) {
@@ -472,15 +439,10 @@ function DrillDetailForm({
             className={inputClass}
           />
         </Field>
-        <Field label="Focus">
-          <input
-            name="tags"
-            defaultValue={drill?.tags.join(", ") ?? ""}
-            placeholder="Serve, Forehand, Volley"
-            className={inputClass}
-          />
+        <Field label="Tags">
+          <DrillTagInput initialTags={drill?.tags ?? []} suggestions={availableTags} />
           <span className="text-[10px] font-normal text-text-secondary">
-            Separate multiple focus tags with commas.
+            Choose suggested tags or type a new one. Press Enter or comma to add it.
           </span>
         </Field>
         <Field label="Objective">
@@ -550,8 +512,124 @@ function ReadOnlyField({ label, value }: { label: string; value: string }) {
   );
 }
 
+function DrillTags({ tags, compact = false }: { tags: string[]; compact?: boolean }) {
+  if (tags.length === 0) {
+    return <span className={TEAM_DIRECTORY_META}>{TEAM_DIRECTORY_EMPTY}</span>;
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1" aria-label={`Tags: ${tags.join(", ")}`}>
+      {tags.map((tag) => (
+        <span
+          key={tag}
+          data-drill-tag={tag}
+          className={`inline-flex max-w-full items-center gap-1 rounded-full border border-[var(--module-accent)]/20 bg-[var(--module-tint)] font-semibold text-[var(--module-accent)] ${
+            compact ? "px-1.5 py-0.5 text-[9px]" : "px-2 py-1 text-[10px]"
+          }`}
+          title={tag}
+        >
+          <Tag className={compact ? "h-2.5 w-2.5 shrink-0" : "h-3 w-3 shrink-0"} />
+          <span className="truncate">{tag}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function DrillTagInput({ initialTags, suggestions }: { initialTags: string[]; suggestions: string[] }) {
+  const [tags, setTags] = useState(() => [...new Set(initialTags.map((tag) => tag.trim()).filter(Boolean))]);
+  const [draft, setDraft] = useState("");
+  const [focused, setFocused] = useState(false);
+  const normalizedTags = new Set(tags.map((tag) => tag.toLocaleLowerCase()));
+  const matchingSuggestions = suggestions
+    .filter((tag) => !normalizedTags.has(tag.toLocaleLowerCase()))
+    .filter((tag) => !draft.trim() || tag.toLocaleLowerCase().includes(draft.trim().toLocaleLowerCase()))
+    .slice(0, 8);
+
+  function addTag(value: string) {
+    const tag = value.trim().replace(/,+$/, "");
+    if (!tag || normalizedTags.has(tag.toLocaleLowerCase())) {
+      setDraft("");
+      return;
+    }
+    setTags((current) => [...current, tag]);
+    setDraft("");
+  }
+
+  return (
+    <div className="relative">
+      <input type="hidden" name="tags" value={tags.join(", ")} />
+      <div
+        className={`${inputClass} flex min-h-11 flex-wrap items-center gap-1.5 py-1.5`}
+        onClick={(event) => event.currentTarget.querySelector("input")?.focus()}
+      >
+        {tags.map((tag) => (
+          <span
+            key={tag}
+            className="inline-flex items-center gap-1 rounded-full border border-[var(--module-accent)]/20 bg-[var(--module-tint)] px-2 py-1 text-[11px] font-semibold text-[var(--module-accent)]"
+          >
+            <Tag className="h-3 w-3" />
+            {tag}
+            <button
+              type="button"
+              aria-label={`Remove ${tag}`}
+              onClick={() => setTags((current) => current.filter((value) => value !== tag))}
+              className="rounded-full p-0.5 hover:bg-[var(--module-accent)]/10"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </span>
+        ))}
+        <input
+          value={draft}
+          onChange={(event) => {
+            const value = event.target.value;
+            if (value.endsWith(",")) addTag(value);
+            else setDraft(value);
+          }}
+          onFocus={() => setFocused(true)}
+          onBlur={() => window.setTimeout(() => setFocused(false), 120)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              if (draft.trim()) addTag(draft);
+            } else if (event.key === "Backspace" && !draft && tags.length > 0) {
+              setTags((current) => current.slice(0, -1));
+            }
+          }}
+          placeholder={tags.length === 0 ? "Start typing a tag…" : "Add another…"}
+          aria-label="Add tags"
+          aria-autocomplete="list"
+          className="min-w-[130px] flex-1 bg-transparent py-1 text-sm font-normal text-text-primary outline-none placeholder:text-text-secondary/70"
+        />
+      </div>
+      {focused && matchingSuggestions.length > 0 ? (
+        <div
+          role="listbox"
+          aria-label="Suggested tags"
+          className="absolute z-20 mt-1 flex max-h-48 w-full flex-wrap gap-1.5 overflow-y-auto rounded-control border border-border bg-surface p-2 shadow-lg"
+        >
+          {matchingSuggestions.map((tag) => (
+            <button
+              key={tag}
+              type="button"
+              role="option"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => addTag(tag)}
+              className="inline-flex items-center gap-1 rounded-full border border-border bg-app-background px-2.5 py-1.5 text-[11px] font-semibold text-text-primary hover:border-[var(--module-accent)]/30 hover:bg-[var(--module-tint)] hover:text-[var(--module-accent)]"
+            >
+              <Tag className="h-3 w-3" />
+              {tag}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 const inputClass =
-  "w-full rounded-control border border-border bg-surface px-3 py-2.5 text-[16px] outline-none focus:border-[var(--module-accent)] focus:ring-2 focus:ring-[var(--module-tint)] md:text-sm";
+  "w-full rounded-control border border-border bg-surface px-3 py-2.5 text-[16px] font-normal outline-none focus:border-[var(--module-accent)] focus:ring-2 focus:ring-[var(--module-tint)] md:text-sm";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (

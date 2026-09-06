@@ -224,7 +224,7 @@ export function buildDrillFilterDefinitions(
 
 export const DRILL_FILTER_GROUPS: readonly { category: string; label: string }[] = [
   { category: "category", label: "Category" },
-  { category: "focus", label: "Focus" },
+  { category: "focus", label: "Tags" },
   { category: "players", label: "Players" },
   { category: "competitive", label: "Competitive" },
   { category: "usage", label: "Usage" },

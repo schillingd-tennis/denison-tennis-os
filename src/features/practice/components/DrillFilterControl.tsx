@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Filter, Layers, Sparkles, Target, Users } from "lucide-react";
+import { ChevronDown, Filter, Layers, Sparkles, Tags, Users } from "lucide-react";
 import {
   useEffect,
   useId,
@@ -32,7 +32,7 @@ const FILTER_MENU_Z_INDEX = 200;
 
 const facetIcons: Record<string, ComponentType<{ className?: string; strokeWidth?: number }>> = {
   category: Layers,
-  focus: Target,
+  focus: Tags,
   players: Users,
   competitive: Sparkles,
   usage: Filter,
