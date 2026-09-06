@@ -3,6 +3,7 @@
 import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 import DesktopNestedNav from "./DesktopNestedNav";
 import { getNestedNavState } from "./nestedNavState";
@@ -42,6 +43,8 @@ function NavEntry({
 }) {
   const hasChildren = Boolean(item.children?.length);
   const { parentActive, expanded } = getNestedNavState(pathname, item);
+  const [manuallyExpanded, setManuallyExpanded] = useState(expanded);
+  const isExpanded = parentActive || manuallyExpanded;
   const Icon = item.icon;
 
   const rowClass = `flex min-h-11 items-center gap-3 rounded-control px-3.5 py-3 text-[15px] font-medium transition-colors duration-150 md:min-h-0 ${
@@ -53,25 +56,27 @@ function NavEntry({
   return (
     <li>
       {hasChildren ? (
-        <div className={rowClass}>
-          <Link
-            href={item.href}
-            onClick={onNavigate}
-            className="flex min-w-0 flex-1 items-center gap-3"
-          >
+        <button
+          type="button"
+          className={`${rowClass} w-full text-left`}
+          aria-expanded={isExpanded}
+          aria-controls={`sidebar-${item.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
+          onClick={() => setManuallyExpanded((value) => !value)}
+        >
+          <span className="flex min-w-0 flex-1 items-center gap-3">
             <Icon className="h-[19px] w-[19px] shrink-0" strokeWidth={1.75} />
             <span className="min-w-0 truncate">{item.label}</span>
-          </Link>
+          </span>
           <span
             className="flex h-7 w-7 shrink-0 items-center justify-center"
             aria-hidden
           >
             <ChevronDown
-              className={`h-4 w-4 ${expanded ? "" : "-rotate-90"}`}
+              className={`h-4 w-4 transition-transform duration-150 ${isExpanded ? "" : "-rotate-90"}`}
               strokeWidth={1.75}
             />
           </span>
-        </div>
+        </button>
       ) : (
         <Link href={item.href} onClick={onNavigate} className={rowClass}>
           <Icon className="h-[19px] w-[19px] shrink-0" strokeWidth={1.75} />
@@ -79,8 +84,10 @@ function NavEntry({
         </Link>
       )}
 
-      {expanded ? (
-        <DesktopNestedNav parent={item} pathname={pathname} onNavigate={onNavigate} />
+      {isExpanded ? (
+        <div id={`sidebar-${item.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}>
+          <DesktopNestedNav parent={item} pathname={pathname} onNavigate={onNavigate} />
+        </div>
       ) : null}
     </li>
   );

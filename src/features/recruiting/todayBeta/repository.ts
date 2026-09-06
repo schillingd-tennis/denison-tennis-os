@@ -102,6 +102,8 @@ export class TodayBetaRepositoryError extends Error {}
 const RESULTS_TABLE = "recruit_match_results";
 const PROFILES_TABLE = "recruit_profiles";
 
+export type RecentUtrRecruitResult = RecruitMatchResult & { recruitName: string };
+
 type MatchResultRow = {
   id: string;
   recruit_person_id: string;
@@ -164,6 +166,30 @@ function rowToMatchResult(row: MatchResultRow): RecruitMatchResult {
         ? row.rating_type
         : undefined,
   };
+}
+
+export async function listRecentUtrRecruitResults(
+  limit = 5,
+): Promise<RecentUtrRecruitResult[]> {
+  const client = await createSupabaseServerClient();
+  const [{ data, error }, people] = await Promise.all([
+    client
+      .from(RESULTS_TABLE)
+      .select("*")
+      .eq("rating_type", "UTR")
+      .order("tournament_date", { ascending: false, nullsFirst: false })
+      .order("first_detected_at", { ascending: false })
+      .limit(limit),
+    listPeople(),
+  ]);
+  if (error) {
+    throw new TodayBetaRepositoryError(`Failed to load recent UTR results: ${error.message}`);
+  }
+  const names = new Map(people.map((person) => [person.id, getDisplayName(person)]));
+  return ((data as MatchResultRow[] | null) ?? []).map((row) => ({
+    ...rowToMatchResult(row),
+    recruitName: names.get(row.recruit_person_id) ?? "Recruit",
+  }));
 }
 
 function asExternalProfiles(value: unknown): RecruitExternalProfiles {

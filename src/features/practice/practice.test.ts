@@ -10,7 +10,7 @@ test("Practice uses one Team Operations route with five internal tabs", () => {
   assert.equal(TEAM_OPERATIONS_PRACTICE_ROUTE, "/team-operations/practice");
   assert.equal(isTopLevelModulePage(TEAM_OPERATIONS_PRACTICE_ROUTE), true);
   assert.equal(TOP_LEVEL_MODULE_PATHS.includes(TEAM_OPERATIONS_PRACTICE_ROUTE), true);
-  assert.deepEqual(PRACTICE_TABS.map((tab) => tab.label), ["Daily Plan", "Drill Library", "Dates of Competition", "114-Day Tracker", "Practice Log"]);
+  assert.deepEqual(PRACTICE_TABS.map((tab) => tab.label), ["Daily Plan", "Drill Library", "114-Day Tracker", "Dates of Competition", "Practice Log"]);
 });
 
 test("drill sequence reorders optimistically without mutating the original", () => {

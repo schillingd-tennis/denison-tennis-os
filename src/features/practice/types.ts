@@ -3,8 +3,8 @@ export type PracticeTab = "daily-plan" | "drills" | "dates-of-competition" | "11
 export const PRACTICE_TABS: { id: PracticeTab; label: string }[] = [
   { id: "daily-plan", label: "Daily Plan" },
   { id: "drills", label: "Drill Library" },
-  { id: "dates-of-competition", label: "Dates of Competition" },
   { id: "114-day-tracker", label: "114-Day Tracker" },
+  { id: "dates-of-competition", label: "Dates of Competition" },
   { id: "practice-log", label: "Practice Log" },
 ];
 

@@ -5,19 +5,23 @@ import { computePlayerRecords } from "@/features/intraSquad/records";
 import { listVisibleRecruitingInteractions } from "@/features/interactions/repository";
 import {
   getDayRuleSummary,
-  listDailyPracticePlans,
 } from "@/features/practice/repository";
 import { recentInteractions, upcomingVisits } from "@/features/recruiting/dashboard";
 import { loadRecruitingDirectory } from "@/features/recruiting/directory";
+import { listRecentUtrRecruitResults } from "@/features/recruiting/todayBeta/repository";
+import { listScheduleEvents } from "@/features/teamSchedule/repository";
+import { resolveScheduleIdentity } from "@/features/teamSchedule/schoolIdentity";
+import { displayOpponentOrEvent } from "@/features/teamSchedule/types";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [intra, dayRule, plans, interactions, directory] = await Promise.all([
+  const [intra, dayRule, interactions, directory, utrResults, schedule] = await Promise.all([
     loadIntraSquadWorkspaceData(),
     getDayRuleSummary(),
-    listDailyPracticePlans(),
     listVisibleRecruitingInteractions(),
     loadRecruitingDirectory(),
+    listRecentUtrRecruitResults(5),
+    listScheduleEvents(),
   ]);
   const names = new Map(
     intra.roster.map((player) => [
@@ -47,14 +51,30 @@ export default async function Home() {
       unfinished: match.status === "unfinished",
     }));
   const today = new Date().toISOString().slice(0, 10);
+  const currentMonth = dayRule.rows.find((row) => row.month === new Date().getMonth() + 1);
+  const events = schedule
+    .filter((event) => event.status !== "cancelled" && event.startDate >= today)
+    .slice(0, 3)
+    .map((event) => {
+      const identity = resolveScheduleIdentity(event);
+      return {
+        id: event.id,
+        name: displayOpponentOrEvent(event),
+        date: event.startDate,
+        location: event.locationText ?? event.venueName ?? "Location TBD",
+        logoSrc: identity.logoSrc,
+        initials: identity.initials,
+      };
+    });
   return (
     <HomeDashboard
       elo={elo}
-      dayRule={dayRule}
-      todayPlan={plans.find((plan) => plan.planDate === today) ?? null}
       matches={matches}
       interactions={recentInteractions(interactions, 5)}
       visits={upcomingVisits(directory.rows, { limit: 3 })}
+      utrResults={utrResults}
+      monthRule={currentMonth ? { label: currentMonth.label, used: currentMonth.used, budget: currentMonth.budget } : null}
+      events={events}
     />
   );
 }
