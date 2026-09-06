@@ -1,0 +1,2 @@
+const logos:Record<string,string>={"IMG Academy":"https://shop.imgacademy.com/cdn/shop/files/stackedlogodecal.png?v=1778790357",IMG:"https://shop.imgacademy.com/cdn/shop/files/stackedlogodecal.png?v=1778790357",UniSports:"https://storage.e.jimdo.com/cdn-cgi/image/quality%3D85%2Cfit%3Dscale-down%2Cformat%3Dauto%2Cwidth%3D2560/image/171781639/a9a04474-d592-4c6a-8cfe-fd5175fd562e.png"};
+export const agencyLogo=(name:string)=>logos[name];

@@ -18,6 +18,7 @@ import {
   RECRUITING_INTERACTIONS_ROUTE,
   RECRUITING_LOG_ROUTE,
   RECRUITING_TODAY_BETA_ROUTE,
+  RECRUITING_AGENCIES_ROUTE,
   TEAM_OPERATIONS_ROUTE,
   TEAM_OPERATIONS_INTRA_SQUAD_ROUTE,
   TEAM_OPERATIONS_PRACTICE_ROUTE,
@@ -59,6 +60,7 @@ export const primaryNavItems: NavItem[] = [
       { label: "Dashboard", href: RECRUITING_ROUTE, exact: true },
       { label: "Recruits", href: RECRUITING_LIST_ROUTE },
       { label: "Tournaments", href: RECRUITING_TOURNAMENTS_ROUTE },
+      { label: "Agencies", href: RECRUITING_AGENCIES_ROUTE },
       { label: "Interactions", href: RECRUITING_INTERACTIONS_ROUTE },
       { label: "Log", href: RECRUITING_LOG_ROUTE },
     ],
@@ -119,6 +121,9 @@ export function getPageTitle(pathname: string): string {
   }
   if (pathname === RECRUITING_TODAY_BETA_ROUTE || pathname.startsWith(`${RECRUITING_TODAY_BETA_ROUTE}/`)) {
     return "Today Beta";
+  }
+  if (pathname === RECRUITING_AGENCIES_ROUTE || pathname.startsWith(`${RECRUITING_AGENCIES_ROUTE}/`)) {
+    return "Agencies";
   }
   if (pathname === RECRUITING_ROUTE) {
     return "Dashboard";

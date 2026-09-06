@@ -1,0 +1,4 @@
+import assert from "node:assert/strict"; import test from "node:test"; import { filterAgents, sortAgents } from "./filtering"; import type { RecruitingAgent } from "./types";
+const rows:RecruitingAgent[]=[{id:"1",agencyId:"a",agencyName:"Ace",firstName:"Zoe",lastName:"Adams",title:"",email:"zoe@example.com",phone:"",city:"Boston",state:"MA",status:"Active",notes:""},{id:"2",agencyId:"b",agencyName:"Baseline",firstName:"Amy",lastName:"Young",title:"Director",email:"",phone:"",city:"New York",state:"NY",status:"Inactive",notes:""}];
+test("filters agents across all controls",()=>{assert.deepEqual(filterAgents(rows,{query:"zoe",agency:"a",location:"Boston, MA",status:"Active"}).map(r=>r.id),["1"]);assert.equal(filterAgents(rows,{agency:"b",status:"Active"}).length,0)});
+test("sorts without mutating source",()=>{assert.deepEqual(sortAgents(rows,"firstName","asc").map(r=>r.id),["2","1"]);assert.deepEqual(rows.map(r=>r.id),["1","2"])});
