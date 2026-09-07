@@ -27,6 +27,68 @@ export const LOCAL_SCHOOL_LOGO_FILES = [
   "trinity-tx.svg",
   "tufts-jumbos-logo-png_seeklogo-326178.png",
   "w.jpg",
+  "allegheny.svg",
+  "amherst.svg",
+  "asbury.svg",
+  "averett.svg",
+  "babson.svg",
+  "bates.svg",
+  "bethel-mn.svg",
+  "bowdoin.svg",
+  "caltech.svg",
+  "carleton.svg",
+  "carthage.svg",
+  "chapman.svg",
+  "chicago.svg",
+  "chris-newport.svg",
+  "claremont-m-s.svg",
+  "coe.svg",
+  "colby.svg",
+  "east-tex-baptist.svg",
+  "emory.svg",
+  "franklin-marshall.svg",
+  "grinnell.svg",
+  "gust-adolphus.svg",
+  "hamilton.svg",
+  "haverford.svg",
+  "hobart.svg",
+  "hope.svg",
+  "iit.svg",
+  "ithaca.svg",
+  "johns-hopkins.svg",
+  "kalamazoo.svg",
+  "lake-forest.svg",
+  "luther.svg",
+  "mary-hardin-baylor.svg",
+  "middlebury.svg",
+  "mit.svg",
+  "nc-wesleyan.svg",
+  "new-york-u.svg",
+  "north-central-il.svg",
+  "occidental.svg",
+  "ohio-northern.svg",
+  "pomona-pitzer.svg",
+  "randolph.svg",
+  "redlands.svg",
+  "rhodes.svg",
+  "rit.svg",
+  "rochester-ny.svg",
+  "rose-hulman.svg",
+  "sewanee.svg",
+  "shenandoah.svg",
+  "southwestern-tx.svg",
+  "stevens.svg",
+  "swarthmore.svg",
+  "tcnj.svg",
+  "union-ny.svg",
+  "va-wesleyan.svg",
+  "vassar.svg",
+  "wash-lee.svg",
+  "washington-col.svg",
+  "wesleyan-ct.svg",
+  "whitman.svg",
+  "williams.svg",
+  "wis-whitewater.svg",
 ] as const;
 
 /** Official Denison marks — sidebar branding vs schedule invite events. */
@@ -57,6 +119,92 @@ type IdentityEntry = {
   /** Exact filename under `public/school-logos/` when a local asset exists. */
   logoFile?: string;
 };
+
+const RANKED_SCHOOL_IDENTITY_DATA: Array<
+  readonly [slug: string, label: string, logoFile: string, aliases: readonly string[]]
+> = [
+  ["chicago", "University of Chicago", "chicago.svg", ["university of chicago", "chicago"]],
+  ["claremont-mudd-scripps", "Claremont-Mudd-Scripps", "claremont-m-s.svg", ["claremont mudd scripps", "cms"]],
+  ["bowdoin", "Bowdoin", "bowdoin.svg", ["bowdoin", "bowdoin college"]],
+  ["swarthmore", "Swarthmore", "swarthmore.svg", ["swarthmore", "swarthmore college"]],
+  ["johns-hopkins", "Johns Hopkins", "johns-hopkins.svg", ["johns hopkins", "johns hopkins university"]],
+  ["emory", "Emory", "emory.svg", ["emory", "emory ga", "emory university"]],
+  ["babson", "Babson", "babson.svg", ["babson", "babson college"]],
+  ["sewanee-ranked", "Sewanee", "sewanee.svg", ["sewanee", "university of the south"]],
+  ["amherst", "Amherst", "amherst.svg", ["amherst", "amherst college"]],
+  ["middlebury", "Middlebury", "middlebury.svg", ["middlebury", "middlebury college"]],
+  ["pomona-pitzer", "Pomona-Pitzer", "pomona-pitzer.svg", ["pomona pitzer"]],
+  ["grinnell", "Grinnell", "grinnell.svg", ["grinnell", "grinnell college"]],
+  ["gustavus-adolphus", "Gustavus Adolphus", "gust-adolphus.svg", ["gustavus adolphus", "gustavus adolphus college"]],
+  ["williams", "Williams", "williams.svg", ["williams", "williams college"]],
+  ["nyu", "NYU", "new-york-u.svg", ["nyu", "new york university"]],
+  ["christopher-newport", "Christopher Newport", "chris-newport.svg", ["christopher newport", "christopher newport university"]],
+  ["carthage", "Carthage", "carthage.svg", ["carthage", "carthage college"]],
+  ["vassar", "Vassar", "vassar.svg", ["vassar", "vassar college"]],
+  ["kalamazoo-ranked", "Kalamazoo", "kalamazoo.svg", ["kalamazoo", "kalamazoo college"]],
+  ["wisconsin-whitewater", "Wisconsin-Whitewater", "wis-whitewater.svg", ["wisconsin whitewater", "uw whitewater"]],
+  ["washington-and-lee", "Washington and Lee", "wash-lee.svg", ["washington and lee", "washington lee"]],
+  ["southwestern-texas", "Southwestern (Texas)", "southwestern-tx.svg", ["southwestern texas", "southwestern university texas"]],
+  ["north-central-illinois", "North Central (IL)", "north-central-il.svg", ["north central il", "north central illinois", "north central college"]],
+  ["luther", "Luther", "luther.svg", ["luther", "luther college"]],
+  ["north-carolina-wesleyan", "North Carolina Wesleyan", "nc-wesleyan.svg", ["north carolina wesleyan", "north carolina wesleyan university"]],
+  ["tcnj", "The College of New Jersey", "tcnj.svg", ["the college of new jersey", "tcnj"]],
+  ["mit", "MIT", "mit.svg", ["mit", "massachusetts inst of tech", "massachusetts institute of technology"]],
+  ["lake-forest", "Lake Forest", "lake-forest.svg", ["lake forest", "lake forest college"]],
+  ["redlands", "Redlands", "redlands.svg", ["redlands", "university of redlands"]],
+  ["shenandoah", "Shenandoah", "shenandoah.svg", ["shenandoah", "shenandoah university"]],
+  ["haverford", "Haverford", "haverford.svg", ["haverford", "haverford college"]],
+  ["stevens", "Stevens", "stevens.svg", ["stevens", "stevens institute of technology"]],
+  ["franklin-marshall", "Franklin & Marshall", "franklin-marshall.svg", ["franklin marshall", "franklin and marshall", "franklin marshall college"]],
+  ["carleton", "Carleton", "carleton.svg", ["carleton", "carleton college"]],
+  ["bates", "Bates", "bates.svg", ["bates", "bates college"]],
+  ["wesleyan-connecticut", "Wesleyan", "wesleyan-ct.svg", ["wesleyan", "wesleyan university"]],
+  ["randolph", "Randolph", "randolph.svg", ["randolph", "randolph college"]],
+  ["ithaca", "Ithaca", "ithaca.svg", ["ithaca", "ithaca college"]],
+  ["caltech", "Caltech", "caltech.svg", ["caltech", "california institute of technology"]],
+  ["hamilton", "Hamilton", "hamilton.svg", ["hamilton", "hamilton college"]],
+  ["ohio-northern", "Ohio Northern", "ohio-northern.svg", ["ohio northern", "ohio northern university"]],
+  ["union-new-york", "Union (New York)", "union-ny.svg", ["union new york", "union college new york"]],
+  ["hope", "Hope", "hope.svg", ["hope", "hope college"]],
+  ["coe", "Coe", "coe.svg", ["coe", "coe college"]],
+  ["averett", "Averett", "averett.svg", ["averett", "averett university"]],
+  ["rochester-new-york", "Rochester (New York)", "rochester-ny.svg", ["rochester new york", "university of rochester"]],
+  ["rhodes", "Rhodes", "rhodes.svg", ["rhodes", "rhodes college"]],
+  ["chapman", "Chapman", "chapman.svg", ["chapman", "chapman university"]],
+  ["asbury", "Asbury", "asbury.svg", ["asbury", "asbury university"]],
+  ["virginia-wesleyan", "Virginia Wesleyan", "va-wesleyan.svg", ["virginia wesleyan", "virginia wesleyan university"]],
+  ["east-texas-baptist", "East Texas Baptist", "east-tex-baptist.svg", ["east texas baptist", "east texas baptist university", "etbu"]],
+  ["rit", "RIT", "rit.svg", ["rit", "rochester inst of tech", "rochester institute of technology"]],
+  ["occidental", "Occidental", "occidental.svg", ["occidental", "occidental college"]],
+  ["illinois-tech", "Illinois Tech", "iit.svg", ["illinois institute of technology", "illinois tech", "iit"]],
+  ["washington-college", "Washington College", "washington-col.svg", ["washington college"]],
+  ["hobart-william-smith", "Hobart/William Smith", "hobart.svg", ["hobart william smith", "hobart and william smith"]],
+  ["colby", "Colby", "colby.svg", ["colby", "colby college"]],
+  ["bethel-minnesota", "Bethel (MN)", "bethel-mn.svg", ["bethel mn", "bethel minnesota", "bethel university minnesota"]],
+  ["mary-hardin-baylor", "Mary Hardin-Baylor", "mary-hardin-baylor.svg", ["mary hardin baylor", "university of mary hardin baylor"]],
+  ["whitman", "Whitman", "whitman.svg", ["whitman", "whitman college"]],
+  ["allegheny", "Allegheny", "allegheny.svg", ["allegheny", "allegheny college"]],
+  ["rose-hulman", "Rose-Hulman", "rose-hulman.svg", ["rose hulman", "rose hulman institute of technology"]],
+];
+
+const RANKED_SCHOOL_IDENTITIES: IdentityEntry[] = RANKED_SCHOOL_IDENTITY_DATA.map(
+  ([slug, label, logoFile, aliases]) => ({
+  slug,
+  label,
+  initials: label
+    .replace(/[^a-zA-Z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 3)
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase(),
+  aliases: [...aliases],
+  kind: "school" as const,
+  accentColor: "#475569",
+  logoFile,
+  }),
+);
 
 const SCHOOL_IDENTITIES: IdentityEntry[] = [
   {
@@ -225,6 +373,7 @@ const SCHOOL_IDENTITIES: IdentityEntry[] = [
     kind: "school",
     accentColor: "#FF6600",
   },
+  ...RANKED_SCHOOL_IDENTITIES,
 ];
 
 const EVENT_IDENTITIES: IdentityEntry[] = [
@@ -360,6 +509,14 @@ export function resolveScheduleIdentityFromLabel(label: string): ScheduleIdentit
   }
 
   return null;
+}
+
+/** Exact shared school alias lookup for tables where fuzzy matching is unsafe. */
+export function resolveSchoolIdentityFromLabelExact(label: string): ScheduleIdentity | null {
+  const normalized = normalizeLabel(label);
+  if (!normalized) return null;
+  const school = SCHOOL_ALIAS_MAP.get(normalized);
+  return school ? entryToIdentity(school) : null;
 }
 
 function resolveEventIdentity(eventName: string): ScheduleIdentity | null {

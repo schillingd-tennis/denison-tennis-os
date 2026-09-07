@@ -142,3 +142,20 @@ test("Practice sits between Schedule and Intra Squad in Team Operations", () => 
   assert.equal(state.parentActive, true);
   assert.equal(state.activeChildHref, "/team-operations/intra-squad");
 });
+
+const rankings = primaryNavItems.find((item) => item.label === "Rankings");
+if (!rankings) throw new Error("expected Rankings nav item");
+
+test("Rankings sits between Recruiting and Fundraising", () => {
+  const labels = primaryNavItems.map((item) => item.label);
+  assert.equal(labels.indexOf("Rankings"), labels.indexOf("Recruiting") + 1);
+  assert.equal(labels.indexOf("Fundraising"), labels.indexOf("Rankings") + 1);
+});
+
+test("Rankings is a single sidebar link; submodules stay in workspace tabs", () => {
+  assert.equal(rankings.children, undefined);
+  assert.equal(isNavItemActive("/rankings/current-ita", rankings.href), true);
+  assert.equal(isNavItemActive("/rankings/live-ita", rankings.href), true);
+  assert.equal(isNavItemActive("/rankings/current-npi", rankings.href), true);
+  assert.equal(isNavItemActive("/rankings/live-npi", rankings.href), true);
+});

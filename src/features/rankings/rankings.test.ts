@@ -1,0 +1,173 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import {
+  isNavItemActive,
+  primaryNavItems,
+} from "@/components/nav-items";
+import {
+  RANKINGS_CURRENT_ITA_ROUTE,
+  RANKINGS_CURRENT_NPI_ROUTE,
+  RANKINGS_LIVE_ITA_ROUTE,
+  RANKINGS_LIVE_NPI_ROUTE,
+  RANKINGS_ROUTE,
+} from "@/lib/module-routes";
+
+import { filterRankingEntries } from "./search";
+import {
+  isLocalSchoolLogoPath,
+  listUnresolvedRankingLogos,
+  normalizeRankingSchoolName,
+  resolveRankingSchoolLogo,
+} from "./schoolLogos";
+import { CURRENT_ITA_NATIONAL_TEAM_MEN_DIV3_SNAPSHOT } from "./snapshot/currentIta";
+import { RANKINGS_SUBMODULES } from "./submodules";
+import { validateRankingSnapshot } from "./validate";
+
+const rankings = primaryNavItems.find((item) => item.label === "Rankings");
+if (!rankings) throw new Error("expected Rankings nav item");
+
+test("Rankings sits between Recruiting and Fundraising in primary nav", () => {
+  const labels = primaryNavItems.map((item) => item.label);
+  const recruitingIndex = labels.indexOf("Recruiting");
+  const rankingsIndex = labels.indexOf("Rankings");
+  const fundraisingIndex = labels.indexOf("Fundraising");
+  assert.ok(recruitingIndex >= 0);
+  assert.ok(rankingsIndex >= 0);
+  assert.ok(fundraisingIndex >= 0);
+  assert.equal(rankingsIndex, recruitingIndex + 1);
+  assert.equal(fundraisingIndex, rankingsIndex + 1);
+});
+
+test("Rankings submodules stay in workspace tabs instead of sidebar children", () => {
+  assert.equal(rankings.children, undefined);
+  assert.deepEqual(
+    RANKINGS_SUBMODULES.map((item) => item.label),
+    [
+      "Current ITA Rankings",
+      "Live ITA Rankings",
+      "Current NPI Rankings",
+      "Live NPI Rankings",
+    ],
+  );
+  assert.deepEqual(
+    RANKINGS_SUBMODULES.map((item) => item.href),
+    [
+      RANKINGS_CURRENT_ITA_ROUTE,
+      RANKINGS_LIVE_ITA_ROUTE,
+      RANKINGS_CURRENT_NPI_ROUTE,
+      RANKINGS_LIVE_NPI_ROUTE,
+    ],
+  );
+});
+
+test("Rankings parent stays active on submodule routes", () => {
+  assert.equal(isNavItemActive(RANKINGS_ROUTE, RANKINGS_ROUTE), true);
+  assert.equal(isNavItemActive(RANKINGS_CURRENT_ITA_ROUTE, RANKINGS_ROUTE), true);
+  assert.equal(isNavItemActive(RANKINGS_LIVE_NPI_ROUTE, RANKINGS_ROUTE), true);
+  assert.equal(isNavItemActive("/fundraising", RANKINGS_ROUTE), false);
+});
+
+test("Current ITA snapshot metadata matches June 3 2026 Men DIII National Team", () => {
+  const { metadata, entries } = CURRENT_ITA_NATIONAL_TEAM_MEN_DIV3_SNAPSHOT;
+  assert.equal(metadata.rankingDate, "2026-06-03");
+  assert.equal(metadata.season, "2025-26");
+  assert.equal(metadata.gender, "M");
+  assert.equal(metadata.division, "DIV3");
+  assert.equal(metadata.format, "TEAM");
+  assert.equal(metadata.rankingType, "national");
+  assert.equal(metadata.totalRankedTeams, 75);
+  assert.equal(entries.length, 75);
+  assert.match(metadata.sourceUrl, /date=2026-06-03/);
+  assert.match(metadata.sourceUrl, /gender=M/);
+  assert.match(metadata.sourceUrl, /divisionType=DIV3/);
+  assert.match(metadata.sourceUrl, /matchFormat=TEAM/);
+  assert.match(metadata.sourceName, /ITA/i);
+  assert.ok(metadata.retrievedAt);
+});
+
+test("Current ITA snapshot is complete, ordered, and validates", () => {
+  const snapshot = validateRankingSnapshot(CURRENT_ITA_NATIONAL_TEAM_MEN_DIV3_SNAPSHOT);
+  const ranks = snapshot.entries.map((entry) => entry.rank);
+  for (let i = 1; i < ranks.length; i += 1) {
+    assert.ok(ranks[i]! >= ranks[i - 1]!, `rank order at ${i}`);
+  }
+  const names = new Set(snapshot.entries.map((entry) => entry.schoolName));
+  assert.equal(names.size, snapshot.entries.length);
+});
+
+test("ties are supported by validation", () => {
+  const tied = validateRankingSnapshot({
+    metadata: {
+      ...CURRENT_ITA_NATIONAL_TEAM_MEN_DIV3_SNAPSHOT.metadata,
+      totalRankedTeams: 2,
+      sourceName: "test",
+      sourceUrl: "https://example.com",
+      rankingDate: "2026-06-03",
+      retrievedAt: "2026-09-07T00:00:00Z",
+    },
+    entries: [
+      { rank: 10, schoolName: "Alpha (M)" },
+      { rank: 10, schoolName: "Beta (M)" },
+    ],
+  });
+  assert.equal(tied.entries[0]?.rank, 10);
+  assert.equal(tied.entries[1]?.rank, 10);
+});
+
+test("Denison official rank is 4 with Denison logo", () => {
+  const denison = CURRENT_ITA_NATIONAL_TEAM_MEN_DIV3_SNAPSHOT.entries.find((entry) =>
+    entry.schoolName.toLowerCase().includes("denison"),
+  );
+  assert.ok(denison);
+  assert.equal(denison.rank, 4);
+  assert.equal(denison.wins, 27);
+  assert.equal(denison.losses, 3);
+  assert.equal(denison.points, 78.229);
+  assert.equal(denison.wtn, 11.96);
+  const logo = resolveRankingSchoolLogo(denison.schoolName);
+  assert.equal(logo.isDenison, true);
+  assert.equal(logo.resolved, true);
+  assert.equal(logo.logoSrc, "/school-logos/Denison_transparent.png");
+  assert.equal(normalizeRankingSchoolName(denison.schoolName), "Denison");
+});
+
+test("search filters without mutating official rank order", () => {
+  const filtered = filterRankingEntries(
+    CURRENT_ITA_NATIONAL_TEAM_MEN_DIV3_SNAPSHOT.entries,
+    "coast",
+  );
+  assert.ok(filtered.length >= 1);
+  for (let i = 1; i < filtered.length; i += 1) {
+    assert.ok(filtered[i]!.rank >= filtered[i - 1]!.rank);
+  }
+  const denisonOnly = filterRankingEntries(
+    CURRENT_ITA_NATIONAL_TEAM_MEN_DIV3_SNAPSHOT.entries,
+    "denison",
+  );
+  assert.equal(denisonOnly.length, 1);
+  assert.equal(denisonOnly[0]?.rank, 4);
+});
+
+test("all Current ITA schools use local shared-library logos and never hotlink", () => {
+  const unresolved = listUnresolvedRankingLogos(
+    CURRENT_ITA_NATIONAL_TEAM_MEN_DIV3_SNAPSHOT.entries.map((entry) => entry.schoolName),
+  );
+  assert.equal(unresolved.length, 0);
+  for (const entry of CURRENT_ITA_NATIONAL_TEAM_MEN_DIV3_SNAPSHOT.entries) {
+    const logo = resolveRankingSchoolLogo(entry.schoolName);
+    if (logo.logoSrc) {
+      assert.equal(isLocalSchoolLogoPath(logo.logoSrc), true);
+      assert.equal(logo.logoSrc.startsWith("http"), false);
+    }
+  }
+});
+
+test("snapshot columns: record and conference present; previous rank absent", () => {
+  const { entries } = CURRENT_ITA_NATIONAL_TEAM_MEN_DIV3_SNAPSHOT;
+  assert.ok(entries.every((entry) => entry.wins != null && entry.losses != null));
+  assert.ok(entries.every((entry) => entry.points != null));
+  assert.ok(entries.every((entry) => entry.wtn != null));
+  assert.ok(entries.every((entry) => Boolean(entry.conference)));
+  assert.ok(entries.every((entry) => entry.previousRank == null));
+});

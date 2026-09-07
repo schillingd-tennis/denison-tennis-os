@@ -5,6 +5,7 @@ import {
   HandCoins,
   Home,
   Settings,
+  Trophy,
   UserPlus,
   Users,
   type LucideIcon,
@@ -26,6 +27,11 @@ import {
   TEAM_ROUTE,
   KNOWLEDGE_ROUTE,
   KNOWLEDGE_HOTELS_ROUTE,
+  RANKINGS_ROUTE,
+  RANKINGS_CURRENT_ITA_ROUTE,
+  RANKINGS_LIVE_ITA_ROUTE,
+  RANKINGS_CURRENT_NPI_ROUTE,
+  RANKINGS_LIVE_NPI_ROUTE,
 } from "@/lib/module-routes";
 
 export type NavChildItem = {
@@ -64,6 +70,11 @@ export const primaryNavItems: NavItem[] = [
       { label: "Interactions", href: RECRUITING_INTERACTIONS_ROUTE },
       { label: "Log", href: RECRUITING_LOG_ROUTE },
     ],
+  },
+  {
+    label: "Rankings",
+    href: RANKINGS_ROUTE,
+    icon: Trophy,
   },
   { label: "Fundraising", href: "/fundraising", icon: HandCoins },
   { label: "Research Lab", href: "/research", icon: FlaskConical },
@@ -148,6 +159,21 @@ export function getPageTitle(pathname: string): string {
   }
   if (pathname.startsWith("/team-operations") || pathname.startsWith("/operations")) {
     return "Team Operations";
+  }
+  if (pathname === RANKINGS_CURRENT_ITA_ROUTE || pathname.startsWith(`${RANKINGS_CURRENT_ITA_ROUTE}/`)) {
+    return "Current ITA Rankings";
+  }
+  if (pathname === RANKINGS_LIVE_ITA_ROUTE || pathname.startsWith(`${RANKINGS_LIVE_ITA_ROUTE}/`)) {
+    return "Live ITA Rankings";
+  }
+  if (pathname === RANKINGS_CURRENT_NPI_ROUTE || pathname.startsWith(`${RANKINGS_CURRENT_NPI_ROUTE}/`)) {
+    return "Current NPI Rankings";
+  }
+  if (pathname === RANKINGS_LIVE_NPI_ROUTE || pathname.startsWith(`${RANKINGS_LIVE_NPI_ROUTE}/`)) {
+    return "Live NPI Rankings";
+  }
+  if (pathname.startsWith(RANKINGS_ROUTE)) {
+    return "Rankings";
   }
   if (pathname.startsWith("/fundraising")) {
     return "Fundraising";

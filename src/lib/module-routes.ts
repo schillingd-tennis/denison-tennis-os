@@ -32,6 +32,13 @@ export const TEAM_OPERATIONS_PRACTICE_ROUTE = "/team-operations/practice";
 export const KNOWLEDGE_ROUTE = "/knowledge";
 export const KNOWLEDGE_HOTELS_ROUTE = "/knowledge/hotels";
 
+/** Rankings module — ITA / NPI team rankings. */
+export const RANKINGS_ROUTE = "/rankings";
+export const RANKINGS_CURRENT_ITA_ROUTE = "/rankings/current-ita";
+export const RANKINGS_LIVE_ITA_ROUTE = "/rankings/live-ita";
+export const RANKINGS_CURRENT_NPI_ROUTE = "/rankings/current-npi";
+export const RANKINGS_LIVE_NPI_ROUTE = "/rankings/live-npi";
+
 /** Legacy Team overview shell (no longer in primary nav). */
 export const TEAM_ROUTE = "/team";
 
@@ -51,6 +58,11 @@ export const TOP_LEVEL_MODULE_PATHS = [
   TEAM_OPERATIONS_SCHEDULE_ROUTE,
   TEAM_OPERATIONS_INTRA_SQUAD_ROUTE,
   TEAM_OPERATIONS_PRACTICE_ROUTE,
+  RANKINGS_ROUTE,
+  RANKINGS_CURRENT_ITA_ROUTE,
+  RANKINGS_LIVE_ITA_ROUTE,
+  RANKINGS_CURRENT_NPI_ROUTE,
+  RANKINGS_LIVE_NPI_ROUTE,
   "/operations",
   "/fundraising",
   "/research",
