@@ -54,6 +54,8 @@ describe("UTR agent browser architecture", () => {
     assert.match(browserClientSource, /mode: "cors"/);
     assert.match(browserClientSource, /\/health/);
     assert.match(browserClientSource, /\/check-recruits/);
+    assert.match(browserClientSource, /errorSummary/);
+    assert.match(browserClientSource, /agentStartedAt/);
   });
 
   it("3. Vercel server does NOT call localhost agent for checks", () => {
@@ -96,9 +98,13 @@ describe("UTR agent browser architecture", () => {
     assert.doesNotMatch(browserClientSource, /X-Denison-Utr-Agent-Secret/);
   });
 
-  it("11. Check button enables when local agent is online", () => {
+  it("11. Check button enables when local agent is online; Refresh Status only re-probes health", () => {
     assert.match(sectionSource, /agentOnline/);
-    assert.match(readFileSync(join(here, "components/UtrAutomaticCheckStrip.tsx"), "utf8"), /disabled=\{busy \|\| !agentOnline/);
+    const stripSource = readFileSync(join(here, "components/UtrAutomaticCheckStrip.tsx"), "utf8");
+    assert.match(stripSource, /disabled=\{busy \|\| !agentOnline/);
+    assert.match(stripSource, /Refresh Status/);
+    assert.doesNotMatch(stripSource, /Refresh Agent/);
+    assert.match(sectionSource, /fetchUtrAgentHealthFromBrowser/);
   });
 
   it("12–13. baseline import semantics and Rank Board cohort preserved in import pipeline", () => {
@@ -117,5 +123,7 @@ describe("UTR agent browser architecture", () => {
     assert.match(gitignoreSource, /\.local\/utr-agent-cert\.pem/);
     assert.match(gitignoreSource, /\.local\/utr-agent-key\.pem/);
     assert.doesNotMatch(browserClientSource, /http:\/\/127\.0\.0\.1:4317/);
+    assert.match(agentRequestHandlerSource, /startedAt: AGENT_STARTED_AT/);
+    assert.match(agentRequestHandlerSource, /status: "online"/);
   });
 });

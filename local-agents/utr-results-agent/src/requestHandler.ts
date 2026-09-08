@@ -5,6 +5,9 @@ import { corsHeadersForOrigin, isAllowedBrowserOrigin } from "./cors.js";
 import { runRecruitChecks } from "./runCheck.js";
 import type { AgentCheckRequest } from "./types.js";
 
+/** Process start time — verified live via /health (not a fabricated DB heartbeat). */
+const AGENT_STARTED_AT = new Date().toISOString();
+
 export function jsonResponse(
   res: ServerResponse,
   status: number,
@@ -69,8 +72,12 @@ export function createAgentRequestHandler(secret: string) {
         200,
         {
           ok: true,
+          status: "online",
           service: "denison-utr-results-agent",
           version: "0.1.0",
+          startedAt: AGENT_STARTED_AT,
+          checkedAt: new Date().toISOString(),
+          retrievalMode: "context-request-v2",
         },
         cors ?? {},
       );
