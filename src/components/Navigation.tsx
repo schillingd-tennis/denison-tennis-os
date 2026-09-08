@@ -3,7 +3,7 @@
 import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 
 import DesktopNestedNav from "./DesktopNestedNav";
 import { getNestedNavState } from "./nestedNavState";
@@ -47,11 +47,12 @@ function NavEntry({
   const isExpanded = parentActive || manuallyExpanded;
   const Icon = item.icon;
 
-  const rowClass = `flex min-h-11 items-center gap-3 rounded-control px-3.5 py-3 text-[15px] font-medium transition-colors duration-150 md:min-h-0 ${
+  const rowClass = `flex min-h-11 items-center gap-3 rounded-control px-3.5 py-3 text-[15px] font-medium transition-[background-color,color,box-shadow] duration-150 md:min-h-0 ${
     parentActive
-      ? "bg-[var(--module-accent)] text-surface shadow-[0_8px_18px_color-mix(in_srgb,var(--module-accent)_32%,transparent)]"
-      : "text-text-secondary hover:bg-sidebar-hover hover:text-surface"
+      ? "bg-[var(--nav-accent)] text-surface shadow-[0_8px_18px_color-mix(in_srgb,var(--nav-accent)_32%,transparent)]"
+      : "text-text-secondary hover:bg-[var(--nav-accent)] hover:text-surface focus-visible:bg-[var(--nav-accent)] focus-visible:text-surface focus-visible:outline-none"
   }`;
+  const rowStyle = { "--nav-accent": item.accent } as CSSProperties;
 
   return (
     <li>
@@ -59,12 +60,13 @@ function NavEntry({
         <button
           type="button"
           className={`${rowClass} w-full text-left`}
+          style={rowStyle}
           aria-expanded={isExpanded}
           aria-controls={`sidebar-${item.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
           onClick={() => setManuallyExpanded((value) => !value)}
         >
           <span className="flex min-w-0 flex-1 items-center gap-3">
-            <Icon className="h-[19px] w-[19px] shrink-0" strokeWidth={1.75} />
+            <Icon className="h-[19px] w-[19px] shrink-0 text-white" strokeWidth={1.75} />
             <span className="min-w-0 truncate">{item.label}</span>
           </span>
           <span
@@ -78,8 +80,8 @@ function NavEntry({
           </span>
         </button>
       ) : (
-        <Link href={item.href} onClick={onNavigate} className={rowClass}>
-          <Icon className="h-[19px] w-[19px] shrink-0" strokeWidth={1.75} />
+        <Link href={item.href} onClick={onNavigate} className={rowClass} style={rowStyle}>
+          <Icon className="h-[19px] w-[19px] shrink-0 text-white" strokeWidth={1.75} />
           {item.label}
         </Link>
       )}

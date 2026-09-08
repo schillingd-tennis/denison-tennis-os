@@ -21,11 +21,12 @@
   --color-warning: #f59e0b;
   --color-danger: #dc2626;
   --color-info: #2563eb;
-  --color-team: #2563eb;
-  --color-operations: #b45309;
-  --color-research: #7c3aed;
-  --color-knowledge: #0f766e;
-  --color-fundraising: #059669;
+  --color-team: #64748b;
+  --color-operations: #16a34a;
+  --color-rankings: #7c3aed;
+  --color-research: #3f3f46;
+  --color-knowledge: #c2410c;
+  --color-fundraising: #166534;
   --color-settings: #475569;
 
   --radius-card: 12px;
@@ -66,8 +67,8 @@
 
 .app-shell[data-module="team"] {
   --module-accent: var(--color-team);
-  --module-tint: #eff6ff;
-  --module-border: #bfdbfe;
+  --module-tint: #f1f5f9;
+  --module-border: #cbd5e1;
 }
 
 .app-shell[data-module="recruiting"] {
@@ -78,26 +79,32 @@
 
 .app-shell[data-module="operations"] {
   --module-accent: var(--color-operations);
-  --module-tint: #fffbeb;
-  --module-border: #fde68a;
+  --module-tint: #f0fdf4;
+  --module-border: #bbf7d0;
 }
 
-.app-shell[data-module="research"] {
-  --module-accent: var(--color-research);
+.app-shell[data-module="rankings"] {
+  --module-accent: var(--color-rankings);
   --module-tint: #f5f3ff;
   --module-border: #ddd6fe;
 }
 
+.app-shell[data-module="research"] {
+  --module-accent: var(--color-research);
+  --module-tint: #f3f4f6;
+  --module-border: #d1d5db;
+}
+
 .app-shell[data-module="knowledge"] {
   --module-accent: var(--color-knowledge);
-  --module-tint: #f0fdfa;
-  --module-border: #99f6e4;
+  --module-tint: #fff7ed;
+  --module-border: #fdba74;
 }
 
 .app-shell[data-module="fundraising"] {
   --module-accent: var(--color-fundraising);
-  --module-tint: #ecfdf5;
-  --module-border: #a7f3d0;
+  --module-tint: #f0fdf4;
+  --module-border: #86efac;
 }
 
 .app-shell[data-module="people"] {

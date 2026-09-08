@@ -159,3 +159,19 @@ test("Rankings is a single sidebar link; submodules stay in workspace tabs", () 
   assert.equal(isNavItemActive("/rankings/current-npi", rankings.href), true);
   assert.equal(isNavItemActive("/rankings/live-npi", rankings.href), true);
 });
+
+test("top-level modules own the approved sidebar accent colors", () => {
+  assert.deepEqual(
+    Object.fromEntries(primaryNavItems.map((item) => [item.label, item.accent])),
+    {
+      Home: "#c8102e",
+      Team: "#64748b",
+      "Team Operations": "#16a34a",
+      Recruiting: "#c8102e",
+      Rankings: "#7c3aed",
+      Fundraising: "#166534",
+      "Research Lab": "#3f3f46",
+      Resources: "#c2410c",
+    },
+  );
+});

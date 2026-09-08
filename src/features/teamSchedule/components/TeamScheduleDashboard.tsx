@@ -51,7 +51,7 @@ import ScheduleSummaryCards from "./ScheduleSummaryCards";
 import ScheduleTable from "./ScheduleTable";
 
 const ADD_MATCH_BUTTON_CLASS =
-  "inline-flex h-11 shrink-0 items-center justify-center rounded-control bg-denison-red px-5 text-sm font-semibold tracking-wide text-white shadow-[0_8px_18px_rgba(200,16,46,0.28)] transition-opacity hover:opacity-90";
+  "inline-flex h-11 shrink-0 items-center justify-center rounded-control bg-[var(--module-accent)] px-5 text-sm font-semibold tracking-wide text-white shadow-[0_8px_18px_color-mix(in_srgb,var(--module-accent)_28%,transparent)] transition-opacity hover:opacity-90";
 
 export default function TeamScheduleDashboard({
   events: initialEvents,

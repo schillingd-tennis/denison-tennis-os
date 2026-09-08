@@ -9,18 +9,15 @@ import type { NavItem } from "./nav-items";
  * Shared desktop nested sidebar (Recruiting today; any parent with `children`).
  *
  * Geometry is inline so it cannot depend on Tailwind generating/keeping
- * `ml-*` / `absolute` / `bg-white/25` after client navigation.
+ * layout utilities after client navigation.
  *
  * Parent row: 14px pad + 19px icon + 12px gap ⇒ label at 45px.
- * Child group starts at 44px (under that label). Rail at 0 of the group.
- * Child text is 18px to the right of the rail. Active dot is centered on the rail.
+ * Child group starts under that label. Active children use the parent module's
+ * full-row color; there is deliberately no colored rail or dot.
  */
 const PARENT_LABEL_X = 44;
 const RAIL_TO_TEXT = 18;
-const DOT = 7;
 const CHILD_IDLE = "rgba(255, 255, 255, 0.55)";
-const CHILD_ACTIVE = "#C8102E";
-const RAIL = "rgba(255, 255, 255, 0.28)";
 
 export default function DesktopNestedNav({
   parent,
@@ -47,18 +44,6 @@ export default function DesktopNestedNav({
         listStyle: "none",
       }}
     >
-      <li
-        aria-hidden
-        style={{
-          position: "absolute",
-          top: 6,
-          bottom: 6,
-          left: 0,
-          width: 1,
-          backgroundColor: RAIL,
-          pointerEvents: "none",
-        }}
-      />
       {children.map((child) => {
         const active = isNavChildActive(pathname, child);
         return (
@@ -67,7 +52,7 @@ export default function DesktopNestedNav({
               href={child.href}
               onClick={onNavigate}
               aria-current={active ? "page" : undefined}
-              className={active ? "font-semibold" : "font-medium"}
+              className={`rounded-md px-2 transition-colors ${active ? "font-semibold" : "font-medium hover:bg-white/10 hover:text-white focus-visible:bg-white/10 focus-visible:text-white focus-visible:outline-none"}`}
               style={{
                 position: "relative",
                 display: "flex",
@@ -78,24 +63,10 @@ export default function DesktopNestedNav({
                 paddingRight: 8,
                 fontSize: 13,
                 lineHeight: 1.25,
-                color: active ? CHILD_ACTIVE : CHILD_IDLE,
+                color: active ? "white" : CHILD_IDLE,
+                backgroundColor: active ? parent.accent : undefined,
               }}
             >
-              {active ? (
-                <span
-                  aria-hidden
-                  style={{
-                    position: "absolute",
-                    top: "50%",
-                    left: -RAIL_TO_TEXT,
-                    width: DOT,
-                    height: DOT,
-                    borderRadius: 999,
-                    backgroundColor: CHILD_ACTIVE,
-                    transform: "translate(-50%, -50%)",
-                  }}
-                />
-              ) : null}
               <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {child.label}
               </span>

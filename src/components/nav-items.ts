@@ -46,13 +46,14 @@ export type NavItem = {
   label: string;
   href: string;
   icon: LucideIcon;
+  accent: string;
   children?: NavChildItem[];
 };
 
 export const primaryNavItems: NavItem[] = [
-  { label: "Home", href: "/", icon: Home },
-  { label: "Team", href: PLAYERS_COACHES_ROUTE, icon: Users },
-  { label: "Team Operations", href: TEAM_OPERATIONS_ROUTE, icon: ClipboardList, children: [
+  { label: "Home", href: "/", icon: Home, accent: "#c8102e" },
+  { label: "Team", href: PLAYERS_COACHES_ROUTE, icon: Users, accent: "#64748b" },
+  { label: "Team Operations", href: TEAM_OPERATIONS_ROUTE, icon: ClipboardList, accent: "#16a34a", children: [
       { label: "Schedule", href: TEAM_OPERATIONS_SCHEDULE_ROUTE },
       { label: "Practice", href: TEAM_OPERATIONS_PRACTICE_ROUTE },
       { label: "Intra Squad", href: TEAM_OPERATIONS_INTRA_SQUAD_ROUTE },
@@ -61,6 +62,7 @@ export const primaryNavItems: NavItem[] = [
     label: "Recruiting",
     href: RECRUITING_ROUTE,
     icon: UserPlus,
+    accent: "#c8102e",
     children: [
       { label: "Today Beta", href: RECRUITING_TODAY_BETA_ROUTE },
       { label: "Dashboard", href: RECRUITING_ROUTE, exact: true },
@@ -75,10 +77,11 @@ export const primaryNavItems: NavItem[] = [
     label: "Rankings",
     href: RANKINGS_ROUTE,
     icon: Trophy,
+    accent: "#7c3aed",
   },
-  { label: "Fundraising", href: "/fundraising", icon: HandCoins },
-  { label: "Research Lab", href: "/research", icon: FlaskConical },
-  { label: "Resources", href: KNOWLEDGE_ROUTE, icon: BookOpen, children: [
+  { label: "Fundraising", href: "/fundraising", icon: HandCoins, accent: "#166534" },
+  { label: "Research Lab", href: "/research", icon: FlaskConical, accent: "#3f3f46" },
+  { label: "Resources", href: KNOWLEDGE_ROUTE, icon: BookOpen, accent: "#c2410c", children: [
       { label: "Hotels", href: KNOWLEDGE_HOTELS_ROUTE },
     ] },
 ];
@@ -87,6 +90,7 @@ export const settingsNavItem: NavItem = {
   label: "Settings",
   href: "/settings",
   icon: Settings,
+  accent: "#475569",
 };
 
 const allNavItems: NavItem[] = [...primaryNavItems, settingsNavItem];
