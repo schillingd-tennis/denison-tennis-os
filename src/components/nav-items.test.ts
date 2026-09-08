@@ -171,7 +171,7 @@ test("top-level modules own the approved sidebar accent colors", () => {
       Rankings: "#7c3aed",
       Fundraising: "#166534",
       "Research Lab": "#3f3f46",
-      Resources: "#c2410c",
+      Resources: "#ff3c00",
     },
   );
 });

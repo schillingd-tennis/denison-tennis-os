@@ -2,10 +2,10 @@
 
 import { useMemo, useState, useSyncExternalStore } from "react";
 
-import { getNextSortState, sortItems } from "./sorting";
+import { getNextSortState, sortItems, type SortItemsOptions } from "./sorting";
 import type { ColumnDef, SortState } from "./types";
 
-export type UseSortableDataOptions<Key extends string> = {
+export type UseSortableDataOptions<T, Key extends string> = {
   /**
    * Restored after hydration (e.g. sessionStorage). Server render and the
    * hydration pass always use the table's natural/default order (`null`).
@@ -14,6 +14,8 @@ export type UseSortableDataOptions<Key extends string> = {
   getInitialSort?: () => SortState<Key>;
   /** Fired whenever the user advances the sort cycle via a header click. */
   onSortChange?: (sort: SortState<Key>) => void;
+  /** Secondary compare when the active column values are equal (e.g. name ASC). */
+  tieBreaker?: SortItemsOptions<T>["tieBreaker"];
 };
 
 const UNSET = Symbol("useSortableData.unset");
@@ -42,10 +44,11 @@ function getServerHydrated() {
 export function useSortableData<T, Key extends string>(
   items: T[],
   columns: ColumnDef<T, Key>[],
-  options?: UseSortableDataOptions<Key>,
+  options?: UseSortableDataOptions<T, Key>,
 ) {
   const getInitialSort = options?.getInitialSort;
   const onSortChange = options?.onSortChange;
+  const tieBreaker = options?.tieBreaker;
   const hydrated = useSyncExternalStore(
     subscribeHydration,
     getClientHydrated,
@@ -60,8 +63,8 @@ export function useSortableData<T, Key extends string>(
       : sort;
 
   const sortedItems = useMemo(
-    () => sortItems(items, activeSort, columns),
-    [items, columns, activeSort],
+    () => sortItems(items, activeSort, columns, tieBreaker ? { tieBreaker } : undefined),
+    [items, columns, activeSort, tieBreaker],
   );
 
   function toggleSort(columnId: Key) {

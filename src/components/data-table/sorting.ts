@@ -104,6 +104,14 @@ export function buildColumnComparator<T, Key extends string>(
   };
 }
 
+export type SortItemsOptions<T> = {
+  /**
+   * Applied only when the primary column comparator returns 0.
+   * Typical use: stable secondary sort by player/display name ascending.
+   */
+  tieBreaker?: (a: T, b: T) => number;
+};
+
 /**
  * Applies a `SortState` to a list of items (already filtered/searched by
  * the caller). Returns the items in their original, untouched order when
@@ -113,6 +121,7 @@ export function sortItems<T, Key extends string>(
   items: T[],
   sort: SortState<Key>,
   columns: ColumnDef<T, Key>[],
+  options?: SortItemsOptions<T>,
 ): T[] {
   if (!sort) return items;
 
@@ -120,5 +129,10 @@ export function sortItems<T, Key extends string>(
   if (!column) return items;
 
   const comparator = buildColumnComparator(column, sort.direction);
-  return [...items].sort(comparator);
+  const tieBreaker = options?.tieBreaker;
+  return [...items].sort((a, b) => {
+    const primary = comparator(a, b);
+    if (primary !== 0) return primary;
+    return tieBreaker?.(a, b) ?? 0;
+  });
 }

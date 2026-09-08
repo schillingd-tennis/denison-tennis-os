@@ -27,7 +27,7 @@ export default function PageHeader({
           <p className="mt-2.5 text-base text-text-secondary">{subtitle}</p>
         ) : null}
         {meta ? (
-          <p className="mt-2 inline-flex rounded-full bg-[var(--module-tint)] px-2.5 py-1 text-xs font-semibold text-[var(--module-accent)]">
+          <p className="mt-2 inline-flex rounded-full bg-[var(--module-tint)] px-2.5 py-1 text-xs font-semibold text-[var(--module-accent-text)]">
             {meta}
           </p>
         ) : null}

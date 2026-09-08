@@ -81,7 +81,7 @@ export const primaryNavItems: NavItem[] = [
   },
   { label: "Fundraising", href: "/fundraising", icon: HandCoins, accent: "#166534" },
   { label: "Research Lab", href: "/research", icon: FlaskConical, accent: "#3f3f46" },
-  { label: "Resources", href: KNOWLEDGE_ROUTE, icon: BookOpen, accent: "#c2410c", children: [
+  { label: "Resources", href: KNOWLEDGE_ROUTE, icon: BookOpen, accent: "#ff3c00", children: [
       { label: "Hotels", href: KNOWLEDGE_HOTELS_ROUTE },
     ] },
 ];

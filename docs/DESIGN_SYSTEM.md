@@ -31,8 +31,10 @@ every module.
 | Team | `--color-team` `#2563EB` | |
 | Operations | `--color-operations` `#B45309` | Distinct from warning amber |
 | Research Lab | `--color-research` `#7C3AED` | |
-| Knowledge / People | `--color-knowledge` `#0F766E` | Same teal family |
+| Resources (knowledge) | `--color-knowledge` `#FF3C00` | Bright Browns-inspired orange; tint `#FFF3EE`, border `#FFC2AD` |
 | Settings | `--color-settings` `#475569` | |
+
+**Resources accessibility:** `#FF3C00` is for fills, selected markers, borders, decorative accents, and larger elements. Small orange text on white must use `--color-knowledge-text` / `--module-accent-text` (`#B82B00`, AA normal on white). Primary buttons keep white label text on `#FF3C00` (passes large-text AA for typical `text-sm`/`font-semibold` controls); near-black `#111827` is the compliant alternative if normal-text AA is required on the fill.
 
 Treatments: active nav fill + soft accent shadow; slim page-header bar;
 tinted count badge; toolbar panel with matching border; white tables/cards
@@ -53,7 +55,8 @@ the workspace; editable cells edit in place (`docs/DECISIONS.md`).
 | `--color-team` | `#2563EB` | `bg-team` | Team module accent |
 | `--color-operations` | `#B45309` | `bg-operations` | Operations module accent |
 | `--color-research` | `#7C3AED` | `bg-research` | Research Lab module accent |
-| `--color-knowledge` | `#0F766E` | `bg-knowledge` | Knowledge / People module accent |
+| `--color-knowledge` | `#FF3C00` | `bg-knowledge` | Resources (knowledge) module accent — fills / chrome |
+| `--color-knowledge-text` | `#B82B00` | `text-knowledge-text` | Resources accessible orange for small text on white |
 | `--color-settings` | `#475569` | `bg-settings` | Settings module accent |
 | `--color-sidebar` | `#16161A` | `bg-sidebar` | Sidebar background (softened off-black, BP-008) |
 | `--color-sidebar-hover` | `#232328` | `bg-sidebar-hover` | Sidebar item hover state |

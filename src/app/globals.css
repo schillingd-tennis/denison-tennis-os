@@ -25,7 +25,11 @@
   --color-operations: #16a34a;
   --color-rankings: #7c3aed;
   --color-research: #3f3f46;
-  --color-knowledge: #c2410c;
+  /* Resources (knowledge module): bright Browns-inspired orange.
+     Use --color-knowledge for fills / chrome; --color-knowledge-text for
+     small orange text on white (AA). */
+  --color-knowledge: #ff3c00;
+  --color-knowledge-text: #b82b00;
   --color-fundraising: #166534;
   --color-settings: #475569;
 
@@ -47,6 +51,7 @@
   --header-height: 88px;
   /* Fallbacks for chrome portaled to document.body (filter menus). */
   --module-accent: var(--color-denison-red);
+  --module-accent-text: var(--module-accent);
   --module-tint: #fff1f2;
   --module-border: #fecdd3;
 }
@@ -55,6 +60,7 @@
    semantic status colors. AppShell selects one of these palettes per route. */
 .app-shell {
   --module-accent: var(--color-denison-red);
+  --module-accent-text: var(--module-accent);
   --module-tint: #fff1f2;
   --module-border: #fecdd3;
 }
@@ -97,8 +103,10 @@
 
 .app-shell[data-module="knowledge"] {
   --module-accent: var(--color-knowledge);
-  --module-tint: #fff7ed;
-  --module-border: #fdba74;
+  /* Accessible companion for small orange text on white (AA normal). */
+  --module-accent-text: var(--color-knowledge-text);
+  --module-tint: #fff3ee;
+  --module-border: #ffc2ad;
 }
 
 .app-shell[data-module="fundraising"] {
@@ -107,8 +115,10 @@
   --module-border: #86efac;
 }
 
+/* People keeps prior accent so Resources orange does not bleed into /people. */
 .app-shell[data-module="people"] {
-  --module-accent: var(--color-knowledge);
+  --module-accent: #c2410c;
+  --module-accent-text: #c2410c;
   --module-tint: #f0fdfa;
   --module-border: #99f6e4;
 }
