@@ -7,21 +7,59 @@
 import { UTR_AGENT_BASE_URL } from "./utrAgentConfig";
 import type {
   UtrAgentCheckResult,
-  UtrAgentHealth,
   UtrAgentRecruitRequest,
 } from "./utrAgentClient";
 
-export type { UtrAgentCheckResult, UtrAgentHealth, UtrAgentRecruitRequest };
+export type { UtrAgentCheckResult, UtrAgentRecruitRequest };
+
+export type UtrAgentHealth = {
+  online: boolean;
+  checkedAt: string;
+  /** Agent process start time from a verified /health response. */
+  agentStartedAt?: string;
+  /** Safe, user-facing reason when offline — never secrets or stacks. */
+  errorSummary?: string;
+};
 
 export async function fetchUtrAgentHealthFromBrowser(): Promise<UtrAgentHealth> {
+  const checkedAt = new Date().toISOString();
   try {
     const response = await fetch(`${UTR_AGENT_BASE_URL}/health`, {
       cache: "no-store",
       mode: "cors",
     });
-    return { online: response.ok };
+    if (!response.ok) {
+      return {
+        online: false,
+        checkedAt,
+        errorSummary: `Local agent health returned HTTP ${response.status}.`,
+      };
+    }
+    const body = (await response.json()) as {
+      ok?: boolean;
+      status?: string;
+      startedAt?: string;
+      checkedAt?: string;
+    };
+    if (!body.ok) {
+      return {
+        online: false,
+        checkedAt,
+        errorSummary: "Local agent responded but did not report healthy.",
+      };
+    }
+    return {
+      online: true,
+      checkedAt: body.checkedAt ?? checkedAt,
+      agentStartedAt: body.startedAt,
+    };
   } catch {
-    return { online: false };
+    return {
+      online: false,
+      checkedAt,
+      errorSummary:
+        "Cannot reach the local UTR Results Agent. Run npm run utr:agent on this Mac, then Refresh Status.",
+    };
   }
 }
 

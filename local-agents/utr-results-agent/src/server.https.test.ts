@@ -109,9 +109,18 @@ describe("UTR agent HTTPS server", () => {
       method: "GET",
     });
     assert.equal(response.statusCode, 200);
-    const body = JSON.parse(response.body) as { ok?: boolean; service?: string };
+    const body = JSON.parse(response.body) as {
+      ok?: boolean;
+      status?: string;
+      service?: string;
+      startedAt?: string;
+      checkedAt?: string;
+    };
     assert.equal(body.ok, true);
+    assert.equal(body.status, "online");
     assert.equal(body.service, "denison-utr-results-agent");
+    assert.equal(typeof body.startedAt, "string");
+    assert.equal(typeof body.checkedAt, "string");
   });
 
   it("6. OPTIONS preflight succeeds for production origin", async () => {

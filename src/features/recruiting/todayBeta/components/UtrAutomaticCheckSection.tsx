@@ -71,6 +71,11 @@ export default function UtrAutomaticCheckSection({
   const router = useRouter();
   const batchTableRef = useRef<HTMLElement | null>(null);
   const [agentOnline, setAgentOnline] = useState<boolean | null>(null);
+  /** null = unknown, true = good session, false = expired */
+  const [sessionAuthenticated, setSessionAuthenticated] = useState<boolean | null>(null);
+  const [lastStatusCheckedAt, setLastStatusCheckedAt] = useState<string | null>(null);
+  const [agentStartedAt, setAgentStartedAt] = useState<string | null>(null);
+  const [statusErrorSummary, setStatusErrorSummary] = useState<string | null>(null);
   const [batchCheckEnabled, setBatchCheckEnabled] = useState(false);
   const [rankBoardCount, setRankBoardCount] = useState(0);
   const [configuredCount, setConfiguredCount] = useState(0);
@@ -92,6 +97,9 @@ export default function UtrAutomaticCheckSection({
         getUtrAgentStatusAction(),
       ]);
       setAgentOnline(health.online);
+      setLastStatusCheckedAt(health.checkedAt);
+      setAgentStartedAt(health.agentStartedAt ?? null);
+      setStatusErrorSummary(health.online ? null : (health.errorSummary ?? null));
       if (cohortResult.success) {
         setBatchCheckEnabled(cohortResult.data.batchCheckEnabled);
         setRankBoardCount(cohortResult.data.rankBoardCount);
@@ -251,7 +259,12 @@ export default function UtrAutomaticCheckSection({
       }
 
       if (result.stopReason === "AUTH_REQUIRED") {
-        setErrorMessage("UTR login expired — run npm run utr:login, log in, then retry.");
+        setSessionAuthenticated(false);
+        setErrorMessage(
+          "UTR session expired. Open the Local Results Agent login on this Mac (npm run utr:login), sign back into UTR, then retry.",
+        );
+      } else {
+        setSessionAuthenticated(true);
       }
 
       refreshAgentStatus();
@@ -259,8 +272,12 @@ export default function UtrAutomaticCheckSection({
     } catch (error) {
       const message = error instanceof Error ? error.message : "UTR automatic check failed.";
       if (message === "AGENT_OFFLINE") {
+        setAgentOnline(false);
+        setStatusErrorSummary(
+          "Cannot reach the local UTR Results Agent. Run npm run utr:agent on this Mac, then Refresh Status.",
+        );
         setErrorMessage(
-          "UTR Results Agent is offline. Run npm run utr:agent on this Mac, then refresh.",
+          "UTR Results Agent is offline. Run npm run utr:agent on this Mac, then Refresh Status.",
         );
       } else if (message === "AGENT_BUSY") {
         setErrorMessage("UTR Results Agent is busy with another check.");
@@ -284,6 +301,10 @@ export default function UtrAutomaticCheckSection({
     <div className="flex flex-col gap-3">
       <UtrAutomaticCheckStrip
         agentOnline={agentOnline}
+        sessionAuthenticated={sessionAuthenticated}
+        lastStatusCheckedAt={lastStatusCheckedAt}
+        agentStartedAt={agentStartedAt}
+        statusErrorSummary={statusErrorSummary}
         cohortConfigured={cohortConfigured}
         busy={busy}
         batchCheckEnabled={batchCheckEnabled}
