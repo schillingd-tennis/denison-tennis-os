@@ -134,10 +134,11 @@ if (!teamOperations) throw new Error("expected Team Operations nav item");
 
 test("Practice sits between Schedule and Intra Squad in Team Operations", () => {
   const labels = teamOperations.children?.map((item) => item.label) ?? [];
-  assert.deepEqual(labels, ["Schedule", "Practice", "Intra Squad"]);
+  assert.deepEqual(labels, ["Schedule", "Practice", "Intra Squad", "Scouting"]);
   assert.equal(isNavChildActive("/team-operations/practice", { label: "Practice", href: "/team-operations/practice" }), true);
   assert.equal(isNavChildActive("/team-operations/intra-squad", { label: "Intra Squad", href: "/team-operations/intra-squad" }), true);
   assert.equal(isNavChildActive("/team-operations/schedule", { label: "Schedule", href: "/team-operations/schedule" }), true);
+  assert.equal(isNavChildActive("/team-operations/scouting", { label: "Scouting", href: "/team-operations/scouting" }), true);
   const state = getNestedNavState("/team-operations/intra-squad", teamOperations);
   assert.equal(state.parentActive, true);
   assert.equal(state.activeChildHref, "/team-operations/intra-squad");

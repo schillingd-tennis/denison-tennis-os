@@ -8,6 +8,7 @@ import {
   CommandPaletteProvider,
 } from "@/components/command-palette";
 import { DrawerManagerProvider } from "@/components/workspace-drawer";
+import { isScoutingPublicFormPath } from "@/features/scouting/formTokens";
 
 import Header from "./Header";
 import Sidebar from "./Sidebar";
@@ -31,9 +32,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const pathname = usePathname();
 
-  // /login renders its own centered, chrome-free layout (BP-016 Phase 1) —
-  // it must stay reachable and legible before a session exists.
-  if (pathname === "/login") {
+  // /login and tokenized public scouting forms render chrome-free.
+  if (pathname === "/login" || isScoutingPublicFormPath(pathname)) {
     return <>{children}</>;
   }
 

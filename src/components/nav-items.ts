@@ -24,6 +24,7 @@ import {
   TEAM_OPERATIONS_INTRA_SQUAD_ROUTE,
   TEAM_OPERATIONS_PRACTICE_ROUTE,
   TEAM_OPERATIONS_SCHEDULE_ROUTE,
+  TEAM_OPERATIONS_SCOUTING_ROUTE,
   TEAM_ROUTE,
   KNOWLEDGE_ROUTE,
   KNOWLEDGE_HOTELS_ROUTE,
@@ -57,6 +58,7 @@ export const primaryNavItems: NavItem[] = [
       { label: "Schedule", href: TEAM_OPERATIONS_SCHEDULE_ROUTE },
       { label: "Practice", href: TEAM_OPERATIONS_PRACTICE_ROUTE },
       { label: "Intra Squad", href: TEAM_OPERATIONS_INTRA_SQUAD_ROUTE },
+      { label: "Scouting", href: TEAM_OPERATIONS_SCOUTING_ROUTE },
     ] },
   {
     label: "Recruiting",
@@ -160,6 +162,9 @@ export function getPageTitle(pathname: string): string {
   }
   if (pathname === TEAM_OPERATIONS_PRACTICE_ROUTE || pathname.startsWith(`${TEAM_OPERATIONS_PRACTICE_ROUTE}/`)) {
     return "Practice";
+  }
+  if (pathname === TEAM_OPERATIONS_SCOUTING_ROUTE || pathname.startsWith(`${TEAM_OPERATIONS_SCOUTING_ROUTE}/`)) {
+    return "Scouting";
   }
   if (pathname.startsWith("/team-operations") || pathname.startsWith("/operations")) {
     return "Team Operations";

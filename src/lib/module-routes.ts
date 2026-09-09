@@ -28,6 +28,9 @@ export const TEAM_OPERATIONS_INTRA_SQUAD_ROUTE = "/team-operations/intra-squad";
 /** Team Operations practice planning and drill library. */
 export const TEAM_OPERATIONS_PRACTICE_ROUTE = "/team-operations/practice";
 
+/** Team Operations scouting reports and opponent dossiers. */
+export const TEAM_OPERATIONS_SCOUTING_ROUTE = "/team-operations/scouting";
+
 /** Knowledge module root and hotel directory. */
 export const KNOWLEDGE_ROUTE = "/knowledge";
 export const KNOWLEDGE_HOTELS_ROUTE = "/knowledge/hotels";
@@ -58,6 +61,7 @@ export const TOP_LEVEL_MODULE_PATHS = [
   TEAM_OPERATIONS_SCHEDULE_ROUTE,
   TEAM_OPERATIONS_INTRA_SQUAD_ROUTE,
   TEAM_OPERATIONS_PRACTICE_ROUTE,
+  TEAM_OPERATIONS_SCOUTING_ROUTE,
   RANKINGS_ROUTE,
   RANKINGS_CURRENT_ITA_ROUTE,
   RANKINGS_LIVE_ITA_ROUTE,

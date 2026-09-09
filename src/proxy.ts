@@ -22,14 +22,19 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { isScoutingPublicFormPath } from "@/features/scouting/formTokens";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 
-const PUBLIC_ROUTES = ["/login"];
+const PUBLIC_AUTH_ROUTES = ["/login"];
 
-function isPublicRoute(pathname: string): boolean {
-  return PUBLIC_ROUTES.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`)
+function isLoginRoute(pathname: string): boolean {
+  return PUBLIC_AUTH_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
   );
+}
+
+function allowsUnauthenticated(pathname: string): boolean {
+  return isLoginRoute(pathname) || isScoutingPublicFormPath(pathname);
 }
 
 export async function proxy(request: NextRequest) {
@@ -62,13 +67,13 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  if (!user && !isPublicRoute(pathname)) {
+  if (!user && !allowsUnauthenticated(pathname)) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  if (user && isPublicRoute(pathname)) {
+  if (user && isLoginRoute(pathname)) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 

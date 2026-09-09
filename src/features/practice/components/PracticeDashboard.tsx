@@ -10,6 +10,8 @@ import { TEAM_OPERATIONS_ROUTE, TEAM_OPERATIONS_SCHEDULE_ROUTE } from "@/lib/mod
 import ScheduleIdentityMark from "@/features/teamSchedule/components/ScheduleIdentityMark";
 import { resolveScheduleIdentityFromLabel, type ScheduleIdentity } from "@/features/teamSchedule/schoolIdentity";
 
+import ModuleSectionTabs from "@/components/ModuleSectionTabs";
+
 import { PRACTICE_TABS, type PracticeCompetitionDate, type PracticeDrill, type PracticeTab } from "../types";
 import type { DailyPracticePlan, DayRuleSummary } from "../types";
 import DayRuleTracker from "./DayRuleTracker";
@@ -134,12 +136,23 @@ export default function PracticeDashboard({ drills, competitionDates, dayRule, p
   return <ModulePageShell title="Practice" subtitle="Build daily plans, organize drills, and manage the rhythm of the season.">
     <nav className="text-xs text-text-secondary" aria-label="Breadcrumb"><Link href={TEAM_OPERATIONS_ROUTE} className="hover:text-text-primary">Team Operations</Link><span className="mx-1.5">›</span><span className="text-text-primary">Practice</span></nav>
     {loadError ? <p className="rounded-control border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">{loadError}</p> : null}
-    <nav aria-label="Practice sections" className="flex max-w-full gap-1 overflow-x-auto rounded-card border border-border bg-surface p-1 shadow-[0_4px_14px_rgba(17,24,39,0.03)]">{PRACTICE_TABS.map((tab) => <button key={tab.id} type="button" onClick={() => { if (tab.id === "daily-plan") { setOpenedPlanId(null); setNewPlanDate(null); } setActiveTab(tab.id); }} aria-current={activeTab === tab.id ? "page" : undefined} className={`min-h-9 shrink-0 rounded-control px-3 text-xs font-semibold transition-colors sm:px-4 ${activeTab === tab.id ? "bg-[var(--module-accent)] text-white" : "text-text-secondary hover:bg-app-background hover:text-text-primary"}`}>{tab.label}</button>)}</nav>
+    <ModuleSectionTabs
+      aria-label="Practice sections"
+      tabs={PRACTICE_TABS}
+      activeId={activeTab}
+      onChange={(id) => {
+        if (id === "daily-plan") {
+          setOpenedPlanId(null);
+          setNewPlanDate(null);
+        }
+        setActiveTab(id);
+      }}
+    />
     {activeTab === "daily-plan" ? <div className="flex justify-end"><button type="button" onClick={() => { setOpenedPlanId(null); setNewPlanDate(nextOpenPlanDate()); }} className="inline-flex h-10 items-center gap-2 rounded-control bg-[var(--module-accent)] px-4 text-sm font-semibold text-white shadow-sm"><Plus className="h-4 w-4"/>Add Plan</button></div> : null}
     {activeTab === "daily-plan" ? <DailyPlanBuilder key={openedPlanId ?? newPlanDate ?? "today"} drills={drills} plans={plans} dayRule={dayRule} initialPlanId={openedPlanId} initialPlanDate={newPlanDate}/> : null}
     {activeTab === "drills" ? <EditableDrillLibrary drills={drills} plans={plans}/> : null}
     {activeTab === "dates-of-competition" ? <CompetitionDates dates={competitionDates}/> : null}
-    {activeTab === "114-day-tracker" ? <DayRuleTracker summary={dayRule} plans={plans} onOpenPlan={(id) => { setNewPlanDate(null); setOpenedPlanId(id); setActiveTab("daily-plan"); }} onAddPlan={(date) => { setOpenedPlanId(null); setNewPlanDate(date); setActiveTab("daily-plan"); }}/> : null}
+    {activeTab === "114-day-tracker" ? <DayRuleTracker summary={dayRule} plans={plans} onOpenPlan={(id) => { setNewPlanDate(null); setOpenedPlanId(id); setActiveTab("daily-plan"); }} onAddPlan={(date) => { setOpenedPlanId(null); setNewPlanDate(date ?? null); setActiveTab("daily-plan"); }}/> : null}
     {activeTab === "practice-log" ? <PracticeLog plans={plans} dayRule={dayRule} onOpenPlan={(id) => { setNewPlanDate(null); setOpenedPlanId(id); setActiveTab("daily-plan"); }}/> : null}
   </ModulePageShell>;
 }

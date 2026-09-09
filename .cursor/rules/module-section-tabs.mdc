@@ -1,0 +1,29 @@
+---
+description: Module peer-view tabs must reuse Practice ModuleSectionTabs — not pills
+globs: src/features/**/components/**/*.tsx
+alwaysApply: false
+---
+
+# Module Section Tabs
+
+Peer views inside a Team Operations (or similar) module use the shared
+`ModuleSectionTabs` primitive (`src/components/ModuleSectionTabs.tsx`), which
+matches Practice section tabs exactly.
+
+## Use for
+
+- True peer views / Adaptive Workspace surfaces (e.g. Opponent Players | Teams |
+  Match Reports | Form Submissions; Daily Plan | Drill Library | …)
+
+## Do NOT use for
+
+- Badges, filters, lifecycle Active|Archived toggles, quick views, tags, or
+  action chips — those keep filter/select patterns, not peer tabs.
+
+## Rules
+
+- Prefer importing `ModuleSectionTabs` over inventing rounded-full pill nav.
+- Do not change Practice tab appearance when adopting the shared component.
+- Active state: `bg-[var(--module-accent)] text-white` on `rounded-control`
+  inside a `rounded-card` tray — never `rounded-full` filled capsules for peer
+  views.
