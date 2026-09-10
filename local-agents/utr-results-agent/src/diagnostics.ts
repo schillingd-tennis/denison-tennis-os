@@ -30,7 +30,7 @@ export function sanitizeRequestUrl(url: string): string {
 }
 
 export function sanitizeResponseBody(text: string, maxLen = 300): string {
-  let sanitized = text
+  const sanitized = text
     .replace(/Bearer\s+[A-Za-z0-9\-._~+/]+=*/gi, "Bearer [redacted]")
     .replace(/"access_token"\s*:\s*"[^"]+"/gi, '"access_token":"[redacted]"')
     .replace(/"refresh_token"\s*:\s*"[^"]+"/gi, '"refresh_token":"[redacted]"')
@@ -271,6 +271,9 @@ export function printRecruitDiagnosticSummary(
 
   lines.push(`Fallback attempted: ${diagnostics.fallbackFetchPath.attempted ? "yes" : "no"}`);
   if (diagnostics.fallbackFetchPath.attempted) {
+    if (diagnostics.fallbackFetchPath.method) {
+      lines.push(`Fallback retrieval method: ${diagnostics.fallbackFetchPath.method}`);
+    }
     lines.push(`Fallback HTTP status: ${diagnostics.fallbackFetchPath.httpStatus ?? "unknown"}`);
     if (diagnostics.fallbackFetchPath.bodySummary) {
       lines.push(`Fallback response: ${diagnostics.fallbackFetchPath.bodySummary}`);

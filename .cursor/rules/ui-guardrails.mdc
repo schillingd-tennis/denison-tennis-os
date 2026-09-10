@@ -29,3 +29,10 @@ Feature work must not edit:
 - `tests/layout.cold-load.spec.ts`
 
 Mobile may collapse via CSS `@media (max-width: 767px)` only. Do not use JavaScript viewport initialization for these layouts.
+
+## Scouting Opponent Players (locked)
+
+Desktop three-column master-detail is frozen: Teams | Players | Reports with
+`data-scouting-*-column` markers and `grid … max-md:hidden` (never `hidden md:grid`).
+Canonical file: `src/features/scouting/components/ScoutingWorkspace.tsx`.
+Full contract: `.cursor/rules/scouting-opponent-players-layout.mdc`.

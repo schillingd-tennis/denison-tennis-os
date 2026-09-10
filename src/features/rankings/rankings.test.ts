@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
 import test from "node:test";
 
 import {
@@ -15,6 +17,12 @@ import {
 
 import { filterRankingEntries } from "./search";
 import {
+  CURRENT_ITA_NEW_SCHOOL_LOGO_FILENAMES,
+  CURRENT_ITA_NEW_SCHOOL_LOGO_MANIFEST,
+} from "./schoolLogoManifest";
+import {
+  CURRENT_ITA_SCHOOL_LOGO_BY_DISPLAY_NAME,
+  auditCurrentItaLogoCoverage,
   isLocalSchoolLogoPath,
   listUnresolvedRankingLogos,
   normalizeRankingSchoolName,
@@ -23,6 +31,8 @@ import {
 import { CURRENT_ITA_NATIONAL_TEAM_MEN_DIV3_SNAPSHOT } from "./snapshot/currentIta";
 import { RANKINGS_SUBMODULES } from "./submodules";
 import { validateRankingSnapshot } from "./validate";
+
+const PUBLIC_SCHOOL_LOGOS_DIR = path.join(process.cwd(), "public", "school-logos");
 
 const rankings = primaryNavItems.find((item) => item.label === "Rankings");
 if (!rankings) throw new Error("expected Rankings nav item");
@@ -170,4 +180,125 @@ test("snapshot columns: record and conference present; previous rank absent", ()
   assert.ok(entries.every((entry) => entry.wtn != null));
   assert.ok(entries.every((entry) => Boolean(entry.conference)));
   assert.ok(entries.every((entry) => entry.previousRank == null));
+});
+
+test("ITA gender suffix normalization keeps ambiguous display names exact", () => {
+  assert.equal(normalizeRankingSchoolName("Emory (GA) (M)"), "Emory (GA)");
+  assert.equal(
+    normalizeRankingSchoolName("Massachusetts Inst. Of Tech. (M)"),
+    "Massachusetts Inst. Of Tech.",
+  );
+  assert.equal(normalizeRankingSchoolName("Southwestern (Texas) (M)"), "Southwestern (Texas)");
+  assert.equal(normalizeRankingSchoolName("North Central (IL) (M)"), "North Central (IL)");
+  assert.equal(normalizeRankingSchoolName("Union (New York) (M)"), "Union (New York)");
+  assert.equal(normalizeRankingSchoolName("Rochester (New York) (M)"), "Rochester (New York)");
+  assert.equal(normalizeRankingSchoolName("Rochester Inst. Of Tech. (M)"), "Rochester Inst. Of Tech.");
+  assert.equal(normalizeRankingSchoolName("Hobart/William Smith (M)"), "Hobart/William Smith");
+  assert.equal(normalizeRankingSchoolName("Bethel (MN) (M)"), "Bethel (MN)");
+  assert.equal(normalizeRankingSchoolName("The College Of New Jersey (M)"), "The College Of New Jersey");
+  assert.equal(normalizeRankingSchoolName("Amherst College (M)"), "Amherst College");
+  assert.equal(normalizeRankingSchoolName("University Of Chicago (M)"), "University Of Chicago");
+  assert.equal(normalizeRankingSchoolName("Claremont-Mudd-Scripps (M)"), "Claremont-Mudd-Scripps");
+  assert.equal(normalizeRankingSchoolName("Wisconsin-Whitewater (M)"), "Wisconsin-Whitewater");
+  assert.equal(normalizeRankingSchoolName("Mary Hardin-Baylor (M)"), "Mary Hardin-Baylor");
+  assert.equal(normalizeRankingSchoolName("Rose-Hulman (M)"), "Rose-Hulman");
+});
+
+test("exact-name logo map covers every Current ITA school without fuzzy collisions", () => {
+  const specialCases: Record<string, string> = {
+    "University Of Chicago": "chicago.svg",
+    "Claremont-Mudd-Scripps": "claremont-m-s.svg",
+    "Emory (GA)": "emory.svg",
+    "Amherst College": "amherst.svg",
+    "Massachusetts Inst. Of Tech.": "mit.svg",
+    "Wisconsin-Whitewater": "wis-whitewater.svg",
+    "Southwestern (Texas)": "southwestern-tx.svg",
+    "North Central (IL)": "north-central-il.svg",
+    "The College Of New Jersey": "tcnj.svg",
+    "Union (New York)": "union-ny.svg",
+    "Rochester (New York)": "rochester-ny.svg",
+    "Rochester Inst. Of Tech.": "rit.svg",
+    "Hobart/William Smith": "hobart.svg",
+    "Bethel (MN)": "bethel-mn.svg",
+    "Mary Hardin-Baylor": "mary-hardin-baylor.svg",
+    "Rose-Hulman": "rose-hulman.svg",
+  };
+
+  for (const [displayName, filename] of Object.entries(specialCases)) {
+    assert.equal(CURRENT_ITA_SCHOOL_LOGO_BY_DISPLAY_NAME[displayName], filename);
+    const logo = resolveRankingSchoolLogo(`${displayName} (M)`);
+    assert.equal(logo.resolved, true);
+    assert.equal(logo.logoSrc, `/school-logos/${filename}`);
+  }
+
+  // No fuzzy match: similar names must not steal another school's mark.
+  assert.equal(resolveRankingSchoolLogo("Bethel (IN) (M)").resolved, false);
+  assert.equal(resolveRankingSchoolLogo("Union (Kentucky) (M)").resolved, false);
+  assert.equal(resolveRankingSchoolLogo("Rochester (Michigan) (M)").resolved, false);
+  assert.equal(resolveRankingSchoolLogo("Emory & Henry (M)").resolved, false);
+  assert.equal(resolveRankingSchoolLogo("Southwestern (Kansas) (M)").resolved, false);
+});
+
+test("mapped logo files exist locally and look like valid images", () => {
+  for (const entry of CURRENT_ITA_NATIONAL_TEAM_MEN_DIV3_SNAPSHOT.entries) {
+    const logo = resolveRankingSchoolLogo(entry.schoolName);
+    assert.equal(logo.resolved, true, entry.schoolName);
+    assert.ok(logo.logoSrc);
+    assert.equal(isLocalSchoolLogoPath(logo.logoSrc), true);
+    const filename = logo.logoSrc!.slice("/school-logos/".length);
+    const filePath = path.join(PUBLIC_SCHOOL_LOGOS_DIR, filename);
+    assert.equal(existsSync(filePath), true, filePath);
+    const bytes = readFileSync(filePath);
+    assert.ok(bytes.length > 200, `${filename} too small`);
+    const head = bytes.subarray(0, 64).toString("utf8");
+    const isSvg = head.includes("<svg") || head.includes("<?xml");
+    const isPng = bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
+    const isJpeg = bytes[0] === 0xff && bytes[1] === 0xd8;
+    const isWebp = head.includes("WEBP") || filename.toLowerCase().endsWith(".webp");
+    assert.ok(isSvg || isPng || isJpeg || isWebp, `${filename} invalid image header`);
+  }
+});
+
+test("Current ITA logo coverage audit is 75/75 with clean newly-added assets", () => {
+  const schoolNames = CURRENT_ITA_NATIONAL_TEAM_MEN_DIV3_SNAPSHOT.entries.map(
+    (entry) => entry.schoolName,
+  );
+  const audit = auditCurrentItaLogoCoverage({
+    schoolNames,
+    knownNewFilenames: CURRENT_ITA_NEW_SCHOOL_LOGO_FILENAMES,
+    fileExists: existsSync,
+    publicLogoPath: (filename) => path.join(PUBLIC_SCHOOL_LOGOS_DIR, filename),
+  });
+  assert.equal(audit.total, 75);
+  assert.equal(audit.previouslyResolved, 13);
+  assert.equal(audit.newlyResolved, 62);
+  assert.equal(audit.unresolved, 0);
+  assert.deepEqual(audit.invalidFiles, []);
+  assert.deepEqual(audit.duplicateMappings, []);
+  assert.deepEqual(audit.unusedNewDownloads, []);
+});
+
+test("new school-logo manifest covers Rankings-era assets and stays out of UI imports", () => {
+  assert.equal(CURRENT_ITA_NEW_SCHOOL_LOGO_MANIFEST.length, 62);
+  const names = new Set(
+    CURRENT_ITA_NEW_SCHOOL_LOGO_MANIFEST.map((entry) => entry.itaDisplayName),
+  );
+  assert.equal(names.size, 62);
+  for (const entry of CURRENT_ITA_NEW_SCHOOL_LOGO_MANIFEST) {
+    assert.equal(CURRENT_ITA_SCHOOL_LOGO_BY_DISPLAY_NAME[entry.itaDisplayName], entry.localFilename);
+    assert.ok(entry.sourcePage.startsWith("https://"));
+    assert.ok(["ITA", "official athletics", "official brand", "Wikimedia"].includes(entry.sourceType));
+    assert.match(entry.retrievalDate, /^\d{4}-\d{2}-\d{2}$/);
+    assert.equal(existsSync(path.join(PUBLIC_SCHOOL_LOGOS_DIR, entry.localFilename)), true);
+    if (entry.directAssetUrl) {
+      assert.equal(entry.directAssetUrl.startsWith("http"), true);
+    }
+  }
+
+  const workspaceSource = readFileSync(
+    path.join(process.cwd(), "src/features/rankings/components/CurrentItaRankingsWorkspace.tsx"),
+    "utf8",
+  );
+  assert.equal(workspaceSource.includes("schoolLogoManifest"), false);
+  assert.equal(workspaceSource.includes("directAssetUrl"), false);
 });

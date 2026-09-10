@@ -29,3 +29,11 @@ nav left + active workspace right).
 Frozen surfaces include Workspace Navigation, Adaptive Workspace panel,
 workspace switching, Executive Overview layout, Tennis Performance layout,
 and related sizing / positioning / spacing / typography.
+
+## Scope (Scouting — Opponent Players)
+
+**Canonical commit:** `d3694e8` (and layout-preserving restorations).
+Desktop Opponent Players is a locked three-column shell
+(`data-scouting-team-column` | `data-scouting-player-column` |
+`data-scouting-report-column`). See `.cursor/rules/scouting-opponent-players-layout.mdc`.
+Do not replace with a flat table or unmount columns based on data/load errors.

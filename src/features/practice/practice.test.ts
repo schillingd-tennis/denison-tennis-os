@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { PRACTICE_TABS } from "./types";
 import { TEAM_OPERATIONS_PRACTICE_ROUTE, TOP_LEVEL_MODULE_PATHS, isTopLevelModulePage } from "@/lib/module-routes";
-import { calculateDayRule, enumerateDates } from "./dayRule";
+import { calculateDayRule, calculateMonthlyPracticeBudget, enumerateDates } from "./dayRule";
 import { moveItem } from "./reorder";
 
 test("Practice uses one Team Operations route with five internal tabs", () => {
@@ -27,4 +27,20 @@ test("multi-day competition counts every calendar day without double counting pr
   assert.equal(summary.rows.find((row) => row.month === 9)?.days[0]?.sources.length, 2);
   assert.equal(summary.budgetToDate, 15);
   assert.equal(summary.varianceToDate, 11);
+});
+
+test("monthly practice budget separates practices from scheduled competition dates", () => {
+  const summary = calculateDayRule(
+    ["2026-09-02", "2026-09-06", "2026-09-22"],
+    [{ start: "2026-09-18", end: "2026-09-20", label: "Invite" }],
+    "2026-09-07",
+  );
+  const september = summary.rows.find((row) => row.month === 9);
+  assert.ok(september);
+  assert.deepEqual(calculateMonthlyPracticeBudget(september, "2026-09-07"), {
+    practices: 2,
+    competitionDates: 3,
+    practicesBudgeted: 15,
+    variance: 13,
+  });
 });

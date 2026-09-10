@@ -1,0 +1,17 @@
+---
+description: Slide-over / WorkspaceDrawer form field labels must never use semibold or bold.
+alwaysApply: true
+---
+
+# Drawer Field Labels
+
+Individual field labels inside Denison Tennis OS slide-over drawers use regular or medium weight. They must never use semibold or bold typography. Section headings, record titles, and actions are exempt.
+
+## Rules
+
+- Prefer `DrawerField` from `@/components/workspace-drawer`, or `typeRole.drawerFieldLabel` / `typeRole.drawerFieldLabelMuted`.
+- Use body/UI font at `font-medium` (or regular). Never `font-semibold` or `font-bold` on individual field labels.
+- Do not use heavy all-caps for individual field labels. Clarity comes from size, spacing, and color.
+- Applies to create/edit/detail drawers on desktop and mobile.
+- Section headings (e.g. CONTACT, OFFICIATING, NOTES), record titles, and action buttons may keep stronger treatment.
+- Do not change drawer geometry, spacing, input styling, or layout when applying this rule — weight only for labels.

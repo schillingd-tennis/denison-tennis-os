@@ -28,6 +28,7 @@ import {
   TEAM_ROUTE,
   KNOWLEDGE_ROUTE,
   KNOWLEDGE_HOTELS_ROUTE,
+  KNOWLEDGE_OFFICIALS_ROUTE,
   RANKINGS_ROUTE,
   RANKINGS_CURRENT_ITA_ROUTE,
   RANKINGS_LIVE_ITA_ROUTE,
@@ -85,6 +86,7 @@ export const primaryNavItems: NavItem[] = [
   { label: "Research Lab", href: "/research", icon: FlaskConical, accent: "#3f3f46" },
   { label: "Resources", href: KNOWLEDGE_ROUTE, icon: BookOpen, accent: "#ff3c00", children: [
       { label: "Hotels", href: KNOWLEDGE_HOTELS_ROUTE },
+      { label: "Officials List", href: KNOWLEDGE_OFFICIALS_ROUTE },
     ] },
 ];
 
@@ -189,6 +191,9 @@ export function getPageTitle(pathname: string): string {
   }
   if (pathname === KNOWLEDGE_HOTELS_ROUTE || pathname.startsWith(`${KNOWLEDGE_HOTELS_ROUTE}/`)) {
     return "Hotels";
+  }
+  if (pathname === KNOWLEDGE_OFFICIALS_ROUTE || pathname.startsWith(`${KNOWLEDGE_OFFICIALS_ROUTE}/`)) {
+    return "Officials List";
   }
   return allNavItems.find((item) => item.href === pathname)?.label ?? "Denison Tennis OS";
 }

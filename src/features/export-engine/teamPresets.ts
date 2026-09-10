@@ -35,6 +35,8 @@ const PERSONAL_INFO_KEYS = [
   "state",
   "zipCode",
   "country",
+  "dorm",
+  "roomNumber",
   "notes",
 ] as const satisfies readonly (keyof Person)[];
 

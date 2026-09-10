@@ -203,7 +203,7 @@ async function fetchResultsViaPage(
   const page = await context.newPage();
 
   try {
-    const pageResultsPromise = waitForPlayerResultsResponse(page, playerId, 20_000);
+    const pageResultsPromise = waitForPlayerResultsResponse(page, playerId, 8_000);
 
     let navigationStatus: number | undefined;
     try {
@@ -236,16 +236,39 @@ async function fetchResultsViaPage(
 
     diagnostics.navigationStatus = navigationStatus;
 
+    // Inspect auth/page state early — do not wait long for SPA network that may never fire.
+    const pageState = await inspectPageState(page, displayName);
+    Object.assign(diagnostics, pageState);
+
+    if (diagnostics.signInGateVisible) {
+      const classified = classifyAcquisition({
+        signInGateVisible: true,
+        profileLoaded: diagnostics.profileLoaded,
+        pageRequestObserved: false,
+        fallbackAttempted: false,
+        matchesRead: 0,
+      });
+      diagnostics.diagnosticStatus = classified.diagnosticStatus;
+      diagnostics.responseSummary = classified.message;
+      return {
+        ok: false,
+        auth: true,
+        message: classified.message,
+        diagnosticStatus: classified.diagnosticStatus,
+        diagnostics,
+      };
+    }
+
     let pageResponse = await pageResultsPromise;
     if (!pageResponse) {
       const clicked = await clickResultsTab(page);
       if (clicked) {
-        pageResponse = await waitForPlayerResultsResponse(page, playerId, 10_000);
+        pageResponse = await waitForPlayerResultsResponse(page, playerId, 4_000);
       }
     }
 
-    const pageState = await inspectPageState(page, displayName);
-    Object.assign(diagnostics, pageState);
+    // Re-inspect after optional Results tab click
+    Object.assign(diagnostics, await inspectPageState(page, displayName));
 
     let pageObservation: ApiPathObservation | undefined;
     if (pageResponse) {
@@ -293,24 +316,114 @@ async function fetchResultsViaPage(
     }
 
     diagnostics.fallbackFetchPath.attempted = true;
-    const fallbackUrl = sanitizeRequestUrl(buildUtrResultsApiUrl(playerId));
+    const apiUrl = buildUtrResultsApiUrl(playerId);
+    const fallbackUrl = sanitizeRequestUrl(apiUrl);
 
-    const pageResult = await page.evaluate(async (fetchUrl) => {
-      const response = await fetch(fetchUrl, {
-        credentials: "include",
+    // Prefer Playwright context.request over page.evaluate(fetch).
+    // UTR's SPA monkey-patches window.fetch (failures attribute to main.*.js);
+    // context.request uses authenticated browser cookies without that wrapper.
+    let pageResult: {
+      status: number;
+      contentType?: string;
+      text: string;
+    };
+
+    let retrievalMethod: "context-request" | "page-evaluate" = "context-request";
+
+    try {
+      const apiResponse = await context.request.get(apiUrl, {
         headers: { Accept: "application/json" },
+        timeout: 30_000,
       });
-      const text = await response.text();
-      return {
-        status: response.status,
-        contentType: response.headers.get("content-type") ?? undefined,
-        text,
+      pageResult = {
+        status: apiResponse.status(),
+        contentType: apiResponse.headers()["content-type"],
+        text: await apiResponse.text(),
       };
-    }, buildUtrResultsApiUrl(playerId));
+    } catch (requestError) {
+      // Last resort: in-page fetch with cookies + optional Bearer from jwt cookie.
+      retrievalMethod = "page-evaluate";
+      const evaluateResult = await page.evaluate(async (fetchUrl) => {
+        let token: string | null = null;
+        try {
+          const cookieMatch = document.cookie.match(/(?:^|;\s*)jwt=([^;]+)/);
+          if (cookieMatch?.[1]) {
+            token = decodeURIComponent(cookieMatch[1]);
+          }
+        } catch {
+          /* ignore */
+        }
+
+        const headers: Record<string, string> = { Accept: "application/json" };
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+
+        try {
+          const response = await fetch(fetchUrl, {
+            credentials: "include",
+            headers,
+          });
+          const text = await response.text();
+          return {
+            status: response.status,
+            contentType: response.headers.get("content-type") ?? undefined,
+            text,
+            fetchError: false as const,
+          };
+        } catch (error) {
+          return {
+            status: 0,
+            contentType: undefined,
+            text: `fetch failed: ${error instanceof Error ? error.message : String(error)}`,
+            fetchError: true as const,
+          };
+        }
+      }, apiUrl);
+
+      if (evaluateResult.fetchError) {
+        const classified = classifyAcquisition({
+          signInGateVisible: diagnostics.signInGateVisible,
+          profileLoaded: diagnostics.profileLoaded,
+          pageRequestObserved: diagnostics.pageRequestPath.observed,
+          fallbackAttempted: true,
+          fallbackStatus: 0,
+          fallbackJsonCaptured: false,
+          fallbackBodySummary: summarizeResponseBody(evaluateResult.text),
+          matchesRead: 0,
+        });
+        diagnostics.fallbackFetchPath = {
+          attempted: true,
+          requestUrl: fallbackUrl,
+          method: retrievalMethod,
+          httpStatus: 0,
+          bodySummary: summarizeResponseBody(evaluateResult.text),
+          jsonCaptured: false,
+        };
+        const requestHint =
+          requestError instanceof Error ? requestError.message : String(requestError);
+        diagnostics.diagnosticStatus = classified.diagnosticStatus;
+        diagnostics.responseSummary = `UTR API request failed. Endpoint: ${fallbackUrl}. ${evaluateResult.text}. context.request: ${requestHint}`;
+        return {
+          ok: false,
+          auth: classified.auth,
+          message: diagnostics.responseSummary,
+          diagnosticStatus: classified.diagnosticStatus,
+          diagnostics,
+        };
+      }
+
+      pageResult = {
+        status: evaluateResult.status,
+        contentType: evaluateResult.contentType,
+        text: evaluateResult.text,
+      };
+    }
 
     diagnostics.fallbackFetchPath = {
       attempted: true,
       requestUrl: fallbackUrl,
+      method: retrievalMethod,
       httpStatus: pageResult.status,
       contentType: pageResult.contentType,
       bodySummary: summarizeResponseBody(pageResult.text),

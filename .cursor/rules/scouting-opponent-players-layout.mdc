@@ -1,0 +1,53 @@
+---
+description: Locked Scouting Opponent Players three-column desktop layout. Read before changing ScoutingWorkspace master-detail.
+alwaysApply: true
+---
+
+# Scouting Opponent Players — Locked Three-Column Layout
+
+Canonical commit baseline: `d3694e8` (“Add team scouting workflows”), as amended only by
+explicit Scouting layout restorations that preserve this contract.
+
+**Canonical component:** `src/features/scouting/components/ScoutingWorkspace.tsx`
+(`OpponentPlayersMasterDetail`). Do not introduce a second Opponent Players main UI.
+
+## Locked desktop contract
+
+On desktop, Opponent Players is **always** three columns:
+
+| Region | Width | Data attribute |
+| --- | --- | --- |
+| LEFT — Teams | ~230–270px (`minmax(14.5rem,16.5rem)`) | `data-scouting-team-column` (+ `data-scouting-team-nav`) |
+| MIDDLE — Players | ~280–340px (`minmax(17.5rem,21rem)`) | `data-scouting-player-column` (+ `data-scouting-player-list`) |
+| RIGHT — Reports | flex (`minmax(0,1fr)`) | `data-scouting-report-column` (+ `data-scouting-player-workspace`) |
+
+Desktop shell marker: `data-scouting-desktop-columns` with
+`className="grid … max-md:hidden"` — **never** `hidden md:grid` (that anti-pattern blanked
+desktop while the toolbar still showed a positive player count).
+
+## Interactions (do not change)
+
+- Team select → updates middle roster, keeps a valid player selection, updates right.
+- Middle player select → updates **right only**; does **not** open the Player Card.
+- Right column: report previews + green **Open player card** (only path that opens the card).
+- Report click → opens Report Card.
+- Summary cards + Quick AI live on the Player Card Overview (opened via the green button),
+  not as a flat-table replacement of this shell.
+
+## Data must not control layout existence
+
+- The three-column shell **always mounts** for the Opponent Players view.
+- Loading / empty / error / no-reports states belong **inside** columns (or a banner),
+  never by unmounting `data-scouting-desktop-columns`.
+- A positive filtered player count must never appear above a blank desktop workspace.
+
+## Tabs
+
+Peer views use `ModuleSectionTabs` (Practice-style). No `rounded-full` pill tabs for
+Opponent Players | Teams | Match Reports | Form Submissions.
+
+## Forbidden regressions
+
+- Replacing Opponent Players with a flat directory `<table>` (Teams tab may keep its table).
+- Duplicate Scouting main workspaces outside `ScoutingWorkspace`.
+- Gating `OpponentPlayersMasterDetail` behind `!loadError` so columns disappear on failure.

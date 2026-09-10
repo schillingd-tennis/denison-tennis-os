@@ -109,6 +109,30 @@ test.describe("Rankings cold-load desktop", () => {
     await expect(page.getByRole("columnheader", { name: "WTN" })).toBeVisible();
     await expect(denison.getByRole("cell", { name: "78.23" })).toBeVisible();
     await expect(denison.getByRole("cell", { name: "11.96" })).toBeVisible();
+
+    await page.reload({ waitUntil: "networkidle" });
+    const logoHealth = await page.evaluate(() => {
+      const rows = Array.from(document.querySelectorAll("[data-rankings-row]"));
+      const images = rows
+        .map((row) => row.querySelector("img"))
+        .filter((img): img is HTMLImageElement => Boolean(img));
+      const broken = images.filter((img) => !img.complete || img.naturalWidth === 0).map((img) => img.alt);
+      const denisonImg = document.querySelector(
+        '[data-denison="true"] img[alt="Denison logo"]',
+      ) as HTMLImageElement | null;
+      return {
+        rowCount: rows.length,
+        imageCount: images.length,
+        broken,
+        denisonSrc: denisonImg?.getAttribute("src") ?? null,
+        denisonOk: Boolean(denisonImg && denisonImg.complete && denisonImg.naturalWidth > 0),
+      };
+    });
+    expect(logoHealth.rowCount).toBe(75);
+    expect(logoHealth.imageCount).toBeGreaterThanOrEqual(75);
+    expect(logoHealth.broken).toEqual([]);
+    expect(logoHealth.denisonSrc).toMatch(/school-logos%2FDenison_transparent\.png|\/school-logos\/Denison_transparent\.png/);
+    expect(logoHealth.denisonOk).toBe(true);
   });
 
   test("placeholders do not invent ranking data", async ({ page }) => {

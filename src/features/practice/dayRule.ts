@@ -1,4 +1,4 @@
-import type { DayRuleSummary } from "./types";
+import type { DayBudgetRow, DayRuleSummary } from "./types";
 
 export const DAY_RULE_LIMIT = 114;
 export const MONTHLY_DAY_BUDGETS = [
@@ -12,6 +12,22 @@ export function enumerateDates(start: string, end: string): string[] {
   const last = new Date(`${end}T12:00:00Z`);
   while (cursor <= last) { dates.push(cursor.toISOString().slice(0, 10)); cursor.setUTCDate(cursor.getUTCDate() + 1); }
   return dates;
+}
+
+export function calculateMonthlyPracticeBudget(row: DayBudgetRow, today: string) {
+  const practices = row.days.filter(
+    (day) => day.date <= today && day.sources.some((source) => source.type === "practice"),
+  ).length;
+  const competitionDates = row.days.filter((day) =>
+    day.sources.some((source) => source.type === "competition"),
+  ).length;
+  const practicesBudgeted = row.budget - competitionDates;
+  return {
+    practices,
+    competitionDates,
+    practicesBudgeted,
+    variance: practicesBudgeted - practices,
+  };
 }
 
 export function calculateDayRule(practices: (string | { date: string; label?: string })[], competitions: { start: string; end: string; label?: string }[], today = new Date().toISOString().slice(0, 10)): DayRuleSummary {

@@ -22,7 +22,7 @@ export default function Navigation({
     <ul className="flex flex-col gap-1.5">
       {items.map((item) => (
         <NavEntry
-          key={item.href}
+          key={`${item.href}:${pathname}`}
           item={item}
           pathname={pathname}
           onNavigate={onNavigate}
@@ -43,8 +43,7 @@ function NavEntry({
 }) {
   const hasChildren = Boolean(item.children?.length);
   const { parentActive, expanded } = getNestedNavState(pathname, item);
-  const [manuallyExpanded, setManuallyExpanded] = useState(expanded);
-  const isExpanded = parentActive || manuallyExpanded;
+  const [isExpanded, setIsExpanded] = useState(expanded);
   const Icon = item.icon;
 
   const rowClass = `flex min-h-11 items-center gap-3 rounded-control px-3.5 py-3 text-[15px] font-medium transition-[background-color,color,box-shadow] duration-150 md:min-h-0 ${
@@ -63,7 +62,7 @@ function NavEntry({
           style={rowStyle}
           aria-expanded={isExpanded}
           aria-controls={`sidebar-${item.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
-          onClick={() => setManuallyExpanded((value) => !value)}
+          onClick={() => setIsExpanded((value) => !value)}
         >
           <span className="flex min-w-0 flex-1 items-center gap-3">
             <Icon className="h-[19px] w-[19px] shrink-0 text-white" strokeWidth={1.75} />

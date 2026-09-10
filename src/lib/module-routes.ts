@@ -31,9 +31,10 @@ export const TEAM_OPERATIONS_PRACTICE_ROUTE = "/team-operations/practice";
 /** Team Operations scouting reports and opponent dossiers. */
 export const TEAM_OPERATIONS_SCOUTING_ROUTE = "/team-operations/scouting";
 
-/** Knowledge module root and hotel directory. */
+/** Knowledge module root and hotel / officials directories. */
 export const KNOWLEDGE_ROUTE = "/knowledge";
 export const KNOWLEDGE_HOTELS_ROUTE = "/knowledge/hotels";
+export const KNOWLEDGE_OFFICIALS_ROUTE = "/knowledge/officials";
 
 /** Rankings module — ITA / NPI team rankings. */
 export const RANKINGS_ROUTE = "/rankings";
@@ -72,6 +73,7 @@ export const TOP_LEVEL_MODULE_PATHS = [
   "/research",
   "/knowledge",
   KNOWLEDGE_HOTELS_ROUTE,
+  KNOWLEDGE_OFFICIALS_ROUTE,
   "/people",
 ] as const;
 

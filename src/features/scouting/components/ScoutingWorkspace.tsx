@@ -838,7 +838,8 @@ export default function ScoutingWorkspace({
             </div>
           ) : null}
 
-          {!loadError && view === "opponentPlayers" ? (
+          {/* Shell always mounts for Opponent Players — data/error must not remove columns. */}
+          {view === "opponentPlayers" ? (
             <OpponentPlayersMasterDetail
               teams={navTeams.length ? navTeams : teamsAlpha}
               allPlayers={players}
@@ -1061,7 +1062,10 @@ function OpponentPlayersMasterDetail({
         data-scouting-desktop-columns=""
         className="grid min-h-[min(70vh,40rem)] grid-cols-[minmax(14.5rem,16.5rem)_minmax(17.5rem,21rem)_minmax(0,1fr)] max-md:hidden"
       >
-        <div className="min-h-0 overflow-y-auto border-r border-border">
+        <div
+          data-scouting-team-column=""
+          className="min-h-0 overflow-y-auto border-r border-border"
+        >
           <TeamNavigator
             teams={teams}
             players={allPlayers}
@@ -1069,7 +1073,10 @@ function OpponentPlayersMasterDetail({
             onSelect={onSelectTeam}
           />
         </div>
-        <div className="min-h-0 overflow-y-auto border-r border-border">
+        <div
+          data-scouting-player-column=""
+          className="min-h-0 overflow-y-auto border-r border-border"
+        >
           <PlayerRoster
             players={rosterPlayers}
             reports={reports}
@@ -1081,7 +1088,7 @@ function OpponentPlayersMasterDetail({
             onSelect={onSelectPlayer}
           />
         </div>
-        <div className="min-h-0 overflow-y-auto">
+        <div data-scouting-report-column="" className="min-h-0 overflow-y-auto">
           {selectedPlayer ? (
             <div className="p-4 sm:p-5" data-scouting-player-workspace="">
               <div className="flex flex-wrap items-start justify-between gap-3">

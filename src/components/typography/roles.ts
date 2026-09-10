@@ -11,6 +11,7 @@
  *   workspaceFieldValue          → Adaptive Workspace content values
  *   workspaceFieldLabel          → quiet Adaptive Workspace field labels
  *   workspaceGroupTitle          → understated Adaptive Workspace group headings
+ *   drawerFieldLabel(Muted)      → slide-over form field labels (never semibold/bold)
  *   metadata / metadataSm        → quieter supporting facts
  *   sectionTitle / sectionLabel / tableHeader → structure, not content
  */
@@ -68,6 +69,19 @@ export const typeRole = {
 
   /** Adaptive Workspace field value — the visual focus of the content pane. */
   workspaceFieldValue: "text-[15px] font-medium leading-snug text-text-primary",
+
+  /**
+   * Slide-over / WorkspaceDrawer individual form field labels.
+   * Regular or medium weight only — never semibold or bold.
+   * Section headings, record titles, and actions are exempt.
+   */
+  drawerFieldLabel: "text-xs font-medium text-text-primary",
+
+  /**
+   * Muted slide-over field labels (Interactions, Schedule, Intra-Squad, etc.).
+   * Same weight rule as `drawerFieldLabel`; secondary color preserved.
+   */
+  drawerFieldLabelMuted: "text-xs font-medium text-text-secondary",
 } as const;
 
 export type TypeRole = keyof typeof typeRole;

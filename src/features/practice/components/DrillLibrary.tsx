@@ -21,7 +21,7 @@ import {
 } from "@/components/mobile-dashboard";
 import SearchInput from "@/components/SearchInput";
 import ViewChrome from "@/components/view-chrome";
-import { useDrawerManager } from "@/components/workspace-drawer";
+import { DrawerField, useDrawerManager } from "@/components/workspace-drawer";
 import {
   TEAM_DIRECTORY_EMPTY,
   TEAM_DIRECTORY_META,
@@ -614,6 +614,7 @@ function DrillTagInput({ initialTags, suggestions }: { initialTags: string[]; su
               key={tag}
               type="button"
               role="option"
+              aria-selected={false}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => addTag(tag)}
               className="inline-flex items-center gap-1 rounded-full border border-border bg-app-background px-2.5 py-1.5 text-[11px] font-semibold text-text-primary hover:border-[var(--module-accent)]/30 hover:bg-[var(--module-tint)] hover:text-[var(--module-accent)]"
@@ -632,10 +633,5 @@ const inputClass =
   "w-full rounded-control border border-border bg-surface px-3 py-2.5 text-[16px] font-normal outline-none focus:border-[var(--module-accent)] focus:ring-2 focus:ring-[var(--module-tint)] md:text-sm";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="grid gap-1.5 text-xs font-bold text-text-primary">
-      <span>{label}</span>
-      {children}
-    </label>
-  );
+  return <DrawerField label={label}>{children}</DrawerField>;
 }

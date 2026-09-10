@@ -63,6 +63,8 @@ const PLAYER_PERSONAL_INFO_FIELDS = [
   "state",
   "zipCode",
   "country",
+  "dorm",
+  "roomNumber",
   "notes",
 ] as const;
 
@@ -119,20 +121,24 @@ function ContactInfoSection() {
         Contact Info
       </WorkspaceAccentHeading>
       <div className="mt-[5px] flex flex-col gap-y-[7px]">
-        <dl className="grid grid-cols-1 gap-x-6 gap-y-[7px] sm:grid-cols-3">
+        <WorkspaceFieldGrid columns={3}>
           <PersonalInfoField field="personalEmail" />
           <PersonalInfoField field="denisonEmail" />
           <PersonalInfoField field="cellPhone" label="Phone" />
-        </dl>
-        <dl className="grid grid-cols-1 gap-x-6 gap-y-[7px] sm:grid-cols-2 md:grid-cols-[minmax(0,45fr)_minmax(0,25fr)_minmax(0,15fr)_minmax(0,15fr)]">
+        </WorkspaceFieldGrid>
+        <WorkspaceFieldGrid columns={3}>
           <PersonalInfoField field="addressLine1" label="Address" />
           <PersonalInfoField field="city" label="City" />
-          <PersonalInfoField field="state" label="State" />
-          <PersonalInfoField field="zipCode" label="Zip" />
-        </dl>
-        <dl className="grid grid-cols-1 gap-x-6 sm:grid-cols-3">
+          <div className="min-w-0 grid grid-cols-2 gap-x-6">
+            <PersonalInfoField field="state" label="State" />
+            <PersonalInfoField field="zipCode" label="Zip" />
+          </div>
+        </WorkspaceFieldGrid>
+        <WorkspaceFieldGrid columns={3}>
           <PersonalInfoField field="country" label="Country" />
-        </dl>
+          <PersonalInfoField field="dorm" label="Dorm" />
+          <PersonalInfoField field="roomNumber" label="Room Number" />
+        </WorkspaceFieldGrid>
       </div>
     </section>
   );

@@ -100,3 +100,23 @@ export async function saveDailyPlanAction(formData: FormData) {
   revalidatePath("/"); revalidatePath("/team-operations/practice");
   return { success: true } as const;
 }
+
+export async function deleteDailyPlanAction(id: string, planDate: string) {
+  if (!id) return { success: false, message: "Practice plan not found." } as const;
+  const client = await createSupabaseServerClient();
+  const { error } = await client.from("daily_practice_plans").delete().eq("id", id);
+  if (error) return { success: false, message: error.message } as const;
+
+  // Remove only the 114-day entry created by a Daily Plan. Manually added or
+  // competition-backed counted dates remain intact.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(planDate)) {
+    await client
+      .from("practice_days")
+      .delete()
+      .eq("practice_date", planDate)
+      .like("notes", "Daily plan:%");
+  }
+  revalidatePath("/");
+  revalidatePath("/team-operations/practice");
+  return { success: true } as const;
+}

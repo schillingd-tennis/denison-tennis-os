@@ -10,6 +10,8 @@ export { default as DrawerOverlay } from "./DrawerOverlay";
 export { default as DrawerHeader } from "./DrawerHeader";
 export { default as DrawerBody } from "./DrawerBody";
 export { default as DrawerFooter, DrawerFooterActions } from "./DrawerFooter";
+// Canonical field wrapper for non-bold labels in workspace drawers.
+export { default as DrawerField } from "./DrawerField";
 export {
   DrawerManagerProvider,
   useDrawerManager,

@@ -23,16 +23,6 @@ export function compareWinsLossesPair(
   return bLosses - aLosses;
 }
 
-/** Pre-order by player name so stable primary sorts keep name ASC as the tie-break. */
-export function orderByPlayerName<T extends { playerId: string }>(
-  rows: readonly T[],
-  roster: readonly RosterPlayer[],
-): T[] {
-  return [...rows].sort((a, b) =>
-    playerNameFor(a.playerId, roster).localeCompare(playerNameFor(b.playerId, roster)),
-  );
-}
-
 export type RankingsSortKey = "rank" | "player" | "wl" | "winPct" | "weightedPts" | "elo";
 
 export type PlayerRecordsSortKey =

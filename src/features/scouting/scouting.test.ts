@@ -323,6 +323,9 @@ test("Opponent Players master-detail structure, compact filters, Direct/AI split
   assert.match(workspace, /data-scouting-desktop-columns/);
   assert.match(workspace, /data-scouting-tablet-layout/);
   assert.match(workspace, /data-scouting-mobile-progressive/);
+  assert.match(workspace, /data-scouting-team-column/);
+  assert.match(workspace, /data-scouting-player-column/);
+  assert.match(workspace, /data-scouting-report-column/);
   assert.match(workspace, /data-scouting-team-nav/);
   assert.match(workspace, /data-scouting-player-list/);
   assert.match(workspace, /data-scouting-player-workspace/);
@@ -341,6 +344,14 @@ test("Opponent Players master-detail structure, compact filters, Direct/AI split
     workspace,
     /grid-cols-\[minmax\(14\.5rem,16\.5rem\)_minmax\(17\.5rem,21rem\)_minmax\(0,1fr\)\]/,
   );
+  // Named column order: team → player → report inside desktop grid
+  assert.match(
+    workspace,
+    /data-scouting-desktop-columns=""[\s\S]*?data-scouting-team-column=""[\s\S]*?data-scouting-player-column=""[\s\S]*?data-scouting-report-column=""/,
+  );
+  // Shell mounts even when loadError is set (data must not remove columns)
+  assert.match(workspace, /view === "opponentPlayers" \? \(/);
+  assert.doesNotMatch(workspace, /!loadError && view === "opponentPlayers"/);
   assert.match(workspace, /filtered player/);
   assert.match(workspace, /navTeams/);
   assert.match(workspace, /selectionHydrated/);
@@ -414,6 +425,77 @@ test("Opponent Players master-detail structure, compact filters, Direct/AI split
     "utf8",
   );
   assert.doesNotMatch(publicForm, /TeamMark|ScheduleIdentityMark|school-logos/);
+});
+
+test("locked Opponent Players three-column layout contract", () => {
+  const workspace = readFileSync(
+    fileURLToPath(new URL("./components/ScoutingWorkspace.tsx", import.meta.url)),
+    "utf8",
+  );
+
+  // Named regions exist
+  for (const attr of [
+    "data-scouting-team-column",
+    "data-scouting-player-column",
+    "data-scouting-report-column",
+    "data-scouting-desktop-columns",
+    "data-scouting-team-nav",
+    "data-scouting-player-list",
+    "data-scouting-player-workspace",
+  ]) {
+    assert.match(workspace, new RegExp(attr));
+  }
+
+  // Column order + desktop grid + widths (Teams ~230–270, Players ~280–340, Reports flex)
+  assert.match(
+    workspace,
+    /data-scouting-desktop-columns=""[\s\S]*?data-scouting-team-column=""[\s\S]*?data-scouting-player-column=""[\s\S]*?data-scouting-report-column=""/,
+  );
+  assert.match(
+    workspace,
+    /grid-cols-\[minmax\(14\.5rem,16\.5rem\)_minmax\(17\.5rem,21rem\)_minmax\(0,1fr\)\]/,
+  );
+  assert.match(workspace, /data-scouting-desktop-columns=""[\s\S]{0,200}className="grid /);
+  assert.match(workspace, /max-md:hidden/);
+  assert.doesNotMatch(
+    workspace,
+    /data-scouting-desktop-columns=""[\s\S]{0,200}className="hidden /,
+  );
+
+  // Loading / empty / no-reports stay inside shell — empty states + load error do not unmount columns
+  assert.match(workspace, /No linked reports/);
+  assert.match(workspace, /Select an opponent player/);
+  assert.match(workspace, /data-scouting-load-error/);
+  assert.doesNotMatch(workspace, /!loadError && view === "opponentPlayers"/);
+  assert.match(workspace, /Shell always mounts for Opponent Players/);
+
+  // Count invariant: toolbar can show filtered player count while desktop columns remain grid (not display:none)
+  assert.match(workspace, /filtered player/);
+  assert.match(workspace, /Do NOT use the hidden-then-md-grid anti-pattern/);
+
+  // No flat-table replacement of Opponent Players master-detail
+  assert.match(workspace, /function OpponentPlayersMasterDetail/);
+  assert.match(workspace, /function TeamsView/);
+  const teamsViewIdx = workspace.indexOf("function TeamsView");
+  const masterIdx = workspace.indexOf("function OpponentPlayersMasterDetail");
+  assert.ok(masterIdx > 0);
+  assert.ok(teamsViewIdx > masterIdx);
+  // Teams tab owns the table; Opponent Players must not render a directory <table>
+  const masterSlice = workspace.slice(masterIdx, teamsViewIdx);
+  assert.doesNotMatch(masterSlice, /<table[\s>]/);
+  assert.match(masterSlice, /data-scouting-desktop-columns/);
+
+  // Interactions: middle select stays on directory; green Open player card opens card; report opens report
+  assert.match(workspace, /Middle-column \/ roster select/);
+  assert.match(workspace, /setSurface\(\{ kind: "directory" \}\)/);
+  assert.match(workspace, /Open player card/);
+  assert.match(workspace, /openPlayerCardFromDirectory/);
+  assert.match(workspace, /ScoutingDirectReportPreviewCard/);
+  assert.match(workspace, /onOpenReport/);
+
+  // Peer tabs stay Practice-style ModuleSectionTabs (not pill tabs)
+  assert.match(workspace, /ModuleSectionTabs/);
+  assert.doesNotMatch(workspace, /rounded-full/);
 });
 
 test("relationship inventory: 43 source / 26 safe players / 29 linked / 14 unresolved", () => {
