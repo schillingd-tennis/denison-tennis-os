@@ -638,7 +638,7 @@ test("public form token architecture hashes secrets and allows unauth path", () 
   assert.match(migration, /v_hits > 8/);
 });
 
-test("AI provider disabled without key; never overwrites sources; citations required", async () => {
+test("AI provider supports direct keys and Vercel gateway; never overwrites sources; citations required", async () => {
   const evidence = [
     {
       id: "rep-1",
@@ -665,6 +665,29 @@ test("AI provider disabled without key; never overwrites sources; citations requ
     apiKey: "",
   });
   assert.deepEqual(missing, { error: AI_SCOUTING_UNAVAILABLE });
+
+  let gatewayUrl = "";
+  let gatewayModel = "";
+  const previousGatewayKey = process.env.AI_GATEWAY_API_KEY;
+  process.env.AI_GATEWAY_API_KEY = "gateway-test-key";
+  const gateway = await summarizeScoutingWithOpenAi({
+    subjectLabel: "Alejandro Gonzalez",
+    kind: "player",
+    evidence,
+    fetchImpl: async (url, init) => {
+      gatewayUrl = String(url);
+      gatewayModel = String(JSON.parse(String(init?.body)).model);
+      return new Response(
+        JSON.stringify({ choices: [{ message: { content: '{"body":"Gateway summary","quick_summary_bullets":["Big serve"]}' } }] }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    },
+  });
+  if (previousGatewayKey === undefined) delete process.env.AI_GATEWAY_API_KEY;
+  else process.env.AI_GATEWAY_API_KEY = previousGatewayKey;
+  assert.ok(!("error" in gateway));
+  assert.equal(gatewayUrl, "https://ai-gateway.vercel.sh/v1/chat/completions");
+  assert.equal(gatewayModel, "openai/gpt-4o-mini");
 
   const stubbed = await summarizeScoutingWithOpenAi({
     subjectLabel: "Alejandro Gonzalez",
@@ -1026,6 +1049,24 @@ test("Overview UI structure and guardrails", () => {
   // 36 Team module PersonWorkspaceShell contract untouched
   assert.match(personShell, /LOCKED OS UI CONTRACT/);
   assert.match(playerCard, /from "@\/components\/person-workspace-shell"/);
+});
+
+test("Opponent Players third column loads and manages the consolidated AI summary", () => {
+  const workspace = readFileSync(
+    fileURLToPath(new URL("./components/ScoutingWorkspace.tsx", import.meta.url)),
+    "utf8",
+  );
+
+  assert.match(workspace, /function PlayerAiDirectorySummary/);
+  assert.match(workspace, /data-scouting-directory-ai-summary/);
+  assert.match(workspace, /AI Player Summary/);
+  assert.match(workspace, /loadPlayerWorkspaceAction\(player\.id\)/);
+  assert.match(workspace, /regeneratePlayerAiAction\(player\.id\)/);
+  assert.match(workspace, /Based on all.*linked report/);
+  assert.match(workspace, /strengths,[\s\S]*weaknesses,[\s\S]*patterns,[\s\S]*match-plan priorities/);
+  assert.match(workspace, /aiReport\.quickSummaryBullets/);
+  assert.match(workspace, /Newer reports are available\. Refresh the AI summary/);
+  assert.match(workspace, /Individual reports/);
 });
 
 test("Team Ops landing lists Scouting after Intra Squad", () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Link2, Plus, RefreshCw } from "lucide-react";
+import { ArrowLeft, Brain, Link2, Plus, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
 
@@ -15,7 +15,9 @@ import { TEAM_OPERATIONS_ROUTE, TEAM_OPERATIONS_SCOUTING_ROUTE } from "@/lib/mod
 
 import {
   createFormLinkAction,
+  loadPlayerWorkspaceAction,
   loadTeamWorkspaceAction,
+  regeneratePlayerAiAction,
   regenerateTeamAiAction,
   revokeFormLinkAction,
   saveDirectReportAction,
@@ -50,6 +52,7 @@ import type {
   ScoutingFormLink,
   ScoutingFormSubmission,
   ScoutingOpponentPlayer,
+  ScoutingPlayerReport,
   ScoutingSortDirection,
   ScoutingTeam,
   ScoutingTeamReport,
@@ -910,6 +913,122 @@ export default function ScoutingWorkspace({
   );
 }
 
+function PlayerAiDirectorySummary({
+  player,
+  reportCount,
+}: {
+  player: ScoutingOpponentPlayer;
+  reportCount: number;
+}) {
+  const [aiReport, setAiReport] = useState<ScoutingPlayerReport | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadPlayerWorkspaceAction(player.id).then((result) => {
+      if (cancelled) return;
+      if (result.success) {
+        setAiReport(result.workspace.aiReport);
+      } else {
+        setMessage(result.message);
+      }
+      setLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [player.id]);
+
+  function generateSummary() {
+    if (pending || reportCount === 0 || player.archivedAt) return;
+    setMessage(null);
+    startTransition(async () => {
+      const result = await regeneratePlayerAiAction(player.id);
+      if (result.success) {
+        setAiReport(result.report);
+        setMessage("AI summary updated from all linked reports.");
+      } else {
+        setMessage(result.message);
+      }
+    });
+  }
+
+  return (
+    <section
+      className="mt-4 rounded-card border border-[var(--module-border)] bg-[var(--module-tint)]/25 p-4"
+      data-scouting-directory-ai-summary=""
+      aria-labelledby="directory-ai-summary-title"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control bg-[var(--module-accent)]/10 text-[var(--module-accent)]">
+              <Brain className="h-4 w-4" aria-hidden />
+            </span>
+            <div>
+              <h3 id="directory-ai-summary-title" className="text-sm font-semibold text-text-primary">
+                AI Player Summary
+              </h3>
+              <p className="text-xs text-text-secondary">
+                {reportCount === 0
+                  ? "No linked reports"
+                  : `Based on all ${reportCount} linked report${reportCount === 1 ? "" : "s"}`}
+              </p>
+            </div>
+          </div>
+        </div>
+        {reportCount > 0 && !player.archivedAt ? (
+          <button
+            type="button"
+            onClick={generateSummary}
+            disabled={pending || loading}
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-control border border-border bg-surface px-3 text-xs font-semibold text-text-primary disabled:opacity-50"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${pending ? "animate-spin" : ""}`} aria-hidden />
+            {pending ? "Generating…" : aiReport ? "Refresh AI" : "Generate AI"}
+          </button>
+        ) : null}
+      </div>
+
+      {loading ? (
+        <p className="mt-4 text-sm text-text-secondary" role="status">Loading saved AI summary…</p>
+      ) : aiReport ? (
+        <div className="mt-4 space-y-3">
+          {aiReport.stale ? (
+            <p className="rounded-control bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              Newer reports are available. Refresh the AI summary to include them.
+            </p>
+          ) : null}
+          {aiReport.quickSummaryBullets.length > 0 ? (
+            <ul className="list-disc space-y-2 pl-5 text-sm leading-6 text-text-primary">
+              {aiReport.quickSummaryBullets.map((bullet) => <li key={bullet}>{bullet}</li>)}
+            </ul>
+          ) : (
+            <p className="whitespace-pre-line text-sm leading-6 text-text-primary">{aiReport.body}</p>
+          )}
+          <p className="text-[11px] text-text-secondary">
+            {aiReport.status === "reviewed" ? "Reviewed" : "Draft — review required"}
+            {aiReport.generatedAt ? ` · Generated ${formatDate(aiReport.generatedAt.slice(0, 10))}` : ""}
+          </p>
+        </div>
+      ) : reportCount > 0 ? (
+        <p className="mt-4 text-sm leading-6 text-text-secondary">
+          No saved AI summary yet. Generate one from all linked reports to consolidate strengths,
+          weaknesses, patterns, and match-plan priorities.
+        </p>
+      ) : (
+        <p className="mt-4 text-sm text-text-secondary">
+          Add a substantive scouting report before generating an AI summary.
+        </p>
+      )}
+
+      {message ? <p className="mt-3 text-xs text-text-secondary" role="status">{message}</p> : null}
+    </section>
+  );
+}
+
 function OpponentPlayersMasterDetail({
   teams,
   allPlayers,
@@ -1035,6 +1154,14 @@ function OpponentPlayersMasterDetail({
                 >
                   Open player card
                 </button>
+                <PlayerAiDirectorySummary
+                  key={selectedPlayer.id}
+                  player={selectedPlayer}
+                  reportCount={linkedReportsForSelected.length}
+                />
+                <h3 className="mt-5 text-xs font-semibold tracking-wide text-text-secondary uppercase">
+                  Individual reports
+                </h3>
                 <ul className="mt-4 space-y-2">
                   {linkedReportsForSelected.length ? (
                     linkedReportsForSelected.map((report) => (
@@ -1114,6 +1241,14 @@ function OpponentPlayersMasterDetail({
                   Open player card
                 </button>
               </div>
+              <PlayerAiDirectorySummary
+                key={selectedPlayer.id}
+                player={selectedPlayer}
+                reportCount={linkedReportsForSelected.length}
+              />
+              <h3 className="mt-5 text-xs font-semibold tracking-wide text-text-secondary uppercase">
+                Individual reports
+              </h3>
               <ul className="mt-4 space-y-2">
                 {linkedReportsForSelected.length ? (
                   linkedReportsForSelected.map((report) => (

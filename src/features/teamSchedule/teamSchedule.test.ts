@@ -154,6 +154,14 @@ describe("schedule filters", () => {
   });
 });
 
+describe("schedule desktop view controls", () => {
+  it("groups Fall, Spring, and Doubleheaders under Other to preserve search width", () => {
+    assert.match(scheduleDashboardSource, /PRIMARY_SCHEDULE_VIEW_OPTIONS/);
+    assert.match(scheduleDashboardSource, /OTHER_SCHEDULE_VIEW_OPTIONS/);
+    assert.match(scheduleDashboardSource, /aria-label="Other schedule views"/);
+  });
+});
+
 describe("doubleheader and shared date display", () => {
   const events = SEED_2026_27;
 

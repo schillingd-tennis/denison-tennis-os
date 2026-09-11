@@ -30,3 +30,15 @@ export const SCHEDULE_VIEW_OPTIONS: readonly {
   { value: "tentative", label: "Tentative / TBD", icon: Sparkles },
   { value: "doubleheaders", label: "Doubleheaders", icon: Car },
 ];
+
+const OTHER_VIEW_VALUES = new Set<ScheduleViewMode>(["fall", "spring", "doubleheaders"]);
+
+/** Keep the highest-use schedule views visible in the desktop toolbar. */
+export const PRIMARY_SCHEDULE_VIEW_OPTIONS = SCHEDULE_VIEW_OPTIONS.filter(
+  (option) => !OTHER_VIEW_VALUES.has(option.value),
+);
+
+/** Lower-frequency desktop views share one compact dropdown to preserve search width. */
+export const OTHER_SCHEDULE_VIEW_OPTIONS = SCHEDULE_VIEW_OPTIONS.filter((option) =>
+  OTHER_VIEW_VALUES.has(option.value),
+);

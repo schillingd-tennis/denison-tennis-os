@@ -1,11 +1,11 @@
 /**
- * Scouting AI summarization — OpenAI when configured; otherwise disabled.
+ * Scouting AI summarization — direct OpenAI or Vercel AI Gateway.
  * Never invents evidence; never overwrites source direct reports.
  * Full body + quick_summary_bullets are produced in one generation.
  */
 
 export const AI_SCOUTING_UNAVAILABLE =
-  "AI scouting summaries are unavailable. Set OPENAI_API_KEY on the server to enable generation.";
+  "AI scouting summaries are unavailable. Configure OPENAI_API_KEY or Vercel AI Gateway authentication.";
 
 export type ScoutEvidence = {
   id: string;
@@ -156,21 +156,37 @@ export async function summarizeScoutingWithOpenAi(input: {
     return { error: "No supported evidence to summarize." };
   }
 
-  const apiKey = input.apiKey ?? process.env.OPENAI_API_KEY?.trim();
+  const directOpenAiKey =
+    input.apiKey !== undefined ? input.apiKey.trim() : process.env.OPENAI_API_KEY?.trim();
+  const gatewayKey = input.apiKey === undefined
+    ? process.env.AI_GATEWAY_API_KEY?.trim() || process.env.VERCEL_OIDC_TOKEN?.trim()
+    : undefined;
+  const apiKey = directOpenAiKey || gatewayKey;
   if (!apiKey) return { error: AI_SCOUTING_UNAVAILABLE };
 
-  const model =
+  const usesGateway = !directOpenAiKey && Boolean(gatewayKey);
+
+  const configuredModel =
     input.model ??
     process.env.OPENAI_SCOUTING_MODEL?.trim() ??
-    process.env.OPENAI_INTRA_SQUAD_MODEL?.trim() ??
-    "gpt-4o-mini";
+    process.env.OPENAI_INTRA_SQUAD_MODEL?.trim();
+  const model = configuredModel
+    ? usesGateway && !configuredModel.includes("/")
+      ? `openai/${configuredModel}`
+      : configuredModel
+    : usesGateway
+      ? "openai/gpt-4o-mini"
+      : "gpt-4o-mini";
+  const endpoint = usesGateway
+    ? "https://ai-gateway.vercel.sh/v1/chat/completions"
+    : "https://api.openai.com/v1/chat/completions";
 
   const prompt = buildScoutingSummaryPrompt(input);
   const fetchImpl = input.fetchImpl ?? fetch;
   const evidenceIds = input.evidence.map((item) => item.id);
 
   try {
-    const response = await fetchImpl("https://api.openai.com/v1/chat/completions", {
+    const response = await fetchImpl(endpoint, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,

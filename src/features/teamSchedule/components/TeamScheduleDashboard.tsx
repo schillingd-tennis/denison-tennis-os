@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, Plus, Printer } from "lucide-react";
+import { ChevronDown, Download, Plus, Printer } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState, useSyncExternalStore } from "react";
 
@@ -42,7 +42,11 @@ import { computeScheduleKpis } from "../metrics";
 import { sortScheduleEvents } from "../sorting";
 import { scheduleDrawerTitle } from "../schoolIdentity";
 import { formatSeasonLabel, type TeamScheduleEvent } from "../types";
-import { SCHEDULE_VIEW_OPTIONS } from "../viewOptions";
+import {
+  OTHER_SCHEDULE_VIEW_OPTIONS,
+  PRIMARY_SCHEDULE_VIEW_OPTIONS,
+  SCHEDULE_VIEW_OPTIONS,
+} from "../viewOptions";
 import { scheduleViewContextLabel } from "../views";
 import ScheduleDeleteConfirm from "./ScheduleDeleteConfirm";
 import ScheduleFilterControl from "./ScheduleFilterControl";
@@ -263,14 +267,34 @@ export default function TeamScheduleDashboard({
               />
             }
             views={
-              <div className="max-w-full overflow-x-auto">
+              <div className="flex max-w-full items-stretch gap-1 overflow-x-auto rounded-control bg-black/[0.07] p-0.5 shadow-[inset_0_0_0_1px_rgba(17,24,39,0.04)]">
                 <SegmentedControl
                   value={view}
                   onChange={writeStoredScheduleDirectoryView}
-                  options={[...SCHEDULE_VIEW_OPTIONS]}
+                  options={[...PRIMARY_SCHEDULE_VIEW_OPTIONS]}
                   ariaLabel="Change schedule view"
                   equalWidth={false}
+                  className="h-10 bg-transparent p-0 shadow-none"
                 />
+                <div className="relative shrink-0">
+                  <select
+                    aria-label="Other schedule views"
+                    value={OTHER_SCHEDULE_VIEW_OPTIONS.some((option) => option.value === view) ? view : ""}
+                    onChange={(event) => writeStoredScheduleDirectoryView(event.target.value as ScheduleViewMode)}
+                    className={[
+                      "h-10 cursor-pointer appearance-none rounded-[8px] py-0 pr-8 pl-3 text-[13px] font-medium outline-none transition-[color,background-color,box-shadow]",
+                      OTHER_SCHEDULE_VIEW_OPTIONS.some((option) => option.value === view)
+                        ? "bg-surface text-text-primary shadow-[0_1px_2px_rgba(17,24,39,0.08),0_0_0_1px_rgba(17,24,39,0.04)]"
+                        : "bg-transparent text-text-secondary hover:text-text-primary",
+                    ].join(" ")}
+                  >
+                    <option value="" disabled>Other</option>
+                    {OTHER_SCHEDULE_VIEW_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 h-3.5 w-3.5 -translate-y-1/2 text-text-secondary" aria-hidden />
+                </div>
               </div>
             }
             filters={

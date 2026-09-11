@@ -49,7 +49,7 @@ function NavEntry({
   const rowClass = `flex min-h-11 items-center gap-3 rounded-control px-3.5 py-3 text-[15px] font-medium transition-[background-color,color,box-shadow] duration-150 md:min-h-0 ${
     parentActive
       ? "bg-[var(--nav-accent)] text-surface shadow-[0_8px_18px_color-mix(in_srgb,var(--nav-accent)_32%,transparent)]"
-      : "text-text-secondary hover:bg-[var(--nav-accent)] hover:text-surface focus-visible:bg-[var(--nav-accent)] focus-visible:text-surface focus-visible:outline-none"
+      : "text-text-secondary hover:bg-[var(--nav-accent)] hover:text-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
   }`;
   const rowStyle = { "--nav-accent": item.accent } as CSSProperties;
 
@@ -61,6 +61,7 @@ function NavEntry({
           className={`${rowClass} w-full text-left`}
           style={rowStyle}
           aria-expanded={isExpanded}
+          aria-current={parentActive ? "page" : undefined}
           aria-controls={`sidebar-${item.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
           onClick={() => setIsExpanded((value) => !value)}
         >
@@ -79,7 +80,7 @@ function NavEntry({
           </span>
         </button>
       ) : (
-        <Link href={item.href} onClick={onNavigate} className={rowClass} style={rowStyle}>
+        <Link href={item.href} onClick={onNavigate} aria-current={parentActive ? "page" : undefined} className={rowClass} style={rowStyle}>
           <Icon className="h-[19px] w-[19px] shrink-0 text-white" strokeWidth={1.75} />
           {item.label}
         </Link>
