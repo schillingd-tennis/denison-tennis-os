@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { TEAM_OPERATIONS_SCOUTING_ROUTE } from "@/lib/module-routes";
 import { parseSubmissionStatus, readDirectReportFormData, readPublicScoutingFormData } from "./formData";
-import { scoutingFormPublicPath } from "./formTokens";
+import { scoutingFormPublicPath } from "./formPaths";
 import {
   archiveOpponentPlayer,
   createFormLink,

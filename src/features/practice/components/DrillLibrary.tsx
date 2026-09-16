@@ -1,6 +1,6 @@
 "use client";
 
-import { Pencil, Plus, Tag, X } from "lucide-react";
+import { Pencil, Plus, Tag } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   useCallback,
@@ -20,6 +20,7 @@ import {
   MobileViewSelector,
 } from "@/components/mobile-dashboard";
 import SearchInput from "@/components/SearchInput";
+import DrillTagInput from "./DrillTagInput";
 import ViewChrome from "@/components/view-chrome";
 import { DrawerField, useDrawerManager } from "@/components/workspace-drawer";
 import {
@@ -384,16 +385,18 @@ export default function DrillLibrary({
   );
 }
 
-function DrillDetailForm({
+export function DrillDetailForm({
   drill,
+  initialName = "",
   availableTags,
   onCancel,
   onSaved,
 }: {
   drill: DrillLibraryRow | null;
+  initialName?: string;
   availableTags: string[];
   onCancel: () => void;
-  onSaved: () => void;
+  onSaved: (created?: PracticeDrill) => void;
 }) {
   const [message, setMessage] = useState("");
   const [pending, startTransition] = useTransition();
@@ -409,7 +412,7 @@ function DrillDetailForm({
         setMessage(result.message);
         return;
       }
-      onSaved();
+      onSaved(isCreate && "drill" in result ? result.drill as PracticeDrill : undefined);
     });
   }
 
@@ -429,7 +432,7 @@ function DrillDetailForm({
         </div>
 
         <Field label="Drill name">
-          <input name="name" required defaultValue={drill?.name ?? ""} className={inputClass} />
+          <input name="name" required defaultValue={drill?.name ?? initialName} className={inputClass} />
         </Field>
         <Field label="Category">
           <input
@@ -439,12 +442,7 @@ function DrillDetailForm({
             className={inputClass}
           />
         </Field>
-        <Field label="Tags">
-          <DrillTagInput initialTags={drill?.tags ?? []} suggestions={availableTags} />
-          <span className="text-[10px] font-normal text-text-secondary">
-            Choose suggested tags or type a new one. Press Enter or comma to add it.
-          </span>
-        </Field>
+        <DrillTagInput initialTags={drill?.tags ?? []} suggestions={availableTags} />
         <Field label="Objective">
           <textarea
             name="description"
@@ -532,99 +530,6 @@ function DrillTags({ tags, compact = false }: { tags: string[]; compact?: boolea
           <span className="truncate">{tag}</span>
         </span>
       ))}
-    </div>
-  );
-}
-
-function DrillTagInput({ initialTags, suggestions }: { initialTags: string[]; suggestions: string[] }) {
-  const [tags, setTags] = useState(() => [...new Set(initialTags.map((tag) => tag.trim()).filter(Boolean))]);
-  const [draft, setDraft] = useState("");
-  const [focused, setFocused] = useState(false);
-  const normalizedTags = new Set(tags.map((tag) => tag.toLocaleLowerCase()));
-  const matchingSuggestions = suggestions
-    .filter((tag) => !normalizedTags.has(tag.toLocaleLowerCase()))
-    .filter((tag) => !draft.trim() || tag.toLocaleLowerCase().includes(draft.trim().toLocaleLowerCase()))
-    .slice(0, 8);
-
-  function addTag(value: string) {
-    const tag = value.trim().replace(/,+$/, "");
-    if (!tag || normalizedTags.has(tag.toLocaleLowerCase())) {
-      setDraft("");
-      return;
-    }
-    setTags((current) => [...current, tag]);
-    setDraft("");
-  }
-
-  return (
-    <div className="relative">
-      <input type="hidden" name="tags" value={tags.join(", ")} />
-      <div
-        className={`${inputClass} flex min-h-11 flex-wrap items-center gap-1.5 py-1.5`}
-        onClick={(event) => event.currentTarget.querySelector("input")?.focus()}
-      >
-        {tags.map((tag) => (
-          <span
-            key={tag}
-            className="inline-flex items-center gap-1 rounded-full border border-[var(--module-accent)]/20 bg-[var(--module-tint)] px-2 py-1 text-[11px] font-semibold text-[var(--module-accent)]"
-          >
-            <Tag className="h-3 w-3" />
-            {tag}
-            <button
-              type="button"
-              aria-label={`Remove ${tag}`}
-              onClick={() => setTags((current) => current.filter((value) => value !== tag))}
-              className="rounded-full p-0.5 hover:bg-[var(--module-accent)]/10"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </span>
-        ))}
-        <input
-          value={draft}
-          onChange={(event) => {
-            const value = event.target.value;
-            if (value.endsWith(",")) addTag(value);
-            else setDraft(value);
-          }}
-          onFocus={() => setFocused(true)}
-          onBlur={() => window.setTimeout(() => setFocused(false), 120)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              if (draft.trim()) addTag(draft);
-            } else if (event.key === "Backspace" && !draft && tags.length > 0) {
-              setTags((current) => current.slice(0, -1));
-            }
-          }}
-          placeholder={tags.length === 0 ? "Start typing a tag…" : "Add another…"}
-          aria-label="Add tags"
-          aria-autocomplete="list"
-          className="min-w-[130px] flex-1 bg-transparent py-1 text-sm font-normal text-text-primary outline-none placeholder:text-text-secondary/70"
-        />
-      </div>
-      {focused && matchingSuggestions.length > 0 ? (
-        <div
-          role="listbox"
-          aria-label="Suggested tags"
-          className="absolute z-20 mt-1 flex max-h-48 w-full flex-wrap gap-1.5 overflow-y-auto rounded-control border border-border bg-surface p-2 shadow-lg"
-        >
-          {matchingSuggestions.map((tag) => (
-            <button
-              key={tag}
-              type="button"
-              role="option"
-              aria-selected={false}
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => addTag(tag)}
-              className="inline-flex items-center gap-1 rounded-full border border-border bg-app-background px-2.5 py-1.5 text-[11px] font-semibold text-text-primary hover:border-[var(--module-accent)]/30 hover:bg-[var(--module-tint)] hover:text-[var(--module-accent)]"
-            >
-              <Tag className="h-3 w-3" />
-              {tag}
-            </button>
-          ))}
-        </div>
-      ) : null}
     </div>
   );
 }

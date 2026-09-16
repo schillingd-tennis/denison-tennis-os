@@ -2,7 +2,9 @@
 import { ArrowDown, ArrowLeft, ArrowUp, BellRing, CalendarCheck2, Clock3, GripVertical, MapPin, Pencil, Plus, Search, Sparkles, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { PointerEvent as ReactPointerEvent } from "react";
-import { useState, useTransition } from "react";
+import { useEffect, useEffectEvent, useRef, useState, useTransition } from "react";
+import { useDrawerManager } from "@/components/workspace-drawer";
+import { DrillDetailForm } from "./DrillLibrary";
 import { deleteDailyPlanAction, saveDailyPlanAction } from "../actions";
 import { moveItem } from "../reorder";
 import type { DailyPracticePlan, DayRuleSummary, PracticeDrill } from "../types";
@@ -42,6 +44,15 @@ function Metric({ label, value, detail, tone }: { label: string; value: string; 
 
 export default function DailyPlanBuilder({ drills, plans, dayRule, initialPlanId = null, initialPlanDate = null }: { drills: PracticeDrill[]; plans: DailyPracticePlan[]; dayRule: DayRuleSummary; initialPlanId?: string | null; initialPlanDate?: string | null }) {
   const router = useRouter();
+  const { openDrawer, closeDrawer } = useDrawerManager();
+  const formRef = useRef<HTMLFormElement>(null);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveQueue = useRef<Promise<unknown>>(Promise.resolve());
+  const pendingSnapshot = useRef<FormData | null>(null);
+  const selectedRef = useRef<string[]>([]);
+  const autoSaveEnabled = useRef(false);
+  const autosavedNewPlan = useRef<{ id: string; planDate: string } | null>(null);
+  const firstSelection = useRef(true);
   const todayParts = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
   const todayPart = (type: Intl.DateTimeFormatPartTypes) => todayParts.find((part) => part.type === type)?.value ?? "";
   const today = `${todayPart("year")}-${todayPart("month")}-${todayPart("day")}`;
@@ -55,14 +66,84 @@ export default function DailyPlanBuilder({ drills, plans, dayRule, initialPlanId
   const latestPlan = previousPlans[0] ?? null;
   const [activePlanId, setActivePlanId] = useState<string | null>(initialPlanId);
   const current = activePlanId ? visiblePlans.find((plan) => plan.id === activePlanId) : initialPlanDate ? visiblePlans.find((plan) => plan.planDate === initialPlanDate) : todayPlan;
-  const [editing, setEditing] = useState(Boolean(initialPlanDate)); const [selected, setSelected] = useState<string[]>(current?.drills.map((drill) => drill.id) ?? []); const [draggingId, setDraggingId] = useState<string | null>(null); const [query, setQuery] = useState(""); const [message, setMessage] = useState(""); const [pending, startTransition] = useTransition();
-  const selectedDrills = selected.map((id) => drills.find((drill) => drill.id === id)).filter((drill): drill is PracticeDrill => Boolean(drill));
-  const availableDrills = drills.filter((drill) => !selected.includes(drill.id) && [drill.name, drill.description, drill.tags.join(" ")].join(" ").toLowerCase().includes(query.trim().toLowerCase()));
+  const [editing, setEditing] = useState(Boolean(initialPlanDate)); const [selected, setSelected] = useState<string[]>(current?.drills.map((drill) => drill.id) ?? []); const [newDrills, setNewDrills] = useState<PracticeDrill[]>([]); const [draggingId, setDraggingId] = useState<string | null>(null); const [query, setQuery] = useState(""); const [message, setMessage] = useState(""); const [pending, startTransition] = useTransition();
+  const allDrills = [...drills, ...newDrills.filter((drill) => !drills.some((existing) => existing.id === drill.id))];
+  const selectedDrills = selected.map((id) => allDrills.find((drill) => drill.id === id)).filter((drill): drill is PracticeDrill => Boolean(drill));
+  const availableDrills = allDrills.filter((drill) => !selected.includes(drill.id) && [drill.name, drill.description, drill.tags.join(" ")].join(" ").toLowerCase().includes(query.trim().toLowerCase()));
+  const canCreateDrill = Boolean(query.trim()) && !allDrills.some((drill) => drill.name.trim().toLowerCase() === query.trim().toLowerCase());
+  useEffect(() => { selectedRef.current = selected; autoSaveEnabled.current = editing; }, [selected, editing]);
+  function snapshotPlan(status?: string) {
+    if (!formRef.current) return null;
+    const data = new FormData(formRef.current);
+    data.delete("drillIds");
+    selectedRef.current.forEach((id) => data.append("drillIds", id));
+    data.set("status", status ?? current?.status ?? "draft");
+    return data;
+  }
+  function queueSave(data: FormData, automatic: boolean) {
+    const task = saveQueue.current.then(() => saveDailyPlanAction(data)).catch(() => ({ success: false, message: "Connection interrupted. Please try saving again." } as const));
+    saveQueue.current = task.catch(() => undefined);
+    if (automatic) task.then((result) => { if (!result.success) setMessage(`Autosave failed: ${result.message}`); else { if (!current) autosavedNewPlan.current = { id: result.id, planDate: result.planDate }; setMessage("Saved automatically."); } });
+    return task;
+  }
+  function scheduleSave() {
+    if (!autoSaveEnabled.current) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    // Capture while the form still exists; React detaches refs before unmount cleanup.
+    pendingSnapshot.current = snapshotPlan();
+    saveTimer.current = setTimeout(() => { const data = pendingSnapshot.current; pendingSnapshot.current = null; if (data) void queueSave(data, true); saveTimer.current = null; }, 350);
+  }
+  function saveBeforeSwitch() {
+    if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
+    if (editing) { const data = snapshotPlan(); pendingSnapshot.current = null; if (data) void queueSave(data, true); }
+  }
+  const saveSelectionChange = useEffectEvent(scheduleSave);
+  const savePendingOnLeave = useEffectEvent((data: FormData) => { void queueSave(data, true); });
+  useEffect(() => {
+    if (firstSelection.current) { firstSelection.current = false; return; }
+    saveSelectionChange();
+  }, [selected]);
+  useEffect(() => {
+    function flushPendingSave() {
+      if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
+      const data = pendingSnapshot.current;
+      pendingSnapshot.current = null;
+      if (autoSaveEnabled.current && data) savePendingOnLeave(data);
+    }
+    function onVisibilityChange() {
+      if (document.visibilityState === "hidden") flushPendingSave();
+    }
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("pagehide", flushPendingSave);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("pagehide", flushPendingSave);
+      flushPendingSave();
+    };
+  }, []);
+  function openNewDrill() {
+    const name = query.trim();
+    const insertionIndex = selectedRef.current.length;
+    const tags = [...new Set(allDrills.flatMap((drill) => drill.tags))].sort();
+    openDrawer({ id: "practice-plan-add-drill", title: "Add Drill", subtitle: "Team Operations · Practice", hideFooter: true,
+      content: <DrillDetailForm drill={null} initialName={name} availableTags={tags} onCancel={closeDrawer} onSaved={(created) => {
+        closeDrawer();
+        if (!created) return;
+        setNewDrills((value) => [...value, created]);
+        setSelected((value) => { const next = [...value]; next.splice(Math.min(insertionIndex, next.length), 0, created.id); return next; });
+        setQuery("");
+        router.refresh();
+      }}/>,
+    });
+  }
   function beginEditing(plan: DailyPracticePlan) { setMessage(""); setSelected(plan.drills.map((drill) => drill.id)); setEditing(true); }
   function deletePlan(plan: DailyPracticePlan) {
     if (!window.confirm(`Delete the practice plan for ${plan.planDate}? This cannot be undone.`)) return;
+    autoSaveEnabled.current = false;
+    if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
     setMessage("");
     startTransition(async () => {
+      await saveQueue.current;
       const result = await deleteDailyPlanAction(plan.id, plan.planDate);
       if (!result.success) { setMessage(`Could not delete: ${result.message}`); return; }
       setDeletedPlanIds((ids) => [...ids, plan.id]);
@@ -73,10 +154,21 @@ export default function DailyPlanBuilder({ drills, plans, dayRule, initialPlanId
     });
   }
   function discardNewPlan() {
-    if (!window.confirm("Delete this unsaved practice plan?")) return;
+    if (!window.confirm("Delete this practice plan? This cannot be undone.")) return;
+    autoSaveEnabled.current = false;
+    if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
     setMessage("");
-    setSelected([]);
-    setEditing(false);
+    startTransition(async () => {
+      await saveQueue.current;
+      const saved = autosavedNewPlan.current;
+      if (saved) {
+        const result = await deleteDailyPlanAction(saved.id, saved.planDate);
+        if (!result.success) { setMessage(`Could not delete: ${result.message}`); return; }
+      }
+      setSelected([]);
+      setEditing(false);
+      router.refresh();
+    });
   }
   function renderDeleteButton() {
     return <button type="button" disabled={pending} onClick={() => current ? deletePlan(current) : discardNewPlan()} className="inline-flex h-10 items-center gap-2 rounded-control border border-red-200 bg-white px-4 text-sm font-semibold text-danger hover:bg-red-50 disabled:opacity-60"><Trash2 className="h-4 w-4"/>Delete Plan</button>;
@@ -86,7 +178,7 @@ export default function DailyPlanBuilder({ drills, plans, dayRule, initialPlanId
   function startDrag(id: string, event: ReactPointerEvent<HTMLButtonElement>) { event.currentTarget.setPointerCapture(event.pointerId); setDraggingId(id); }
   function updateDrag(id: string, event: ReactPointerEvent<HTMLButtonElement>) { if (draggingId !== id) return; const row = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>("[data-drill-index]"); const target = Number(row?.dataset.drillIndex); if (!Number.isInteger(target)) return; setSelected((value) => moveItem(value, value.indexOf(id), target)); }
   function finishDrag(event: ReactPointerEvent<HTMLButtonElement>) { if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); setDraggingId(null); }
-  const history = <aside className="rounded-card border border-border bg-surface p-4 shadow-sm"><div className="flex items-center justify-between"><div><h2 className="text-sm font-semibold">Previous Plans</h2><p className="text-xs text-text-secondary">School year plans · five visible at a time.</p></div><CalendarCheck2 className="h-5 w-5 text-violet-600"/></div><div className="mt-3 max-h-[15rem] divide-y divide-border overflow-y-auto rounded-control border border-border">{previousPlans.length ? previousPlans.map((plan) => <button type="button" key={plan.id} onClick={() => { setActivePlanId(plan.id); setSelected(plan.drills.map((drill) => drill.id)); setEditing(true); }} className={`grid min-h-12 w-full grid-cols-[6.5rem_minmax(0,1fr)_auto] items-center gap-2 px-3 py-1.5 text-left transition ${current?.id === plan.id ? "bg-violet-50" : "bg-surface hover:bg-app-background"}`}><span className="text-[10px] font-semibold tabular-nums text-text-secondary">{plan.planDate}</span><span className="min-w-0 truncate text-xs font-semibold">{plan.title}</span><span className="text-[10px] text-text-secondary">{plan.drills.length} drills</span></button>) : <p className="bg-app-background px-3 py-6 text-center text-xs text-text-secondary">No previous plans this school year.</p>}</div></aside>;
+  const history = <aside className="rounded-card border border-border bg-surface p-4 shadow-sm"><div className="flex items-center justify-between"><div><h2 className="text-sm font-semibold">Previous Plans</h2><p className="text-xs text-text-secondary">School year plans · five visible at a time.</p></div><CalendarCheck2 className="h-5 w-5 text-violet-600"/></div><div className="mt-3 max-h-[15rem] divide-y divide-border overflow-y-auto rounded-control border border-border">{previousPlans.length ? previousPlans.map((plan) => <button type="button" key={plan.id} onClick={() => { saveBeforeSwitch(); setActivePlanId(plan.id); setSelected(plan.drills.map((drill) => drill.id)); setEditing(true); }} className={`grid min-h-12 w-full grid-cols-[6.5rem_minmax(0,1fr)_auto] items-center gap-2 px-3 py-1.5 text-left transition ${current?.id === plan.id ? "bg-violet-50" : "bg-surface hover:bg-app-background"}`}><span className="text-[10px] font-semibold tabular-nums text-text-secondary">{plan.planDate}</span><span className="min-w-0 truncate text-xs font-semibold">{plan.title}</span><span className="text-[10px] text-text-secondary">{plan.drills.length} drills</span></button>) : <p className="bg-app-background px-3 py-6 text-center text-xs text-text-secondary">No previous plans this school year.</p>}</div></aside>;
   const latest = latestPlan ? <section className="overflow-hidden rounded-card border border-violet-200 bg-surface shadow-sm" style={{ gridColumn: "1 / -1" }}><div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-gradient-to-r from-violet-50 to-white px-5 py-3"><div><p className="text-[10px] font-bold tracking-wider text-violet-700 uppercase">Latest Practice Plan · {latestPlan.planDate}</p><h2 className="mt-0.5 text-base font-semibold">{latestPlan.title}</h2><p className="mt-0.5 text-xs text-text-secondary">{latestPlan.startTime || "Time TBD"}{latestPlan.endTime ? `–${latestPlan.endTime}` : ""} · {latestPlan.location || "Location TBD"}</p></div><button type="button" onClick={() => { setActivePlanId(latestPlan.id); beginEditing(latestPlan); }} className="inline-flex h-9 items-center gap-1.5 rounded-control bg-violet-700 px-3 text-xs font-semibold text-white"><Pencil className="h-3.5 w-3.5"/>Edit Latest Plan</button></div><div className="grid gap-4 p-5 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]"><div><p className="text-[10px] font-bold tracking-wider text-text-secondary uppercase">Focus & announcements</p><p className="mt-2 text-sm font-semibold">{latestPlan.focus || "No practice focus entered."}</p><p className="mt-2 text-xs leading-5 text-text-secondary">{latestPlan.announcements || "No team announcements."}</p></div><div><p className="text-[10px] font-bold tracking-wider text-text-secondary uppercase">Practice sequence</p><div className="mt-2 flex flex-wrap gap-2">{latestPlan.drills.length ? latestPlan.drills.map((drill, index) => <span key={drill.id} className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[11px] font-semibold text-violet-800"><b>{index + 1}</b>{drill.name}</span>) : <span className="text-xs text-text-secondary">No drills selected.</span>}</div></div></div></section> : null;
   if (!editing && !current) return <div className="grid gap-3 lg:grid-cols-[1.45fr_0.75fr]"><section className="relative overflow-hidden rounded-card border border-violet-300 p-8 text-white shadow-[0_18px_45px_rgba(79,70,229,0.22)] sm:p-10" style={{ background: "linear-gradient(135deg, #6d28d9 0%, #4338ca 55%, #0284c7 100%)" }}><div className="absolute -top-20 -right-16 h-56 w-56 rounded-full bg-white/10"/><div className="relative max-w-2xl"><span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-white/15"><Sparkles className="h-5 w-5"/></span><p className="mt-5 text-xs font-semibold tracking-widest text-indigo-100 uppercase">Today · {today}</p><h2 className="mt-2 text-2xl font-semibold sm:text-3xl">Build Today’s Plan</h2><p className="mt-3 max-w-xl text-sm leading-6 text-indigo-100">No plan has been created for today. Set the schedule, announcements, drills, and countable-date status.</p><button type="button" onClick={() => { setActivePlanId(null); setSelected([]); setEditing(true); }} className="mt-6 inline-flex h-11 items-center gap-2 rounded-control bg-white px-5 text-sm font-semibold text-indigo-700 shadow-lg transition hover:-translate-y-0.5"><Plus className="h-4 w-4"/>Build Today’s Plan</button></div></section>{history}{latest}</div>;
   if (!editing && current) return <div className="grid gap-3">
@@ -96,14 +188,15 @@ export default function DailyPlanBuilder({ drills, plans, dayRule, initialPlanId
     <div className="grid content-start gap-3"><button type="button" onClick={() => beginEditing(current)} className="inline-flex h-11 items-center justify-center gap-2 rounded-control bg-[var(--module-accent)] px-4 text-sm font-semibold text-white shadow-sm"><Pencil className="h-4 w-4"/>Edit This Plan</button><div className="grid grid-cols-[auto_1fr] items-start gap-3"><div className="inline-flex min-h-16 items-center gap-2 rounded-card px-3 py-2 text-white shadow-sm" style={{ background: "#059669" }}><CalendarCheck2 className="h-4 w-4"/><span className="text-xs font-semibold">{current.countable ? "Countable" : "Non-countable"}</span></div><div className="min-h-16 rounded-card border border-sky-200 bg-sky-50 p-3"><div className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-sky-600"/><p className="text-xs font-semibold">Practice Focus</p></div><p className="mt-1 text-xs leading-5 text-text-secondary">{current.focus || "No focus entered."}</p></div></div>{history}</div>
     </div>
   </div>;
-  return <form className="grid gap-3 lg:grid-cols-[1.15fr_0.95fr]" action={(formData) => startTransition(async () => { const result = await saveDailyPlanAction(formData); setMessage(result.success ? "Plan saved." : `Could not save: ${result.message}`); if (result.success) { router.refresh(); setEditing(false); } })}>
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-violet-200 bg-surface px-4 py-3 shadow-sm lg:col-span-2"><div><p className="text-[10px] font-bold tracking-wider text-violet-700 uppercase">{current ? `Editing ${current.planDate}` : "New daily plan"}</p><p className="mt-0.5 text-sm font-semibold text-text-primary">{current ? current.title : "Build Today’s Plan"}</p></div><div className="flex items-center gap-2">{renderDeleteButton()}{current ? <button type="button" onClick={() => setEditing(false)} className="h-10 rounded-control border border-border bg-surface px-4 text-sm font-semibold hover:bg-app-background">Cancel</button> : null}<button type="submit" disabled={pending} className="inline-flex h-10 items-center gap-2 rounded-control bg-[var(--module-accent)] px-5 text-sm font-semibold text-white shadow-sm disabled:opacity-60">{pending ? "Saving…" : current ? "Save Changes" : "Save Plan"}</button></div></div>
-    <section className="rounded-card border border-violet-200 bg-gradient-to-br from-violet-50 via-white to-indigo-50 p-5 shadow-sm"><div className="flex items-center gap-2 text-violet-700"><Sparkles className="h-5 w-5"/><h2 className="text-base font-semibold">Build Daily Plan</h2></div><div className="mt-4 grid gap-3 sm:grid-cols-2"><label className="text-xs font-semibold">Date<input required name="planDate" type="date" defaultValue={current?.planDate ?? initialPlanDate ?? new Date().toISOString().slice(0,10)} className={`${field} mt-1`}/></label><label className="text-xs font-semibold">Title<input name="title" defaultValue={current?.title ?? "Team Practice"} className={`${field} mt-1`}/></label><label className="text-xs font-semibold"><Clock3 className="mr-1 inline h-3.5 w-3.5"/>Start<input name="startTime" type="time" defaultValue={current?.startTime ?? "14:45"} className={`${field} mt-1`}/></label><label className="text-xs font-semibold">End<input name="endTime" type="time" defaultValue={current?.endTime ?? "17:00"} className={`${field} mt-1`}/></label><label className="text-xs font-semibold sm:col-span-2"><MapPin className="mr-1 inline h-3.5 w-3.5"/>Location<input name="location" defaultValue={current?.location ?? "Mitchell Center Courts"} className={`${field} mt-1`}/></label><label className="text-xs font-semibold sm:col-span-2">Practice focus<textarea name="focus" defaultValue={current?.focus} rows={2} className={`${field} mt-1 h-auto py-2`}/></label><label className="text-xs font-semibold sm:col-span-2"><BellRing className="mr-1 inline h-3.5 w-3.5"/>Team announcements<textarea name="announcements" defaultValue={current?.announcements} rows={3} className={`${field} mt-1 h-auto py-2`}/></label></div><label className="mt-4 flex items-center gap-3 rounded-control border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-900"><input name="countable" type="checkbox" defaultChecked={current?.countable ?? true} className="h-4 w-4 accent-emerald-600"/>Count this date toward the 114-day rule</label><input type="hidden" name="status" value="published"/><div className="mt-4 flex flex-wrap items-center gap-2">{renderDeleteButton()}<button type="submit" disabled={pending} className="h-10 rounded-control bg-violet-700 px-5 text-sm font-semibold text-white disabled:opacity-60">{pending ? "Saving…" : current ? "Save Changes" : "Save Plan"}</button>{current ? <button type="button" onClick={() => setEditing(false)} className="h-10 rounded-control border border-border px-4 text-sm font-semibold">Cancel</button> : null}<span className="text-xs text-text-secondary">{message}</span></div></section>
+  return <form key={activePlanId ?? initialPlanDate ?? "today"} ref={formRef} onChange={scheduleSave} className="grid gap-3 lg:grid-cols-[1.15fr_0.95fr]" action={(formData) => startTransition(async () => { if (saveTimer.current) clearTimeout(saveTimer.current); saveTimer.current = null; pendingSnapshot.current = null; formData.set("status", "published"); const result = await queueSave(formData, false); setMessage(result.success ? "Plan saved." : `Could not save: ${result.message}`); if (result.success) { autoSaveEnabled.current = false; router.refresh(); setEditing(false); } })}>
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-violet-200 bg-surface px-4 py-3 shadow-sm lg:col-span-2"><div><p className="text-[10px] font-bold tracking-wider text-violet-700 uppercase">{current ? `Editing ${current.planDate}` : "New daily plan"}</p><p className="mt-0.5 text-sm font-semibold text-text-primary">{current ? current.title : "Build Today’s Plan"}</p></div><div className="flex items-center gap-2">{renderDeleteButton()}{current ? <button type="button" onClick={() => { saveBeforeSwitch(); setEditing(false); }} className="h-10 rounded-control border border-border bg-surface px-4 text-sm font-semibold hover:bg-app-background">Cancel</button> : null}<button type="submit" disabled={pending} className="inline-flex h-10 items-center gap-2 rounded-control bg-[var(--module-accent)] px-5 text-sm font-semibold text-white shadow-sm disabled:opacity-60">{pending ? "Saving…" : current ? "Save Changes" : "Save Plan"}</button></div></div>
+    <section className="rounded-card border border-violet-200 bg-gradient-to-br from-violet-50 via-white to-indigo-50 p-5 shadow-sm"><div className="flex items-center gap-2 text-violet-700"><Sparkles className="h-5 w-5"/><h2 className="text-base font-semibold">Build Daily Plan</h2></div><div className="mt-4 grid gap-3 sm:grid-cols-2"><label className="text-xs font-semibold">Date<input required name="planDate" type="date" defaultValue={current?.planDate ?? initialPlanDate ?? new Date().toISOString().slice(0,10)} className={`${field} mt-1`}/></label><label className="text-xs font-semibold">Title<input name="title" defaultValue={current?.title ?? "Team Practice"} className={`${field} mt-1`}/></label><label className="text-xs font-semibold"><Clock3 className="mr-1 inline h-3.5 w-3.5"/>Start<input name="startTime" type="time" defaultValue={current?.startTime ?? "14:45"} className={`${field} mt-1`}/></label><label className="text-xs font-semibold">End<input name="endTime" type="time" defaultValue={current?.endTime ?? "17:00"} className={`${field} mt-1`}/></label><label className="text-xs font-semibold sm:col-span-2"><MapPin className="mr-1 inline h-3.5 w-3.5"/>Location<input name="location" defaultValue={current?.location ?? "Mitchell Center Courts"} className={`${field} mt-1`}/></label><label className="text-xs font-semibold sm:col-span-2">Practice focus<textarea name="focus" defaultValue={current?.focus} rows={2} className={`${field} mt-1 h-auto py-2`}/></label><label className="text-xs font-semibold sm:col-span-2"><BellRing className="mr-1 inline h-3.5 w-3.5"/>Team announcements<textarea name="announcements" defaultValue={current?.announcements} rows={3} className={`${field} mt-1 h-auto py-2`}/></label></div><label className="mt-4 flex items-center gap-3 rounded-control border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-900"><input name="countable" type="checkbox" defaultChecked={current?.countable ?? true} className="h-4 w-4 accent-emerald-600"/>Count this date toward the 114-day rule</label><input type="hidden" name="status" value="published"/><div className="mt-4 flex flex-wrap items-center gap-2">{renderDeleteButton()}<button type="submit" disabled={pending} className="h-10 rounded-control bg-violet-700 px-5 text-sm font-semibold text-white disabled:opacity-60">{pending ? "Saving…" : current ? "Save Changes" : "Save Plan"}</button>{current ? <button type="button" onClick={() => { saveBeforeSwitch(); setEditing(false); }} className="h-10 rounded-control border border-border px-4 text-sm font-semibold">Cancel</button> : null}<span className="text-xs text-text-secondary">{message}</span></div></section>
     <section className="rounded-card border border-sky-200 bg-surface p-4 shadow-sm">
       {selected.map((id) => <input key={id} type="hidden" name="drillIds" value={id}/>)}
       <div className="flex items-center justify-between"><div><h2 className="text-sm font-semibold">Practice Sequence</h2><p className="text-xs text-text-secondary">{selected.length} selected · drag the handle to reorder</p></div><Plus className="h-5 w-5 text-sky-600"/></div>
       <div className="mt-3 space-y-2">{selectedDrills.map((drill, index) => <div key={drill.id} data-drill-index={index} className={`flex items-center gap-2 rounded-control border p-2.5 transition ${draggingId === drill.id ? "scale-[1.01] border-violet-500 bg-white shadow-lg" : "border-violet-200 bg-violet-50"}`}><button type="button" aria-label={`Drag ${drill.name} to reorder`} onPointerDown={(event) => startDrag(drill.id, event)} onPointerMove={(event) => updateDrag(drill.id, event)} onPointerUp={finishDrag} onPointerCancel={finishDrag} className="cursor-grab touch-none rounded p-1 text-violet-500 active:cursor-grabbing"><GripVertical className="h-5 w-5"/></button><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-700 text-xs font-bold text-white">{index + 1}</span><span className="min-w-0 flex-1 truncate text-xs font-semibold">{drill.name}</span><span className="hidden items-center sm:flex"><button type="button" disabled={index === 0} onClick={() => moveDrill(index, -1)} aria-label={`Move ${drill.name} up`} className="rounded p-1 text-violet-700 disabled:opacity-25"><ArrowUp className="h-4 w-4"/></button><button type="button" disabled={index === selected.length - 1} onClick={() => moveDrill(index, 1)} aria-label={`Move ${drill.name} down`} className="rounded p-1 text-violet-700 disabled:opacity-25"><ArrowDown className="h-4 w-4"/></button></span><button type="button" onClick={() => setSelected((value) => value.filter((id) => id !== drill.id))} aria-label={`Remove ${drill.name}`} className="rounded p-1 text-danger"><X className="h-4 w-4"/></button></div>)}</div>
       <div className="relative mt-4"><Search className="absolute top-2.5 left-3 h-4 w-4 text-text-secondary"/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search drills by name, tag, or description…" aria-label="Search drills for daily plan" className="h-10 w-full rounded-control border border-border pr-3 pl-9 text-xs outline-none focus:border-sky-500"/></div>
+      {canCreateDrill ? <button type="button" onClick={openNewDrill} className="mt-2 flex w-full items-center gap-2 rounded-control border border-dashed border-sky-300 bg-sky-50 px-3 py-2.5 text-left text-xs font-semibold text-sky-800 hover:bg-sky-100"><Plus className="h-4 w-4"/>Add “{query.trim()}” as a new drill</button> : null}
       <div className="mt-2 max-h-[23rem] space-y-2 overflow-y-auto pr-1">{drills.length === 0 ? <div className="rounded-control border border-dashed border-amber-300 bg-amber-50 p-5 text-center"><p className="text-sm font-semibold text-amber-900">Drill library unavailable</p><p className="mt-1 text-xs text-amber-800">Apply migrations 0045–0047, then refresh this page.</p></div> : availableDrills.length === 0 ? <p className="py-5 text-center text-xs text-text-secondary">No additional drills match your search.</p> : availableDrills.map((drill) => <button type="button" key={drill.id} onClick={() => setSelected((value) => [...value, drill.id])} className="flex w-full gap-3 rounded-control border border-border p-3 text-left transition hover:border-sky-300 hover:bg-sky-50"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sky-700"><Plus className="h-3.5 w-3.5"/></span><span><span className="block text-sm font-semibold">{drill.name}</span><span className="mt-0.5 block text-[11px] text-text-secondary">{drill.tags.join(" · ") || drill.category}</span></span></button>)}</div>
     </section>
   </form>;

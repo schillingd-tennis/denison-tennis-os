@@ -62,7 +62,7 @@ export async function createPracticeDrillAction(formData: FormData) {
   const sourceTags = tags.join(",");
   const importKey = `custom:${crypto.randomUUID()}`;
   const client = await createSupabaseServerClient();
-  const { error } = await client.from("practice_drills").insert({
+  const { data: created, error } = await client.from("practice_drills").insert({
     import_key: importKey,
     name,
     description,
@@ -71,10 +71,15 @@ export async function createPracticeDrillAction(formData: FormData) {
     tags,
     frequency,
     notes,
-  });
+  }).select("id, name, description, tags, source_tags, category, notes, frequency").single();
   if (error) return { success: false, message: error.message } as const;
   revalidatePath("/team-operations/practice");
-  return { success: true } as const;
+  return { success: true, drill: {
+    id: created.id, name: created.name, description: created.description ?? "",
+    tags: created.tags ?? [], sourceTags: created.source_tags ?? "",
+    category: created.category ?? "", notes: created.notes ?? "",
+    frequency: created.frequency ?? "",
+  } } as const;
 }
 
 export async function saveDailyPlanAction(formData: FormData) {
@@ -98,7 +103,7 @@ export async function saveDailyPlanAction(formData: FormData) {
   if (countable) await client.from("practice_days").upsert({ practice_date: planDate, notes: `Daily plan: ${title}` }, { onConflict: "practice_date" });
   else await client.from("practice_days").delete().eq("practice_date", planDate).like("notes", "Daily plan:%");
   revalidatePath("/"); revalidatePath("/team-operations/practice");
-  return { success: true } as const;
+  return { success: true, id: plan.id, planDate } as const;
 }
 
 export async function deleteDailyPlanAction(id: string, planDate: string) {

@@ -8,7 +8,7 @@ import {
   CommandPaletteProvider,
 } from "@/components/command-palette";
 import { DrawerManagerProvider } from "@/components/workspace-drawer";
-import { isScoutingPublicFormPath } from "@/features/scouting/formTokens";
+import { isScoutingPublicFormPath } from "@/features/scouting/formPaths";
 
 import Header from "./Header";
 import Sidebar from "./Sidebar";
