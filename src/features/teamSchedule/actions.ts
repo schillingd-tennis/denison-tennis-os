@@ -2,14 +2,20 @@
 
 import { revalidatePath } from "next/cache";
 
-import { TEAM_OPERATIONS_SCHEDULE_ROUTE } from "@/lib/module-routes";
+import {
+  TEAM_OPERATIONS_SCHEDULE_ROUTE,
+  teamOperationsScheduleEventPath,
+} from "@/lib/module-routes";
 
 import { normalizeScheduleInput } from "./mapping";
 import { deleteScheduleEvent, saveScheduleEvent } from "./repository";
 import type { TeamScheduleEvent, TeamScheduleEventInput } from "./types";
 
-function revalidateSchedule() {
+function revalidateSchedule(eventId?: string | null) {
   revalidatePath(TEAM_OPERATIONS_SCHEDULE_ROUTE);
+  if (eventId) {
+    revalidatePath(teamOperationsScheduleEventPath(eventId));
+  }
 }
 
 export async function saveScheduleEventAction(
@@ -20,7 +26,7 @@ export async function saveScheduleEventAction(
   if ("error" in parsed) return { success: false, error: parsed.error };
   try {
     const event = await saveScheduleEvent(id, parsed.input);
-    revalidateSchedule();
+    revalidateSchedule(event.id);
     return { success: true, event };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : "Save failed." };
@@ -32,7 +38,7 @@ export async function deleteScheduleEventAction(
 ): Promise<{ success: true } | { success: false; error: string }> {
   try {
     await deleteScheduleEvent(id);
-    revalidateSchedule();
+    revalidateSchedule(id);
     return { success: true };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : "Delete failed." };

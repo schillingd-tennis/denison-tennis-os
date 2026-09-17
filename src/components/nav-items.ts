@@ -5,6 +5,7 @@ import {
   HandCoins,
   Home,
   Settings,
+  Swords,
   Trophy,
   UserPlus,
   Users,
@@ -25,6 +26,7 @@ import {
   TEAM_OPERATIONS_PRACTICE_ROUTE,
   TEAM_OPERATIONS_SCHEDULE_ROUTE,
   TEAM_OPERATIONS_SCOUTING_ROUTE,
+  MATCHES_ROUTE,
   TEAM_ROUTE,
   KNOWLEDGE_ROUTE,
   KNOWLEDGE_HOTELS_ROUTE,
@@ -61,6 +63,12 @@ export const primaryNavItems: NavItem[] = [
       { label: "Intra Squad", href: TEAM_OPERATIONS_INTRA_SQUAD_ROUTE },
       { label: "Scouting", href: TEAM_OPERATIONS_SCOUTING_ROUTE },
     ] },
+  {
+    label: "Matches",
+    href: MATCHES_ROUTE,
+    icon: Swords,
+    accent: "#0f766e",
+  },
   {
     label: "Recruiting",
     href: RECRUITING_ROUTE,
@@ -170,6 +178,9 @@ export function getPageTitle(pathname: string): string {
   }
   if (pathname.startsWith("/team-operations") || pathname.startsWith("/operations")) {
     return "Team Operations";
+  }
+  if (pathname === MATCHES_ROUTE || pathname.startsWith(`${MATCHES_ROUTE}/`)) {
+    return "Matches";
   }
   if (pathname === RANKINGS_CURRENT_ITA_ROUTE || pathname.startsWith(`${RANKINGS_CURRENT_ITA_ROUTE}/`)) {
     return "Current ITA Rankings";

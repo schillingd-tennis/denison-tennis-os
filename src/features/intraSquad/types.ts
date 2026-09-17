@@ -89,11 +89,11 @@ export type IntraSquadTab =
 
 export const INTRA_SQUAD_TABS: { id: IntraSquadTab; label: string }[] = [
   { id: "dashboard", label: "Dashboard" },
-  { id: "match-log", label: "Match Log" },
   { id: "rankings", label: "Rankings" },
   { id: "player-records", label: "Player Records" },
   { id: "match-value", label: "Match Value" },
   { id: "elo", label: "Elo Rankings" },
+  { id: "match-log", label: "Match Log" },
 ];
 
 export const PARSE_ERROR_HINT =

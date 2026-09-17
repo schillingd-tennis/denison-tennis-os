@@ -168,6 +168,7 @@ test("top-level modules own the approved sidebar accent colors", () => {
       Home: "#c8102e",
       Team: "#64748b",
       "Team Operations": "#16a34a",
+      Matches: "#0f766e",
       Recruiting: "#c8102e",
       Rankings: "#7c3aed",
       Fundraising: "#166534",
@@ -175,4 +176,10 @@ test("top-level modules own the approved sidebar accent colors", () => {
       Resources: "#ff3c00",
     },
   );
+});
+
+test("Matches sits between Team Operations and Recruiting", () => {
+  const labels = primaryNavItems.map((item) => item.label);
+  assert.equal(labels.indexOf("Matches"), labels.indexOf("Team Operations") + 1);
+  assert.equal(labels.indexOf("Recruiting"), labels.indexOf("Matches") + 1);
 });

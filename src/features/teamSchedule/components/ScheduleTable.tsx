@@ -1,6 +1,7 @@
 "use client";
 
 import { MoreHorizontal } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useMemo, useState, type KeyboardEvent, type MouseEvent } from "react";
 
 import SortableColumnHeader from "@/components/data-table/SortableColumnHeader";
@@ -8,6 +9,7 @@ import type { SortState } from "@/components/data-table/types";
 import { useSortableData } from "@/components/data-table/useSortableData";
 import ViewChrome, { ViewContextHeader } from "@/components/view-chrome";
 import { RECRUITING_TABLE } from "@/features/recruiting/components/recruitingTableChrome";
+import { teamOperationsScheduleEventPath } from "@/lib/module-routes";
 
 import { formatScheduleDateDisplay } from "../display";
 import { SCHEDULE_TABLE_COLUMNS, type ScheduleTableColumnId } from "../scheduleTableColumns";
@@ -73,11 +75,11 @@ function stopRowNavigation(event: MouseEvent) {
 function handleRowKeyDown(
   event: KeyboardEvent<HTMLTableRowElement>,
   scheduleEvent: TeamScheduleEvent,
-  onEdit: (event: TeamScheduleEvent) => void,
+  onOpen: (event: TeamScheduleEvent) => void,
 ) {
   if (event.key === "Enter" || event.key === " ") {
     event.preventDefault();
-    onEdit(scheduleEvent);
+    onOpen(scheduleEvent);
   }
 }
 
@@ -113,6 +115,7 @@ export default function ScheduleTable({
   onDelete: (event: TeamScheduleEvent) => void;
   onEventUpdated: (event: TeamScheduleEvent) => void;
 }) {
+  const router = useRouter();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const inlineEdit = useScheduleInlineEdit({ onEventUpdated });
   const defaultOrdered = useMemo(() => sortScheduleEvents(events), [events]);
@@ -120,6 +123,10 @@ export default function ScheduleTable({
     getInitialSort: readStoredSort,
     onSortChange: writeStoredSort,
   });
+
+  function openWorkspace(scheduleEvent: TeamScheduleEvent) {
+    router.push(teamOperationsScheduleEventPath(scheduleEvent.id));
+  }
 
   function sortDirection(columnId: ScheduleTableColumnId) {
     return sort?.key === columnId ? sort.direction : null;
@@ -202,10 +209,10 @@ export default function ScheduleTable({
                 <tr
                   key={event.id}
                   tabIndex={0}
-                  role="button"
-                  aria-label={`Edit ${rowLabel}`}
-                  onClick={() => onEdit(event)}
-                  onKeyDown={(keyboardEvent) => handleRowKeyDown(keyboardEvent, event, onEdit)}
+                  role="link"
+                  aria-label={`Open ${rowLabel}`}
+                  onClick={() => openWorkspace(event)}
+                  onKeyDown={(keyboardEvent) => handleRowKeyDown(keyboardEvent, event, openWorkspace)}
                   className={`cursor-pointer ${RECRUITING_TABLE.rowHover} border-b border-border/40 last:border-0 ${grouped ? "bg-background/30" : ""}`}
                 >
                   <td className="px-3 py-2 align-top">
@@ -260,6 +267,16 @@ export default function ScheduleTable({
                         onClick={stopRowNavigation}
                         onMouseDown={stopRowNavigation}
                       >
+                        <button
+                          type="button"
+                          className="block w-full px-3 py-1.5 text-left text-xs hover:bg-background"
+                          onClick={() => {
+                            setOpenMenuId(null);
+                            openWorkspace(event);
+                          }}
+                        >
+                          Open
+                        </button>
                         <button
                           type="button"
                           className="block w-full px-3 py-1.5 text-left text-xs hover:bg-background"

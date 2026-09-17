@@ -1,3 +1,4 @@
+import { formatEloHistoryChange, formatEloRating, type EloHistoryEvent } from "../elo";
 import EmptyState from "@/components/EmptyState";
 import { formatDate } from "@/lib/formatting";
 
@@ -11,6 +12,7 @@ import MatchRowActions from "./MatchRowActions";
 
 export default function IntraSquadMatchList({
   matches,
+  eloEvents,
   roster,
   onEdit,
   onDelete,
@@ -22,6 +24,7 @@ export default function IntraSquadMatchList({
   nested = false,
 }: {
   matches: IntraSquadMatch[];
+  eloEvents?: EloHistoryEvent[];
   roster: RosterPlayer[];
   onEdit?: (match: IntraSquadMatch) => void;
   onDelete?: (match: IntraSquadMatch) => void;
@@ -36,6 +39,16 @@ export default function IntraSquadMatchList({
     return <EmptyState compact title={emptyTitle} description={emptyDescription} />;
   }
 
+  const eloByMatchPlayer = new Map(eloEvents?.map((event) => [`${event.matchId}:${event.playerId}`, event]));
+  function eloChange(matchId: string, playerId: string | null) {
+    const event = eloByMatchPlayer.get(`${matchId}:${playerId}`);
+    if (!event) return <span className="text-text-secondary">—</span>;
+    return <span
+      className={`tabular-nums ${event.ratingChange > 0 ? "text-emerald-700" : event.ratingChange < 0 ? "text-red-700" : "text-text-secondary"}`}
+      title={`${formatEloRating(event.ratingBefore)} → ${formatEloRating(event.ratingAfter)}`}
+    >{formatEloHistoryChange(event.ratingChange)}</span>;
+  }
+
   const headers = [
     "Date",
     "Player / Leader",
@@ -46,6 +59,7 @@ export default function IntraSquadMatchList({
     "Result / Credit",
     "Match Value",
   ];
+  if (eloEvents) headers.push("Player Elo Δ", "Opponent Elo Δ");
   if (onDelete || showLogActions) headers.push("Actions");
 
   return (
@@ -99,6 +113,10 @@ export default function IntraSquadMatchList({
                   {formatResultCredit(outcomes.primary, match.weight)} · MV{" "}
                   {formatMatchValue(value.primary.matchValue)}
                 </p>
+                {eloEvents ? <p className="mt-1 text-xs text-text-secondary">
+                  Elo: {playerNameFor(primaryId, roster)} {eloChange(match.id, primaryId)}
+                  {" · "}{playerNameFor(opponentId, roster)} {eloChange(match.id, opponentId)}
+                </p> : null}
               </div>
               <div className="flex items-start pr-1.5 pt-1.5">
                 <MatchRowActions
@@ -179,6 +197,10 @@ export default function IntraSquadMatchList({
                   <td className="px-3 py-2 text-sm tabular-nums text-text-primary">
                     {formatMatchValue(value.primary.matchValue)}
                   </td>
+                  {eloEvents ? <>
+                    <td className="px-3 py-2 text-sm">{eloChange(match.id, primaryId)}</td>
+                    <td className="px-3 py-2 text-sm">{eloChange(match.id, opponentId)}</td>
+                  </> : null}
                   {onDelete || showLogActions ? (
                     <td className="px-2 py-2 text-right">
                       <MatchRowActions

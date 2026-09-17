@@ -258,15 +258,16 @@ describe("validation and metrics", () => {
 describe("schedule table interactions", () => {
   it("22. every normal schedule row is clickable", () => {
     assert.match(scheduleTableSource, /cursor-pointer/);
-    assert.match(scheduleTableSource, /onClick=\{\(\) => onEdit\(event\)\}/);
-    assert.match(scheduleTableSource, /role="button"/);
+    assert.match(scheduleTableSource, /onClick=\{\(\) => openWorkspace\(event\)\}/);
+    assert.match(scheduleTableSource, /role="link"/);
     assert.match(scheduleTableSource, /tabIndex=\{0\}/);
   });
 
-  it("23. row click opens edit via onEdit and keyboard Enter/Space", () => {
+  it("23. row click opens event workspace via keyboard Enter/Space", () => {
     assert.match(scheduleTableSource, /handleRowKeyDown/);
     assert.match(scheduleTableSource, /event\.key === "Enter" \|\| event\.key === " "/);
-    assert.match(scheduleTableSource, /onEdit\(scheduleEvent\)/);
+    assert.match(scheduleTableSource, /onOpen\(scheduleEvent\)/);
+    assert.match(scheduleTableSource, /teamOperationsScheduleEventPath/);
   });
 
   it("24. edit drawer receives record via openForm and Save Changes label", () => {
@@ -283,14 +284,15 @@ describe("schedule table interactions", () => {
     assert.match(scheduleTableSource, /onDelete\(event\)/);
   });
 
-  it("26. shared-date companion rows remain independently editable", () => {
+  it("26. shared-date companion rows remain independently openable", () => {
     const events = SEED_2026_27;
     const owu = events.find((event) => event.opponentName === "OWU");
     const kenyon = events.find((event) => event.opponentName === "Kenyon");
     assert.ok(owu && kenyon);
     assert.equal(owu.competitionDateGroup, kenyon.competitionDateGroup);
     assert.notEqual(owu.id, kenyon.id);
-    assert.match(scheduleTableSource, /onClick=\{\(\) => onEdit\(event\)\}/);
+    assert.match(scheduleTableSource, /onClick=\{\(\) => openWorkspace\(event\)\}/);
+    assert.match(scheduleTableSource, /teamOperationsScheduleEventPath/);
   });
 
   it("27. search/filter state remains intact after save (upsert only)", () => {

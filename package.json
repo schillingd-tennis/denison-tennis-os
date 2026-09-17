@@ -33,6 +33,7 @@
     "test:layout-cold-load": "playwright test tests/layout.cold-load.spec.ts",
     "test:tournaments": "tsx --test src/features/tournaments/*.test.ts",
     "test:intra-squad": "tsx --test src/features/intraSquad/*.test.ts",
+    "test:matches": "tsx --test src/features/matches/*.test.ts",
     "test:team-schedule": "tsx --test src/features/teamSchedule/*.test.ts",
     "test:interactions": "tsx --test src/features/interactions/*.test.ts src/features/interactions/components/*.test.ts src/features/interactions/appleMessagesSync/*.test.ts src/app/settings/*.test.ts",
     "utr:agent": "npm --prefix local-agents/utr-results-agent start",

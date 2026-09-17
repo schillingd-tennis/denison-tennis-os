@@ -184,10 +184,12 @@ describe("schedule inline table wiring", () => {
     assert.match(scheduleTableSource, /ScheduleStatusCell/);
   });
 
-  it("11. normal row click still opens full edit form", () => {
-    assert.match(scheduleTableSource, /onClick=\{\(\) => onEdit\(event\)\}/);
+  it("11. normal row click opens event workspace; menu keeps Edit drawer", () => {
+    assert.match(scheduleTableSource, /onClick=\{\(\) => openWorkspace\(event\)\}/);
+    assert.match(scheduleTableSource, /teamOperationsScheduleEventPath/);
     assert.match(scheduleTableSource, /handleRowKeyDown/);
-    assert.match(scheduleTableSource, /role="button"/);
+    assert.match(scheduleTableSource, /role="link"/);
+    assert.match(scheduleTableSource, /onEdit\(event\)/);
   });
 
   it("inline save indicator is wired to ViewChrome", () => {

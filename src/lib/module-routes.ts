@@ -16,11 +16,35 @@ export const RECRUITING_LOG_ROUTE = "/recruiting/log";
 export const RECRUITING_TODAY_BETA_ROUTE = "/recruiting/today-beta";
 export const RECRUITING_AGENCIES_ROUTE = "/recruiting/agencies";
 
+/** Official Matches module — dual + tournament season results. */
+export const MATCHES_ROUTE = "/matches";
+
+export function matchesEventPath(eventId: string): string {
+  return `${MATCHES_ROUTE}/${eventId}`;
+}
+
+export function matchesImportPath(scheduleEventId?: string | null): string {
+  if (!scheduleEventId) return `${MATCHES_ROUTE}?import=1`;
+  return `${MATCHES_ROUTE}?import=1&scheduleEventId=${encodeURIComponent(scheduleEventId)}`;
+}
+
+export function matchesPlayerPath(personId: string): string {
+  return `${MATCHES_ROUTE}/players/${personId}`;
+}
+
+export function matchesPairPath(pairKey: string): string {
+  return `${MATCHES_ROUTE}/doubles/${encodeURIComponent(pairKey)}`;
+}
+
 /** Team Operations module root. */
 export const TEAM_OPERATIONS_ROUTE = "/team-operations";
 
 /** Team Operations competition schedule. */
 export const TEAM_OPERATIONS_SCHEDULE_ROUTE = "/team-operations/schedule";
+
+export function teamOperationsScheduleEventPath(eventId: string): string {
+  return `${TEAM_OPERATIONS_SCHEDULE_ROUTE}/${eventId}`;
+}
 
 /** Team Operations intra-squad singles results. */
 export const TEAM_OPERATIONS_INTRA_SQUAD_ROUTE = "/team-operations/intra-squad";
@@ -63,6 +87,7 @@ export const TOP_LEVEL_MODULE_PATHS = [
   TEAM_OPERATIONS_INTRA_SQUAD_ROUTE,
   TEAM_OPERATIONS_PRACTICE_ROUTE,
   TEAM_OPERATIONS_SCOUTING_ROUTE,
+  MATCHES_ROUTE,
   RANKINGS_ROUTE,
   RANKINGS_CURRENT_ITA_ROUTE,
   RANKINGS_LIVE_ITA_ROUTE,

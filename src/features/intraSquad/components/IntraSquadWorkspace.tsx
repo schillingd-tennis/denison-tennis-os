@@ -331,6 +331,7 @@ export default function IntraSquadWorkspace({
             </div>
             <IntraSquadMatchList
               matches={logMatches}
+              eloEvents={eloRebuild.events}
               roster={roster}
               onEdit={openForm}
               onDelete={openDelete}

@@ -27,6 +27,17 @@ export async function listScheduleEvents(seasonYear?: number): Promise<TeamSched
   return ((data as TeamScheduleEventRow[] | null) ?? []).map(rowToScheduleEvent);
 }
 
+export async function getScheduleEvent(id: string): Promise<TeamScheduleEvent | null> {
+  const client = await createSupabaseServerClient();
+  const { data, error } = await client.from(TABLE).select("*").eq("id", id).maybeSingle();
+  if (error) {
+    if (missingTable(error.message)) return null;
+    throw new TeamScheduleRepositoryError(`Failed to load schedule event: ${error.message}`);
+  }
+  if (!data) return null;
+  return rowToScheduleEvent(data as TeamScheduleEventRow);
+}
+
 export async function saveScheduleEvent(
   id: string | null,
   input: TeamScheduleEventInput,
