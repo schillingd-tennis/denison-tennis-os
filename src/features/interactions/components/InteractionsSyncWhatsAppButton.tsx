@@ -9,14 +9,14 @@ export default function InteractionsSyncWhatsAppButton({
   pending,
   notice,
   error,
-  local,
+  hosted,
   onQueue,
 }: {
   disabled: boolean;
   pending: boolean;
   notice: string | null;
   error: string | null;
-  local: boolean;
+  hosted: boolean;
   onQueue: () => void;
 }) {
   const label = pending ? "Syncing…" : notice ?? "Sync WhatsApp";
@@ -26,11 +26,11 @@ export default function InteractionsSyncWhatsAppButton({
       onClick={onQueue}
       disabled={disabled}
       data-interactions-sync-whatsapp=""
-      data-interactions-sync-host={local ? "local" : "blocked"}
+      data-interactions-sync-host={hosted ? "hosted" : "blocked"}
       title={
-        local
-          ? "Queues WhatsApp import via the Mac helper (local Supabase only)."
-          : "Available only against local development Supabase"
+        hosted
+          ? "Queues WhatsApp import via the Mac helper (production Supabase)."
+          : "Available when the app points at production Supabase"
       }
       aria-label="Sync WhatsApp"
     >

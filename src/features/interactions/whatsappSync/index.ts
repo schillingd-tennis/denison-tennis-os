@@ -14,10 +14,25 @@ export {
   parseWhatsAppHelperConfig,
   readWhatsAppHelperConfigFile,
   assertLocalDevSupabaseUrlForHelper,
+  assertProductionSupabaseUrl,
+  assertLiveDestinationUrl,
+  writeLiveDestinationConfig,
   LocalDevHostError,
+  ProductionHostError,
   WhatsAppHelperConfigError,
+  VERIFIED_PRODUCTION_SUPABASE_HOST,
+  VERIFIED_PRODUCTION_SUPABASE_URL,
 } from "./config";
-export { isManualWhatsAppSyncAvailable } from "./environment";
+export {
+  destinationKeyFromUrl,
+  destinationKeyFromHost,
+  effectiveImportFloor,
+  LOCAL_DESTINATION_KEY,
+} from "./destination";
+export {
+  isManualWhatsAppSyncAvailable,
+  isLocalWhatsAppMacStatusAvailable,
+} from "./environment";
 export {
   WhatsAppSyncStore,
   openWhatsAppSyncStore,
@@ -41,11 +56,17 @@ export {
 } from "./writer";
 export { fixtureCorpus, fixtureTextMessage, FIXTURE_ACCOUNT_ID } from "./fixtures";
 export { runWhatsAppHelper } from "./helperMain";
+export { runTick } from "./tick";
 export {
   CONNECTION_DESCRIPTION,
   emptyWhatsAppStatus,
   formatWhatsAppStatus,
+  formatHostedWhatsAppStatus,
   connectionStateLabel,
   formatTimestamp,
   type WhatsAppUiStatus,
 } from "./settingsStatus";
+export { createJobQueue, createMemoryJobQueue, JOBS_TABLE } from "./jobQueue";
+export { createSupabaseJobStore } from "./jobQueueSupabase";
+export { createKeychainSecretStore, createMemorySecretStore } from "./secrets";
+export { createSupabasePresenceStore, createMemoryPresenceStore, isHelperOnline } from "./presence";

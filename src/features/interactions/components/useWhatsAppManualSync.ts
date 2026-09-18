@@ -13,7 +13,7 @@ export function useWhatsAppManualSync(options: {
   initialStatus: WhatsAppUiStatus;
   initialError: string | null;
   signedIn: boolean;
-  local: boolean;
+  hosted: boolean;
 }) {
   const router = useRouter();
   const [status, setStatus] = useState(options.initialStatus);
@@ -21,7 +21,7 @@ export function useWhatsAppManualSync(options: {
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const disabled = !options.signedIn || !options.local || pending;
+  const disabled = !options.signedIn || !options.hosted || pending;
 
   function queueSync() {
     if (disabled) return;

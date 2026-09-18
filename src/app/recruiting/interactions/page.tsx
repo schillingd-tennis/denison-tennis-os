@@ -47,7 +47,7 @@ export default async function InteractionsPage() {
         whatsappError={whatsapp.ok ? null : whatsapp.error}
         signedIn={apple.ok || whatsapp.ok}
         hostedSync={isManualAppleMessagesSyncAvailable()}
-        localWhatsAppSync={isManualWhatsAppSyncAvailable()}
+        hostedWhatsAppSync={isManualWhatsAppSyncAvailable()}
         communicationAlertRecruitIds={rankedPersonIdsForClass(directory.rows, COMMUNICATION_ALERT_CLASS_YEAR)}
       />
     </Suspense>

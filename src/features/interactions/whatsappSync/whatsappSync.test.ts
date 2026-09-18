@@ -26,8 +26,20 @@ import {
   FIXTURE_INTL_JID,
   FIXTURE_RECRUIT_JID,
 } from "./fixtures";
-import { parseWhatsAppHelperConfig, LocalDevHostError } from "./config";
-import { isManualWhatsAppSyncAvailable } from "./environment";
+import { parseWhatsAppHelperConfig, WhatsAppHelperConfigError } from "./config";
+import { isManualWhatsAppSyncAvailable, isLocalWhatsAppMacStatusAvailable } from "./environment";
+import {
+  destinationKeyFromUrl,
+  effectiveImportFloor,
+} from "./destination";
+import { createMemoryJobQueue } from "./jobQueue";
+import { createMemoryPresenceStore } from "./presence";
+import { createKeychainSecretStore, createMemorySecretStore } from "./secrets";
+import { formatHostedWhatsAppStatus } from "./settingsStatus";
+import { runTick, type TickRuntime } from "./tick";
+import { ProcessFileLock } from "../appleMessagesSync/lock";
+import { syncLockPath } from "./paths";
+import { readFileSync } from "node:fs";
 import {
   formatPairingCodeDisplay,
   normalizePairingPhoneDigits,
@@ -186,20 +198,28 @@ test("partition skips rows without recruit attachment", () => {
   assert.equal(partitioned.toInsert.length, 0);
 });
 
-test("helper config refuses production supabase.co", () => {
+test("helper config accepts local and production; rejects secrets", () => {
   assert.throws(
-    () => parseWhatsAppHelperConfig(JSON.stringify({ supabaseUrl: "https://abc.supabase.co" })),
-    (error: unknown) => error instanceof LocalDevHostError,
+    () =>
+      parseWhatsAppHelperConfig(
+        JSON.stringify({ supabaseUrl: "http://127.0.0.1:54321", serviceRoleKey: "x" }),
+      ),
+    (error: unknown) => error instanceof WhatsAppHelperConfigError,
   );
   assert.throws(() => assertLocalDevSupabaseUrl("https://abc.supabase.co"));
   const local = parseWhatsAppHelperConfig(JSON.stringify({ supabaseUrl: "http://127.0.0.1:54321" }));
   assert.equal(local.supabaseUrl, "http://127.0.0.1:54321");
+  const live = parseWhatsAppHelperConfig(
+    JSON.stringify({ supabaseUrl: "https://hvctdzhxfpkyflbihvhv.supabase.co" }),
+  );
+  assert.equal(live.supabaseUrl, "https://hvctdzhxfpkyflbihvhv.supabase.co");
 });
 
-test("manual sync available only on local host", () => {
-  assert.equal(isManualWhatsAppSyncAvailable("http://127.0.0.1:54321"), true);
-  assert.equal(isManualWhatsAppSyncAvailable("http://localhost:54321"), true);
-  assert.equal(isManualWhatsAppSyncAvailable("https://xyz.supabase.co"), false);
+test("manual sync available on production host (mirrors Apple Messages)", () => {
+  assert.equal(isManualWhatsAppSyncAvailable("http://127.0.0.1:54321"), false);
+  assert.equal(isManualWhatsAppSyncAvailable("http://localhost:54321"), false);
+  assert.equal(isManualWhatsAppSyncAvailable("https://xyz.supabase.co"), true);
+  assert.equal(isManualWhatsAppSyncAvailable("https://hvctdzhxfpkyflbihvhv.supabase.co"), true);
 });
 
 test("source filter separates messages and whatsapp", () => {
@@ -338,4 +358,354 @@ test("parsed WhatsApp rows use interaction_type whatsapp and display label Whats
   assert.equal(interactionTypeLabel(parsed!.interaction_type, parsed!.source_system), "WhatsApp");
   assert.equal(interactionTypeLabel("text", "whatsapp"), "WhatsApp");
   assert.equal(interactionTypeLabel("text", "apple_messages"), "Text");
+});
+
+test("destination key scopes local vs production host", () => {
+  assert.equal(destinationKeyFromUrl("http://127.0.0.1:54321"), "local");
+  assert.equal(destinationKeyFromUrl("http://localhost:54321"), "local");
+  assert.equal(
+    destinationKeyFromUrl("https://hvctdzhxfpkyflbihvhv.supabase.co"),
+    "hvctdzhxfpkyflbihvhv.supabase.co",
+  );
+});
+
+test("effective cutoff uses max(import_from, production_activation) for production", () => {
+  assert.equal(
+    effectiveImportFloor({
+      importFromAt: "2026-09-18T10:36:23.797Z",
+      productionActivationAt: "2026-09-18T14:00:00.000Z",
+      destinationKey: "hvctdzhxfpkyflbihvhv.supabase.co",
+    }),
+    "2026-09-18T14:00:00.000Z",
+  );
+  assert.equal(
+    effectiveImportFloor({
+      importFromAt: "2026-09-18T10:36:23.797Z",
+      productionActivationAt: "2026-09-17T00:00:00.000Z",
+      destinationKey: "hvctdzhxfpkyflbihvhv.supabase.co",
+    }),
+    "2026-09-18T10:36:23.797Z",
+  );
+  assert.equal(
+    effectiveImportFloor({
+      importFromAt: "2026-09-18T10:36:23.797Z",
+      productionActivationAt: "2026-09-18T14:00:00.000Z",
+      destinationKey: "local",
+    }),
+    "2026-09-18T10:36:23.797Z",
+  );
+});
+
+test("destination-scoped imported_keys: local receipt does not skip production", () => {
+  const home = mkdtempSync(join(tmpdir(), "wa-dest-"));
+  try {
+    const store = openWhatsAppSyncStore(home);
+    const key = "acct:chat:MSG1";
+    store.markImportedKeys("local", [{ sourceKey: key, conversationId: "chat" }], new Date().toISOString());
+    assert.equal(store.hasImportedKey("local", key), true);
+    assert.equal(store.hasImportedKey("hvctdzhxfpkyflbihvhv.supabase.co", key), false);
+    store.markImportedKeys(
+      "hvctdzhxfpkyflbihvhv.supabase.co",
+      [{ sourceKey: key, conversationId: "chat" }],
+      new Date().toISOString(),
+    );
+    assert.equal(store.hasImportedKey("hvctdzhxfpkyflbihvhv.supabase.co", key), true);
+    store.close();
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("destination-scoped cursors isolate local vs production", () => {
+  const home = mkdtempSync(join(tmpdir(), "wa-cursor-"));
+  try {
+    const store = openWhatsAppSyncStore(home);
+    const at = new Date().toISOString();
+    store.upsertCursor({
+      destination: "local",
+      conversationId: "chat@s.whatsapp.net",
+      lastMessageId: "L1",
+      lastTimestamp: 100,
+      importedDelta: 1,
+      at,
+    });
+    assert.equal(store.getCursor("local", "chat@s.whatsapp.net").lastMessageId, "L1");
+    assert.equal(store.getCursor("hvctdzhxfpkyflbihvhv.supabase.co", "chat@s.whatsapp.net").lastMessageId, null);
+    store.close();
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("production_activation_at set once and never auto-reset", () => {
+  const home = mkdtempSync(join(tmpdir(), "wa-act-"));
+  try {
+    const store = openWhatsAppSyncStore(home);
+    store.enableForwardOnlyImport("2026-09-18T10:36:23.797Z");
+    const first = store.enableProductionActivation("2026-09-18T15:00:00.000Z");
+    assert.equal(first, "2026-09-18T15:00:00.000Z");
+    const second = store.enableProductionActivation("2026-09-19T00:00:00.000Z");
+    assert.equal(second, "2026-09-18T15:00:00.000Z");
+    assert.equal(store.readState().importFromAt, "2026-09-18T10:36:23.797Z");
+    store.close();
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("offline recovery: messages after effective floor import past cursor", () => {
+  const floor = "2026-09-18T14:00:00.000Z";
+  const before = fixtureTextMessage({
+    messageId: "BEFORE",
+    timestamp: Math.floor(Date.parse("2026-09-18T13:00:00.000Z") / 1000),
+  });
+  const mid = fixtureTextMessage({
+    messageId: "MID",
+    timestamp: Math.floor(Date.parse("2026-09-18T15:00:00.000Z") / 1000),
+  });
+  const late = fixtureTextMessage({
+    messageId: "LATE",
+    timestamp: Math.floor(Date.parse("2026-09-18T16:00:00.000Z") / 1000),
+  });
+  const first = selectForwardImportMessages([before, mid, late], {
+    importFromAt: floor,
+    cursor: { lastMessageId: null, lastTimestamp: null },
+  });
+  assert.deepEqual(
+    first.map((r) => r.messageId),
+    ["MID", "LATE"],
+  );
+  const afterOffline = selectForwardImportMessages([before, mid, late], {
+    importFromAt: floor,
+    cursor: { lastMessageId: "MID", lastTimestamp: mid.timestamp },
+  });
+  assert.deepEqual(
+    afterOffline.map((r) => r.messageId),
+    ["LATE"],
+  );
+});
+
+test("job enqueue conflict returns existing active job", async () => {
+  const queue = createMemoryJobQueue();
+  const a = await queue.enqueueManual("user-1", new Date("2026-09-18T12:00:00.000Z"));
+  assert.equal(a.created, true);
+  const b = await queue.enqueueManual("user-2", new Date("2026-09-18T12:01:00.000Z"));
+  assert.equal(b.created, false);
+  assert.equal(b.job.id, a.job.id);
+});
+
+test("tick imports selected conversation with destination receipts and dedupe", async () => {
+  const home = mkdtempSync(join(tmpdir(), "wa-tick-"));
+  try {
+    const store = openWhatsAppSyncStore(home);
+    store.enableForwardOnlyImport("2026-09-18T10:36:23.797Z");
+    store.enableProductionActivation("2026-09-18T10:36:23.797Z");
+    store.setSelectedConversation(FIXTURE_RECRUIT_JID, "recruit-alex");
+    store.setConnectionState("connected", { accountId: FIXTURE_ACCOUNT_ID });
+
+    const queue = createMemoryJobQueue();
+    await queue.enqueueManual("user-1", new Date("2026-09-18T12:00:00.000Z"));
+    const writer = createMemoryWhatsAppWriter();
+    const presence = createMemoryPresenceStore();
+    const lock = new ProcessFileLock(syncLockPath(home));
+    const dest = "hvctdzhxfpkyflbihvhv.supabase.co";
+    const rows = [
+      fixtureTextMessage({
+        messageId: "T1",
+        timestamp: Math.floor(Date.parse("2026-09-18T11:00:00.000Z") / 1000),
+      }),
+      fixtureTextMessage({
+        messageId: "T1",
+        timestamp: Math.floor(Date.parse("2026-09-18T11:00:00.000Z") / 1000),
+      }),
+    ];
+
+    const runtime: TickRuntime = {
+      now: new Date("2026-09-18T12:00:00.000Z"),
+      home,
+      lock,
+      store,
+      queue,
+      secrets: createMemorySecretStore("test-role"),
+      presence,
+      writer,
+      recruits: {
+        async loadMatchContext() {
+          return {
+            recruits: [{ id: "recruit-alex", name: "Alex", osHandles: ["+15551234567"] }],
+            contacts: new Map(),
+            overrides: {},
+          };
+        },
+      },
+      supabaseUrl: `https://${dest}`,
+      destinationKey: dest,
+      destinationHost: dest,
+      mode: "live",
+      connectSession: async () => ({
+        accountId: FIXTURE_ACCOUNT_ID,
+        close: async () => undefined,
+        fetchConversationMessages: async () => rows,
+      }),
+    };
+
+    const first = await runTick(runtime);
+    assert.equal(first.action, "claim");
+    assert.equal(first.importedCount, 1);
+    assert.equal(store.hasImportedKey(dest, rows[0] ? whatsappSourceKey({
+      accountId: FIXTURE_ACCOUNT_ID,
+      conversationId: FIXTURE_RECRUIT_JID,
+      messageId: "T1",
+    }) : ""), true);
+    assert.equal(store.hasImportedKey("local", whatsappSourceKey({
+      accountId: FIXTURE_ACCOUNT_ID,
+      conversationId: FIXTURE_RECRUIT_JID,
+      messageId: "T1",
+    })), false);
+    assert.ok(presence.row?.lastSeenAt);
+
+    await queue.enqueueManual("user-1", new Date("2026-09-18T12:05:00.000Z"));
+    runtime.now = new Date("2026-09-18T12:05:00.000Z");
+    const second = await runTick(runtime);
+    assert.equal(second.action, "claim");
+    assert.equal(second.importedCount, 0);
+    store.close();
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("tick fails when recruit missing in destination catalog", async () => {
+  const home = mkdtempSync(join(tmpdir(), "wa-miss-"));
+  try {
+    const store = openWhatsAppSyncStore(home);
+    store.enableForwardOnlyImport("2026-09-18T10:36:23.797Z");
+    store.enableProductionActivation("2026-09-18T10:36:23.797Z");
+    store.setSelectedConversation(FIXTURE_RECRUIT_JID, "missing-recruit");
+    const queue = createMemoryJobQueue();
+    await queue.enqueueManual("user-1", new Date());
+    const runtime: TickRuntime = {
+      now: new Date(),
+      home,
+      lock: new ProcessFileLock(syncLockPath(home)),
+      store,
+      queue,
+      secrets: createMemorySecretStore("test-role"),
+      presence: createMemoryPresenceStore(),
+      writer: createMemoryWhatsAppWriter(),
+      recruits: {
+        async loadMatchContext() {
+          return {
+            recruits: [{ id: "other", name: "Other", osHandles: [] }],
+            contacts: new Map(),
+            overrides: {},
+          };
+        },
+      },
+      supabaseUrl: "https://hvctdzhxfpkyflbihvhv.supabase.co",
+      destinationKey: "hvctdzhxfpkyflbihvhv.supabase.co",
+      destinationHost: "hvctdzhxfpkyflbihvhv.supabase.co",
+      mode: "live",
+      connectSession: async () => ({
+        accountId: FIXTURE_ACCOUNT_ID,
+        close: async () => undefined,
+        fetchConversationMessages: async () => [],
+      }),
+    };
+    const result = await runTick(runtime);
+    assert.equal(result.action, "failed");
+    assert.equal(result.errorCode, "recruit_missing_in_destination");
+    store.close();
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("hosted status formatting does not require filesystem", () => {
+  const status = formatHostedWhatsAppStatus({
+    presence: {
+      lastSeenAt: new Date().toISOString(),
+      connectionState: "connected",
+      accountId: "acct",
+      destinationHost: "hvctdzhxfpkyflbihvhv.supabase.co",
+      importFromAt: "2026-09-18T10:36:23.797Z",
+      productionActivationAt: "2026-09-18T15:00:00.000Z",
+      selectedConversationId: "chat",
+      lastErrorCode: null,
+      importedCount: 3,
+      skippedCount: 1,
+      unmatchedCount: 0,
+    },
+    jobs: {
+      activeJob: null,
+      lastCompleted: {
+        id: "j1",
+        trigger: "manual",
+        status: "completed",
+        requestedBy: "u",
+        requestedAt: "2026-09-18T15:01:00.000Z",
+        startedAt: "2026-09-18T15:01:01.000Z",
+        heartbeatAt: "2026-09-18T15:01:02.000Z",
+        leaseExpiresAt: null,
+        finishedAt: "2026-09-18T15:01:05.000Z",
+        importedCount: 2,
+        errorCode: null,
+      },
+      lastFinished: null,
+      lastCompletedWithImports: null,
+    },
+  });
+  assert.equal(status.helperOnline, true);
+  assert.equal(status.destinationHost, "hvctdzhxfpkyflbihvhv.supabase.co");
+  assert.equal(status.importFromAt, "2026-09-18T10:36:23.797Z");
+  assert.equal(status.productionActivationAt, "2026-09-18T15:00:00.000Z");
+  assert.equal(isLocalWhatsAppMacStatusAvailable("http://127.0.0.1:54321"), true);
+  assert.equal(isLocalWhatsAppMacStatusAvailable("https://hvctdzhxfpkyflbihvhv.supabase.co"), false);
+});
+
+test("hosted getWhatsAppSyncStatusAction path never opens Mac store (source)", () => {
+  const actions = readFileSync(join(process.cwd(), "src/features/interactions/whatsappSync/actions.ts"), "utf8");
+  assert.match(actions, /isManualWhatsAppSyncAvailable/);
+  assert.match(actions, /formatHostedWhatsAppStatus/);
+  assert.match(actions, /createSupabasePresenceStore/);
+  assert.match(actions, /createSupabaseJobStore/);
+  // Production branch reads jobs+presence before any Mac sqlite open.
+  const hostedBlock = actions.slice(
+    actions.indexOf("if (isManualWhatsAppSyncAvailable())"),
+    actions.indexOf("if (isLocalWhatsAppMacStatusAvailable())"),
+  );
+  assert.match(hostedBlock, /readStatusForUser|createJobQueue/);
+  assert.doesNotMatch(hostedBlock, /openWhatsAppSyncStore/);
+  assert.doesNotMatch(hostedBlock, /defaultWhatsAppHome/);
+});
+
+test("0066 presence migration defines singleton RLS without message bodies", () => {
+  const sqlPath = join(process.cwd(), "supabase/migrations/0066_whatsapp_helper_presence.sql");
+  const sql = readFileSync(sqlPath, "utf8");
+  assert.match(sql, /create table if not exists public\.whatsapp_helper_presence/);
+  assert.match(sql, /id integer primary key check \(id = 1\)/);
+  assert.match(sql, /last_seen_at/);
+  assert.match(sql, /production_activation_at/);
+  assert.match(sql, /enable row level security/);
+  assert.match(sql, /grant select on table public\.whatsapp_helper_presence to authenticated/);
+  assert.doesNotMatch(sql, /\bnotes\b/);
+  assert.doesNotMatch(sql, /message_body/);
+  assert.match(sql, /comment on table public\.whatsapp_sync_jobs/);
+});
+
+test("keychain secret store prefers whatsapp then falls back to apple-messages", () => {
+  const calls: string[] = [];
+  const store = createKeychainSecretStore((_bin, args) => {
+    const service = args[args.indexOf("-s") + 1]!;
+    calls.push(service);
+    if (service === "com.denison.tennis-os.whatsapp") {
+      throw new Error("not found");
+    }
+    return "fallback-secret\n";
+  });
+  assert.equal(store.readServiceRole(), "fallback-secret");
+  assert.deepEqual(calls, [
+    "com.denison.tennis-os.whatsapp",
+    "com.denison.tennis-os.apple-messages",
+  ]);
 });

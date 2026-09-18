@@ -1,6 +1,6 @@
 /**
  * WhatsApp helper CLI (Mac-local). Read-only toward WhatsApp.
- * Writes only to local/dev Supabase recruiting_interactions.
+ * Writes to destination Supabase (local fixtures or verified live OS DB).
  */
 import { mkdirSync, writeFileSync, existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -17,11 +17,21 @@ import {
   startBaileysSession,
   type HistorySyncStats,
 } from "./baileysSession";
-import { readWhatsAppHelperConfigFile, LocalDevHostError } from "./config";
+import {
+  assertLocalDevSupabaseUrlForHelper,
+  helperModeFromUrl,
+  LocalDevHostError,
+  readWhatsAppHelperConfigFile,
+  VERIFIED_PRODUCTION_SUPABASE_URL,
+  writeLiveDestinationConfig,
+} from "./config";
+import { destinationKeyFromUrl, effectiveImportFloor } from "./destination";
 import { prepareWhatsAppImport, selectForwardImportMessages, maxCursorFromRows } from "./engine";
 import { fixtureCorpus } from "./fixtures";
+import { createLiveTickRuntime } from "./liveRuntime";
 import { defaultWhatsAppHome, helperConfigPath, syncLockPath, authStatePath } from "./paths";
 import { openWhatsAppSyncStore } from "./store";
+import { runTick, type TickRuntime } from "./tick";
 import { createMemoryWhatsAppWriter, createRecruitingInteractionsWhatsAppWriter } from "./writer";
 import type { RecruitMatchInput } from "../appleMessages";
 
@@ -93,24 +103,33 @@ function argValue(argv: string[], flag: string): string | null {
 }
 
 function printUsage(): void {
-  console.log(`WhatsApp helper (local development only)
+  console.log(`WhatsApp helper (Mac)
 
-  --init-config          Write sample whatsapp.json (local Supabase URL)
-  --pair                 Start Baileys, print QR, pause for phone scan
-  --pair-code            Link via 8-digit code (requires --phone)
-  --phone <+E.164>       Phone for --pair-code (e.g. +15551234567)
-  --status               Show connection / sync status
-  --list-chats           List chats after pairing (groups marked)
-  --import-conversation  Import ONE conversation by JID (requires --recruit)
-  --enable-forward-only  Set “Start importing from” to now if not already set
-  --import-fixtures      Run fixture import against memory/local writer (tests)
-  --disconnect           Logout + clear local auth session (keeps import_from_at)
-  --home <path>          Override App Support whatsapp home
+  --init-config               Write sample whatsapp.json (local Supabase URL)
+  --enable-live-destination   Point whatsapp.json at verified OS DB; set production_activation_at once
+  --tick                      Claim queued job → import selected conversation → upsert destination
+  --pair                      Start Baileys, print QR, pause for phone scan
+  --pair-code                 Link via 8-digit code (requires --phone)
+  --phone <+E.164>            Phone for --pair-code (e.g. +15551234567)
+  --status                    Show connection / sync status
+  --list-chats                List chats after pairing (groups marked)
+  --import-conversation       Import ONE conversation by JID (requires --recruit)
+  --enable-forward-only       Set “Start importing from” to now if not already set
+  --import-fixtures           Run fixture import against memory/local writer (tests)
+  --disconnect                Logout + clear local auth session (keeps import_from_at)
+  --home <path>               Override App Support whatsapp home
 
 Environment:
   DENISON_WHATSAPP_HOME  Override session home
-  NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY for local writes
+  Keychain: com.denison.tennis-os.whatsapp (fallback: apple-messages) account supabase-service-role
+  Local mode may use SUPABASE_SERVICE_ROLE_KEY env instead of Keychain
 `);
+}
+
+function logTick(result: { action: string; importedCount: number; jobId: string | null; errorCode: string | null }): void {
+  console.log(
+    `whatsapp tick action=${result.action} imported=${result.importedCount} job=${result.jobId ?? "-"} error=${result.errorCode ?? "-"}`,
+  );
 }
 
 async function runPairFlow(options: {
@@ -292,14 +311,26 @@ function ensureConfig(home: string): { supabaseUrl: string } {
   return readWhatsAppHelperConfigFile(path);
 }
 
-async function loadLocalWriter(supabaseUrl: string) {
-  assertLocalDevSupabaseUrl(supabaseUrl);
-  const key =
-    process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ||
-    process.env.SUPABASE_SECRET_KEY?.trim() ||
-    "";
+async function loadDestinationWriter(supabaseUrl: string) {
+  const mode = helperModeFromUrl(supabaseUrl);
+  if (mode === "local") {
+    assertLocalDevSupabaseUrl(supabaseUrl);
+  }
+  const { createKeychainSecretStore, defaultSecurityRunner } = await import("./secrets");
+  const secrets = createKeychainSecretStore(defaultSecurityRunner);
+  let key = secrets.readServiceRole();
+  if (!key && mode === "local") {
+    key =
+      process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ||
+      process.env.SUPABASE_SECRET_KEY?.trim() ||
+      "";
+  }
   if (!key) {
-    throw new Error("SUPABASE_SERVICE_ROLE_KEY is required for local WhatsApp import.");
+    throw new Error(
+      mode === "live"
+        ? "keychain_unavailable"
+        : "SUPABASE_SERVICE_ROLE_KEY or Keychain is required for WhatsApp import.",
+    );
   }
   const { createClient } = await import("@supabase/supabase-js");
   const client = createClient(supabaseUrl, key, {
@@ -315,7 +346,7 @@ function loadRecruitsFromEnv(): RecruitMatchInput[] {
   return parsed;
 }
 
-export async function runWhatsAppHelper(argv: string[]): Promise<number> {
+export async function runWhatsAppHelper(argv: string[], injected?: TickRuntime): Promise<number> {
   if (argv.includes("--help") || argv.length === 0) {
     printUsage();
     return 0;
@@ -329,7 +360,7 @@ export async function runWhatsAppHelper(argv: string[]): Promise<number> {
     const path = helperConfigPath(home);
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || "http://127.0.0.1:54321";
     try {
-      assertLocalDevSupabaseUrl(url);
+      assertLocalDevSupabaseUrlForHelper(url);
     } catch (error) {
       console.error(error instanceof Error ? error.message : error);
       return 1;
@@ -338,6 +369,50 @@ export async function runWhatsAppHelper(argv: string[]): Promise<number> {
     console.log(`Wrote ${path}`);
     console.log("Service-role keys stay in env / Keychain — never in this file.");
     return 0;
+  }
+
+  if (argv.includes("--enable-live-destination")) {
+    const path = helperConfigPath(home);
+    const store = openWhatsAppSyncStore(home);
+    try {
+      const config = writeLiveDestinationConfig(path, VERIFIED_PRODUCTION_SUPABASE_URL);
+      const activation = store.enableProductionActivation(new Date());
+      const importFromAt = store.getImportFromAt();
+      console.log(
+        JSON.stringify(
+          {
+            supabaseUrl: config.supabaseUrl,
+            productionActivationAt: activation,
+            importFromAt,
+            note: "Auth and import_from_at preserved. No historical backlog import.",
+          },
+          null,
+          2,
+        ),
+      );
+      return 0;
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : error);
+      return 1;
+    } finally {
+      store.close();
+    }
+  }
+
+  if (argv.includes("--tick")) {
+    if (injected) {
+      const result = await runTick(injected);
+      logTick(result);
+      return result.action === "failed" || result.action === "rejected" ? 2 : 0;
+    }
+    const runtime = createLiveTickRuntime({ home, now: new Date() });
+    try {
+      const result = await runTick(runtime);
+      logTick(result);
+      return result.action === "failed" || result.action === "rejected" ? 2 : 0;
+    } finally {
+      runtime.store.close();
+    }
   }
 
   if (argv.includes("--status")) {
@@ -523,20 +598,29 @@ export async function runWhatsAppHelper(argv: string[]): Promise<number> {
       return 1;
     }
     const config = ensureConfig(home);
+    const destinationKey = destinationKeyFromUrl(config.supabaseUrl);
     const lock = new ProcessFileLock(syncLockPath(home));
     lock.acquire();
     const store = openWhatsAppSyncStore(home);
     try {
-      const writer = await loadLocalWriter(config.supabaseUrl);
+      const writer = await loadDestinationWriter(config.supabaseUrl);
       const session = await startBaileysSession({
         home,
         onProgress: () => undefined,
       });
       const accountId = await session.waitUntilOpen(60_000);
       store.setConnectionState("connected", { accountId });
-      store.setSelectedConversation(conversationId);
+      store.setSelectedConversation(conversationId, recruitId);
       const importFromAt = store.ensureImportFromAt(new Date());
+      const floor = effectiveImportFloor({
+        importFromAt,
+        productionActivationAt: store.getProductionActivationAt(),
+        destinationKey,
+      });
       console.log(`Start importing from (forward-only): ${importFromAt}`);
+      if (floor && floor !== importFromAt) {
+        console.log(`Effective floor (max with production activation): ${floor}`);
+      }
       console.log("Waiting for WhatsApp history sync…");
       await session.resyncChatState();
       let stats = await session.waitForInitialSync(180_000);
@@ -563,8 +647,11 @@ export async function runWhatsAppHelper(argv: string[]): Promise<number> {
       }
 
       const rows = await session.fetchConversationMessages(conversationId);
-      const cursor = store.getCursor(conversationId);
-      const forward = selectForwardImportMessages(rows, { importFromAt, cursor });
+      const cursor = store.getCursor(destinationKey, conversationId);
+      const forward = selectForwardImportMessages(rows, {
+        importFromAt: floor,
+        cursor,
+      });
       let recruits = loadRecruitsFromEnv();
       if (recruits.length === 0) {
         recruits = [{ id: recruitId, name: recruitId, osHandles: [] }];
@@ -579,18 +666,20 @@ export async function runWhatsAppHelper(argv: string[]): Promise<number> {
         },
         [],
       );
-      // Filter existing via store keys
-      const toWrite = prepared.importable.filter((row) => !store.hasImportedKey(row.source_key));
+      const toWrite = prepared.importable.filter(
+        (row) => !store.hasImportedKey(destinationKey, row.source_key),
+      );
       const { inserted } = await writer.upsertInteractions(toWrite);
       const at = new Date().toISOString();
       store.markImportedKeys(
+        destinationKey,
         toWrite.map((row) => ({ sourceKey: row.source_key, conversationId })),
         at,
       );
-      // Advance cursor past everything we saw so history replay does not reprocess.
       const max = maxCursorFromRows(rows);
       if (max.lastMessageId && max.lastTimestamp != null) {
         store.upsertCursor({
+          destination: destinationKey,
           conversationId,
           lastMessageId: max.lastMessageId,
           lastTimestamp: max.lastTimestamp,
@@ -609,7 +698,9 @@ export async function runWhatsAppHelper(argv: string[]): Promise<number> {
           {
             conversationId,
             recruitId,
+            destinationKey,
             importFromAt,
+            effectiveFloor: floor,
             fetched: rows.length,
             afterCutoffAndCursor: forward.length,
             inserted,

@@ -1,18 +1,28 @@
 import { isLocalSupabaseHost, isProductionSupabaseHost } from "../whatsapp";
 
 /**
- * Manual WhatsApp sync is available only when the Next.js app points at local Supabase.
- * Inverted from Apple Messages (production-only).
+ * Manual WhatsApp sync (enqueue jobs / hosted status) is available on production
+ * Supabase hosts — mirrors Apple Messages.
  */
 export function isManualWhatsAppSyncAvailable(
   supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
 ): boolean {
   try {
-    const host = new URL(supabaseUrl).host;
-    if (isProductionSupabaseHost(host) || host.toLowerCase().endsWith(".supabase.co")) {
-      return false;
-    }
-    return isLocalSupabaseHost(host);
+    return isProductionSupabaseHost(new URL(supabaseUrl).host);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Local Mac Application Support status path (sqlite) — only when the app
+ * points at local Supabase. Hosted UI must never use this.
+ */
+export function isLocalWhatsAppMacStatusAvailable(
+  supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
+): boolean {
+  try {
+    return isLocalSupabaseHost(new URL(supabaseUrl).host);
   } catch {
     return false;
   }

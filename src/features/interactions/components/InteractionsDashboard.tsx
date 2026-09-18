@@ -47,7 +47,7 @@ export default function InteractionsDashboard({
   whatsappError,
   signedIn,
   hostedSync,
-  localWhatsAppSync,
+  hostedWhatsAppSync,
   communicationAlertRecruitIds,
 }: {
   interactions: RecruitInteraction[];
@@ -59,7 +59,7 @@ export default function InteractionsDashboard({
   whatsappError: string | null;
   signedIn: boolean;
   hostedSync: boolean;
-  localWhatsAppSync: boolean;
+  hostedWhatsAppSync: boolean;
   communicationAlertRecruitIds: readonly string[];
 }) {
   const searchParams = useSearchParams();
@@ -75,7 +75,7 @@ export default function InteractionsDashboard({
     initialStatus: whatsappStatus,
     initialError: whatsappError,
     signedIn,
-    local: localWhatsAppSync,
+    hosted: hostedWhatsAppSync,
   });
   const period = parseInteractionPeriod(searchParams.get("period"));
   const kind = parseInteractionKind(searchParams.get("kind"));
@@ -209,7 +209,7 @@ export default function InteractionsDashboard({
               pending={whatsapp.pending}
               notice={whatsapp.notice}
               error={null}
-              local={localWhatsAppSync}
+              hosted={hostedWhatsAppSync}
               onQueue={whatsapp.queueSync}
             />
           </div>

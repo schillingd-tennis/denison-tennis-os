@@ -12,6 +12,7 @@ import {
   CONNECTION_DESCRIPTION,
   connectionStateLabel,
   formatTimestamp,
+  helperOnlineLabel,
   type WhatsAppUiStatus,
 } from "./settingsStatus";
 
@@ -19,7 +20,10 @@ export type WhatsAppSettingsCardProps = {
   initialStatus: WhatsAppUiStatus;
   initialError?: string | null;
   signedIn: boolean;
-  localSync: boolean;
+  /** Production hosted sync (queue jobs). */
+  hostedSync: boolean;
+  /** Local Mac sqlite status path. */
+  localMacStatus?: boolean;
 };
 
 function StatusRow({ label, value }: { label: string; value: string }) {
@@ -35,13 +39,15 @@ export default function WhatsAppSettingsCard({
   initialStatus,
   initialError = null,
   signedIn,
-  localSync,
+  hostedSync,
+  localMacStatus = false,
 }: WhatsAppSettingsCardProps) {
   const [status, setStatus] = useState(initialStatus);
   const [error, setError] = useState<string | null>(initialError);
   const [hint, setHint] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const disabled = !signedIn || !localSync || pending;
+  const syncAvailable = hostedSync || localMacStatus;
+  const disabled = !signedIn || !syncAvailable || pending;
 
   function refresh() {
     startTransition(async () => {
@@ -69,7 +75,7 @@ export default function WhatsAppSettingsCard({
   }
 
   function enableForwardOnly() {
-    if (disabled) return;
+    if (!localMacStatus || pending) return;
     setError(null);
     setHint(null);
     startTransition(async () => {
@@ -101,7 +107,12 @@ export default function WhatsAppSettingsCard({
         </div>
 
         <dl className="mt-4">
+          <StatusRow label="Helper" value={helperOnlineLabel(status.helperOnline)} />
           <StatusRow label="Connection" value={connectionStateLabel(status.connectionState)} />
+          <StatusRow
+            label="Destination"
+            value={status.destinationHost ?? (hostedSync ? "—" : "local")}
+          />
           <StatusRow
             label="Start importing from"
             value={
@@ -110,14 +121,21 @@ export default function WhatsAppSettingsCard({
                 : "Not set — enable forward-only sync"
             }
           />
+          <StatusRow
+            label="Production activation"
+            value={
+              status.productionActivationAt
+                ? formatTimestamp(status.productionActivationAt)
+                : "Not set"
+            }
+          />
           <StatusRow label="Last sync" value={formatTimestamp(status.lastSyncAt)} />
+          {status.activeJobStatus ? (
+            <StatusRow label="Job" value={status.activeJobStatus} />
+          ) : null}
           <StatusRow label="Imported" value={String(status.importedCount)} />
           <StatusRow label="Skipped" value={String(status.skippedCount)} />
           <StatusRow label="Unmatched / review" value={String(status.unmatchedCount)} />
-          <StatusRow
-            label="Unmatched conversations"
-            value={String(status.unmatchedConversations)}
-          />
           {status.lastErrorCode ? (
             <StatusRow label="Last error" value={status.lastErrorCode} />
           ) : null}
@@ -125,7 +143,7 @@ export default function WhatsAppSettingsCard({
 
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap gap-2">
-            {!status.importFromAt ? (
+            {localMacStatus && !status.importFromAt ? (
               <button
                 type="button"
                 onClick={enableForwardOnly}
@@ -160,9 +178,9 @@ export default function WhatsAppSettingsCard({
               Refresh status
             </button>
           </div>
-          {!localSync ? (
+          {!syncAvailable ? (
             <p className="text-sm text-text-secondary">
-              Available only when the app points at local Supabase (127.0.0.1 / localhost).
+              Available when the app points at production Supabase (or local for Mac helper).
             </p>
           ) : null}
         </div>
@@ -173,12 +191,11 @@ export default function WhatsAppSettingsCard({
           </p>
         ) : null}
         <p className="mt-3 text-xs text-text-secondary">
-          Forward-only: new messages at or after “Start importing from” only. Cutoff is never reset
-          automatically.
+          Live: <code className="text-text-primary">npm run whatsapp-helper -- --enable-live-destination</code>
           {" · "}
-          Disconnect: <code className="text-text-primary">npm run whatsapp-helper -- --disconnect</code>
+          Tick: <code className="text-text-primary">npm run whatsapp-helper -- --tick</code>
           {" · "}
-          Pair: <code className="text-text-primary">npm run whatsapp-helper -- --pair-code --phone +1…</code>
+          Cutoff is never reset automatically. Production activation is set once on enable.
         </p>
       </div>
     </section>

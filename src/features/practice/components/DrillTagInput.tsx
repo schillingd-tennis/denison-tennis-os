@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Tag, X } from "lucide-react";
+import { Tag, X } from "lucide-react";
 import { useId, useState } from "react";
 import { typeRole } from "@/components/typography";
 
@@ -45,16 +45,6 @@ export default function DrillTagInput({ initialTags, suggestions }: { initialTag
       <legend className={`mb-1.5 ${typeRole.drawerFieldLabel}`}>Tags</legend>
       <input type="hidden" name="tags" value={tags.join(", ")} />
       <p id={helpId} className="text-[10px] font-normal text-text-secondary">Choose as many tags as needed. Tap a selected tag again to remove it, or add your own.</p>
-      {tags.length > 0 ? (
-        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Selected tags">
-          {tags.map((tag) => (
-            <button key={tag} type="button" onClick={() => toggleTag(tag)} aria-label={`Remove ${tag}`}
-              className="inline-flex max-w-full items-center gap-1 rounded-full border border-[var(--module-accent)]/20 bg-[var(--module-tint)] px-2 py-1 text-[11px] font-semibold text-[var(--module-accent)] hover:bg-[var(--module-accent)]/10">
-              <Tag className="h-3 w-3 shrink-0" aria-hidden="true" /><span className="break-words">{tag}</span><X className="h-3 w-3 shrink-0" aria-hidden="true" />
-            </button>
-          ))}
-        </div>
-      ) : null}
       <div className="flex gap-2">
         <label htmlFor={inputId} className="sr-only">Find or add tags</label>
         <input id={inputId} value={draft} aria-describedby={helpId} autoComplete="off" enterKeyHint="done"
@@ -79,15 +69,25 @@ export default function DrillTagInput({ initialTags, suggestions }: { initialTag
           {options.map((tag) => {
             const isSelected = selected.has(tag.toLocaleLowerCase());
             return (
-              <button key={tag} type="button" aria-pressed={isSelected} onClick={() => toggleTag(tag)}
-                className={`inline-flex max-w-full items-center gap-1 rounded-full border px-2.5 py-1.5 text-[11px] font-semibold ${isSelected ? "border-[var(--module-accent)]/30 bg-[var(--module-tint)] text-[var(--module-accent)]" : "border-border bg-app-background text-text-primary hover:bg-[var(--module-tint)]"}`}>
-                {isSelected ? <Check className="h-3 w-3 shrink-0" aria-hidden="true" /> : <Tag className="h-3 w-3 shrink-0" aria-hidden="true" />}
+              <label key={tag}
+                className={`inline-flex min-h-11 touch-manipulation cursor-pointer max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold ${isSelected ? "border-[var(--module-accent)]/30 bg-[var(--module-tint)] text-[var(--module-accent)]" : "border-border bg-app-background text-text-primary hover:bg-[var(--module-tint)]"}`}>
+                <input type="checkbox" checked={isSelected} onChange={() => toggleTag(tag)} className="h-4 w-4 shrink-0 accent-[var(--module-accent)]" />
                 <span className="break-words">{tag}</span>
-              </button>
+              </label>
             );
           })}
         </div>
       ) : <p className="text-[10px] font-normal text-text-secondary">{draft.trim() ? "No matching tags. Choose Add tag to create one." : "No suggested tags yet. Add your first tag above."}</p>}
+      {tags.length > 0 ? (
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Selected tags">
+          {tags.map((tag) => (
+            <button key={tag} type="button" onClick={() => toggleTag(tag)} aria-label={`Remove ${tag}`}
+              className="inline-flex min-h-11 touch-manipulation max-w-full items-center gap-1 rounded-full border border-[var(--module-accent)]/20 bg-[var(--module-tint)] px-2 py-1 text-[11px] font-semibold text-[var(--module-accent)] hover:bg-[var(--module-accent)]/10">
+              <Tag className="h-3 w-3 shrink-0" aria-hidden="true" /><span className="break-words">{tag}</span><X className="h-3 w-3 shrink-0" aria-hidden="true" />
+            </button>
+          ))}
+        </div>
+      ) : null}
     </fieldset>
   );
 }

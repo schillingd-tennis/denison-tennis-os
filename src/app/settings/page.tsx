@@ -8,7 +8,10 @@ import { emptySyncStatus } from "@/features/interactions/appleMessagesSync/setti
 import WhatsAppSettingsCard from "@/features/interactions/whatsappSync/WhatsAppSettingsCard";
 import { getWhatsAppSyncStatusAction } from "@/features/interactions/whatsappSync/actions";
 import { emptyWhatsAppStatus } from "@/features/interactions/whatsappSync/settingsStatus";
-import { isManualWhatsAppSyncAvailable } from "@/features/interactions/whatsappSync/environment";
+import {
+  isLocalWhatsAppMacStatusAvailable,
+  isManualWhatsAppSyncAvailable,
+} from "@/features/interactions/whatsappSync/environment";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +42,8 @@ export default async function SettingsPage() {
         initialStatus={whatsappStatus}
         initialError={whatsappError}
         signedIn={whatsapp.ok}
-        localSync={isManualWhatsAppSyncAvailable()}
+        hostedSync={isManualWhatsAppSyncAvailable()}
+        localMacStatus={isLocalWhatsAppMacStatusAvailable()}
       />
 
       <section>
