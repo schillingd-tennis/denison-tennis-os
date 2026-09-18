@@ -8,19 +8,21 @@ import ModulePageShell from "@/components/ModulePageShell";
 import { useDrawerManager } from "@/components/workspace-drawer";
 import type { SyncStatus } from "@/features/interactions/appleMessagesSync/ports";
 import { formatLastSuccessfulSync } from "@/features/interactions/appleMessagesSync/settingsStatus";
+import type { WhatsAppUiStatus } from "@/features/interactions/whatsappSync/settingsStatus";
 import { EMPTY_VALUE } from "@/lib/formatting";
 
 import {
   activityByType,
   countAppleMessages,
   countThisWeek,
+  countWhatsAppMessages,
   filterCentralInteractions,
   followUpRecruits,
   latestOccurredAt,
   LIST_QUERY_LIMIT,
   uniqueFollowUpCount,
 } from "../centralInsights";
-import { parseInteractionKind, parseInteractionPeriod } from "../centralPeriod";
+import { parseInteractionKind, parseInteractionPeriod, parseInteractionSource } from "../centralPeriod";
 import type { RecruitInteraction } from "../types";
 import DeleteInteractionConfirm from "./DeleteInteractionConfirm";
 import InteractionForm, { type InteractionOption } from "./InteractionForm";
@@ -29,7 +31,9 @@ import InteractionsFilterBar from "./InteractionsFilterBar";
 import InteractionsInsightColumn from "./InteractionsInsightColumn";
 import InteractionsKpiRow from "./InteractionsKpiRow";
 import InteractionsSyncMessagesButton from "./InteractionsSyncMessagesButton";
+import InteractionsSyncWhatsAppButton from "./InteractionsSyncWhatsAppButton";
 import { useAppleMessagesManualSync } from "./useAppleMessagesManualSync";
+import { useWhatsAppManualSync } from "./useWhatsAppManualSync";
 import "./interactionsHeaderActions.css";
 import styles from "./interactionsPage.module.css";
 
@@ -39,8 +43,11 @@ export default function InteractionsDashboard({
   tournaments,
   appleStatus,
   appleError,
+  whatsappStatus,
+  whatsappError,
   signedIn,
   hostedSync,
+  localWhatsAppSync,
   communicationAlertRecruitIds,
 }: {
   interactions: RecruitInteraction[];
@@ -48,8 +55,11 @@ export default function InteractionsDashboard({
   tournaments: InteractionOption[];
   appleStatus: SyncStatus;
   appleError: string | null;
+  whatsappStatus: WhatsAppUiStatus;
+  whatsappError: string | null;
   signedIn: boolean;
   hostedSync: boolean;
+  localWhatsAppSync: boolean;
   communicationAlertRecruitIds: readonly string[];
 }) {
   const searchParams = useSearchParams();
@@ -61,8 +71,15 @@ export default function InteractionsDashboard({
     signedIn,
     hosted: hostedSync,
   });
+  const whatsapp = useWhatsAppManualSync({
+    initialStatus: whatsappStatus,
+    initialError: whatsappError,
+    signedIn,
+    local: localWhatsAppSync,
+  });
   const period = parseInteractionPeriod(searchParams.get("period"));
   const kind = parseInteractionKind(searchParams.get("kind"));
+  const source = parseInteractionSource(searchParams.get("source"));
   const query = searchParams.get("q") ?? "";
   const now = useMemo(() => new Date(), [searchParams.toString()]);
   const truncated = interactions.length >= LIST_QUERY_LIMIT;
@@ -72,26 +89,39 @@ export default function InteractionsDashboard({
       filterCentralInteractions(interactions, {
         period,
         kind,
+        source,
         query,
         now,
         applyKind: false,
+        applySource: false,
       }),
-    [interactions, period, query, now, kind],
+    [interactions, period, query, now, kind, source],
   );
   const visible = useMemo(
     () =>
       filterCentralInteractions(interactions, {
         period,
         kind,
+        source,
         query,
         now,
         applyKind: true,
+        applySource: true,
       }),
-    [interactions, period, kind, query, now],
+    [interactions, period, kind, source, query, now],
   );
 
   const searched = useMemo(
-    () => filterCentralInteractions(interactions, { period: "all", kind: "all", query, now, applyKind: false }),
+    () =>
+      filterCentralInteractions(interactions, {
+        period: "all",
+        kind: "all",
+        source: "all",
+        query,
+        now,
+        applyKind: false,
+        applySource: false,
+      }),
     [interactions, query, now],
   );
   const lastOccurredAt = latestOccurredAt(searched);
@@ -102,10 +132,11 @@ export default function InteractionsDashboard({
   );
   const followUps = followUpRecruits(interactions, now, 5, alertEligibleIds);
   const followUpCount = uniqueFollowUpCount(interactions, now, alertEligibleIds);
-  const textsSynced = countAppleMessages(dateAndSearch);
+  const textsSynced = countAppleMessages(dateAndSearch) + countWhatsAppMessages(dateAndSearch);
   const activity = activityByType(dateAndSearch);
   const scanCaption = formatLastSuccessfulSync(sync.status.lastCompleted?.finishedAt);
-  const filtersActive = period !== "past_month" || kind !== "all" || query.trim().length > 0;
+  const filtersActive =
+    period !== "past_month" || kind !== "all" || source !== "all" || query.trim().length !== 0;
 
   function openForm() {
     openDrawer({
@@ -173,10 +204,18 @@ export default function InteractionsDashboard({
               hosted={hostedSync}
               onQueue={sync.queueSync}
             />
+            <InteractionsSyncWhatsAppButton
+              disabled={whatsapp.disabled}
+              pending={whatsapp.pending}
+              notice={whatsapp.notice}
+              error={null}
+              local={localWhatsAppSync}
+              onQueue={whatsapp.queueSync}
+            />
           </div>
-          {sync.error ? (
+          {sync.error || whatsapp.error ? (
             <p className="max-w-xs text-right text-[11px] text-danger" role="alert">
-              {sync.error}
+              {sync.error ?? whatsapp.error}
             </p>
           ) : null}
         </div>
@@ -191,7 +230,7 @@ export default function InteractionsDashboard({
           scanCaption={scanCaption === EMPTY_VALUE ? "Latest Messages scan unavailable" : `Scan: ${scanCaption}`}
           truncated={truncated}
         />
-        <InteractionsFilterBar period={period} kind={kind} query={query} />
+        <InteractionsFilterBar period={period} kind={kind} source={source} query={query} />
         <div className={styles.layout} data-interactions-layout="">
           <section className="min-w-0 rounded-card border border-black/[0.06] bg-surface">
             <div className="flex items-baseline justify-between gap-3 border-b border-black/[0.06] px-4 py-3">

@@ -5,13 +5,22 @@ import PageHeader from "@/components/PageHeader";
 import AppleMessagesSettingsCard from "@/features/interactions/appleMessagesSync/AppleMessagesSettingsCard";
 import { getAppleMessagesSyncStatusAction } from "@/features/interactions/appleMessagesSync/actions";
 import { emptySyncStatus } from "@/features/interactions/appleMessagesSync/settingsStatus";
+import WhatsAppSettingsCard from "@/features/interactions/whatsappSync/WhatsAppSettingsCard";
+import { getWhatsAppSyncStatusAction } from "@/features/interactions/whatsappSync/actions";
+import { emptyWhatsAppStatus } from "@/features/interactions/whatsappSync/settingsStatus";
+import { isManualWhatsAppSyncAvailable } from "@/features/interactions/whatsappSync/environment";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
-  const loaded = await getAppleMessagesSyncStatusAction();
-  const initialStatus = loaded.ok ? loaded.status : emptySyncStatus();
-  const initialError = loaded.ok ? null : loaded.error;
+  const [apple, whatsapp] = await Promise.all([
+    getAppleMessagesSyncStatusAction(),
+    getWhatsAppSyncStatusAction(),
+  ]);
+  const initialStatus = apple.ok ? apple.status : emptySyncStatus();
+  const initialError = apple.ok ? null : apple.error;
+  const whatsappStatus = whatsapp.ok ? whatsapp.status : emptyWhatsAppStatus();
+  const whatsappError = whatsapp.ok ? null : whatsapp.error;
 
   return (
     <div className="flex flex-col gap-10">
@@ -23,7 +32,14 @@ export default async function SettingsPage() {
       <AppleMessagesSettingsCard
         initialStatus={initialStatus}
         initialError={initialError}
-        signedIn={loaded.ok}
+        signedIn={apple.ok}
+      />
+
+      <WhatsAppSettingsCard
+        initialStatus={whatsappStatus}
+        initialError={whatsappError}
+        signedIn={whatsapp.ok}
+        localSync={isManualWhatsAppSyncAvailable()}
       />
 
       <section>

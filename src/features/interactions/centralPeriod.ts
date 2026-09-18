@@ -6,8 +6,12 @@ export const INTERACTION_PERIODS = ["all", "today", "yesterday", "past_week", "p
 export type InteractionPeriod = (typeof INTERACTION_PERIODS)[number];
 export const DEFAULT_INTERACTION_PERIOD: InteractionPeriod = "past_month";
 
-export const INTERACTION_KIND_FILTERS = ["all", "texts", "calls", "emails", "visits"] as const;
+export const INTERACTION_KIND_FILTERS = ["all", "texts", "calls", "emails", "visits", "whatsapp"] as const;
 export type InteractionKindFilter = (typeof INTERACTION_KIND_FILTERS)[number];
+
+/** Source filter: All / Messages (Apple) / WhatsApp. Other interaction types stay in type filter. */
+export const INTERACTION_SOURCE_FILTERS = ["all", "messages", "whatsapp"] as const;
+export type InteractionSourceFilter = (typeof INTERACTION_SOURCE_FILTERS)[number];
 
 export type CivilDate = { year: number; month: number; day: number };
 
@@ -107,6 +111,13 @@ export function parseInteractionKind(raw: string | null | undefined): Interactio
   return "all";
 }
 
+export function parseInteractionSource(raw: string | null | undefined): InteractionSourceFilter {
+  if (raw && (INTERACTION_SOURCE_FILTERS as readonly string[]).includes(raw)) {
+    return raw as InteractionSourceFilter;
+  }
+  return "all";
+}
+
 export function rangeForPeriod(
   period: InteractionPeriod,
   now: Date = new Date(),
@@ -152,11 +163,13 @@ export function matchesPeriod(occurredAt: string, period: InteractionPeriod, now
 export function interactionsPageHref(options: {
   period: InteractionPeriod;
   kind: InteractionKindFilter;
+  source?: InteractionSourceFilter;
   query: string;
 }): string {
   const params = new URLSearchParams();
   if (options.period !== DEFAULT_INTERACTION_PERIOD) params.set("period", options.period);
   if (options.kind !== "all") params.set("kind", options.kind);
+  if (options.source && options.source !== "all") params.set("source", options.source);
   const query = options.query.trim();
   if (query) params.set("q", query);
   const suffix = params.toString();

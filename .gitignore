@@ -63,5 +63,16 @@ local-agents/utr-results-agent/node_modules/
 # compiled Apple Messages helper (install-time output)
 /helpers/apple-messages-sync/
 
+# WhatsApp helper session / reports (never commit auth)
+/helpers/whatsapp-sync/
+/whatsapp-overrides.json
+/whatsapp-report.json
+/whatsapp-report.csv
+# Local Mac App Support mirror (if ever linked into the repo)
+**/whatsapp/auth/
+**/whatsapp/whatsapp-sync.sqlite
+**/whatsapp/history-cache.json
+**/whatsapp/whatsapp.json
+
 # local Supabase CLI runtime (also ignored under supabase/.gitignore)
 supabase/.temp/

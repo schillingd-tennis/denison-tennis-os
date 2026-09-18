@@ -129,7 +129,7 @@ test("activity-by-type ignores the selected kind filter input rows already date-
     row({ id: "e", occurredAt: "2026-08-20T12:00:00.000Z", interactionType: "email" }),
     row({ id: "v", occurredAt: "2026-08-20T12:00:00.000Z", interactionType: "visit" }),
   ];
-  assert.deepEqual(activityByType(rows), { texts: 2, calls: 1, emails: 1, visits: 1 });
+  assert.deepEqual(activityByType(rows), { texts: 2, calls: 1, emails: 1, visits: 1, whatsapp: 0 });
 });
 
 test("Apple Messages count uses source_system apple_messages", () => {

@@ -11,6 +11,20 @@ import { recruitingPersonPath } from "@/lib/module-routes";
 import { formatDate } from "@/lib/formatting";
 import { interactionNotesPresentation } from "../appleMessageNotes";
 import type { RecruitInteraction } from "../types";
+import { sourceBadgeLabel, interactionTypeLabel } from "../whatsappNotes";
+
+function SourceBadge({ sourceSystem }: { sourceSystem: string | null }) {
+  const label = sourceBadgeLabel(sourceSystem);
+  if (!label) return null;
+  return (
+    <span
+      data-interaction-source-badge={label === "WhatsApp" ? "whatsapp" : "messages"}
+      className="inline-flex items-center rounded-control bg-app-background px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-text-secondary ring-1 ring-black/[0.06]"
+    >
+      {label}
+    </span>
+  );
+}
 
 function stopRow(event: { stopPropagation(): void }) {
   event.stopPropagation();
@@ -192,7 +206,10 @@ function WorkspaceInteractionRow({
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline gap-x-2">
-          <span className={typeRole.sectionLabel}>{item.interactionType}</span>
+          <span className={typeRole.sectionLabel}>
+            {interactionTypeLabel(item.interactionType, item.sourceSystem)}
+          </span>
+          <SourceBadge sourceSystem={item.sourceSystem} />
           <time className="text-xs text-text-secondary">{formatDate(item.occurredAt)}</time>
         </div>
         {showRecruit ? (
@@ -262,7 +279,10 @@ function DirectoryInteractionRow({
               {item.recruitName}
             </Link>
           ) : null}
-          <span className={typeRole.sectionLabel}>{item.interactionType}</span>
+          <span className={typeRole.sectionLabel}>
+            {interactionTypeLabel(item.interactionType, item.sourceSystem)}
+          </span>
+          <SourceBadge sourceSystem={item.sourceSystem} />
           <time className="text-xs text-text-secondary">{formatDate(item.occurredAt)}</time>
         </div>
         <div className="mt-0.5 flex min-w-0 flex-col gap-1 md:flex-row md:items-start md:gap-3">

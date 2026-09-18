@@ -10,6 +10,8 @@ import type { RecruitInteraction } from "../types";
 import { INTERACTION_TYPES } from "../types";
 import type { InteractionOption } from "../recruitSearch";
 import RecruitSearchField from "./RecruitSearchField";
+import { interactionTypeOptionLabel } from "../whatsappNotes";
+import { WHATSAPP_SOURCE_SYSTEM } from "../whatsappNotes";
 
 export type { InteractionOption };
 
@@ -105,10 +107,18 @@ export default function InteractionForm({
         </label>
         <label className="text-xs font-semibold text-text-secondary">
           Type
-          <select name="interactionType" defaultValue={interaction?.interactionType ?? "text"} className={`mt-1 ${control}`}>
+          <select
+            name="interactionType"
+            defaultValue={
+              interaction?.sourceSystem === WHATSAPP_SOURCE_SYSTEM
+                ? "whatsapp"
+                : (interaction?.interactionType ?? "text")
+            }
+            className={`mt-1 ${control}`}
+          >
             {INTERACTION_TYPES.map((type) => (
               <option key={type} value={type}>
-                {type[0].toUpperCase() + type.slice(1)}
+                {interactionTypeOptionLabel(type)}
               </option>
             ))}
           </select>

@@ -1,5 +1,5 @@
 export const INTERACTION_TYPES = [
-  "call", "text", "email", "message", "visit", "meeting", "note", "other",
+  "call", "text", "email", "message", "visit", "meeting", "note", "whatsapp", "other",
 ] as const;
 export type InteractionType = (typeof INTERACTION_TYPES)[number];
 export type InteractionDirection = "inbound" | "outbound" | "two_way" | "unknown";

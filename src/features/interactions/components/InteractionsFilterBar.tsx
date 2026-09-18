@@ -13,6 +13,7 @@ import {
   interactionsPageHref,
   type InteractionKindFilter,
   type InteractionPeriod,
+  type InteractionSourceFilter,
 } from "../centralPeriod";
 
 const PERIODS: { id: InteractionPeriod; label: string }[] = [
@@ -29,6 +30,13 @@ const KINDS: { id: InteractionKindFilter; label: string }[] = [
   { id: "calls", label: "Calls" },
   { id: "emails", label: "Emails" },
   { id: "visits", label: "Visits" },
+  { id: "whatsapp", label: "WhatsApp" },
+];
+
+const SOURCES: { id: InteractionSourceFilter; label: string }[] = [
+  { id: "all", label: "All sources" },
+  { id: "messages", label: "Messages" },
+  { id: "whatsapp", label: "WhatsApp" },
 ];
 
 function FilterMenu({
@@ -138,18 +146,30 @@ function FilterMenu({
 export default function InteractionsFilterBar({
   period,
   kind,
+  source = "all",
   query,
 }: {
   period: InteractionPeriod;
   kind: InteractionKindFilter;
+  source?: InteractionSourceFilter;
   query: string;
 }) {
   const router = useRouter();
-  const defaults = period === DEFAULT_INTERACTION_PERIOD && kind === "all" && query.trim().length === 0;
+  const defaults =
+    period === DEFAULT_INTERACTION_PERIOD && kind === "all" && source === "all" && query.trim().length === 0;
   const periodLabel = PERIODS.find((item) => item.id === period)?.label ?? "Past month";
   const kindLabel = KINDS.find((item) => item.id === kind)?.label ?? "All types";
+  const sourceLabel = SOURCES.find((item) => item.id === source)?.label ?? "All sources";
 
-  function go(next: { period: InteractionPeriod; kind: InteractionKindFilter; query: string }, replace = false) {
+  function go(
+    next: {
+      period: InteractionPeriod;
+      kind: InteractionKindFilter;
+      source: InteractionSourceFilter;
+      query: string;
+    },
+    replace = false,
+  ) {
     const href = interactionsPageHref(next);
     if (replace) router.replace(href, { scroll: false });
     else router.push(href, { scroll: false });
@@ -159,7 +179,7 @@ export default function InteractionsFilterBar({
     <div className="flex flex-col gap-2.5" data-interactions-toolbar="">
       <SearchInput
         value={query}
-        onChange={(value) => go({ period, kind, query: value }, true)}
+        onChange={(value) => go({ period, kind, source, query: value }, true)}
         placeholder="Search interactions, recruits, notes, or tournaments"
         aria-label="Search interactions"
       />
@@ -168,7 +188,7 @@ export default function InteractionsFilterBar({
           type="button"
           disabled={defaults}
           aria-label="Clear filters"
-          onClick={() => go({ period: DEFAULT_INTERACTION_PERIOD, kind: "all", query: "" })}
+          onClick={() => go({ period: DEFAULT_INTERACTION_PERIOD, kind: "all", source: "all", query: "" })}
           className={`inline-flex h-10 items-center rounded-control px-3.5 text-[13px] font-medium ${
             defaults
               ? "cursor-not-allowed bg-surface text-text-secondary/50 ring-1 ring-black/[0.06]"
@@ -184,7 +204,7 @@ export default function InteractionsFilterBar({
           valueLabel={periodLabel}
           options={PERIODS}
           selectedId={period}
-          onSelect={(id) => go({ period: id as InteractionPeriod, kind, query })}
+          onSelect={(id) => go({ period: id as InteractionPeriod, kind, source, query })}
         />
         <FilterMenu
           label="Type"
@@ -193,7 +213,16 @@ export default function InteractionsFilterBar({
           valueLabel={kindLabel}
           options={KINDS}
           selectedId={kind}
-          onSelect={(id) => go({ period, kind: id as InteractionKindFilter, query })}
+          onSelect={(id) => go({ period, kind: id as InteractionKindFilter, source, query })}
+        />
+        <FilterMenu
+          label="Source"
+          icon={MessageSquare}
+          active={source !== "all"}
+          valueLabel={sourceLabel}
+          options={SOURCES}
+          selectedId={source}
+          onSelect={(id) => go({ period, kind, source: id as InteractionSourceFilter, query })}
         />
       </div>
     </div>

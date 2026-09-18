@@ -82,9 +82,16 @@ export async function updateRecruitInteraction(
   const client = await createSupabaseServerClient();
   const existing = await getRecruitInteraction(id);
   if (!existing) throw new Error("Interaction not found.");
+  // Preserve sync identity — form edits must not wipe source_system / source_key.
+  const payload = writeRow({
+    ...input,
+    sourceSystem: existing.sourceSystem,
+    sourceKey: existing.sourceKey,
+    channel: input.channel ?? existing.channel,
+  });
   const { data, error } = await client
     .from("recruiting_interactions")
-    .update(writeRow(input))
+    .update(payload)
     .eq("id", id)
     .select(SELECT)
     .single();

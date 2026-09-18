@@ -78,9 +78,10 @@ test("central directory rows show recruit name then type then date", () => {
     directory.indexOf("mt-0.5 flex min-w-0 flex-col"),
   );
   const nameAt = meta.indexOf("item.recruitName");
-  const typeAt = meta.indexOf("item.interactionType");
+  const typeAt = meta.indexOf("interactionTypeLabel(item.interactionType");
   const dateAt = meta.indexOf("formatDate(item.occurredAt)");
   assert.ok(nameAt >= 0 && typeAt > nameAt && dateAt > typeAt);
+  assert.match(meta, /interactionTypeLabel\(item\.interactionType, item\.sourceSystem\)/);
   assert.match(meta, /TEAM_DIRECTORY_NAME/);
   assert.match(meta, /typeRole\.sectionLabel/);
   assert.match(meta, /text-xs text-text-secondary/);
@@ -93,7 +94,7 @@ test("central directory rows show recruit name then type then date", () => {
     workspace.indexOf("flex flex-wrap items-baseline"),
     workspace.indexOf("showRecruit ?"),
   );
-  assert.match(workspaceMeta, /item\.interactionType/);
+  assert.match(workspaceMeta, /interactionTypeLabel\(item\.interactionType, item\.sourceSystem\)/);
   assert.match(workspaceMeta, /formatDate\(item\.occurredAt\)/);
   assert.doesNotMatch(workspaceMeta, /item\.recruitName/);
 });

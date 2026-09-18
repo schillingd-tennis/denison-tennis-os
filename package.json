@@ -13,6 +13,7 @@
     "import:apple-messages": "tsx scripts/import-apple-messages.ts",
     "apple-messages-helper": "tsx scripts/apple-messages-helper.ts",
     "build:apple-messages-helper": "tsc -p tsconfig.apple-messages-helper.json",
+    "whatsapp-helper": "tsx scripts/whatsapp-helper.ts",
     "verify:supabase": "tsx scripts/verify-supabase-connection.ts",
     "db:generate-seed": "tsx scripts/generate-supabase-seed.ts",
     "db:start": "supabase start && npm run db:seed-auth",
@@ -35,7 +36,7 @@
     "test:intra-squad": "tsx --test src/features/intraSquad/*.test.ts",
     "test:matches": "tsx --test src/features/matches/*.test.ts",
     "test:team-schedule": "tsx --test src/features/teamSchedule/*.test.ts",
-    "test:interactions": "tsx --test src/features/interactions/*.test.ts src/features/interactions/components/*.test.ts src/features/interactions/appleMessagesSync/*.test.ts src/app/settings/*.test.ts",
+    "test:interactions": "tsx --test src/features/interactions/*.test.ts src/features/interactions/components/*.test.ts src/features/interactions/appleMessagesSync/*.test.ts src/features/interactions/whatsappSync/*.test.ts src/app/settings/*.test.ts",
     "utr:agent": "npm --prefix local-agents/utr-results-agent start",
     "utr:https-setup": "tsx scripts/utr-https-setup.ts",
     "utr:login": "npm --prefix local-agents/utr-results-agent run login",
@@ -44,8 +45,11 @@
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.0",
+    "@whiskeysockets/baileys": "^7.0.0-rc14",
     "lucide-react": "^1.28.0",
     "next": "16.3.0",
+    "pino": "^10.3.1",
+    "qrcode-terminal": "^0.12.0",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },

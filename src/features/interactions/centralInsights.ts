@@ -7,8 +7,10 @@ import {
   matchesPeriod,
   type InteractionKindFilter,
   type InteractionPeriod,
+  type InteractionSourceFilter,
 } from "./centralPeriod";
 import type { InteractionType, RecruitInteraction } from "./types";
+import { WHATSAPP_SOURCE_SYSTEM } from "./whatsappNotes";
 
 export const FOLLOW_UP_AFTER_DAYS = 10;
 export const LIST_QUERY_LIMIT = 5000;
@@ -19,19 +21,41 @@ const TEXT_TYPES: InteractionType[] = ["text", "message"];
 const CALL_TYPES: InteractionType[] = ["call"];
 const EMAIL_TYPES: InteractionType[] = ["email"];
 const VISIT_TYPES: InteractionType[] = ["visit"];
-const CONTACT_TYPES: InteractionType[] = ["text", "message", "call"];
+const WHATSAPP_TYPES: InteractionType[] = ["whatsapp"];
+const CONTACT_TYPES: InteractionType[] = ["text", "message", "call", "whatsapp"];
 
 export function typesForKind(kind: InteractionKindFilter): InteractionType[] | null {
   if (kind === "all") return null;
   if (kind === "texts") return TEXT_TYPES;
   if (kind === "calls") return CALL_TYPES;
   if (kind === "emails") return EMAIL_TYPES;
+  if (kind === "whatsapp") return WHATSAPP_TYPES;
   return VISIT_TYPES;
 }
 
-export function matchesKind(type: InteractionType, kind: InteractionKindFilter): boolean {
+export function matchesKind(
+  type: InteractionType,
+  kind: InteractionKindFilter,
+  sourceSystem?: string | null,
+): boolean {
+  if (kind === "whatsapp") {
+    return type === "whatsapp" || sourceSystem === WHATSAPP_SOURCE_SYSTEM;
+  }
   const types = typesForKind(kind);
-  return types ? types.includes(type) : true;
+  if (!types) return true;
+  // WhatsApp rows are not “Texts” even if an old row still has type text.
+  if (kind === "texts" && sourceSystem === WHATSAPP_SOURCE_SYSTEM) return false;
+  return types.includes(type);
+}
+
+export function matchesSource(
+  sourceSystem: string | null | undefined,
+  source: InteractionSourceFilter,
+): boolean {
+  if (source === "all") return true;
+  if (source === "messages") return sourceSystem === APPLE_MESSAGES_SOURCE_SYSTEM;
+  if (source === "whatsapp") return sourceSystem === WHATSAPP_SOURCE_SYSTEM;
+  return true;
 }
 
 export function matchesSearch(row: RecruitInteraction, query: string): boolean {
@@ -47,17 +71,26 @@ export function filterCentralInteractions(
   options: {
     period: InteractionPeriod;
     kind: InteractionKindFilter;
+    source?: InteractionSourceFilter;
     query: string;
     now: Date;
     applyKind?: boolean;
+    applySource?: boolean;
   },
 ): RecruitInteraction[] {
   const applyKind = options.applyKind !== false;
+  const applySource = options.applySource !== false;
+  const source = options.source ?? "all";
   return rows.filter((row) => {
     if (!matchesPeriod(row.occurredAt, options.period, options.now)) return false;
-    if (applyKind && !matchesKind(row.interactionType, options.kind)) return false;
+    if (applyKind && !matchesKind(row.interactionType, options.kind, row.sourceSystem)) return false;
+    if (applySource && !matchesSource(row.sourceSystem, source)) return false;
     return matchesSearch(row, options.query);
   });
+}
+
+export function countWhatsAppMessages(rows: readonly RecruitInteraction[]): number {
+  return rows.filter((row) => row.sourceSystem === WHATSAPP_SOURCE_SYSTEM).length;
 }
 
 export function latestOccurredAt(rows: readonly RecruitInteraction[]): string | null {
@@ -135,12 +168,15 @@ export type ActivityCounts = {
   calls: number;
   emails: number;
   visits: number;
+  whatsapp: number;
 };
 
 export function activityByType(rows: readonly RecruitInteraction[]): ActivityCounts {
-  const counts: ActivityCounts = { texts: 0, calls: 0, emails: 0, visits: 0 };
+  const counts: ActivityCounts = { texts: 0, calls: 0, emails: 0, visits: 0, whatsapp: 0 };
   for (const row of rows) {
-    if (TEXT_TYPES.includes(row.interactionType)) counts.texts += 1;
+    if (row.sourceSystem === WHATSAPP_SOURCE_SYSTEM || WHATSAPP_TYPES.includes(row.interactionType)) {
+      counts.whatsapp += 1;
+    } else if (TEXT_TYPES.includes(row.interactionType)) counts.texts += 1;
     else if (CALL_TYPES.includes(row.interactionType)) counts.calls += 1;
     else if (EMAIL_TYPES.includes(row.interactionType)) counts.emails += 1;
     else if (VISIT_TYPES.includes(row.interactionType)) counts.visits += 1;

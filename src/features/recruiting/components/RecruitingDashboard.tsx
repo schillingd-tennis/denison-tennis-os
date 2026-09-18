@@ -25,6 +25,7 @@ import { useDrawerManager } from "@/components/workspace-drawer";
 import ModulePageShell from "@/components/ModulePageShell";
 import InteractionForm, { type InteractionOption } from "@/features/interactions/components/InteractionForm";
 import type { InteractionType, RecruitInteraction } from "@/features/interactions/types";
+import { interactionTypeLabel } from "@/features/interactions/whatsappNotes";
 import { formatTournamentDates } from "@/features/tournaments/display";
 import type { Tournament } from "@/features/tournaments/types";
 import { interactionNotesPresentation } from "@/features/interactions/appleMessageNotes";
@@ -152,6 +153,11 @@ const INTERACTION_CHIP: Record<InteractionType, { icon: LucideIcon; chip: string
     chip: "bg-knowledge/10 text-knowledge",
     tile: "bg-knowledge/10 text-knowledge",
   },
+  whatsapp: {
+    icon: MessageCircle,
+    chip: "bg-success/10 text-success",
+    tile: "bg-success/10 text-success",
+  },
   other: {
     icon: MessageCircle,
     chip: "bg-app-background text-text-secondary",
@@ -171,8 +177,8 @@ function previewNotes(notes: string | null): string | null {
   return text || null;
 }
 
-function typeLabel(type: string): string {
-  return type ? `${type[0]!.toUpperCase()}${type.slice(1)}` : "Interaction";
+function typeLabel(type: string, sourceSystem?: string | null): string {
+  return interactionTypeLabel(type, sourceSystem);
 }
 
 function initials(name: string): string {
@@ -423,7 +429,7 @@ export default function RecruitingDashboard({
                               <span
                                 className={`inline-flex h-[18px] shrink-0 items-center rounded-full px-1.5 text-[10px] font-semibold tracking-wide uppercase ${style.chip}`}
                               >
-                                {typeLabel(interaction.interactionType)}
+                                {typeLabel(interaction.interactionType, interaction.sourceSystem)}
                               </span>
                               {direction ? (
                                 <span className="shrink-0 text-[11px] font-normal text-text-secondary">

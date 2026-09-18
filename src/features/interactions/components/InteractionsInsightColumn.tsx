@@ -43,7 +43,14 @@ export default function InteractionsInsightColumn({
   appleError: string | null;
   signedIn?: boolean;
 }) {
-  const max = Math.max(activity.texts, activity.calls, activity.emails, activity.visits, 0);
+  const max = Math.max(
+    activity.texts,
+    activity.calls,
+    activity.emails,
+    activity.visits,
+    activity.whatsapp,
+    0,
+  );
   return (
     <aside className="flex min-w-0 flex-col gap-5" data-interactions-insights="">
       <section className="rounded-card border border-black/[0.06] bg-surface px-4 py-4 shadow-[0_8px_24px_rgba(17,24,39,0.04)]">
@@ -83,6 +90,7 @@ export default function InteractionsInsightColumn({
         </div>
         <div className="mt-3 flex flex-col">
           <ActivityRow label="Text" count={activity.texts} max={max} barClass="bg-[var(--module-accent)]" />
+          <ActivityRow label="WhatsApp" count={activity.whatsapp} max={max} barClass="bg-success" />
           <ActivityRow label="Call" count={activity.calls} max={max} barClass="bg-info" />
           <ActivityRow label="Email" count={activity.emails} max={max} barClass="bg-research" />
           <ActivityRow label="Visit" count={activity.visits} max={max} barClass="bg-warning" />

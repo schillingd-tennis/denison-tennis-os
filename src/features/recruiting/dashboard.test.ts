@@ -634,7 +634,7 @@ test("Recent Interactions metadata row keeps name, type badge, and direction on 
   assert.match(ui, /data-dashboard-recent-interaction-notes/);
   assert.match(
     ui,
-    /data-dashboard-recent-interaction-meta[\s\S]*recruitName[\s\S]*typeLabel\(interaction\.interactionType\)[\s\S]*\{direction \?/,
+    /data-dashboard-recent-interaction-meta[\s\S]*recruitName[\s\S]*typeLabel\(interaction\.interactionType, interaction\.sourceSystem\)[\s\S]*\{direction \?/,
   );
   assert.match(ui, /font-semibold text-text-primary[\s\S]*data-dashboard-recent-interaction-notes/);
   assert.match(ui, /ml-auto shrink-0 text-\[11px\] text-text-secondary/);
