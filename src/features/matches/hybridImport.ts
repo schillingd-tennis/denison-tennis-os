@@ -46,6 +46,7 @@ export async function hybridImportBoxScore(input: {
   roster: readonly RosterPlayer[];
   forcedType?: MatchEventType | "auto";
   seasonYear?: number | null;
+  referenceDate?: string | null;
   allowAi?: boolean;
   extractFn?: typeof extractOfficialMatchWithOpenAi;
 }): Promise<HybridImportResult> {
@@ -68,53 +69,54 @@ export async function hybridImportBoxScore(input: {
   const eventType = resolved.eventType;
   const deterministic =
     eventType === "dual"
-      ? parseDualBoxScore({ text, roster: input.roster, seasonYear: input.seasonYear })
-      : parseTournamentResults({ text, roster: input.roster, seasonYear: input.seasonYear });
+      ? parseDualBoxScore({ text, roster: input.roster, seasonYear: input.seasonYear, referenceDate: input.referenceDate })
+      : parseTournamentResults({ text, roster: input.roster, seasonYear: input.seasonYear, referenceDate: input.referenceDate });
 
   const deterministicUseful =
     eventType === "dual"
       ? (deterministic as DualImportDraft).results.length > 0
       : (deterministic as TournamentImportDraft).results.length > 0;
 
-  if (deterministicUseful && (deterministic.confidence >= 0.65 || input.allowAi === false)) {
-    return {
-      ok: true,
-      eventType,
-      needsUserChoice: false,
-      source: "deterministic",
-      draft: deterministic,
-      detectionReasons: detection.reasons,
-    };
-  }
-
-  if (input.allowAi === false) {
-    if (deterministicUseful) {
-      return {
-        ok: true,
-        eventType,
-        needsUserChoice: false,
-        source: "deterministic",
-        draft: deterministic,
-        detectionReasons: detection.reasons,
-      };
-    }
-    return {
-      ok: false,
-      needsUserChoice: false,
-      error: MATCHES_PARSE_UNAVAILABLE,
-      detectionReasons: detection.reasons,
-      preservedText: text,
-    };
+  // AI interprets varied pasted formats when configured. The deterministic
+  // parser remains a fallback, rather than preventing the AI request.
+  const canUseAi =
+    input.allowAi !== false &&
+    (input.extractFn !== undefined || Boolean(process.env.OPENAI_API_KEY?.trim()));
+  if (!canUseAi) {
+    return deterministicUseful
+      ? {
+          ok: true,
+          eventType,
+          needsUserChoice: false,
+          source: "deterministic",
+          draft: {
+            ...deterministic,
+            flags: [...deterministic.flags, "AI is not configured for this server; built-in parser used. Review every result."],
+          },
+          detectionReasons: detection.reasons,
+        }
+      : {
+          ok: false,
+          needsUserChoice: false,
+          error: "AI is not configured for this server, and the built-in parser could not interpret the paste. Your text is preserved. Configure a server-side OpenAI API key or enter results manually.",
+          detectionReasons: detection.reasons,
+          preservedText: text,
+        };
   }
 
   const extract = input.extractFn ?? extractOfficialMatchWithOpenAi;
-  const ai = await extract({
-    eventType,
-    text,
-    rosterNames: input.roster.map(rosterPlayerDisplayName),
-  });
+  let ai: Awaited<ReturnType<typeof extract>>;
+  try {
+    ai = await extract({
+      eventType,
+      text,
+      rosterNames: input.roster.map(rosterPlayerDisplayName),
+    });
+  } catch {
+    ai = { error: MATCHES_PARSE_UNAVAILABLE };
+  }
 
-  if ("error" in ai) {
+  if ("error" in ai || ai.results.length === 0 || (deterministicUseful && ai.results.length < deterministic.results.length)) {
     if (deterministicUseful) {
       return {
         ok: true,
@@ -123,7 +125,7 @@ export async function hybridImportBoxScore(input: {
         source: "deterministic",
         draft: {
           ...deterministic,
-          flags: [...deterministic.flags, `AI unavailable: ${ai.error}`],
+          flags: [...deterministic.flags, "AI interpretation unavailable or incomplete; built-in parser used. Review every result."],
         },
         detectionReasons: detection.reasons,
       };
@@ -131,7 +133,7 @@ export async function hybridImportBoxScore(input: {
     return {
       ok: false,
       needsUserChoice: false,
-      error: ai.error,
+      error: "error" in ai ? ai.error : MATCHES_PARSE_UNAVAILABLE,
       detectionReasons: detection.reasons,
       preservedText: text,
     };
@@ -266,7 +268,6 @@ function mergeDualAi(
     interpretation: ai.interpretation,
     flags: [
       ...new Set([
-        ...base.flags,
         ...(discrepancy
           ? [
               `Reported team score ${reportedDenison}–${reportedOpponent} differs from calculated ${calculated.denison}–${calculated.opponent}`,
@@ -303,7 +304,7 @@ function mergeTournamentAi(
       flightName: row.flightName,
       divisionName: null,
       roundLabel: row.roundLabel,
-      matchDate: row.matchDate,
+      matchDate: row.matchDate ?? ai.startDate ?? base.startDate,
       denisonA,
       denisonB,
       opponentAName: row.opponentPlayerName,
@@ -330,6 +331,6 @@ function mergeTournamentAi(
     results,
     confidence: ai.confidence,
     interpretation: ai.interpretation,
-    flags: [...new Set([...base.flags, ...results.flatMap((r) => r.flags)])],
+    flags: [...new Set(results.flatMap((r) => r.flags))],
   };
 }

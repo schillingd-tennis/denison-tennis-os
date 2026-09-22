@@ -322,6 +322,3 @@ export const DEFAULT_MATCHES_SEASON_YEAR = 2027;
 
 export const MATCHES_PARSE_UNAVAILABLE =
   "Couldn’t interpret that automatically. Choose Dual or Tournament, correct the fields, or enter results manually.";
-
-export const MATCHES_AI_CREDENTIALS_MISSING =
-  "OpenAI credentials are not configured (OPENAI_API_KEY). Paste is preserved — choose Dual or Tournament and enter results manually, or configure credentials and retry.";

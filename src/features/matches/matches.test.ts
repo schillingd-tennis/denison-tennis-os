@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { parseAiOfficialExtraction } from "./aiExtract";
+import { extractOfficialMatchWithOpenAi, parseAiOfficialExtraction } from "./aiExtract";
 import { detectMatchEventType, resolveForcedEventType } from "./detectEventType";
 import { parseDualBoxScore } from "./dualParse";
 import {
@@ -50,6 +50,17 @@ test("detects complete dual box score", () => {
   assert.equal(draft.scoringFormat, "ncaa_standard");
 });
 
+test("dual paste does not treat an individual set as a reported team score", () => {
+  const draft = parseDualBoxScore({
+    text: "Friday, September 18 — Singles\n1. Nick Meyers (DEN) def. Alejandro González (KEN) 6-4, 7-5",
+    roster: [{ id: "nick", firstName: "Nick", lastName: "Meyers", preferredName: null }],
+    seasonYear: 2027,
+  });
+  assert.equal(draft.startDate, "2026-09-18");
+  assert.equal(draft.reportedTeamScoreDenison, null);
+  assert.equal(draft.reportedTeamScoreOpponent, null);
+});
+
 test("doubles_separate scoring format", () => {
   const draft = parseDualBoxScore({ text: FIXTURE_DOUBLES_SEPARATE, roster: FIXTURE_ROSTER });
   assert.equal(draft.scoringFormat, "doubles_separate");
@@ -85,6 +96,95 @@ test("multi-flight consolation bye", () => {
   const draft = parseTournamentResults({ text: FIXTURE_MULTI_FLIGHT, roster: FIXTURE_ROSTER });
   assert.ok(draft.results.some((r) => r.status === "bye"));
   assert.ok(draft.results.some((r) => (r.flightName ?? "").includes("Flight")));
+});
+
+test("numbered individual results use numbers only as list markers", () => {
+  const draft = parseTournamentResults({
+    text: "7. Nick Meyers (DEN) def. Alejandro González (KEN) 6-4, 7-5\n1. Mason Conlin (DEN) def. Jay Dixit (KEN) 6-3, 6-2",
+    roster: [
+      { id: "nick", firstName: "Nick", lastName: "Meyers" },
+      { id: "mason", firstName: "Mason", lastName: "Conlin" },
+    ],
+    referenceDate: "2026-09-18",
+  });
+  assert.equal(draft.title, null);
+  assert.equal(draft.results.length, 2);
+  assert.deepEqual(draft.results.map((row) => row.denisonA.rawName), ["Nick Meyers", "Mason Conlin"]);
+  assert.equal(draft.results.every((row) => !("lineupPosition" in row)), true);
+});
+
+test("comma-separated W/L results parse all singles without AI", async () => {
+  const text = [
+    "Nick Meyers, L, Alex Feies (CMU), 5-7, 3-6",
+    "Arya Kallambella, W, Jayden Yu (CMU), 7-5, 6-2",
+    "Jackson MacTaggart, L, Shay Gupta (CWRU), 2-6, 6-3, 6-10",
+    "Chika Nwaozuzu, W, Neil Zouaoui (DPU), 6-3, 6-4",
+    "Minato Koido, W, Viktor Ronnberg (DPU), 7-6(5), 7-5",
+  ].join("\n");
+  const roster = ["Nick Meyers", "Arya Kallambella", "Jackson MacTaggart", "Chika Nwaozuzu", "Minato Koido"]
+    .map((name, index) => ({
+      id: `player-${index}`,
+      firstName: name.split(" ")[0]!,
+      lastName: name.split(" ")[1]!,
+    }));
+  const result = await hybridImportBoxScore({
+    text,
+    roster,
+    forcedType: "tournament",
+    referenceDate: "2026-09-18",
+    allowAi: false,
+  });
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.equal(result.source, "deterministic");
+  assert.equal(result.draft.kind, "tournament");
+  if (result.draft.kind !== "tournament") return;
+  assert.equal(result.draft.title, null);
+  assert.equal(result.draft.results.length, 5);
+  assert.deepEqual(result.draft.results.map((row) => row.winnerSide), [
+    "opponent", "denison", "opponent", "denison", "denison",
+  ]);
+  assert.deepEqual(result.draft.results.map((row) => row.opponentSchool), [
+    "CMU", "CMU", "CWRU", "DPU", "DPU",
+  ]);
+  assert.deepEqual(result.draft.results.map((row) => row.scoreText), [
+    "5-7, 3-6", "7-5, 6-2", "2-6, 6-3, 6-10", "6-3, 6-4", "7-6(5), 7-5",
+  ]);
+  assert.equal(result.draft.results[2]?.scoreSets[2]?.isMatchTiebreak, true);
+  assert.equal(result.draft.results[4]?.scoreSets[0]?.winnerTb, 5);
+  assert.equal(result.draft.results.every((row) => row.matchDate === "2026-09-18"), true);
+  assert.equal(result.draft.results.every((row, index) => row.denisonA.personId === `player-${index}`), true);
+  assert.ok(result.draft.flags.some((flag) => flag.includes("AI is not configured")));
+});
+
+test("flattened Friday–Sunday doubles paste yields 15 dated, reviewable matches", () => {
+  const text = "FRIDAY, SEPTEMBER 18  Meyers / Nwaozuzu, W, Castellanos / González (KEN), 7-5 B. Idnani / Koido, W, Kondaveeti / Papamichael (KEN), 6-1 Borosko / Berns, W, Dixit / Ng (KEN), 6-3 Kallambella / MacTaggart, W, Bocanegra / Shah (KEN), 6-3  SATURDAY, SEPTEMBER 19  Nwaozuzu / Meyers, W, Feies / Fernando (CMU), 6-4 Kallambella / MacTaggart, W, Zouaoui / Varley (DPU), 6-2 Suedmeyer / Koido, W, Hummel / Schweitzer (DPU), 6-4 Borosko / B. Idnani, W, Kwiatkowski / Shiffer (CWRU), 6-3  SUNDAY, SEPTEMBER 20  Meyers / Nwaozuzu, W, Jacob / Lambright (CWRU), 6-4 Kallambella / MacTaggart, W, Anderson / Zouaoui (DPU), 7-6(5) Berns / Borosko, L, Zhang / Dai (CWRU), 7-5 B. Idnani / Koido, W, Gershon / Fernando (CMU), 6-4 Suedmeyer / I. Idnani, W, Jhaveri / Ngo (CWRU), 6-3 Berns / Borosko, W, Kwiatkowski / Shiffer (CWRU), 6-4 Suedmeyer / I. Idnani, W, Jhaveri / Kothapalli (CWRU), 6-4";
+  const roster = [
+    "Nick Meyers", "Chika Nwaozuzu", "Balraj Idnani", "Minato Koido",
+    "Aidan Borosko", "Peter Berns", "Arya Kallambella", "Jackson MacTaggart",
+    "Sam Suedmeyer", "Ishan Idnani",
+  ].map((name, index) => ({ id: `d-${index}`, firstName: name.split(" ")[0]!, lastName: name.split(" ")[1]! }));
+  const draft = parseTournamentResults({ text, roster, referenceDate: "2026-09-18", seasonYear: 2027 });
+  assert.equal(draft.title, null);
+  assert.equal(draft.startDate, "2026-09-18");
+  assert.equal(draft.endDate, "2026-09-20");
+  assert.equal(draft.results.length, 15);
+  assert.equal(draft.results.every((row) => row.discipline === "doubles"), true);
+  assert.deepEqual(draft.results.map((row) => row.matchDate), [
+    ...Array(4).fill("2026-09-18"), ...Array(4).fill("2026-09-19"), ...Array(7).fill("2026-09-20"),
+  ]);
+  assert.equal(draft.results[0]?.denisonA.personId, "d-0");
+  assert.equal(draft.results[0]?.denisonB?.personId, "d-1");
+  assert.equal(draft.results[1]?.denisonA.personId, "d-2");
+  assert.equal(draft.results[12]?.denisonB?.personId, "d-9");
+  assert.equal(draft.results[10]?.winnerSide, "opponent");
+  assert.equal(draft.results[9]?.scoreText, "7-6(5)");
+  assert.equal(draft.results[9]?.scoreSets[0]?.winnerTb, 5);
+  assert.deepEqual(draft.results.map((row) => row.opponentSchool).slice(0, 4), ["KEN", "KEN", "KEN", "KEN"]);
+  assert.deepEqual(draft.flags, ["Loss score orientation needs review; the pasted score is preserved as written."]);
+  const review = validateImportDraft(draft, { scheduleLinked: true });
+  assert.equal(review.ok, true);
+  assert.ok(review.warnings.some((warning) => warning.includes("Loss score orientation")));
 });
 
 test("doubles reversed names share pair key", () => {
@@ -152,6 +252,101 @@ test("forced dual on mixed text", async () => {
   });
   assert.equal(result.ok, true);
   if (result.ok) assert.equal(result.eventType, "dual");
+});
+
+test("AI interprets a recognizable paste first when configured", async () => {
+  let aiCalls = 0;
+  const result = await hybridImportBoxScore({
+    text: "Friday, September 18 — Singles\n1. Nick Meyers (DEN) def. Alejandro González (KEN) 6-4, 7-5",
+    roster: [],
+    forcedType: "tournament",
+    seasonYear: 2027,
+    allowAi: true,
+    referenceDate: "2026-09-18",
+    extractFn: async () => {
+      aiCalls += 1;
+      return {
+        title: "Denison Invite",
+        startDate: null,
+        endDate: null,
+        locationText: null,
+        results: [{
+          discipline: "singles" as const,
+          drawName: null,
+          flightName: null,
+          roundLabel: null,
+          matchDate: null,
+          denisonPlayerName: "Nick Meyers",
+          denisonPartnerName: null,
+          opponentPlayerName: "Alejandro González",
+          opponentPartnerName: null,
+          opponentSchool: "KEN",
+          status: "completed" as const,
+          winnerSide: "denison" as const,
+          score: "6-4, 7-5",
+          sourceExcerpt: "Nick Meyers (DEN) def. Alejandro González (KEN) 6-4, 7-5",
+        }],
+        confidence: 0.9,
+        interpretation: "One individual singles result",
+      };
+    },
+  });
+  assert.equal(aiCalls, 1);
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.equal(result.source, "deterministic+ai");
+    assert.equal(result.draft.results.length, 1);
+    assert.equal(result.draft.kind, "tournament");
+    if (result.draft.kind === "tournament") {
+      assert.equal(result.draft.results[0]?.matchDate, "2026-09-18");
+      assert.equal(result.draft.title, "Denison Invite");
+    }
+    assert.ok(result.draft.flags.some((flag) => flag.includes("needs review")));
+  }
+});
+
+test("AI failure falls back to recognizable results without losing the paste", async () => {
+  const text = "Nick Meyers, L, Alex Feies (CMU), 5-7, 3-6";
+  const result = await hybridImportBoxScore({
+    text,
+    roster: [],
+    forcedType: "tournament",
+    allowAi: true,
+    extractFn: async () => ({ error: "AI unavailable" }),
+  });
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.equal(result.source, "deterministic");
+    assert.equal(result.draft.results.length, 1);
+    assert.ok(result.draft.flags.some((flag) => flag.includes("built-in parser used")));
+  }
+});
+
+test("missing AI key explains why an unrecognized paste cannot be interpreted", async () => {
+  const result = await hybridImportBoxScore({
+    text: "Unstructured result without a recognizable score",
+    roster: [],
+    forcedType: "tournament",
+    allowAi: false,
+  });
+  assert.equal(result.ok, false);
+  if (!result.ok) {
+    assert.equal(result.preservedText.includes("Unstructured result"), true);
+    assert.match(result.error, /AI is not configured/);
+  }
+});
+
+test("AI extractor never exposes a credentials prompt when no key is configured", async () => {
+  const result = await extractOfficialMatchWithOpenAi({
+    eventType: "tournament",
+    text: "Unstructured result",
+    rosterNames: [],
+    apiKey: "",
+  });
+  assert.ok("error" in result);
+  if ("error" in result) {
+    assert.equal(result.error.includes("OPENAI_API_KEY"), false);
+  }
 });
 
 test("invalid AI JSON rejected", () => {

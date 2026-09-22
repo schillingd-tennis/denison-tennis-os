@@ -1,3 +1,4 @@
+import { resultDate } from "./resultDate";
 import { detectResultStatusFromText, parseScoreSets } from "./scoreParse";
 import { splitPairNames, toDraftParticipant } from "./resolvePlayers";
 import type {
@@ -9,16 +10,6 @@ import type {
 } from "./types";
 import { DEFAULT_MATCHES_SEASON_YEAR } from "./types";
 
-function parseDate(text: string): string | null {
-  const iso = /\b(20\d{2}-\d{2}-\d{2})\b/.exec(text);
-  if (iso) return iso[1]!;
-  const us = /\b(\d{1,2})\/(\d{1,2})\/(20\d{2})\b/.exec(text);
-  if (us) {
-    return `${us[3]}-${us[1]!.padStart(2, "0")}-${us[2]!.padStart(2, "0")}`;
-  }
-  return null;
-}
-
 function inferSeasonYear(date: string | null): number {
   if (!date) return DEFAULT_MATCHES_SEASON_YEAR;
   const [y, m] = date.split("-").map(Number);
@@ -29,7 +20,11 @@ function inferSeasonYear(date: string | null): number {
 function parseTournamentTitle(text: string): string | null {
   const firstLine = text.split(/\r?\n/).map((l) => l.trim()).find(Boolean);
   if (!firstLine) return null;
+  if (/^(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b/i.test(firstLine)) return null;
   if (/^(?:main\s*draw|consolation|singles|doubles|round)/i.test(firstLine)) return null;
+  // Numbered individual results indicate listing order, not an event title or court.
+  if (/^\d+[.)]\s+.+\b(?:def\.?|d\.|lost\s+to)\b/i.test(firstLine)) return null;
+  if (/^[^,]+,\s*[WL],\s*[^,]+,\s*.+$/i.test(firstLine)) return null;
   if (/\b(?:invite|invitational|regionals?|championships?|tournament)\b/i.test(firstLine)) {
     return firstLine.replace(/\s+20\d{2}.*$/, "").trim();
   }
@@ -82,6 +77,115 @@ function extractScorePortion(line: string): string {
   return m?.[1]?.trim() ?? "";
 }
 
+const DAY_HEADER = /\b(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),\s*(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2}(?:,?\s+20\d{2})?\b/gi;
+const COMPACT_SCORE = /^(\d{1,2}\s*[-–—]\s*\d{1,2}(?:\(\d{1,2}\))?(?:\s*,\s*\d{1,2}\s*[-–—]\s*\d{1,2}(?:\(\d{1,2}\))?)*)\s*(?=\S|$)/;
+
+/** Preserve day headers while separating adjacent doubles rows in a flattened paste. */
+function expandInlineDoubles(line: string): string[] {
+  if (!/\/[^,]+,\s*[WL],/i.test(line)) return [line];
+  const headers = [...line.matchAll(DAY_HEADER)];
+  const parts: string[] = [];
+  if (headers.length === 0) return splitDoublesRows(line);
+
+  if (headers[0]!.index! > 0) parts.push(...splitDoublesRows(line.slice(0, headers[0]!.index)));
+  for (const [index, header] of headers.entries()) {
+    parts.push(header[0]);
+    const bodyStart = header.index! + header[0].length;
+    const bodyEnd = headers[index + 1]?.index ?? line.length;
+    parts.push(...splitDoublesRows(line.slice(bodyStart, bodyEnd)));
+  }
+  return parts;
+}
+
+function splitDoublesRows(raw: string): string[] {
+  const body = raw.trim();
+  if (!body) return [];
+  const rows: string[] = [];
+  let cursor = 0;
+  while (cursor < body.length) {
+    const remaining = body.slice(cursor).trimStart();
+    cursor = body.length - remaining.length;
+    if (!remaining) break;
+    const outcome = /,\s*([WL]),\s*/i.exec(remaining);
+    if (!outcome) return rows.length ? [...rows, remaining] : [body];
+    const pair = remaining.slice(0, outcome.index).trim();
+    const afterOutcome = remaining.slice(outcome.index + outcome[0].length);
+    const opponent = /^([^,]+),\s*/.exec(afterOutcome);
+    if (!pair.includes("/") || !opponent || !opponent[1]!.includes("/")) {
+      return rows.length ? [...rows, remaining] : [body];
+    }
+    const afterOpponent = afterOutcome.slice(opponent[0].length);
+    const score = COMPACT_SCORE.exec(afterOpponent);
+    if (!score) return rows.length ? [...rows, remaining] : [body];
+    rows.push(`${pair}, ${outcome[1]!.toUpperCase()}, ${opponent[1]!.trim()}, ${score[1]!.trim()}`);
+    cursor += outcome.index + outcome[0].length + opponent[0].length + score[1]!.length;
+  }
+  return rows;
+}
+
+/** A compact result is: Denison player or pair, W/L, opponent (school), score. */
+function parseCompactResultLine(
+  line: string,
+  roster: readonly RosterPlayer[],
+  matchDate: string | null,
+  drawName: string | null,
+  flightName: string | null,
+  divisionName: string | null,
+): TournamentDraftResult | null {
+  const match = /^([^,]+),\s*([WL]),\s*([^,]+),\s*(.+)$/i.exec(line);
+  if (!match) return null;
+
+  const denisonPair = splitPairNames(match[1]!.trim());
+  const denisonA = toDraftParticipant(denisonPair?.[0] ?? match[1]!.trim(), roster);
+  const denisonB = denisonPair ? toDraftParticipant(denisonPair[1], roster) : null;
+  const opponentToken = match[3]!.trim();
+  const schoolMatch = /\(([^)]+)\)\s*$/.exec(opponentToken);
+  const opponentName = opponentToken.replace(/\s*\([^)]+\)\s*$/, "").trim();
+  const opponentPair = splitPairNames(opponentName);
+  const scoreRaw = match[4]!.trim();
+  const parsedScore = parseScoreSets(scoreRaw);
+  const rowFlags: string[] = [];
+  if (denisonA.resolution !== "resolved") {
+    rowFlags.push(`Denison player needs review: ${denisonA.rawName}`);
+  }
+  if (denisonB && denisonB.resolution !== "resolved") {
+    rowFlags.push(`Denison partner needs review: ${denisonB.rawName}`);
+  }
+  if (Boolean(denisonPair) !== Boolean(opponentPair)) {
+    rowFlags.push("Doubles pair needs review: both sides should have two players.");
+  }
+  if ("error" in parsedScore) rowFlags.push(parsedScore.error);
+  if (
+    match[2]!.toUpperCase() === "L" &&
+    "sets" in parsedScore &&
+    parsedScore.sets.length === 1 &&
+    parsedScore.sets[0]!.winnerGames > parsedScore.sets[0]!.loserGames
+  ) {
+    rowFlags.push("Loss score orientation needs review; the pasted score is preserved as written.");
+  }
+
+  return {
+    discipline: denisonPair || opponentPair ? "doubles" : "singles",
+    drawName,
+    flightName,
+    divisionName,
+    roundLabel: null,
+    matchDate,
+    denisonA,
+    denisonB,
+    opponentAName: opponentPair?.[0] ?? opponentName,
+    opponentBName: opponentPair?.[1] ?? null,
+    opponentSchool: schoolMatch?.[1]?.trim() ?? null,
+    status: "completed",
+    winnerSide: match[2]!.toUpperCase() === "W" ? "denison" : "opponent",
+    scoreText: "error" in parsedScore ? scoreRaw : parsedScore.scoreText,
+    scoreSets: "error" in parsedScore ? [] : parsedScore.sets,
+    originalScoreText: scoreRaw,
+    sourceExcerpt: line,
+    flags: rowFlags,
+  };
+}
+
 /**
  * Deterministic tournament result line parser.
  * Supports singles and doubles; multiple results per player; no lineup positions;
@@ -91,21 +195,38 @@ export function parseTournamentResults(input: {
   text: string;
   roster: readonly RosterPlayer[];
   seasonYear?: number | null;
+  referenceDate?: string | null;
 }): TournamentImportDraft {
   const text = input.text.trim();
-  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const lines = text.split(/\r?\n/).flatMap(expandInlineDoubles).map((l) => l.trim()).filter(Boolean);
   const results: TournamentDraftResult[] = [];
   const flags: string[] = [];
   let currentDraw: string | null = null;
   let currentFlight: string | null = null;
   let currentDivision: string | null = null;
 
-  const startDate = parseDate(text);
+  const startDate = resultDate(text, input) ?? resultDate(input.referenceDate ?? "", input);
+  let currentDate = startDate;
   const endMatch = text.match(/\b(20\d{2}-\d{2}-\d{2})\s*(?:to|-|–|—)\s*(20\d{2}-\d{2}-\d{2})\b/);
-  const endDate = endMatch?.[2] ?? startDate;
+  const datedHeaders = [...text.matchAll(DAY_HEADER)].map((match) => resultDate(match[0], input)).filter((date): date is string => Boolean(date));
+  const endDate = endMatch?.[2] ?? datedHeaders.at(-1) ?? startDate;
   const title = parseTournamentTitle(text);
 
   for (const line of lines) {
+    currentDate = resultDate(line, input) ?? currentDate;
+    const compactResult = parseCompactResultLine(
+      line,
+      input.roster,
+      currentDate,
+      currentDraw,
+      currentFlight,
+      currentDivision,
+    );
+    if (compactResult) {
+      results.push(compactResult);
+      flags.push(...compactResult.flags);
+      continue;
+    }
     const header = parseDrawFlight(line);
     if (
       (header.drawName || header.flightName || header.divisionName) &&
@@ -122,7 +243,7 @@ export function parseTournamentResults(input: {
     }
 
     const status = detectResultStatusFromText(line) ?? "completed";
-    const winnerSide = parseWinnerSide(line, status);
+    let winnerSide = parseWinnerSide(line, status);
     const roundLabel = parseRoundLabel(line);
     const lineDraw = parseDrawFlight(line);
     const scoreRaw = extractScorePortion(line);
@@ -135,14 +256,26 @@ export function parseTournamentResults(input: {
     const split = line.split(/\b(?:def\.?|d\.|wo|w\/o|retired|ret\.?|lost\s+to)\b/i);
     let left = (split[0] ?? "").replace(/^(?:singles|doubles)\s*/i, "").trim();
     left = left.replace(/\b(?:round of \d+|R(?:16|32|64)|quarter(?:final)?s?|semi(?:final)?s?|finals?|consolation)\b/gi, "").trim();
-    left = left.replace(/^[-:.\s]+/, "").trim();
+    left = left.replace(/^\s*\d+[.)]\s*/, "").replace(/^[-:.\s]+/, "").trim();
 
     let right = (split[1] ?? "").replace(/\d{1,2}\s*[-–—].*$/, "").trim();
+    right = right.replace(/^[.\s]+/, "");
+    const leftSchool = /\(([^)]+)\)\s*$/.exec(left)?.[1]?.trim() ?? null;
+    left = left.replace(/\(([^)]+)\)\s*$/, "").trim();
     let opponentSchool: string | null = null;
     const school = /\(([^)]+)\)\s*$/.exec(right);
     if (school) {
       opponentSchool = school[1]!.trim();
       right = right.replace(/\(([^)]+)\)\s*$/, "").trim();
+    }
+
+    const leftDenison = /^(DEN|Denison)$/i.test(leftSchool ?? "") || toDraftParticipant(splitPairNames(left)?.[0] ?? left, input.roster).resolution === "resolved";
+    const rightDenison = /^(DEN|Denison)$/i.test(opponentSchool ?? "") || toDraftParticipant(splitPairNames(right)?.[0] ?? right, input.roster).resolution === "resolved";
+    if (!leftDenison && rightDenison) {
+      [left, right] = [right, left];
+      opponentSchool = leftSchool;
+      if (winnerSide === "denison") winnerSide = "opponent";
+      else if (winnerSide === "opponent") winnerSide = "denison";
     }
 
     let discipline: "singles" | "doubles" = /doubles/i.test(line) ? "doubles" : "singles";
@@ -180,7 +313,7 @@ export function parseTournamentResults(input: {
       flightName: lineDraw.flightName ?? currentFlight,
       divisionName: lineDraw.divisionName ?? currentDivision,
       roundLabel,
-      matchDate: parseDate(line) ?? startDate,
+      matchDate: currentDate,
       denisonA,
       denisonB,
       opponentAName,

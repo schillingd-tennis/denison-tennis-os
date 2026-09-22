@@ -4,12 +4,9 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
 import ModulePageShell from "@/components/ModulePageShell";
-import { formatDate } from "@/lib/formatting";
-import { MATCHES_ROUTE, matchesEventPath } from "@/lib/module-routes";
+import { MATCHES_ROUTE } from "@/lib/module-routes";
 
 import {
-  eventDisplayTitle,
-  formatOpponentLine,
   formatRecord,
   matchesTabHref,
   playerNameFor,
@@ -21,6 +18,7 @@ import {
   buildSinglesPlayerRecords,
 } from "../records";
 import type { MatchEvent, MatchResult, RosterPlayer } from "../types";
+import PlayerResultRow from "./PlayerResultRow";
 
 export default function MatchPlayerDetail({
   playerId,
@@ -77,43 +75,25 @@ export default function MatchPlayerDetail({
         <p className="text-sm text-text-secondary">No {view} results yet.</p>
       ) : (
         <section className="overflow-hidden rounded-card border border-border bg-surface">
-          <ul className="divide-y divide-border">
-            {view === "singles"
-              ? singles.map((row) => (
-                  <li key={row.id} className="grid gap-1 px-4 py-3 text-sm md:grid-cols-[1fr_1fr_auto_auto]">
-                    <Link href={matchesEventPath(row.event.id)} className="font-semibold hover:underline">
-                      {eventDisplayTitle(row.event)}
-                    </Link>
-                    <span className="text-text-secondary">{formatOpponentLine(row)}</span>
-                    <span className="tabular-nums">{row.scoreText ?? "—"}</span>
-                    <span className="font-semibold">
-                      {row.winnerSide === "denison" ? "W" : row.winnerSide === "opponent" ? "L" : "—"}
-                    </span>
-                    <p className="text-[11px] text-text-secondary md:col-span-4">
-                      {formatDate(row.matchDate ?? row.event.startDate)} · {row.status}
-                      {row.roundLabel ? ` · ${row.roundLabel}` : ""}
-                    </p>
-                  </li>
-                ))
-              : doubles.map((row) => (
-                  <li key={row.id} className="grid gap-1 px-4 py-3 text-sm md:grid-cols-[1fr_1fr_auto_auto]">
-                    <Link href={matchesEventPath(row.event.id)} className="font-semibold hover:underline">
-                      {eventDisplayTitle(row.event)}
-                    </Link>
-                    <span className="text-text-secondary">
-                      Partner {playerNameFor(row.partnerId, roster)} · {formatOpponentLine(row)}
-                    </span>
-                    <span className="tabular-nums">{row.scoreText ?? "—"}</span>
-                    <span className="font-semibold">
-                      {row.winnerSide === "denison" ? "W" : row.winnerSide === "opponent" ? "L" : "—"}
-                    </span>
-                    <p className="text-[11px] text-text-secondary md:col-span-4">
-                      {formatDate(row.matchDate ?? row.event.startDate)} · {row.status}
-                      {row.roundLabel ? ` · ${row.roundLabel}` : ""}
-                    </p>
-                  </li>
+          <div className="overflow-x-auto">
+            <table className="min-w-[800px] w-full text-left text-sm">
+              <thead className="border-b border-border bg-app-background/60 text-[11px] font-semibold tracking-wide text-text-secondary uppercase">
+                <tr>
+                  <th scope="col" className="px-4 py-2.5">Date</th>
+                  <th scope="col" className="px-4 py-2.5">Opponent Name</th>
+                  <th scope="col" className="px-4 py-2.5">School</th>
+                  <th scope="col" className="px-4 py-2.5">Win/Loss</th>
+                  <th scope="col" className="px-4 py-2.5">Score</th>
+                  <th scope="col" className="px-4 py-2.5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {(view === "singles" ? singles : doubles).map((row) => (
+                  <PlayerResultRow key={row.id} row={row} playerId={playerId} roster={roster} />
                 ))}
-          </ul>
+              </tbody>
+            </table>
+          </div>
           <p className="border-t border-border px-4 py-2 text-[11px] text-text-secondary">
             <Link href={MATCHES_ROUTE} className="underline">
               Matches home

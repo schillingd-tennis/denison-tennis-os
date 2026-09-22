@@ -7,7 +7,7 @@ import type {
   TournamentImportDraft,
   WinnerSide,
 } from "./types";
-import { MATCHES_AI_CREDENTIALS_MISSING, MATCHES_PARSE_UNAVAILABLE } from "./types";
+import { MATCHES_PARSE_UNAVAILABLE } from "./types";
 
 export const DUAL_EXTRACTION_JSON_SCHEMA = {
   type: "object",
@@ -227,6 +227,7 @@ function buildSystemPrompt(eventType: MatchEventType): string {
     "Statuses: completed, retired, walkover, default, unfinished, cancelled, bye.",
     "Byes and missing results are not losses. Unknown winners stay unknown.",
     "Preserve original score text; support tiebreaks like 7-6(5) and MTB like 10-8.",
+    "Input formats vary. A row like 'Player, W/L, Opponent (School), score' uses W/L from the Denison player's perspective; scores are also from that player's perspective.",
   ];
   if (eventType === "dual") {
     return [
@@ -243,6 +244,7 @@ function buildSystemPrompt(eventType: MatchEventType): string {
     "Never invent a team score or dual W/L.",
     "Group context via draw/flight/round fields. Multiple results per player are allowed.",
     "No lineup positions required.",
+    "Numbered individual results are listing order, not lineup positions.",
   ].join(" ");
 }
 
@@ -255,7 +257,7 @@ export async function extractOfficialMatchWithOpenAi(input: {
   fetchImpl?: typeof fetch;
 }): Promise<AiDualExtraction | AiTournamentExtraction | { error: string }> {
   const apiKey = input.apiKey ?? process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey) return { error: MATCHES_AI_CREDENTIALS_MISSING };
+  if (!apiKey) return { error: MATCHES_PARSE_UNAVAILABLE };
 
   const model =
     input.model ??

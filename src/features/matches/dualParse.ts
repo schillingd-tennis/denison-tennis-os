@@ -1,4 +1,5 @@
 import { detectResultStatusFromText, parseScoreSets } from "./scoreParse";
+import { resultDate } from "./resultDate";
 import { resolveForcedEventType, detectMatchEventType } from "./detectEventType";
 import { splitPairNames, toDraftParticipant } from "./resolvePlayers";
 import {
@@ -23,7 +24,6 @@ function parseTeamScore(text: string): { denison: number; opponent: number } | n
   const patterns = [
     /(?:denison|du|big\s*red)\s+(\d+)\s*[,|-]\s*(\d+)/i,
     /(?:final|score)\s*:?\s*(\d+)\s*[-–—]\s*(\d+)/i,
-    /\b(\d+)\s*[-–—]\s*(\d+)\s*(?:final|overall)?\b/i,
   ];
   for (const re of patterns) {
     const m = re.exec(text);
@@ -55,18 +55,6 @@ function parseSite(text: string): MatchSite | null {
   if (/\bhome\b/i.test(text) || /\bat\s+denison\b/i.test(text)) return "home";
   if (/\baway\b/i.test(text) || /\bat\s+(?!denison)/i.test(text)) return "away";
   if (/\bneutral\b/i.test(text)) return "neutral";
-  return null;
-}
-
-function parseDate(text: string): string | null {
-  const iso = /\b(20\d{2}-\d{2}-\d{2})\b/.exec(text);
-  if (iso) return iso[1]!;
-  const us = /\b(\d{1,2})\/(\d{1,2})\/(20\d{2})\b/.exec(text);
-  if (us) {
-    const mm = us[1]!.padStart(2, "0");
-    const dd = us[2]!.padStart(2, "0");
-    return `${us[3]}-${mm}-${dd}`;
-  }
   return null;
 }
 
@@ -229,6 +217,7 @@ export function parseDualBoxScore(input: {
   text: string;
   roster: readonly RosterPlayer[];
   seasonYear?: number | null;
+  referenceDate?: string | null;
 }): DualImportDraft {
   const text = input.text.trim();
   const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
@@ -241,7 +230,7 @@ export function parseDualBoxScore(input: {
   }
 
   const reported = parseTeamScore(text);
-  const startDate = parseDate(text);
+  const startDate = resultDate(text, input) ?? input.referenceDate ?? null;
   const scoringFormat = detectScoringFormat(text);
 
   // Calculate from draft-shaped results

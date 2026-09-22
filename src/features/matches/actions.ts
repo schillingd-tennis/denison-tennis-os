@@ -188,7 +188,8 @@ export async function parseMatchesBoxScoreAction(input: {
     roster,
     forcedType,
     seasonYear: input.seasonYear ?? scheduleEvent?.seasonYear,
-    allowAi: true,
+    referenceDate: scheduleEvent?.startDate,
+    allowAi: Boolean(process.env.OPENAI_API_KEY?.trim()),
   });
 
   if (!result.ok) {

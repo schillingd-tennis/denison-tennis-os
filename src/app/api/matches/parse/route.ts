@@ -50,7 +50,7 @@ export async function POST(request: Request) {
       roster,
       forcedType,
       seasonYear,
-      allowAi: true,
+      allowAi: Boolean(process.env.OPENAI_API_KEY?.trim()),
     });
     return NextResponse.json(result);
   } catch (error) {

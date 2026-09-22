@@ -1,5 +1,6 @@
 "use client";
 
+import { suggestScheduleForPaste } from "../pasteScheduleSuggestions";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { X } from "lucide-react";
@@ -81,6 +82,8 @@ export default function ImportBoxScoreFlow({
     () => (draft ? validateImportDraft(draft, { scheduleLinked: Boolean(selectedScheduleId) }) : null),
     [draft, selectedScheduleId],
   );
+
+  const scheduleSuggestions = useMemo(() => suggestScheduleForPaste(text, scheduleEvents), [text, scheduleEvents]);
 
   const filteredSchedule = useMemo(
     () => filterScheduleEventsForPicker(scheduleEvents, scheduleQuery, pickerSeason),
@@ -211,7 +214,7 @@ export default function ImportBoxScoreFlow({
           <div>
             <h2 className="text-base font-semibold">Enter official results</h2>
             <p className="text-xs text-text-secondary">
-              Select a Schedule event first. Paste/AI or manual — same validation and persistence.
+              Paste results, then confirm the matching Schedule event and review before saving.
             </p>
           </div>
           <button type="button" onClick={onClose} aria-label="Close" className="rounded-control p-2 hover:bg-app-background">
@@ -220,6 +223,28 @@ export default function ImportBoxScoreFlow({
         </header>
 
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
+          {entryMethod === "paste" ? (
+          <section className="space-y-2">
+            <h3 className="text-sm font-semibold">1. Paste results</h3>
+            {resultsFormat && !resultsFormat.ambiguous ? (
+              <p className="text-xs text-text-secondary">
+                Results format from Schedule:{" "}
+                <span className="font-medium capitalize text-text-primary">{resultsFormat.status}</span>
+                . Type corrections happen on Schedule — not by silently overriding here.
+              </p>
+            ) : null}
+            <label className="block text-xs font-medium text-text-secondary">
+              Paste box score
+              <textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                rows={10}
+                className="mt-1 w-full rounded-control border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-[var(--module-accent)]"
+                placeholder="Paste dual box score or tournament results…"
+              />
+            </label>
+          </section>
+          ) : null}
           <section className="space-y-2 rounded-card border border-border p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-sm font-semibold">1. Schedule event</h3>
@@ -256,6 +281,12 @@ export default function ImportBoxScoreFlow({
                 className="h-8 min-w-[12rem] flex-1 rounded-control border border-border bg-surface px-2 text-xs"
               />
             </div>
+            {entryMethod === "paste" && scheduleSuggestions.length > 0 ? <div className="space-y-1 rounded-control border border-border p-2">
+              <p className="text-xs font-semibold">Suggested Schedule events — confirm the correct event</p>
+              {scheduleSuggestions.map(({event,reason}) => <button key={event.id} type="button" onClick={() => {setSelectedScheduleId(event.id);setDraft(null);}} className="block w-full rounded-control p-2 text-left text-xs hover:bg-app-background">
+                <span className="font-semibold">{displayOpponentOrEvent(event)}</span><span className="block text-text-secondary">{reason}</span>
+              </button>)}
+            </div> : null}
             {scheduleLoadError ? (
               <p className="text-xs text-amber-800">{scheduleLoadError}</p>
             ) : null}
@@ -273,7 +304,7 @@ export default function ImportBoxScoreFlow({
                       <li key={event.id}>
                         <button
                           type="button"
-                          onClick={() => setSelectedScheduleId(event.id)}
+                          onClick={() => {setSelectedScheduleId(event.id);setDraft(null);}}
                           className={`flex w-full flex-col gap-0.5 px-3 py-2 text-left text-xs ${
                             selected ? "bg-[var(--module-tint)]" : "hover:bg-app-background"
                           }`}
@@ -321,7 +352,7 @@ export default function ImportBoxScoreFlow({
                   : "text-text-secondary hover:bg-surface"
               }`}
             >
-              Paste / AI
+              Paste results
             </button>
             <button
               type="button"
@@ -349,26 +380,7 @@ export default function ImportBoxScoreFlow({
             )
           ) : (
             <>
-          <section className="space-y-2">
-            <h3 className="text-sm font-semibold">2. Paste results</h3>
-            {resultsFormat && !resultsFormat.ambiguous ? (
-              <p className="text-xs text-text-secondary">
-                Results format from Schedule:{" "}
-                <span className="font-medium capitalize text-text-primary">{resultsFormat.status}</span>
-                . Type corrections happen on Schedule — not by silently overriding here.
-              </p>
-            ) : null}
-            <label className="block text-xs font-medium text-text-secondary">
-              Paste box score
-              <textarea
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                rows={10}
-                className="mt-1 w-full rounded-control border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-[var(--module-accent)]"
-                placeholder="Paste dual box score or tournament results…"
-              />
-            </label>
-          </section>
+
 
           {needsChoice ? (
             <div className="rounded-control border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
@@ -398,7 +410,7 @@ export default function ImportBoxScoreFlow({
               <h3 className="text-sm font-semibold">3. Review results</h3>
               {selectedSchedule ? <ScheduleSummaryCard event={selectedSchedule} format={resultsFormat} /> : null}
               <p className="text-xs text-text-secondary">
-                Draft source: {source ?? "—"} · confidence {Math.round(draft.confidence * 100)}% ·{" "}
+                Draft source: {source === "deterministic" ? "Built-in parser (AI not used)" : source === "ai" || source === "deterministic+ai" ? "AI interpretation" : "—"} · confidence {Math.round(draft.confidence * 100)}% ·{" "}
                 {draft.interpretation}
               </p>
               {draft.kind === "dual" ? (
