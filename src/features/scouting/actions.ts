@@ -10,11 +10,15 @@ import {
   createFormLink,
   getPlayerWorkspace,
   getTeamWorkspace,
+  mapScoutingTeamAlias,
   markPlayerAiReviewed,
+  promoteFormSubmission,
   regeneratePlayerAiReport,
   regenerateTeamAiReport,
   restoreOpponentPlayer,
+  reviewAndPublishFormSubmission,
   revokeFormLink,
+  runScoutingDuplicateAuditCounts,
   saveDirectReport,
   saveManualPlayerReport,
   saveManualTeamReport,
@@ -215,8 +219,16 @@ export async function revokeFormLinkAction(id: string) {
 }
 
 export async function updateSubmissionStatusAction(id: string, formData: FormData) {
+  const auth = await requireScoutingWriteUser();
+  if (!auth.ok) return { success: false, message: auth.error } as const;
   const status = parseSubmissionStatus(formData.get("status"));
   if (!status) return { success: false, message: "Invalid submission status." } as const;
+  if (status === "published" || status === "reviewed") {
+    return {
+      success: false,
+      message: "Use Review & Publish to resolve identity and create the Match Report.",
+    } as const;
+  }
   try {
     const submission = await updateSubmissionStatus(id, status);
     revalidateScouting();
@@ -226,6 +238,68 @@ export async function updateSubmissionStatusAction(id: string, formData: FormDat
       success: false,
       message: error instanceof Error ? error.message : "Could not update submission.",
     } as const;
+  }
+}
+
+export async function promoteFormSubmissionAction(submissionId: string) {
+  const auth = await requireScoutingWriteUser();
+  if (!auth.ok) return { success: false as const, message: auth.error };
+  try {
+    const result = await promoteFormSubmission(submissionId);
+    revalidateScouting();
+    return { success: true as const, ...result };
+  } catch (error) {
+    return {
+      success: false as const,
+      message: error instanceof Error ? error.message : "Could not promote submission.",
+    };
+  }
+}
+
+export async function reviewAndPublishFormSubmissionAction(formData: FormData) {
+  const auth = await requireScoutingWriteUser();
+  if (!auth.ok) return { success: false as const, message: auth.error };
+  const submissionId = String(formData.get("submissionId") ?? "").trim();
+  const teamId = String(formData.get("teamId") ?? "").trim();
+  const opponentPlayerId = String(formData.get("opponentPlayerId") ?? "").trim() || null;
+  const createPlayer = String(formData.get("createPlayer") ?? "") === "true";
+  const playerDisplayName = String(formData.get("playerDisplayName") ?? "").trim() || null;
+  const mapAlias = String(formData.get("mapAlias") ?? "").trim();
+  if (!submissionId || !teamId) {
+    return { success: false as const, message: "Canonical team is required to publish." };
+  }
+  try {
+    if (mapAlias) {
+      await mapScoutingTeamAlias(teamId, mapAlias);
+    }
+    const result = await reviewAndPublishFormSubmission({
+      submissionId,
+      teamId,
+      opponentPlayerId,
+      createPlayer,
+      playerDisplayName,
+    });
+    revalidateScouting();
+    return { success: true as const, ...result };
+  } catch (error) {
+    return {
+      success: false as const,
+      message: error instanceof Error ? error.message : "Could not review and publish.",
+    };
+  }
+}
+
+export async function runScoutingDuplicateAuditAction() {
+  const auth = await requireScoutingWriteUser();
+  if (!auth.ok) return { success: false as const, message: auth.error };
+  try {
+    const counts = await runScoutingDuplicateAuditCounts();
+    return { success: true as const, counts };
+  } catch (error) {
+    return {
+      success: false as const,
+      message: error instanceof Error ? error.message : "Could not run duplicate audit.",
+    };
   }
 }
 

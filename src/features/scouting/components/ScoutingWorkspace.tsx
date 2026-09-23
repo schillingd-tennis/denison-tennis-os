@@ -19,17 +19,17 @@ import {
   loadTeamWorkspaceAction,
   regeneratePlayerAiAction,
   regenerateTeamAiAction,
+  reviewAndPublishFormSubmissionAction,
   revokeFormLinkAction,
   saveDirectReportAction,
   saveManualTeamReportAction,
   updateSubmissionStatusAction,
 } from "../actions";
 import {
-  filterMatchReports,
+  buildMatchReportsListItems,
   filterPlayers,
   filterSubmissions,
   filterTeams,
-  sortMatchReports,
   sortPlayers,
   sortSubmissions,
   sortTeams,
@@ -40,12 +40,14 @@ import {
   isOpponentArchived,
   selectNextActivePlayerId,
 } from "../playerLifecycle";
+import { submissionStatusLabel } from "../promotion";
 import {
   resolveScoutingTeamIdentity,
   scoutingTeamCanonicalLabel,
 } from "../teamIdentity";
 import type {
   MatchReportSortKey,
+  MatchReportsListItem,
   OpponentPlayerLifecycleView,
   ScoutingDirectReport,
   ScoutingFilters,
@@ -203,10 +205,35 @@ export default function ScoutingWorkspace({
     () => sortTeams(filterTeams(teams, filters.query), teamSort.key, teamSort.direction),
     [filters.query, teamSort, teams],
   );
-  const reportRows = useMemo(
-    () => sortMatchReports(filterMatchReports(reports, filters), reportSort.key, reportSort.direction),
-    [filters, reportSort, reports],
-  );
+  const reportRows = useMemo(() => {
+    const items = buildMatchReportsListItems({ reports, submissions, filters });
+    return [...items].sort((a, b) => {
+      const aDate =
+        a.kind === "direct_report"
+          ? a.report.matchDate ?? a.report.matchDateRaw
+          : a.submission.matchDate ?? a.submission.createdAt;
+      const bDate =
+        b.kind === "direct_report"
+          ? b.report.matchDate ?? b.report.matchDateRaw
+          : b.submission.matchDate ?? b.submission.createdAt;
+      if (reportSort.key === "matchDate") {
+        if ((aDate ?? "") < (bDate ?? "")) return reportSort.direction === "asc" ? -1 : 1;
+        if ((aDate ?? "") > (bDate ?? "")) return reportSort.direction === "asc" ? 1 : -1;
+        return 0;
+      }
+      const aVal =
+        a.kind === "direct_report"
+          ? String(a.report[reportSort.key as keyof ScoutingDirectReport] ?? "")
+          : a.submission.opponentDisplayName;
+      const bVal =
+        b.kind === "direct_report"
+          ? String(b.report[reportSort.key as keyof ScoutingDirectReport] ?? "")
+          : b.submission.opponentDisplayName;
+      if (aVal < bVal) return reportSort.direction === "asc" ? -1 : 1;
+      if (aVal > bVal) return reportSort.direction === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [reports, submissions, filters, reportSort]);
   const submissionRows = useMemo(
     () =>
       sortSubmissions(filterSubmissions(submissions, filters), submissionSort.key, submissionSort.direction),
@@ -673,6 +700,10 @@ export default function ScoutingWorkspace({
           {surface.kind === "submission" && activeSubmission ? (
             <SubmissionCardSurface
               submission={activeSubmission}
+              teams={teams}
+              players={players}
+              reports={reports}
+              onOpenReport={(reportId) => openScoutingReport(reportId, { origin: surface.origin })}
               onStatusChange={() => {
                 /* status select triggers revalidate via action */
               }}
@@ -802,9 +833,10 @@ export default function ScoutingWorkspace({
                   allLabel="All statuses"
                   options={[
                     { value: "new", label: "New" },
-                    { value: "reviewed", label: "Reviewed" },
-                    { value: "needs_clarification", label: "Needs Clarification" },
+                    { value: "needs_review", label: "Needs Review" },
+                    { value: "published", label: "Published" },
                     { value: "archived", label: "Archived" },
+                    { value: "rejected", label: "Rejected" },
                   ]}
                   onChange={(submissionStatus) => setFilters((current) => ({ ...current, submissionStatus }))}
                 />
@@ -890,7 +922,8 @@ export default function ScoutingWorkspace({
                   direction: current.key === key && current.direction === "asc" ? "desc" : "asc",
                 }))
               }
-              onOpen={(report) => openScoutingReport(report.id)}
+              onOpenReport={(report) => openScoutingReport(report.id)}
+              onOpenSubmission={(submission) => openSubmissionCard(submission.id)}
             />
           ) : null}
           {!loadError && view === "formSubmissions" ? (
@@ -1636,12 +1669,14 @@ function ReportsCardGrid({
   rows,
   sort,
   onSort,
-  onOpen,
+  onOpenReport,
+  onOpenSubmission,
 }: {
-  rows: ScoutingDirectReport[];
+  rows: MatchReportsListItem[];
   sort: { key: MatchReportSortKey; direction: ScoutingSortDirection };
   onSort: (key: MatchReportSortKey) => void;
-  onOpen: (report: ScoutingDirectReport) => void;
+  onOpenReport: (report: ScoutingDirectReport) => void;
+  onOpenSubmission: (submission: ScoutingFormSubmission) => void;
 }) {
   if (!rows.length) {
     return (
@@ -1672,11 +1707,37 @@ function ReportsCardGrid({
         />
       </div>
       <ul className="grid gap-2 lg:grid-cols-2">
-        {rows.map((report) => (
-          <li key={report.id}>
-            <ScoutingDirectReportPreviewCard report={report} onOpen={onOpen} />
-          </li>
-        ))}
+        {rows.map((item) =>
+          item.kind === "direct_report" ? (
+            <li key={`report-${item.report.id}`}>
+              <ScoutingDirectReportPreviewCard report={item.report} onOpen={onOpenReport} />
+            </li>
+          ) : (
+            <li key={`submission-${item.submission.id}`}>
+              <button
+                type="button"
+                data-scouting-needs-review-card=""
+                onClick={() => onOpenSubmission(item.submission)}
+                className="flex w-full flex-col rounded-card border border-amber-300/80 bg-amber-50/40 px-3.5 py-3 text-left shadow-[0_4px_14px_rgba(17,24,39,0.03)] transition-colors hover:bg-amber-50/70"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-text-primary">
+                      {item.submission.opponentDisplayName || "Form submission"}
+                    </span>
+                    <span className="mt-0.5 block text-[11px] text-text-secondary">
+                      Submitted team: {item.submission.teamDisplayName || "—"} ·{" "}
+                      {formatDate(item.submission.createdAt.slice(0, 10))}
+                    </span>
+                  </span>
+                  <span className="shrink-0 rounded-control bg-amber-100 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-900 uppercase">
+                    Needs Review
+                  </span>
+                </div>
+              </button>
+            </li>
+          ),
+        )}
       </ul>
     </div>
   );
@@ -1732,33 +1793,186 @@ function SubmissionsCardGrid({
 
 function SubmissionCardSurface({
   submission,
+  teams,
+  players,
+  reports,
+  onOpenReport,
 }: {
   submission: ScoutingFormSubmission;
+  teams: ScoutingTeam[];
+  players: ScoutingOpponentPlayer[];
+  reports: ScoutingDirectReport[];
+  onOpenReport: (reportId: string) => void;
   onStatusChange: () => void;
 }) {
-  const [, startTransition] = useTransition();
+  const [teamId, setTeamId] = useState(submission.resolvedTeamId ?? teams[0]?.id ?? "");
+  const [opponentPlayerId, setOpponentPlayerId] = useState(submission.resolvedOpponentPlayerId ?? "");
+  const [createPlayer, setCreatePlayer] = useState(false);
+  const [mapAlias, setMapAlias] = useState(
+    submission.teamDisplayName && !submission.resolvedTeamId ? submission.teamDisplayName : "",
+  );
+  const [message, setMessage] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const teamPlayers = players.filter((player) => player.teamId === teamId && !player.archivedAt);
+  const publishedReport =
+    reports.find((report) => report.id === submission.promotedDirectReportId) ??
+    reports.find((report) => report.formSubmissionId === submission.id) ??
+    null;
+  const needsReview =
+    !publishedReport ||
+    submission.status === "needs_review" ||
+    submission.status === "new" ||
+    submission.status === "needs_clarification";
+
   return (
-    <ScoutingSubmissionCard
-      submission={submission}
-      statusControl={
-        <select
-          className="h-11 rounded-control border border-border bg-surface px-2 text-sm md:h-9"
-          defaultValue={submission.status}
-          onChange={(event) => {
-            const formData = new FormData();
-            formData.set("status", event.target.value);
+    <div className="space-y-4">
+      <ScoutingSubmissionCard
+        submission={submission}
+        statusControl={
+          <div className="flex flex-col items-end gap-2">
+            <span className="rounded-control bg-[var(--module-tint)] px-2 py-0.5 text-[10px] font-semibold tracking-wide text-text-secondary uppercase">
+              {submissionStatusLabel(submission.status)}
+            </span>
+            <select
+              className="h-11 rounded-control border border-border bg-surface px-2 text-sm md:h-9"
+              defaultValue={
+                submission.status === "reviewed"
+                  ? "published"
+                  : submission.status === "needs_clarification"
+                    ? "needs_review"
+                    : submission.status
+              }
+              onChange={(event) => {
+                const formData = new FormData();
+                formData.set("status", event.target.value);
+                startTransition(async () => {
+                  const result = await updateSubmissionStatusAction(submission.id, formData);
+                  if (!result.success) setMessage(result.message);
+                });
+              }}
+            >
+              <option value="new">New</option>
+              <option value="needs_review">Needs Review</option>
+              <option value="archived">Archived</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+        }
+      />
+
+      {publishedReport ? (
+        <div className="rounded-card border border-[var(--module-border)] bg-surface px-4 py-3">
+          <p className="text-sm text-text-primary">
+            Canonical team:{" "}
+            <span className="font-medium">
+              {submission.resolvedTeamDisplayName || publishedReport.teamDisplayName}
+            </span>
+            {submission.resolvedOpponentDisplayName || publishedReport.opponentDisplayName
+              ? ` · Player: ${submission.resolvedOpponentDisplayName || publishedReport.opponentDisplayName}`
+              : null}
+          </p>
+          <button
+            type="button"
+            className="mt-2 h-11 rounded-control bg-[var(--module-accent)] px-3 text-sm font-semibold text-white md:h-9"
+            onClick={() => onOpenReport(publishedReport.id)}
+          >
+            View published report
+          </button>
+        </div>
+      ) : null}
+
+      {needsReview ? (
+        <form
+          className="space-y-3 rounded-card border border-amber-300/70 bg-amber-50/30 px-4 py-4"
+          data-scouting-submission-review=""
+          onSubmit={(event) => {
+            event.preventDefault();
+            const formData = new FormData(event.currentTarget);
+            formData.set("submissionId", submission.id);
+            formData.set("teamId", teamId);
+            formData.set("opponentPlayerId", createPlayer ? "" : opponentPlayerId);
+            formData.set("createPlayer", createPlayer ? "true" : "false");
+            formData.set("playerDisplayName", submission.opponentDisplayName);
+            formData.set("mapAlias", mapAlias);
+            setMessage(null);
             startTransition(async () => {
-              await updateSubmissionStatusAction(submission.id, formData);
+              const result = await reviewAndPublishFormSubmissionAction(formData);
+              if (!result.success) setMessage(result.message);
+              else setMessage("Published to Match Reports.");
             });
           }}
         >
-          <option value="new">New</option>
-          <option value="reviewed">Reviewed</option>
-          <option value="needs_clarification">Needs Clarification</option>
-          <option value="archived">Archived</option>
-        </select>
-      }
-    />
+          <p className="text-sm font-medium text-text-primary">Review &amp; Publish</p>
+          <p className="text-xs text-text-secondary">
+            Submitted team: {submission.teamDisplayName || "—"} · Opponent:{" "}
+            {submission.opponentDisplayName || "—"}
+          </p>
+          <DrawerField label="Canonical team">
+            <select
+              name="teamId"
+              value={teamId}
+              onChange={(event) => {
+                setTeamId(event.target.value);
+                setOpponentPlayerId("");
+                setCreatePlayer(false);
+              }}
+              className="h-11 w-full rounded-control border border-border bg-surface px-3 text-sm md:h-9"
+              required
+            >
+              <option value="">Select team…</option>
+              {teams.map((team) => (
+                <option key={team.id} value={team.id}>
+                  {scoutingTeamCanonicalLabel(team.displayName)}
+                </option>
+              ))}
+            </select>
+          </DrawerField>
+          {submission.teamDisplayName && !submission.resolvedTeamId ? (
+            <DrawerField label="Map submitted school as alias">
+              <input
+                name="mapAlias"
+                value={mapAlias}
+                onChange={(event) => setMapAlias(event.target.value)}
+                className="h-11 w-full rounded-control border border-border bg-surface px-3 text-sm md:h-9"
+                placeholder="e.g. CWRU"
+              />
+            </DrawerField>
+          ) : null}
+          <DrawerField label="Opponent player">
+            <select
+              name="opponentPlayerId"
+              value={createPlayer ? "__create__" : opponentPlayerId}
+              onChange={(event) => {
+                if (event.target.value === "__create__") {
+                  setCreatePlayer(true);
+                  setOpponentPlayerId("");
+                } else {
+                  setCreatePlayer(false);
+                  setOpponentPlayerId(event.target.value);
+                }
+              }}
+              className="h-11 w-full rounded-control border border-border bg-surface px-3 text-sm md:h-9"
+            >
+              <option value="">Leave unlinked</option>
+              {teamPlayers.map((player) => (
+                <option key={player.id} value={player.id}>
+                  {player.displayName}
+                </option>
+              ))}
+              <option value="__create__">Create new opponent player</option>
+            </select>
+          </DrawerField>
+          <button
+            type="submit"
+            disabled={pending || !teamId}
+            className="h-11 rounded-control bg-[var(--module-accent)] px-3 text-sm font-semibold text-white disabled:opacity-60 md:h-9"
+          >
+            {pending ? "Publishing…" : "Review & Publish"}
+          </button>
+          {message ? <p className="text-sm text-text-secondary">{message}</p> : null}
+        </form>
+      ) : null}
+    </div>
   );
 }
 

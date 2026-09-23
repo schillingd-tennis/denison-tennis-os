@@ -43,3 +43,47 @@ test("Scouting Opponent Players three-column Amherst Rex flow", async ({ page })
   await expect(page.locator("[data-scouting-overview-summary-cards]:visible")).toBeVisible();
   await expect(page.getByText("Quick AI Scouting Report").locator("visible=true")).toBeVisible();
 });
+
+test("Scouting Match Reports Needs Review and Form Submissions audit", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/team-operations/scouting");
+  await loginIfNeeded(page);
+  await page.goto("/team-operations/scouting");
+
+  await page.getByRole("navigation", { name: /Scouting sections/i }).getByRole("button", { name: /^Match Reports$/i }).click();
+  const reportsView = page.locator("[data-scouting-match-reports-view]");
+  await expect(reportsView).toBeVisible({ timeout: 30_000 });
+
+  const needsReview = page.locator("[data-scouting-needs-review-card]");
+  const needsReviewCount = await needsReview.count();
+  if (needsReviewCount > 0) {
+    await expect(needsReview.first()).toContainText(/Needs Review/i);
+    const box = await needsReview.first().boundingBox();
+    expect(box).toBeTruthy();
+    expect((box?.width ?? 0) > 0).toBeTruthy();
+    await needsReview.first().click();
+    await expect(page.locator("[data-scouting-submission-card]")).toBeVisible();
+    await expect(page.locator("[data-scouting-submission-review]")).toBeVisible();
+    await expect(page.getByRole("button", { name: /Review & Publish/i })).toBeVisible();
+  }
+
+  await page.getByRole("navigation", { name: /Scouting sections/i }).getByRole("button", { name: /^Form Submissions$/i }).click();
+  const submissionsView = page.locator("[data-scouting-submissions-view]");
+  await expect(submissionsView).toBeVisible({ timeout: 30_000 });
+  const preview = page.locator("[data-scouting-submission-preview]");
+  if ((await preview.count()) > 0) {
+    await preview.first().click();
+    await expect(page.locator("[data-scouting-submission-card]")).toBeVisible();
+  }
+
+  // Mobile: no horizontal overflow on Match Reports
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/team-operations/scouting");
+  await page.getByRole("navigation", { name: /Scouting sections/i }).getByRole("button", { name: /^Match Reports$/i }).click();
+  await expect(page.locator("[data-scouting-match-reports-view]")).toBeVisible({ timeout: 30_000 });
+  const overflowX = await page.evaluate(() => {
+    const doc = document.documentElement;
+    return doc.scrollWidth > doc.clientWidth + 1;
+  });
+  expect(overflowX).toBe(false);
+});

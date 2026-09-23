@@ -161,11 +161,21 @@ export async function listFormSubmissions(): Promise<ScoutingFormSubmission[]> {
   const client = await createSupabaseServerClient();
   const { data, error } = await client
     .from("scouting_form_submissions")
-    .select("*")
+    .select(
+      "*, resolved_team:scouting_teams!scouting_form_submissions_resolved_team_id_fkey(display_name), resolved_player:scouting_opponent_players!scouting_form_submissions_resolved_opponent_player_id_fkey(display_name)",
+    )
     .order("created_at", { ascending: false });
   if (error) {
-    if (missingTable(error.message)) return [];
-    throw new Error(`Failed to load form submissions: ${error.message}`);
+    // Fallback when FKs / columns from 0068 are not present yet.
+    const fallback = await client
+      .from("scouting_form_submissions")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (fallback.error) {
+      if (missingTable(fallback.error.message) || missingTable(error.message)) return [];
+      throw new Error(`Failed to load form submissions: ${error.message}`);
+    }
+    return ((fallback.data as FormSubmissionRow[] | null) ?? []).map(mapFormSubmission);
   }
   return ((data as FormSubmissionRow[] | null) ?? []).map(mapFormSubmission);
 }
@@ -658,12 +668,20 @@ export async function updateSubmissionStatus(
   id: string,
   status: FormSubmissionStatus,
 ): Promise<ScoutingFormSubmission> {
+  if (status === "published" || status === "reviewed") {
+    throw new Error(
+      "Use Review & Publish to resolve the submission into a Match Report. Status alone cannot mark it published.",
+    );
+  }
+  if (status === "needs_clarification") {
+    status = "needs_review";
+  }
   const client = await createSupabaseServerClient();
   const { data, error } = await client
     .from("scouting_form_submissions")
     .update({
       status,
-      reviewed_at: status === "new" ? null : new Date().toISOString(),
+      reviewed_at: status === "new" || status === "needs_review" ? null : new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
@@ -671,6 +689,131 @@ export async function updateSubmissionStatus(
     .single();
   if (error) throw new Error(error.message);
   return mapFormSubmission(data as FormSubmissionRow);
+}
+
+export async function promoteFormSubmission(submissionId: string): Promise<{
+  directReportId: string | null;
+  submissionStatus: string;
+  outcome: string;
+}> {
+  const client = await createSupabaseServerClient();
+  const { data, error } = await client.rpc("scouting_promote_form_submission", {
+    p_submission_id: submissionId,
+  });
+  if (error) throw new Error(error.message);
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    directReportId: (row?.direct_report_id as string | null) ?? null,
+    submissionStatus: String(row?.submission_status ?? "needs_review"),
+    outcome: String(row?.outcome ?? "promoted"),
+  };
+}
+
+export async function reviewAndPublishFormSubmission(input: {
+  submissionId: string;
+  teamId: string;
+  opponentPlayerId: string | null;
+  createPlayer: boolean;
+  playerDisplayName?: string | null;
+}): Promise<{ directReportId: string; submissionStatus: string }> {
+  const client = await createSupabaseServerClient();
+  const { data, error } = await client.rpc("scouting_review_form_submission", {
+    p_submission_id: input.submissionId,
+    p_team_id: input.teamId,
+    p_opponent_player_id: input.opponentPlayerId,
+    p_create_player: input.createPlayer,
+    p_player_display_name: input.playerDisplayName ?? null,
+  });
+  if (error) throw new Error(error.message);
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row?.direct_report_id) throw new Error("Review did not produce a direct report.");
+  return {
+    directReportId: row.direct_report_id as string,
+    submissionStatus: String(row.submission_status ?? "published"),
+  };
+}
+
+export async function mapScoutingTeamAlias(
+  teamId: string,
+  displayAlias: string,
+): Promise<string> {
+  const client = await createSupabaseServerClient();
+  const { data, error } = await client.rpc("scouting_map_team_alias", {
+    p_team_id: teamId,
+    p_display_alias: displayAlias,
+  });
+  if (error) throw new Error(error.message);
+  return String(data);
+}
+
+export async function listScoutingTeamAliases(): Promise<
+  Array<{ id: string; teamId: string; normalizedAlias: string; displayAlias: string }>
+> {
+  const client = await createSupabaseServerClient();
+  const { data, error } = await client
+    .from("scouting_team_aliases")
+    .select("id, team_id, normalized_alias, display_alias")
+    .order("normalized_alias");
+  if (error) {
+    if (missingTable(error.message)) return [];
+    throw new Error(error.message);
+  }
+  return ((data as Array<{
+    id: string;
+    team_id: string;
+    normalized_alias: string;
+    display_alias: string;
+  }> | null) ?? []).map((row) => ({
+    id: row.id,
+    teamId: row.team_id,
+    normalizedAlias: row.normalized_alias,
+    displayAlias: row.display_alias,
+  }));
+}
+
+export async function runScoutingDuplicateAuditCounts() {
+  const { buildScoutingDuplicateAuditCounts } = await import("./duplicateAudit");
+  const client = await createSupabaseServerClient();
+  const [teams, players, reports, links, aliases, submissions] = await Promise.all([
+    client.from("scouting_teams").select("id, display_name, identity_slug"),
+    client.from("scouting_opponent_players").select("id, team_id, display_name, normalized_name"),
+    client.from("scouting_direct_reports").select("id, team_id, opponent_player_id"),
+    client.from("scouting_form_links").select("id, team_id, opponent_player_id"),
+    client.from("scouting_team_aliases").select("team_id, normalized_alias, display_alias"),
+    client.from("scouting_form_submissions").select("team_display_name"),
+  ]);
+  if (teams.error) throw new Error(teams.error.message);
+  return buildScoutingDuplicateAuditCounts({
+    teams: (teams.data ?? []).map((row) => ({
+      id: row.id as string,
+      displayName: row.display_name as string,
+      identitySlug: (row.identity_slug as string | null) ?? null,
+    })),
+    players: (players.data ?? []).map((row) => ({
+      id: row.id as string,
+      teamId: row.team_id as string,
+      displayName: row.display_name as string,
+      normalizedName: row.normalized_name as string,
+    })),
+    directReports: (reports.data ?? []).map((row) => ({
+      id: row.id as string,
+      teamId: row.team_id as string,
+      opponentPlayerId: (row.opponent_player_id as string | null) ?? null,
+    })),
+    formLinks: (links.data ?? []).map((row) => ({
+      id: row.id as string,
+      teamId: (row.team_id as string | null) ?? null,
+      opponentPlayerId: (row.opponent_player_id as string | null) ?? null,
+    })),
+    aliases: (aliases.data ?? []).map((row) => ({
+      teamId: row.team_id as string,
+      normalizedAlias: row.normalized_alias as string,
+      displayAlias: row.display_alias as string,
+    })),
+    submissionTeamLabels: (submissions.data ?? []).map(
+      (row) => (row.team_display_name as string) ?? "",
+    ),
+  });
 }
 
 export async function resolvePublicFormLink(rawToken: string) {

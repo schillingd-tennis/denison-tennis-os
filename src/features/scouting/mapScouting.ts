@@ -49,6 +49,7 @@ export type DirectReportRow = {
   is_doubles: boolean;
   import_status: string;
   attachment_refs: unknown;
+  form_submission_id?: string | null;
   scouting_teams?: { display_name: string } | null;
 };
 
@@ -103,6 +104,11 @@ export type FormSubmissionRow = {
   is_doubles: boolean;
   created_at: string;
   reviewed_at: string | null;
+  resolved_team_id?: string | null;
+  resolved_opponent_player_id?: string | null;
+  promoted_direct_report_id?: string | null;
+  resolved_team?: { display_name: string } | null;
+  resolved_player?: { display_name: string } | null;
 };
 
 function attachmentRefs(value: unknown): string[] {
@@ -163,6 +169,7 @@ export function mapDirectReport(row: DirectReportRow): ScoutingDirectReport {
     isDoubles: Boolean(row.is_doubles),
     importStatus: row.import_status as ImportStatus,
     attachmentRefs: attachmentRefs(row.attachment_refs),
+    formSubmissionId: row.form_submission_id ?? null,
   };
 }
 
@@ -227,5 +234,10 @@ export function mapFormSubmission(row: FormSubmissionRow): ScoutingFormSubmissio
     isDoubles: Boolean(row.is_doubles),
     createdAt: row.created_at,
     reviewedAt: row.reviewed_at,
+    resolvedTeamId: row.resolved_team_id ?? null,
+    resolvedOpponentPlayerId: row.resolved_opponent_player_id ?? null,
+    promotedDirectReportId: row.promoted_direct_report_id ?? null,
+    resolvedTeamDisplayName: row.resolved_team?.display_name ?? null,
+    resolvedOpponentDisplayName: row.resolved_player?.display_name ?? null,
   };
 }

@@ -118,11 +118,19 @@ export function parseSubmissionStatus(value: FormDataEntryValue | null): FormSub
   const text = String(value ?? "").trim();
   if (
     text === "new" ||
+    text === "needs_review" ||
+    text === "published" ||
+    text === "archived" ||
+    text === "rejected" ||
     text === "reviewed" ||
-    text === "needs_clarification" ||
-    text === "archived"
+    text === "needs_clarification"
   ) {
     return text;
   }
   return undefined;
+}
+
+/** Statuses that may be set from the inbox without completing a publish review. */
+export function isInboxOnlySubmissionStatus(status: FormSubmissionStatus): boolean {
+  return status === "archived" || status === "rejected" || status === "new";
 }

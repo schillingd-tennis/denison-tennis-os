@@ -15,6 +15,7 @@ import {
   scoutingTeamCanonicalLabel,
   scoutingTeamIdentityOrFallback,
 } from "../teamIdentity";
+import { submissionStatusLabel } from "../promotion";
 import type { DirectReportSource } from "../csvImport";
 import type {
   ScoutingDirectReport,
@@ -421,7 +422,11 @@ export function ScoutingSubmissionPreviewCard({
             {submission.teamDisplayName
               ? scoutingTeamCanonicalLabel(submission.teamDisplayName)
               : EMPTY_VALUE}{" "}
-            · {formatDate(submission.createdAt.slice(0, 10))} · {submission.status}
+            · {formatDate(submission.createdAt.slice(0, 10))} ·{" "}
+            {submissionStatusLabel(submission.status)}
+            {submission.resolvedTeamDisplayName
+              ? ` · → ${submission.resolvedTeamDisplayName}`
+              : ""}
           </span>
         </span>
       </div>
@@ -459,7 +464,8 @@ export function ScoutingSubmissionCard({
               {submission.teamDisplayName
                 ? scoutingTeamCanonicalLabel(submission.teamDisplayName)
                 : EMPTY_VALUE}{" "}
-              · {formatDate(submission.createdAt.slice(0, 10))} · {submission.status}
+              · {formatDate(submission.createdAt.slice(0, 10))} ·{" "}
+              {submissionStatusLabel(submission.status)}
             </p>
           </div>
         </div>

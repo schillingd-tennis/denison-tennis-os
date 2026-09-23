@@ -1,6 +1,8 @@
 import { playerMatchesLinkedReportQuery } from "./playerLifecycle";
+import { isUnresolvedSubmissionForMatchReports } from "./promotion";
 import type {
   MatchReportSortKey,
+  MatchReportsListItem,
   PlayerSortKey,
   ScoutingDirectReport,
   ScoutingFilters,
@@ -109,7 +111,18 @@ export function filterSubmissions(
 ): ScoutingFormSubmission[] {
   const q = filters.query.trim().toLowerCase();
   return rows.filter((row) => {
-    if (filters.submissionStatus && row.status !== filters.submissionStatus) return false;
+    if (filters.submissionStatus) {
+      const wanted = filters.submissionStatus;
+      if (wanted === "needs_review") {
+        if (row.status !== "needs_review" && row.status !== "needs_clarification" && row.status !== "new") {
+          return false;
+        }
+      } else if (wanted === "published") {
+        if (row.status !== "published" && row.status !== "reviewed") return false;
+      } else if (row.status !== wanted) {
+        return false;
+      }
+    }
     if (!q) return true;
     const haystack = `${row.opponentDisplayName} ${row.teamDisplayName} ${row.reportBy} ${row.status}`.toLowerCase();
     return haystack.includes(q);
@@ -122,4 +135,39 @@ export function sortSubmissions(
   direction: ScoutingSortDirection,
 ): ScoutingFormSubmission[] {
   return [...rows].sort((a, b) => cmp(a[key] as never, b[key] as never, direction));
+}
+
+/** Hybrid Match Reports list: direct reports + unpromoted needs-review submissions. */
+export function buildMatchReportsListItems(input: {
+  reports: ScoutingDirectReport[];
+  submissions: ScoutingFormSubmission[];
+  filters: Pick<ScoutingFilters, "query" | "teamId" | "importStatus">;
+}): MatchReportsListItem[] {
+  const reports = filterMatchReports(input.reports, input.filters).map(
+    (report): MatchReportsListItem => ({ kind: "direct_report", report }),
+  );
+  const q = input.filters.query.trim().toLowerCase();
+  const pending = input.submissions
+    .filter((row) => isUnresolvedSubmissionForMatchReports(row))
+    .filter((row) => {
+      if (input.filters.importStatus && input.filters.importStatus !== "unresolved_review") {
+        return false;
+      }
+      if (input.filters.teamId) {
+        if (!row.resolvedTeamId) return false;
+        if (row.resolvedTeamId !== input.filters.teamId) return false;
+      }
+      if (!q) return true;
+      const haystack =
+        `${row.opponentDisplayName} ${row.teamDisplayName} ${row.reportBy} needs review`.toLowerCase();
+      return haystack.includes(q);
+    })
+    .map(
+      (submission): MatchReportsListItem => ({
+        kind: "needs_review_submission",
+        submission,
+      }),
+    );
+
+  return [...reports, ...pending];
 }

@@ -31,11 +31,20 @@ import {
   teamImportKey,
 } from "./csvImport";
 import {
+  buildMatchReportsListItems,
   filterMatchReports,
   filterPlayers,
   sortPlayers,
 } from "./filtering";
+import { buildScoutingDuplicateAuditCounts } from "./duplicateAudit";
 import { parseDoubles, parseHandedness, readDirectReportFormData, readPublicScoutingFormData } from "./formData";
+import {
+  isCleanSinglePlayerName,
+  normalizeSchoolAlias,
+  playerFormSourceKey,
+  resolveSubmissionPromotion,
+  resolveTeamIdByAlias,
+} from "./promotion";
 import {
   hashScoutingFormToken,
   isScoutingPublicFormPath,
@@ -125,6 +134,7 @@ function sampleDirect(partial: Partial<ScoutingDirectReport> & Pick<ScoutingDire
     isDoubles: partial.isDoubles ?? false,
     importStatus: partial.importStatus ?? "imported",
     attachmentRefs: partial.attachmentRefs ?? [],
+    formSubmissionId: partial.formSubmissionId !== undefined ? partial.formSubmissionId : null,
   };
 }
 
@@ -1304,4 +1314,396 @@ test("opponent player archive lifecycle (41 focused checks)", () => {
     createdAt: "2026-08-01T00:00:00.000Z",
   };
   assert.ok(link.revokedAt);
+});
+
+// ---------------------------------------------------------------------------
+// Submission promotion + canonical aliases
+// ---------------------------------------------------------------------------
+
+const promotionMigrationPath = fileURLToPath(
+  new URL("../../../supabase/migrations/0068_scouting_submission_promotion.sql", import.meta.url),
+);
+
+const CWRU = { id: "team-cwru", displayName: "CWRU", identitySlug: "case-western" };
+const AMHERST = { id: "team-amherst", displayName: "Amherst", identitySlug: "amherst" };
+const KENYON = { id: "team-kenyon", displayName: "Kenyon", identitySlug: "kenyon" };
+const ALIASES = [
+  { teamId: CWRU.id, normalizedAlias: "cwru", displayAlias: "CWRU" },
+  { teamId: CWRU.id, normalizedAlias: "case", displayAlias: "Case" },
+  { teamId: CWRU.id, normalizedAlias: "case western", displayAlias: "Case Western" },
+  { teamId: AMHERST.id, normalizedAlias: "amherst", displayAlias: "Amherst" },
+  { teamId: AMHERST.id, normalizedAlias: "amherst college", displayAlias: "Amherst College" },
+];
+
+test("1 player-scoped form link promotes to linked player/team", () => {
+  const decision = resolveSubmissionPromotion({
+    submission: {
+      id: "sub-1",
+      formLinkId: "link-1",
+      status: "new",
+      opponentDisplayName: "Wrong Name",
+      teamDisplayName: "Wrong School",
+    },
+    link: { id: "link-1", teamId: null, opponentPlayerId: "p-jon" },
+    teams: [CWRU, AMHERST],
+    players: [
+      {
+        id: "p-jon",
+        teamId: CWRU.id,
+        displayName: "Jon Totorica",
+        normalizedName: "jon totorica",
+      },
+    ],
+    aliases: ALIASES,
+  });
+  assert.equal(decision.outcome, "published_player_link");
+  assert.equal(decision.teamId, CWRU.id);
+  assert.equal(decision.opponentPlayerId, "p-jon");
+  assert.equal(decision.submissionStatus, "published");
+  assert.equal(decision.shouldCreateDirectReport, true);
+});
+
+test("2 team-scoped link overrides conflicting submitted team text", () => {
+  const decision = resolveSubmissionPromotion({
+    submission: {
+      id: "sub-2",
+      formLinkId: "link-2",
+      status: "new",
+      opponentDisplayName: "Jon Totorica",
+      teamDisplayName: "Amherst College",
+    },
+    link: { id: "link-2", teamId: CWRU.id, opponentPlayerId: null },
+    teams: [CWRU, AMHERST],
+    players: [
+      {
+        id: "p-jon",
+        teamId: CWRU.id,
+        displayName: "Jon Totorica",
+        normalizedName: "jon totorica",
+      },
+    ],
+    aliases: ALIASES,
+  });
+  assert.equal(decision.teamId, CWRU.id);
+  assert.equal(decision.outcome, "published_team_link_player_match");
+  assert.notEqual(decision.teamId, AMHERST.id);
+});
+
+test("3–5 known aliases resolve to one canonical team", () => {
+  assert.equal(resolveTeamIdByAlias("CWRU", ALIASES, [CWRU, AMHERST]), CWRU.id);
+  assert.equal(resolveTeamIdByAlias("Case", ALIASES, [CWRU, AMHERST]), CWRU.id);
+  assert.equal(resolveTeamIdByAlias("Case Western", ALIASES, [CWRU, AMHERST]), CWRU.id);
+  assert.equal(resolveTeamIdByAlias("Amherst", ALIASES, [CWRU, AMHERST]), AMHERST.id);
+  assert.equal(resolveTeamIdByAlias("Amherst College", ALIASES, [CWRU, AMHERST]), AMHERST.id);
+  assert.equal(normalizeSchoolAlias("  Case   Western  "), "case western");
+});
+
+test("6–7 exact player match is team-scoped; same name at two schools is not cross-linked", () => {
+  const players = [
+    {
+      id: "p-cwru",
+      teamId: CWRU.id,
+      displayName: "Alex Smith",
+      normalizedName: "alex smith",
+    },
+    {
+      id: "p-amherst",
+      teamId: AMHERST.id,
+      displayName: "Alex Smith",
+      normalizedName: "alex smith",
+    },
+  ];
+  const cwru = resolveSubmissionPromotion({
+    submission: {
+      id: "sub-6",
+      formLinkId: "l",
+      status: "new",
+      opponentDisplayName: "Alex Smith",
+      teamDisplayName: "CWRU",
+    },
+    link: null,
+    teams: [CWRU, AMHERST],
+    players,
+    aliases: ALIASES,
+  });
+  assert.equal(cwru.opponentPlayerId, "p-cwru");
+  assert.equal(cwru.teamId, CWRU.id);
+
+  const amherst = resolveSubmissionPromotion({
+    submission: {
+      id: "sub-7",
+      formLinkId: "l",
+      status: "new",
+      opponentDisplayName: "Alex Smith",
+      teamDisplayName: "Amherst",
+    },
+    link: null,
+    teams: [CWRU, AMHERST],
+    players,
+    aliases: ALIASES,
+  });
+  assert.equal(amherst.opponentPlayerId, "p-amherst");
+  assert.notEqual(amherst.opponentPlayerId, cwru.opponentPlayerId);
+});
+
+test("8 clean new opponent under known team is created once and needs review", () => {
+  const decision = resolveSubmissionPromotion({
+    submission: {
+      id: "sub-8",
+      formLinkId: "l",
+      status: "new",
+      opponentDisplayName: "New Recruit",
+      teamDisplayName: "Kenyon",
+    },
+    link: null,
+    teams: [KENYON],
+    players: [],
+    aliases: [{ teamId: KENYON.id, normalizedAlias: "kenyon", displayAlias: "Kenyon" }],
+  });
+  assert.equal(decision.outcome, "needs_review_new_player");
+  assert.equal(decision.createPlayer, true);
+  assert.equal(decision.submissionStatus, "needs_review");
+  assert.equal(decision.shouldCreateDirectReport, true);
+});
+
+test("9 compound/doubles/team-level opponent text does not create a fake player", () => {
+  assert.equal(isCleanSinglePlayerName("Alejandro Gonzalez and Eliezer Gonzalez"), false);
+  assert.equal(isCleanSinglePlayerName("TEAM - AMHERST"), false);
+  const decision = resolveSubmissionPromotion({
+    submission: {
+      id: "sub-9",
+      formLinkId: "l",
+      status: "new",
+      opponentDisplayName: "Sillaste / Frangenberg",
+      teamDisplayName: "Amherst",
+    },
+    link: null,
+    teams: [AMHERST],
+    players: [],
+    aliases: ALIASES,
+  });
+  assert.equal(decision.createPlayer, false);
+  assert.equal(decision.outcome, "needs_review_ambiguous_player");
+  assert.equal(decision.opponentPlayerId, null);
+});
+
+test("10 unknown abbreviation remains unresolved and is never guessed", () => {
+  const decision = resolveSubmissionPromotion({
+    submission: {
+      id: "sub-10",
+      formLinkId: "l",
+      status: "new",
+      opponentDisplayName: "Someone",
+      teamDisplayName: "XYZU",
+    },
+    link: null,
+    teams: [CWRU, AMHERST],
+    players: [],
+    aliases: ALIASES,
+  });
+  assert.equal(decision.outcome, "needs_review_unknown_team");
+  assert.equal(decision.teamId, null);
+  assert.equal(decision.shouldCreateDirectReport, false);
+});
+
+test("11 reprocessing same submission uses stable source key (no duplicate keys)", () => {
+  const a = playerFormSourceKey("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+  const b = playerFormSourceKey("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+  assert.equal(a, b);
+  assert.equal(a.length, 32);
+  const again = resolveSubmissionPromotion({
+    submission: {
+      id: "sub-11",
+      formLinkId: "l",
+      status: "published",
+      opponentDisplayName: "Jon Totorica",
+      teamDisplayName: "CWRU",
+      promotedDirectReportId: "report-1",
+    },
+    link: null,
+    teams: [CWRU],
+    players: [],
+    aliases: ALIASES,
+  });
+  assert.equal(again.outcome, "already_promoted");
+  assert.equal(again.shouldCreateDirectReport, false);
+});
+
+test("12–13 published vs unresolved appear correctly in Match Reports hybrid list", () => {
+  const report = sampleDirect({
+    id: "r1",
+    source: "player_form",
+    teamId: CWRU.id,
+    teamDisplayName: "CWRU",
+    formSubmissionId: "sub-pub",
+  });
+  const publishedSub = {
+    id: "sub-pub",
+    formLinkId: "l",
+    status: "published" as const,
+    opponentDisplayName: "Jon",
+    teamDisplayName: "CWRU",
+    matchDate: "2026-09-20",
+    handedness: "Right" as const,
+    strengthsWeaknesses: "x",
+    scoutingReport: "",
+    reportBy: "Coach",
+    isDoubles: false,
+    createdAt: "2026-09-20T12:00:00.000Z",
+    reviewedAt: "2026-09-20T12:01:00.000Z",
+    resolvedTeamId: CWRU.id,
+    resolvedOpponentPlayerId: "p1",
+    promotedDirectReportId: "r1",
+  };
+  const unresolvedSub = {
+    ...publishedSub,
+    id: "sub-pending",
+    status: "needs_review" as const,
+    teamDisplayName: "XYZU",
+    promotedDirectReportId: null,
+    resolvedTeamId: null,
+    resolvedOpponentPlayerId: null,
+    reviewedAt: null,
+  };
+  const items = buildMatchReportsListItems({
+    reports: [report],
+    submissions: [publishedSub, unresolvedSub],
+    filters: { query: "", teamId: "", importStatus: "" },
+  });
+  assert.equal(items.some((item) => item.kind === "direct_report" && item.report.id === "r1"), true);
+  assert.equal(
+    items.some((item) => item.kind === "needs_review_submission" && item.submission.id === "sub-pending"),
+    true,
+  );
+  assert.equal(
+    items.some((item) => item.kind === "needs_review_submission" && item.submission.id === "sub-pub"),
+    false,
+  );
+});
+
+test("14 AI stale markers only apply after publication (decision outcome)", () => {
+  const published = resolveSubmissionPromotion({
+    submission: {
+      id: "sub-14a",
+      formLinkId: "l",
+      status: "new",
+      opponentDisplayName: "Jon Totorica",
+      teamDisplayName: "CWRU",
+    },
+    link: null,
+    teams: [CWRU],
+    players: [
+      {
+        id: "p-jon",
+        teamId: CWRU.id,
+        displayName: "Jon Totorica",
+        normalizedName: "jon totorica",
+      },
+    ],
+    aliases: ALIASES,
+  });
+  assert.equal(published.submissionStatus, "published");
+  assert.equal(published.importStatus, "imported");
+
+  const unresolved = resolveSubmissionPromotion({
+    submission: {
+      id: "sub-14b",
+      formLinkId: "l",
+      status: "new",
+      opponentDisplayName: "Someone",
+      teamDisplayName: "XYZU",
+    },
+    link: null,
+    teams: [CWRU],
+    players: [],
+    aliases: ALIASES,
+  });
+  assert.equal(unresolved.submissionStatus, "needs_review");
+  assert.equal(unresolved.shouldCreateDirectReport, false);
+});
+
+test("15 archiving a submission skips promotion and does not require report deletion", () => {
+  const decision = resolveSubmissionPromotion({
+    submission: {
+      id: "sub-15",
+      formLinkId: "l",
+      status: "archived",
+      opponentDisplayName: "Jon",
+      teamDisplayName: "CWRU",
+      promotedDirectReportId: "keep-me",
+    },
+    link: null,
+    teams: [CWRU],
+    players: [],
+    aliases: ALIASES,
+  });
+  assert.equal(decision.outcome, "skipped_archived");
+  assert.equal(decision.shouldCreateDirectReport, false);
+});
+
+test("16–17 migration/RLS/security conventions for 0068", () => {
+  const migration = readFileSync(promotionMigrationPath, "utf8");
+  assert.match(migration, /create table if not exists public\.scouting_team_aliases/);
+  assert.match(migration, /normalized_alias text not null/);
+  assert.match(migration, /unique \(normalized_alias\)/);
+  assert.match(migration, /on delete restrict/i);
+  assert.match(migration, /form_submission_id/);
+  assert.match(migration, /scouting_promote_form_submission/);
+  assert.match(migration, /scouting_review_form_submission/);
+  assert.match(migration, /scouting_map_team_alias/);
+  assert.match(migration, /scouting_merge_teams/);
+  assert.match(migration, /set search_path = public/);
+  assert.match(migration, /security definer/i);
+  assert.match(migration, /grant select on table public\.scouting_team_aliases to authenticated/);
+  assert.doesNotMatch(migration, /grant select, insert, update, delete on table public\.scouting_team_aliases to anon/);
+  assert.doesNotMatch(migration, /grant execute on function public\.scouting_review_form_submission[^\n]+to anon/);
+  assert.match(migration, /grant execute on function public\.scouting_promote_form_submission\(uuid\) to authenticated/);
+  assert.match(migration, /revoke all on function public\.scouting_mark_ai_stale_for_promotion/);
+  assert.doesNotMatch(
+    migration,
+    /grant execute on function public\.scouting_mark_ai_stale_for_promotion\(uuid, uuid\) to authenticated/,
+  );
+  assert.match(migration, /revoke all on function public\.scouting_review_form_submission[^\n]* from anon/);
+  assert.match(migration, /'needs_review'/);
+  assert.match(migration, /'published'/);
+  assert.match(migration, /Case Western Reserve/);
+  assert.match(migration, /MERGE_SCOUTING_TEAMS/);
+  assert.doesNotMatch(migration, /0067_utr/);
+});
+
+test("18 duplicate audit is counts-only and hybrid Match Reports layout markers remain", () => {
+  const workspace = readFileSync(
+    fileURLToPath(new URL("./components/ScoutingWorkspace.tsx", import.meta.url)),
+    "utf8",
+  );
+  assert.match(workspace, /data-scouting-desktop-columns/);
+  assert.match(workspace, /data-scouting-needs-review-card/);
+  assert.match(workspace, /Review &amp; Publish|Review & Publish/);
+  assert.match(workspace, /max-md:/);
+
+  const counts = buildScoutingDuplicateAuditCounts({
+    teams: [
+      CWRU,
+      { id: "team-case-dup", displayName: "Case Western", identitySlug: "case-western" },
+      AMHERST,
+    ],
+    players: [
+      { id: "1", teamId: CWRU.id, displayName: "A", normalizedName: "a" },
+      { id: "2", teamId: "team-case-dup", displayName: "A", normalizedName: "a" },
+    ],
+    directReports: [
+      { id: "r1", teamId: CWRU.id, opponentPlayerId: "1" },
+      { id: "r2", teamId: "team-case-dup", opponentPlayerId: "2" },
+    ],
+    formLinks: [{ id: "f1", teamId: "team-case-dup", opponentPlayerId: null }],
+    aliases: ALIASES,
+    submissionTeamLabels: ["XYZU", "CWRU"],
+  });
+  assert.ok(counts.teamsSharingIdentitySlug >= 2);
+  assert.ok(counts.identitySlugGroups >= 1);
+  assert.ok(counts.knownAliasStoredAsSeparateTeams >= 1);
+  assert.ok(counts.opponentPlayersSplitAcrossDuplicateTeams >= 1);
+  assert.ok(counts.directReportsOnDuplicateTeams >= 1);
+  assert.ok(counts.formLinksOnDuplicateTeams >= 1);
+  assert.equal(counts.unknownTeamLabelsInSubmissions, 1);
 });

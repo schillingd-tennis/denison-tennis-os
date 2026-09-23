@@ -17,9 +17,14 @@ export type ReportReviewStatus = "draft" | "reviewed";
 
 export type FormSubmissionStatus =
   | "new"
+  | "needs_review"
+  | "published"
+  | "archived"
+  | "rejected"
+  /** @deprecated Prefer published after real promotion. */
   | "reviewed"
-  | "needs_clarification"
-  | "archived";
+  /** @deprecated Prefer needs_review. */
+  | "needs_clarification";
 
 export type ScoutingTeam = {
   id: string;
@@ -69,6 +74,8 @@ export type ScoutingDirectReport = {
   isDoubles: boolean;
   importStatus: ImportStatus;
   attachmentRefs: string[];
+  /** Set when this report was promoted from a form submission. */
+  formSubmissionId: string | null;
 };
 
 export type ScoutingPlayerReport = {
@@ -125,8 +132,18 @@ export type ScoutingFormSubmission = {
   isDoubles: boolean;
   createdAt: string;
   reviewedAt: string | null;
+  resolvedTeamId: string | null;
+  resolvedOpponentPlayerId: string | null;
+  promotedDirectReportId: string | null;
+  /** Resolved canonical team display when known (list join). */
+  resolvedTeamDisplayName?: string | null;
+  resolvedOpponentDisplayName?: string | null;
 };
 
+/** Match Reports row that may be a direct report or an unresolved submission. */
+export type MatchReportsListItem =
+  | { kind: "direct_report"; report: ScoutingDirectReport }
+  | { kind: "needs_review_submission"; submission: ScoutingFormSubmission };
 export type ScoutingSortDirection = "asc" | "desc";
 
 export type PlayerSortKey =
