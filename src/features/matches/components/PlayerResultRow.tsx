@@ -6,10 +6,12 @@ import Link from "next/link";
 
 import { formatDate } from "@/lib/formatting";
 import { matchesEventPath } from "@/lib/module-routes";
+import { modulePrimaryButtonClassSm } from "@/components/module-theme";
 
 import { correctPlayerMatchResultAction } from "../playerRecordActions";
 import { eventDisplayTitle, playerNameFor } from "../display";
 import { MATCH_RESULT_STATUSES, type MatchEvent, type MatchResult, type MatchResultStatus, type RosterPlayer, type WinnerSide } from "../types";
+import DeleteMatchResultButton from "./DeleteMatchResultButton";
 
 type HistoryRow = MatchResult & { event: MatchEvent; partnerId?: string | null };
 
@@ -28,10 +30,11 @@ function initialForm(row: HistoryRow, playerId: string) {
   };
 }
 
-export default function PlayerResultRow({ row, playerId, roster }: {
+export default function PlayerResultRow({ row, playerId, roster, showPartnerColumn = false }: {
   row: HistoryRow;
   playerId: string;
   roster: RosterPlayer[];
+  showPartnerColumn?: boolean;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -78,9 +81,14 @@ export default function PlayerResultRow({ row, playerId, roster }: {
             {eventDisplayTitle(row.event)}
           </Link>
         </td>
+        {showPartnerColumn ? (
+          <td className="px-4 py-3 font-medium">
+            {row.partnerId ? playerNameFor(row.partnerId, roster) : "—"}
+          </td>
+        ) : null}
         <td className="px-4 py-3">
           <span className="font-medium">{[row.opponentPlayerAName, row.opponentPlayerBName].filter(Boolean).join(" / ") || "—"}</span>
-          {row.discipline === "doubles" ? (
+          {row.discipline === "doubles" && !showPartnerColumn ? (
             <span className="mt-0.5 block text-xs text-text-secondary">Partner: {playerNameFor(row.partnerId, roster)}</span>
           ) : null}
         </td>
@@ -90,15 +98,16 @@ export default function PlayerResultRow({ row, playerId, roster }: {
           {row.status !== "completed" ? <span className="mt-0.5 block text-xs font-normal text-text-secondary">{row.status}</span> : null}
         </td>
         <td className="px-4 py-3 tabular-nums whitespace-nowrap">{row.scoreText ?? "—"}</td>
-        <td className="px-4 py-3 text-right">
-          <button type="button" onClick={openEditor} aria-label={`Edit ${row.discipline} result on ${formatDate(row.matchDate ?? row.event.startDate)}`} className="text-sm font-semibold text-[var(--module-accent)] hover:underline">
+        <td className="flex items-start justify-end gap-3 px-4 py-3 text-right">
+          <button type="button" onClick={openEditor} aria-label={`Edit ${row.discipline} result on ${formatDate(row.matchDate ?? row.event.startDate)}`} className="inline-flex h-8 items-center justify-center rounded-control border border-[var(--module-border)] bg-surface px-2.5 text-xs font-semibold text-[var(--module-accent)] transition-colors hover:bg-[var(--module-tint)]">
             Edit
           </button>
+          <DeleteMatchResultButton resultId={row.id} eventId={row.eventId} />
         </td>
       </tr>
       {editing ? (
         <tr>
-          <td colSpan={6} className="bg-app-background/40 px-4 py-4">
+          <td colSpan={showPartnerColumn ? 7 : 6} className="bg-app-background/40 px-4 py-4">
             <form onSubmit={save} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <label className="grid gap-1 text-xs font-medium">Date
                 <input type="date" required value={form.matchDate} onChange={(event) => setForm({ ...form, matchDate: event.target.value })} className="h-9 rounded-control border border-border bg-surface px-2 text-sm" />
@@ -143,7 +152,7 @@ export default function PlayerResultRow({ row, playerId, roster }: {
                 <input value={form.scoreText} onChange={(event) => setForm({ ...form, scoreText: event.target.value })} placeholder="6-4, 7-5" className="h-9 rounded-control border border-border bg-surface px-2 text-sm" />
               </label>
               <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-3">
-                <button type="submit" disabled={busy} className="h-9 rounded-control bg-[var(--module-accent)] px-3 text-sm font-semibold text-white disabled:opacity-50">{busy ? "Saving…" : "Save changes"}</button>
+                <button type="submit" disabled={busy} className={modulePrimaryButtonClassSm}>{busy ? "Saving…" : "Save changes"}</button>
                 <button type="button" disabled={busy} onClick={() => setEditing(false)} className="h-9 rounded-control border border-border bg-surface px-3 text-sm font-medium">Cancel</button>
               </div>
               {error ? <p role="alert" className="text-sm text-red-700 sm:col-span-2 lg:col-span-3">{error}</p> : null}

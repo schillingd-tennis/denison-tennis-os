@@ -10,6 +10,7 @@ import ModulePageShell from "@/components/ModulePageShell";
 import ModuleSectionTabs from "@/components/ModuleSectionTabs";
 import SearchInput from "@/components/SearchInput";
 import { formatDate } from "@/lib/formatting";
+import { modulePrimaryButtonClass } from "@/components/module-theme";
 import {
   MATCHES_ROUTE,
   matchesEventPath,
@@ -64,6 +65,7 @@ import {
 } from "../types";
 import ImportBoxScoreFlow from "./ImportBoxScoreFlow";
 import LinkSchedulePanel from "./LinkSchedulePanel";
+import DeleteMatchResultButton from "./DeleteMatchResultButton";
 
 const cardClass =
   "rounded-card border border-border bg-surface shadow-[0_8px_24px_rgba(17,24,39,0.04)]";
@@ -256,7 +258,7 @@ export default function MatchesWorkspace({
         <button
           type="button"
           onClick={() => openEntry(null, "paste")}
-          className="inline-flex h-10 shrink-0 items-center gap-2 rounded-control bg-[var(--module-accent)] px-4 text-sm font-semibold text-white shadow-sm"
+          className={`${modulePrimaryButtonClass} shrink-0 gap-2 shadow-sm`}
         >
           <Plus className="h-4 w-4" />
           Enter Results
@@ -767,6 +769,7 @@ function ResultsTable({
               <th className="px-4 py-2.5">Score</th>
               <th className="px-4 py-2.5">Status</th>
               <th className="px-4 py-2.5">W/L</th>
+              <th className="px-4 py-2.5 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -822,6 +825,9 @@ function ResultsTable({
                   <td className="px-4 py-3 tabular-nums">{result.scoreText ?? "—"}</td>
                   <td className="px-4 py-3 capitalize text-text-secondary">{result.status}</td>
                   <td className="px-4 py-3 font-semibold">{wl}</td>
+                  <td className="px-4 py-3 text-right">
+                    <DeleteMatchResultButton resultId={result.id} eventId={result.eventId} />
+                  </td>
                 </tr>
               );
             })}

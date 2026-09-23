@@ -4,10 +4,11 @@ import { revalidatePath } from "next/cache";
 
 import { ROLE_KEYS, STATUS_KEYS } from "@/features/lookups/seed";
 import { listPeople } from "@/features/people/repository";
-import { matchesEventPath, matchesPlayerPath, MATCHES_ROUTE } from "@/lib/module-routes";
+import { matchesEventPath, matchesPairPath, matchesPlayerPath, MATCHES_ROUTE } from "@/lib/module-routes";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-import { getMatchEvent, listMatchResults, saveMatchEvent, saveMatchResult } from "./repository";
+import { deleteMatchResult, getMatchEvent, listMatchResults, saveMatchEvent, saveMatchResult } from "./repository";
+import { doublesPairKey } from "./resolvePlayers";
 import { calculateDualTeamScores, teamOutcomeFromScores } from "./scoringRules";
 import { parseScoreSets, resultFingerprint } from "./scoreParse";
 import { MATCH_RESULT_STATUSES, type MatchResultStatus, type WinnerSide } from "./types";
@@ -139,5 +140,48 @@ export async function correctPlayerMatchResultAction(input: {
     return { ok: true };
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : "Could not update this result." };
+  }
+}
+
+export async function deletePlayerMatchResultAction(input: {
+  resultId: string;
+  eventId: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const client = await createSupabaseServerClient();
+    const { data: { user } } = await client.auth.getUser();
+    if (!user) return { ok: false, error: "Sign in to delete match results." };
+
+    const event = await getMatchEvent(input.eventId);
+    const existing = (await listMatchResults(input.eventId)).find((row) => row.id === input.resultId);
+    if (!event || !existing) return { ok: false, error: "This match result was not found." };
+
+    await deleteMatchResult(existing.id);
+    if (event.eventType === "dual") {
+      const remaining = await listMatchResults(event.id);
+      const calculated = calculateDualTeamScores(remaining, event.scoringFormat ?? "ncaa_standard");
+      const reportedD = event.reportedTeamScoreDenison;
+      const reportedO = event.reportedTeamScoreOpponent;
+      await saveMatchEvent(event.id, {
+        ...event,
+        calculatedTeamScoreDenison: calculated.denison,
+        calculatedTeamScoreOpponent: calculated.opponent,
+        teamScoreDiscrepancy: reportedD != null && reportedO != null &&
+          (reportedD !== calculated.denison || reportedO !== calculated.opponent),
+        teamOutcome: teamOutcomeFromScores(reportedD ?? calculated.denison, reportedO ?? calculated.opponent),
+      });
+    }
+
+    revalidatePath(MATCHES_ROUTE);
+    revalidatePath(matchesEventPath(event.id));
+    for (const playerId of [existing.denisonPlayerAId, existing.denisonPlayerBId]) {
+      if (playerId) revalidatePath(matchesPlayerPath(playerId));
+    }
+    if (existing.denisonPlayerAId && existing.denisonPlayerBId) {
+      revalidatePath(matchesPairPath(doublesPairKey(existing.denisonPlayerAId, existing.denisonPlayerBId)));
+    }
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Could not delete this result." };
   }
 }

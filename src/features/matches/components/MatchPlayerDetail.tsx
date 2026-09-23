@@ -39,6 +39,17 @@ export default function MatchPlayerDetail({
   const doublesRecord = buildDoublesPlayerRecords(results, events).find((r) => r.playerId === playerId);
   const singles = playerSinglesHistory(results, events, playerId);
   const doubles = playerDoublesHistory(results, events, playerId);
+  const sortedDoubles = [...doubles].sort((left, right) => {
+    const partnerCompare = playerNameFor(left.partnerId, roster).localeCompare(
+      playerNameFor(right.partnerId, roster),
+      undefined,
+      { sensitivity: "base" },
+    );
+    if (partnerCompare !== 0) return partnerCompare;
+    return (right.matchDate ?? right.event.startDate).localeCompare(
+      left.matchDate ?? left.event.startDate,
+    );
+  });
   const back = backHref ?? (view === "doubles" ? matchesTabHref("doubles-players") : matchesTabHref("players"));
 
   return (
@@ -76,10 +87,11 @@ export default function MatchPlayerDetail({
       ) : (
         <section className="overflow-hidden rounded-card border border-border bg-surface">
           <div className="overflow-x-auto">
-            <table className="min-w-[800px] w-full text-left text-sm">
+            <table className={`${view === "doubles" ? "min-w-[940px]" : "min-w-[800px]"} w-full text-left text-sm`}>
               <thead className="border-b border-border bg-app-background/60 text-[11px] font-semibold tracking-wide text-text-secondary uppercase">
                 <tr>
                   <th scope="col" className="px-4 py-2.5">Date</th>
+                  {view === "doubles" ? <th scope="col" className="px-4 py-2.5">Partner</th> : null}
                   <th scope="col" className="px-4 py-2.5">Opponent Name</th>
                   <th scope="col" className="px-4 py-2.5">School</th>
                   <th scope="col" className="px-4 py-2.5">Win/Loss</th>
@@ -88,8 +100,14 @@ export default function MatchPlayerDetail({
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {(view === "singles" ? singles : doubles).map((row) => (
-                  <PlayerResultRow key={row.id} row={row} playerId={playerId} roster={roster} />
+                {(view === "singles" ? singles : sortedDoubles).map((row) => (
+                  <PlayerResultRow
+                    key={row.id}
+                    row={row}
+                    playerId={playerId}
+                    roster={roster}
+                    showPartnerColumn={view === "doubles"}
+                  />
                 ))}
               </tbody>
             </table>

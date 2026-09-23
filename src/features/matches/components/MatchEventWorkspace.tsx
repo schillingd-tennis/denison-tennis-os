@@ -50,6 +50,7 @@ import {
 import ImportBoxScoreFlow from "./ImportBoxScoreFlow";
 import LinkSchedulePanel from "./LinkSchedulePanel";
 import ManualResultsEntry from "./ManualResultsEntry";
+import DeleteMatchResultButton from "./DeleteMatchResultButton";
 
 export default function MatchEventWorkspace({
   event: initialEvent,
@@ -544,7 +545,7 @@ function ResultGroup({
       <h2 className="border-b border-border px-4 py-2.5 text-sm font-semibold">{title}</h2>
       <ul className="divide-y divide-border">
         {rows.map((row) => (
-          <li key={row.id} className="grid gap-1 px-4 py-3 text-sm sm:grid-cols-[4rem_1fr_1fr_auto_auto]">
+          <li key={row.id} className="grid gap-1 px-4 py-3 text-sm sm:grid-cols-[4rem_1fr_1fr_auto_auto_auto]">
             <span className="text-text-secondary">
               {row.lineupPosition != null ? `#${row.lineupPosition}` : row.roundLabel ?? "—"}
             </span>
@@ -561,8 +562,9 @@ function ResultGroup({
             <span className="font-semibold">
               {row.winnerSide === "denison" ? "W" : row.winnerSide === "opponent" ? "L" : "—"}
             </span>
+            <DeleteMatchResultButton resultId={row.id} eventId={row.eventId} />
             {row.sourceExcerpt ? (
-              <p className="text-[11px] text-text-secondary sm:col-span-5">{row.sourceExcerpt}</p>
+              <p className="text-[11px] text-text-secondary sm:col-span-6">{row.sourceExcerpt}</p>
             ) : null}
           </li>
         ))}
