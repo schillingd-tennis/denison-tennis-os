@@ -36,6 +36,8 @@ export async function updatePersonAction(id: string, patch: PersonWritePatch): P
     revalidatePath("/team");
     revalidatePath(`/recruiting/${id}`);
     revalidatePath("/recruiting");
+    revalidatePath(`/matches/players/${id}`);
+    revalidatePath("/matches");
     return { success: true, person };
   } catch (error) {
     if (error instanceof PeopleRepositoryError) {

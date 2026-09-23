@@ -57,7 +57,7 @@ export const MATCHES_TABS = [
 export type MatchesTab = (typeof MATCHES_TABS)[number];
 
 export const MATCHES_TAB_LABELS: Record<MatchesTab, string> = {
-  team: "Team",
+  team: "Events",
   players: "Players",
   "doubles-players": "Doubles Players",
   "doubles-teams": "Doubles Teams",

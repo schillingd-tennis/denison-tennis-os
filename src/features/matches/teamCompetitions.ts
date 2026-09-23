@@ -1,5 +1,5 @@
 /**
- * Team tab: Schedule-derived competitions joined to Matches results.
+ * Events tab: Schedule-derived competitions joined to Matches results.
  * Does not create match_events — list comes from Schedule; Matches is optional join.
  */
 

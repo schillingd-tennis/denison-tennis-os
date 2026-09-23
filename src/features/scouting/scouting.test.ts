@@ -326,7 +326,7 @@ test("CSV scouting teams resolve logos and canonical OS labels", () => {
   }
 });
 
-test("Opponent Players master-detail structure, compact filters, Direct/AI split", () => {
+test("Teams master-detail structure, compact filters, Direct/AI split", () => {
   const workspace = readFileSync(
     fileURLToPath(new URL("./components/ScoutingWorkspace.tsx", import.meta.url)),
     "utf8",
@@ -362,8 +362,11 @@ test("Opponent Players master-detail structure, compact filters, Direct/AI split
     /data-scouting-desktop-columns=""[\s\S]*?data-scouting-team-column=""[\s\S]*?data-scouting-player-column=""[\s\S]*?data-scouting-report-column=""/,
   );
   // Shell mounts even when loadError is set (data must not remove columns)
-  assert.match(workspace, /view === "opponentPlayers" \? \(/);
-  assert.doesNotMatch(workspace, /!loadError && view === "opponentPlayers"/);
+  assert.match(workspace, /view === "teams" \? \(/);
+  assert.doesNotMatch(workspace, /!loadError && view === "teams"/);
+  assert.match(workspace, /\{ id: "teams", label: "Teams" \}/);
+  assert.match(workspace, /\{ id: "opponents", label: "Opponents" \}/);
+  assert.doesNotMatch(workspace, /label: "Opponent Players"/);
   assert.match(workspace, /filtered player/);
   assert.match(workspace, /navTeams/);
   assert.match(workspace, /selectionHydrated/);
@@ -439,7 +442,7 @@ test("Opponent Players master-detail structure, compact filters, Direct/AI split
   assert.doesNotMatch(publicForm, /TeamMark|ScheduleIdentityMark|school-logos/);
 });
 
-test("locked Opponent Players three-column layout contract", () => {
+test("locked Teams and Opponents three-column layout contracts", () => {
   const workspace = readFileSync(
     fileURLToPath(new URL("./components/ScoutingWorkspace.tsx", import.meta.url)),
     "utf8",
@@ -478,24 +481,35 @@ test("locked Opponent Players three-column layout contract", () => {
   assert.match(workspace, /No linked reports/);
   assert.match(workspace, /Select an opponent player/);
   assert.match(workspace, /data-scouting-load-error/);
-  assert.doesNotMatch(workspace, /!loadError && view === "opponentPlayers"/);
-  assert.match(workspace, /Shell always mounts for Opponent Players/);
+  assert.doesNotMatch(workspace, /!loadError && view === "teams"/);
+  assert.match(workspace, /Team-first shell always mounts/);
 
   // Count invariant: toolbar can show filtered player count while desktop columns remain grid (not display:none)
   assert.match(workspace, /filtered player/);
   assert.match(workspace, /Do NOT use the hidden-then-md-grid anti-pattern/);
 
-  // No flat-table replacement of Opponent Players master-detail
+  // No flat-table replacement of the Teams master-detail
   assert.match(workspace, /function OpponentPlayersMasterDetail/);
-  assert.match(workspace, /function TeamsView/);
-  const teamsViewIdx = workspace.indexOf("function TeamsView");
+  assert.match(workspace, /function OpponentsMasterDetail/);
+  const opponentsViewIdx = workspace.indexOf("function OpponentsMasterDetail");
   const masterIdx = workspace.indexOf("function OpponentPlayersMasterDetail");
   assert.ok(masterIdx > 0);
-  assert.ok(teamsViewIdx > masterIdx);
-  // Teams tab owns the table; Opponent Players must not render a directory <table>
-  const masterSlice = workspace.slice(masterIdx, teamsViewIdx);
+  assert.ok(opponentsViewIdx > masterIdx);
+  const masterSlice = workspace.slice(masterIdx, opponentsViewIdx);
   assert.doesNotMatch(masterSlice, /<table[\s>]/);
   assert.match(masterSlice, /data-scouting-desktop-columns/);
+
+  // Opponents is the second tab and owns player → records → scouting report columns.
+  assert.match(
+    workspace,
+    /\{ id: "teams", label: "Teams" \}[\s\S]*?\{ id: "opponents", label: "Opponents" \}[\s\S]*?\{ id: "matchReports", label: "Match Reports" \}/,
+  );
+  assert.match(workspace, /data-scouting-opponents-columns/);
+  assert.match(workspace, /Opponents · \{orderedPlayers\.length\}/);
+  assert.match(workspace, /Records · \{playerReports\.length\}/);
+  assert.match(workspace, /Completed by \{report\.reportBy/);
+  assert.match(workspace, /className="mt-1 block truncate text-sm text-text-secondary"/);
+  assert.match(workspace, /data-scouting-opponent-report-column/);
 
   // Interactions: middle select stays on directory; green Open player card opens card; report opens report
   assert.match(workspace, /Middle-column \/ roster select/);

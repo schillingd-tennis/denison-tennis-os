@@ -31,7 +31,6 @@ import {
   buildMatchReportsListItems,
   filterPlayers,
   filterSubmissions,
-  filterTeams,
   sortPlayers,
   sortSubmissions,
   sortTeams,
@@ -89,8 +88,8 @@ const EMPTY_FILTERS: ScoutingFilters = {
 };
 
 const SCOUTING_VIEW_TABS: { id: ScoutingView; label: string }[] = [
-  { id: "opponentPlayers", label: "Opponent Players" },
   { id: "teams", label: "Teams" },
+  { id: "opponents", label: "Opponents" },
   { id: "matchReports", label: "Match Reports" },
   { id: "formSubmissions", label: "Form Submissions" },
 ];
@@ -152,17 +151,13 @@ export default function ScoutingWorkspace({
   loadError,
 }: Props) {
   const { openDrawer, closeDrawer } = useDrawerManager();
-  const [view, setView] = useState<ScoutingView>("opponentPlayers");
+  const [view, setView] = useState<ScoutingView>("teams");
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [selectedTeamId, setSelectedTeamId] = useState("");
   const [selectedPlayerId, setSelectedPlayerId] = useState("");
   const [mobilePane, setMobilePane] = useState<MobilePane>("teams");
   const [playerLifecycle, setPlayerLifecycle] = useState<OpponentPlayerLifecycleView>("active");
   const [surface, setSurface] = useState<CardSurface>({ kind: "directory" });
-  const [teamSort, setTeamSort] = useState<{ key: TeamSortKey; direction: ScoutingSortDirection }>({
-    key: "displayName",
-    direction: "asc",
-  });
   const [reportSort, setReportSort] = useState<{ key: MatchReportSortKey; direction: ScoutingSortDirection }>({
     key: "matchDate",
     direction: "desc",
@@ -206,9 +201,16 @@ export default function ScoutingWorkspace({
       ),
     [filters, lifecyclePool, playerLifecycle, reports],
   );
-  const teamRows = useMemo(
-    () => sortTeams(filterTeams(teams, filters.query), teamSort.key, teamSort.direction),
-    [filters.query, teamSort, teams],
+  const opponentRows = useMemo(
+    () =>
+      sortPlayers(
+        filterPlayers(lifecyclePool, { ...filters, teamId: "" }, {
+          linkedReports: playerLifecycle === "archived" ? reports : undefined,
+        }),
+        "displayName",
+        "asc",
+      ),
+    [filters, lifecyclePool, playerLifecycle, reports],
   );
   const reportRows = useMemo(() => {
     const items = buildMatchReportsListItems({ reports, submissions, filters });
@@ -367,7 +369,7 @@ export default function ScoutingWorkspace({
     setSurface({ kind: "directory" });
   }
 
-  /** Canonical open — Teams and Opponent Players share this path. */
+  /** Canonical open from either team-first or opponent-first directory. */
   function openScoutingPlayer(
     playerId: string,
     options?: {
@@ -383,7 +385,7 @@ export default function ScoutingWorkspace({
     setSelectedPlayerId(playerId);
     setSelectedTeamId(player.teamId);
     setFilters((current) => ({ ...current, teamId: player.teamId }));
-    setView("opponentPlayers");
+    setView("teams");
     setMobilePane("report");
     setSurface({
       kind: "player",
@@ -492,7 +494,7 @@ export default function ScoutingWorkspace({
     );
     const nextId = selectNextActivePlayerId(priorRoster, playerId);
     setPlayerLifecycle("active");
-    setView("opponentPlayers");
+    setView("teams");
     setSelectedTeamId(teamId);
     setFilters((current) => ({ ...current, teamId }));
     setSelectedPlayerId(nextId);
@@ -503,7 +505,7 @@ export default function ScoutingWorkspace({
   function handlePlayerRestored(playerId: string) {
     const player = players.find((row) => row.id === playerId);
     setPlayerLifecycle("active");
-    setView("opponentPlayers");
+    setView("teams");
     if (player) {
       setSelectedTeamId(player.teamId);
       setFilters((current) => ({ ...current, teamId: player.teamId }));
@@ -514,7 +516,7 @@ export default function ScoutingWorkspace({
       playerId,
       workspace: "overview",
       origin: {
-        view: "opponentPlayers",
+        view: "teams",
         filters: { ...filters, teamId: player?.teamId ?? filters.teamId },
         selectedTeamId: player?.teamId ?? selectedTeamId,
         selectedPlayerId: playerId,
@@ -593,6 +595,9 @@ export default function ScoutingWorkspace({
     Boolean(filters.aiStatus) ||
     Boolean(filters.importStatus) ||
     Boolean(filters.submissionStatus);
+  const opponentFiltersActive =
+    Boolean(filters.query) || Boolean(filters.handedness) || Boolean(filters.aiStatus);
+  const visibleFiltersActive = view === "opponents" ? opponentFiltersActive : filtersActive;
 
   const activePlayer =
     surface.kind === "player" ? players.find((player) => player.id === surface.playerId) ?? null : null;
@@ -662,13 +667,15 @@ export default function ScoutingWorkspace({
                 ? "Team Report"
                 : surface.origin.view === "teams"
                   ? "Teams"
+                  : surface.origin.view === "opponents"
+                    ? "Opponents"
                   : surface.origin.view === "matchReports"
                     ? "Match Reports"
                     : surface.origin.view === "formSubmissions"
                       ? "Form Submissions"
                       : surface.origin.playerLifecycle === "archived"
                         ? "Archived Opponents"
-                        : "Opponent Players"}
+                        : "Teams"}
           </button>
 
           {surface.kind === "player" && activePlayer ? (
@@ -758,7 +765,7 @@ export default function ScoutingWorkspace({
                   placeholder="Search scouting…"
                 />
               </div>
-              {view === "opponentPlayers" ? (
+              {view === "teams" || view === "opponents" ? (
                 <div data-scouting-lifecycle-toggle="">
                   <CompactSelect
                     ariaLabel="Opponent lifecycle"
@@ -780,7 +787,7 @@ export default function ScoutingWorkspace({
                   />
                 </div>
               ) : null}
-              {view === "opponentPlayers" || view === "matchReports" ? (
+              {view === "teams" || view === "matchReports" ? (
                 <CompactSelect
                   ariaLabel="Team filter"
                   value={filters.teamId}
@@ -795,7 +802,7 @@ export default function ScoutingWorkspace({
                   }}
                 />
               ) : null}
-              {view === "opponentPlayers" ? (
+              {view === "teams" || view === "opponents" ? (
                 <>
                   <CompactSelect
                     ariaLabel="Handedness"
@@ -850,7 +857,7 @@ export default function ScoutingWorkspace({
                   onChange={(submissionStatus) => setFilters((current) => ({ ...current, submissionStatus }))}
                 />
               ) : null}
-              {filtersActive ? (
+              {visibleFiltersActive ? (
                 <button
                   type="button"
                   onClick={clearFilters}
@@ -860,13 +867,13 @@ export default function ScoutingWorkspace({
                 </button>
               ) : null}
               <span className="text-xs text-text-secondary tabular-nums" aria-live="polite">
-                {view === "opponentPlayers"
-                  ? filtersActive
-                    ? `${playerRows.length} filtered player${playerRows.length === 1 ? "" : "s"}`
-                    : `${playerRows.length} player${playerRows.length === 1 ? "" : "s"}`
+                {view === "opponents"
+                  ? `${opponentRows.length}${opponentFiltersActive ? " filtered" : ""} opponent${opponentRows.length === 1 ? "" : "s"}`
                   : view === "teams"
-                    ? `${teamRows.length} teams`
-                    : view === "matchReports"
+                    ? filtersActive
+                      ? `${playerRows.length} filtered player${playerRows.length === 1 ? "" : "s"}`
+                      : `${playerRows.length} player${playerRows.length === 1 ? "" : "s"}`
+                  : view === "matchReports"
                       ? `${reportRows.length} reports`
                       : `${submissionRows.length} submissions`}
               </span>
@@ -882,8 +889,8 @@ export default function ScoutingWorkspace({
             </div>
           ) : null}
 
-          {/* Shell always mounts for Opponent Players — data/error must not remove columns. */}
-          {view === "opponentPlayers" ? (
+          {/* Team-first shell always mounts — data/error must not remove columns. */}
+          {view === "teams" ? (
             <OpponentPlayersMasterDetail
               teams={navTeams.length ? navTeams : teamsAlpha}
               allPlayers={players}
@@ -899,26 +906,17 @@ export default function ScoutingWorkspace({
               onSelectTeam={selectTeam}
               onSelectPlayer={selectPlayer}
               onOpenPlayerCard={openPlayerCardFromDirectory}
+              onOpenTeam={openTeamEdit}
               onOpenReport={(report) => openScoutingReport(report.id)}
               onShowArchived={() => setPlayerLifecycle("archived")}
               onClearFilters={clearFilters}
             />
           ) : null}
-          {!loadError && view === "teams" ? (
-            <TeamsView
-              rows={teamRows}
-              players={activePlayers}
+          {!loadError && view === "opponents" ? (
+            <OpponentsMasterDetail
+              players={opponentRows}
               reports={reports}
-              sort={teamSort}
-              onSort={(key) =>
-                setTeamSort((current) => ({
-                  key,
-                  direction: current.key === key && current.direction === "asc" ? "desc" : "asc",
-                }))
-              }
-              onOpenEdit={openTeamEdit}
-              onOpenPlayer={openScoutingPlayer}
-              onOpenReport={(reportId) => openScoutingReport(reportId)}
+              onOpenPlayer={openPlayerCardFromDirectory}
             />
           ) : null}
           {!loadError && view === "matchReports" ? (
@@ -1087,6 +1085,7 @@ function OpponentPlayersMasterDetail({
   onSelectTeam,
   onSelectPlayer,
   onOpenPlayerCard,
+  onOpenTeam,
   onOpenReport,
   onShowArchived,
   onClearFilters,
@@ -1105,6 +1104,7 @@ function OpponentPlayersMasterDetail({
   onSelectTeam: (teamId: string) => void;
   onSelectPlayer: (player: ScoutingOpponentPlayer) => void;
   onOpenPlayerCard: (player: ScoutingOpponentPlayer) => void;
+  onOpenTeam: (team: ScoutingTeam) => void;
   onOpenReport: (report: ScoutingDirectReport) => void;
   onShowArchived: () => void;
   onClearFilters: () => void;
@@ -1276,13 +1276,24 @@ function OpponentPlayersMasterDetail({
                     </p>
                   ) : null}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => onOpenPlayerCard(selectedPlayer)}
-                  className="inline-flex h-11 items-center rounded-control bg-[var(--module-accent)] px-4 text-sm font-semibold text-white md:h-9"
-                >
-                  Open player card
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  {selectedTeam ? (
+                    <button
+                      type="button"
+                      onClick={() => onOpenTeam(selectedTeam)}
+                      className="inline-flex h-11 items-center rounded-control border border-border bg-surface px-3 text-sm font-semibold text-text-primary md:h-9"
+                    >
+                      Team AI
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => onOpenPlayerCard(selectedPlayer)}
+                    className="inline-flex h-11 items-center rounded-control bg-[var(--module-accent)] px-4 text-sm font-semibold text-white md:h-9"
+                  >
+                    Open player card
+                  </button>
+                </div>
               </div>
               <PlayerAiDirectorySummary
                 key={selectedPlayer.id}
@@ -1500,7 +1511,212 @@ function PlayerRoster({
   );
 }
 
-function TeamsView({
+function OpponentsMasterDetail({
+  players,
+  reports,
+  onOpenPlayer,
+}: {
+  players: ScoutingOpponentPlayer[];
+  reports: ScoutingDirectReport[];
+  onOpenPlayer: (player: ScoutingOpponentPlayer) => void;
+}) {
+  const orderedPlayers = [...players].sort((a, b) =>
+    a.displayName.localeCompare(b.displayName, undefined, { sensitivity: "base" }),
+  );
+  const [selectedPlayerId, setSelectedPlayerId] = useState(orderedPlayers[0]?.id ?? "");
+  const selectedPlayer =
+    orderedPlayers.find((player) => player.id === selectedPlayerId) ?? orderedPlayers[0] ?? null;
+  const playerReports = selectedPlayer
+    ? reports
+        .filter((report) => report.opponentPlayerId === selectedPlayer.id)
+        .sort((a, b) =>
+          (b.matchDate ?? b.matchDateRaw ?? "").localeCompare(a.matchDate ?? a.matchDateRaw ?? ""),
+        )
+    : [];
+  const [selectedReportId, setSelectedReportId] = useState(playerReports[0]?.id ?? "");
+  const selectedReport =
+    playerReports.find((report) => report.id === selectedReportId) ?? playerReports[0] ?? null;
+
+  if (!orderedPlayers.length) {
+    return (
+      <div className="p-5" data-scouting-opponents-view="">
+        <EmptyState
+          title="No opponents"
+          description="Opponent players will appear here after they are added or promoted from submissions."
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      data-scouting-opponents-view=""
+      data-scouting-opponents-columns=""
+      className="grid min-h-[min(70vh,40rem)] font-sans text-sm md:grid-cols-[minmax(15rem,18rem)_minmax(18rem,22rem)_minmax(0,1fr)]"
+    >
+      <section className="min-h-0 overflow-y-auto border-b border-border md:border-r md:border-b-0">
+        <p className="sticky top-0 z-[1] border-b border-border bg-app-background px-3 py-2 text-[10px] font-semibold tracking-wide text-text-secondary uppercase">
+          Opponents · {orderedPlayers.length}
+        </p>
+        <ul className="divide-y divide-border/70" aria-label="Opponent players">
+          {orderedPlayers.map((player) => {
+            const selected = player.id === selectedPlayer?.id;
+            return (
+              <li key={player.id}>
+                <button
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => {
+                    setSelectedPlayerId(player.id);
+                    const firstReport = reports
+                      .filter((report) => report.opponentPlayerId === player.id)
+                      .sort((a, b) =>
+                        (b.matchDate ?? b.matchDateRaw ?? "").localeCompare(
+                          a.matchDate ?? a.matchDateRaw ?? "",
+                        ),
+                      )[0];
+                    setSelectedReportId(firstReport?.id ?? "");
+                  }}
+                  className={`flex min-h-11 w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors ${
+                    selected
+                      ? "border-l-[3px] border-l-[var(--module-accent)] bg-[var(--module-tint)]/55"
+                      : "border-l-[3px] border-l-transparent hover:bg-[var(--module-tint)]/30"
+                  }`}
+                >
+                  <ScoutingTeamMark name={player.teamDisplayName} size={26} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-text-primary">
+                      {player.displayName}
+                    </span>
+                    <span className="block truncate text-[11px] text-text-secondary">
+                      {scoutingTeamCanonicalLabel(player.teamDisplayName)} · {player.directReportCount}{" "}
+                      record{player.directReportCount === 1 ? "" : "s"}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+
+      <section className="min-h-0 overflow-y-auto border-b border-border md:border-r md:border-b-0">
+        <div className="sticky top-0 z-[1] flex items-center justify-between gap-2 border-b border-border bg-app-background px-3 py-2">
+          <p className="text-[10px] font-semibold tracking-wide text-text-secondary uppercase">
+            Records · {playerReports.length}
+          </p>
+          {selectedPlayer ? (
+            <button
+              type="button"
+              onClick={() => onOpenPlayer(selectedPlayer)}
+              className="text-[11px] font-semibold text-[var(--module-accent-text)] hover:underline"
+            >
+              Open player card
+            </button>
+          ) : null}
+        </div>
+        {playerReports.length ? (
+          <ul className="divide-y divide-border/70">
+            {playerReports.map((report) => {
+              const selected = report.id === selectedReport?.id;
+              const date = report.matchDate
+                ? formatDate(report.matchDate)
+                : report.matchDateRaw || "Date not recorded";
+              return (
+                <li key={report.id}>
+                  <button
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => setSelectedReportId(report.id)}
+                    className={`w-full border-l-[3px] px-3 py-3 text-left transition-colors ${
+                      selected
+                        ? "border-l-[var(--module-accent)] bg-[var(--module-tint)]/55"
+                        : "border-l-transparent hover:bg-[var(--module-tint)]/30"
+                    }`}
+                  >
+                    <span className="block text-sm font-semibold text-text-primary">{date}</span>
+                    <span className="mt-1 block text-sm font-medium text-text-primary">
+                      Completed by {report.reportBy || "Unknown"}
+                    </span>
+                    <span className="mt-0.5 block text-sm text-text-secondary">
+                      {report.isDoubles ? "Doubles" : "Singles"}
+                    </span>
+                    <span className="mt-1 block truncate text-sm text-text-secondary">
+                      {(report.strengthsWeaknesses || report.scoutingReport || "No report notes.")
+                        .replace(/\s+/g, " ")
+                        .trim()}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <div className="p-4">
+            <EmptyState
+              title="No records"
+              description="This opponent does not have a linked scouting record yet."
+            />
+          </div>
+        )}
+      </section>
+
+      <section className="min-h-0 overflow-y-auto" data-scouting-opponent-report-column="">
+        <p className="sticky top-0 z-[1] border-b border-border bg-app-background px-4 py-2 text-[10px] font-semibold tracking-wide text-text-secondary uppercase">
+          Scouting Report
+        </p>
+        {selectedReport && selectedPlayer ? (
+          <article className="space-y-5 p-4 sm:p-5">
+            <header className="flex items-start gap-3 border-b border-border pb-4">
+              <ScoutingTeamMark name={selectedPlayer.teamDisplayName} size={38} />
+              <div className="min-w-0">
+                <h2 className="text-lg font-semibold text-text-primary">{selectedPlayer.displayName}</h2>
+                <p className="text-xs text-text-secondary">
+                  {scoutingTeamCanonicalLabel(selectedPlayer.teamDisplayName)} ·{" "}
+                  {selectedReport.matchDate
+                    ? formatDate(selectedReport.matchDate)
+                    : selectedReport.matchDateRaw || "Date not recorded"}
+                </p>
+              </div>
+            </header>
+            <div>
+              <h3 className="text-xs font-semibold tracking-wide text-text-secondary uppercase">
+                Strengths / Weaknesses
+              </h3>
+              <p className="mt-2 line-clamp-4 whitespace-pre-wrap font-sans text-sm leading-6 text-text-primary">
+                {selectedReport.strengthsWeaknesses || "No strengths or weaknesses recorded."}
+              </p>
+            </div>
+            <div>
+              <h3 className="text-xs font-semibold tracking-wide text-text-secondary uppercase">
+                Scouting Report
+              </h3>
+              <p className="mt-2 line-clamp-4 whitespace-pre-wrap font-sans text-sm leading-6 text-text-primary">
+                {selectedReport.scoutingReport ||
+                  selectedReport.strengthsWeaknesses ||
+                  "No scouting report recorded."}
+              </p>
+            </div>
+            <p className="border-t border-border pt-3 text-[11px] text-text-secondary">
+              {selectedReport.isDoubles ? "Doubles" : "Singles"} · Reported by{" "}
+              {selectedReport.reportBy || "Unknown"}
+              {selectedReport.handedness ? ` · ${selectedReport.handedness}` : ""}
+            </p>
+          </article>
+        ) : (
+          <div className="p-5">
+            <EmptyState
+              title="Select a record"
+              description="Choose one of this opponent’s records to read the scouting report."
+            />
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+export function TeamsView({
   rows,
   players,
   reports,

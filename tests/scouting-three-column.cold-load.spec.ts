@@ -11,7 +11,7 @@ async function loginIfNeeded(page: Page) {
   await page.waitForURL((url) => !url.pathname.includes("/login"), { timeout: 20_000 });
 }
 
-test("Scouting Opponent Players three-column Amherst Rex flow", async ({ page }) => {
+test("Scouting Teams and Opponents three-column flows", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/team-operations/scouting");
   await loginIfNeeded(page);
@@ -42,6 +42,17 @@ test("Scouting Opponent Players three-column Amherst Rex flow", async ({ page })
   await expect(page.locator("[data-scouting-player-card]")).toBeVisible();
   await expect(page.locator("[data-scouting-overview-summary-cards]:visible")).toBeVisible();
   await expect(page.getByText("Quick AI Scouting Report").locator("visible=true")).toBeVisible();
+
+  await page.getByRole("button", { name: /Back to Teams/i }).click();
+  await page
+    .getByRole("navigation", { name: /Scouting sections/i })
+    .getByRole("button", { name: /^Opponents$/i })
+    .click();
+  const opponents = page.locator("[data-scouting-opponents-columns]");
+  await expect(opponents).toBeVisible();
+  await expect(opponents.getByText(/Opponents ·/i)).toBeVisible();
+  await expect(opponents.getByText(/Records ·/i)).toBeVisible();
+  await expect(page.locator("[data-scouting-opponent-report-column]")).toBeVisible();
 });
 
 test("Scouting Match Reports Needs Review and Form Submissions audit", async ({ page }) => {

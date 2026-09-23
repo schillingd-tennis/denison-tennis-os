@@ -18,6 +18,7 @@ import {
   buildSinglesPlayerRecords,
 } from "../records";
 import type { MatchEvent, MatchResult, RosterPlayer } from "../types";
+import PlayerDisplayNameEditor from "./PlayerDisplayNameEditor";
 import PlayerResultRow from "./PlayerResultRow";
 
 export default function MatchPlayerDetail({
@@ -51,6 +52,7 @@ export default function MatchPlayerDetail({
     );
   });
   const back = backHref ?? (view === "doubles" ? matchesTabHref("doubles-players") : matchesTabHref("players"));
+  const player = roster.find((row) => row.id === playerId) ?? null;
 
   return (
     <ModulePageShell title={playerNameFor(playerId, roster)} subtitle="Official individual results">
@@ -58,6 +60,8 @@ export default function MatchPlayerDetail({
         <ArrowLeft className="h-4 w-4" />
         Back
       </Link>
+
+      {player ? <PlayerDisplayNameEditor player={player} /> : null}
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="rounded-card border border-border bg-surface p-4">

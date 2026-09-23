@@ -26,7 +26,7 @@ import {
   buildSinglesPlayerRecords,
   buildTeamSeasonRecords,
 } from "./records";
-import { doublesPairKey, resolvePlayerName, splitPairNames } from "./resolvePlayers";
+import { doublesPairKey, resolvePlayerName, rosterPlayerDisplayName, splitPairNames } from "./resolvePlayers";
 import { detectResultStatusFromText, parseScoreSets, resultFingerprint } from "./scoreParse";
 import {
   calculateDualTeamScores,
@@ -250,6 +250,18 @@ test("Denison-versus-Denison tournament doubles creates a record for both teams"
   assert.deepEqual(draft.results.map((row) => row.winnerSide), ["denison", "opponent"]);
   assert.deepEqual(draft.results.map((row) => row.scoreText), ["6-4", "4-6"]);
   assert.ok(draft.results.every((row) => row.opponentSchool === "Denison University"));
+});
+
+test("preferred first name controls the Denison Matches display name", () => {
+  const arya = {
+    id: "arya",
+    firstName: "Arya Ganapathy",
+    lastName: "Kallambella",
+    preferredName: "Arya",
+  };
+  assert.equal(rosterPlayerDisplayName(arya), "Arya Kallambella");
+  assert.equal(resolvePlayerName("Arya Kallambella", [arya]).status, "resolved");
+  assert.equal(resolvePlayerName("Arya Ganapathy Kallambella", [arya]).status, "resolved");
 });
 
 test("ambiguous Nguyen requires manual select", () => {
@@ -810,7 +822,8 @@ test("matchesImportPath includes schedule preselect", async () => {
   );
 });
 
-test("Team tab derives competitions from Schedule without inventing match_events", async () => {
+test("Events tab derives competitions from Schedule without inventing match_events", async () => {
+  const { MATCHES_TAB_LABELS } = await import("./types");
   const {
     buildTeamCompetitionRows,
     deriveResultsStatus,
@@ -821,6 +834,8 @@ test("Team tab derives competitions from Schedule without inventing match_events
     needsResultsForRow,
   } = await import("./teamCompetitions");
   const { SEED_2026_27 } = await import("@/features/teamSchedule/seedData");
+
+  assert.equal(MATCHES_TAB_LABELS.team, "Events");
 
   assert.equal(isCompetitiveScheduleEvent(SEED_2026_27[0]!), false); // Hotel Planner non_team_event
   assert.equal(isNoncompetitiveScheduleEvent(SEED_2026_27[0]!), true);

@@ -1,9 +1,9 @@
 import type { DirectReportSource, Handedness } from "./csvImport";
 
 export type ScoutingView =
-  | "opponentPlayers"
   | "teams"
   | "matchReports"
+  | "opponents"
   | "formSubmissions";
 
 export type ImportStatus =
@@ -167,7 +167,7 @@ export type ScoutingFilters = {
   query: string;
   teamId: string;
   handedness: string;
-  /** UI-only AI report status filter for Opponent Players. */
+  /** UI-only AI report status filter for team/player directory views. */
   aiStatus: string;
   importStatus: string;
   submissionStatus: string;
