@@ -351,6 +351,50 @@ export function isUnresolvedSubmissionForMatchReports(submission: {
   );
 }
 
+const ELIGIBLE_BACKFILL_STATUSES = new Set([
+  "new",
+  "reviewed",
+  "needs_clarification",
+  "needs_review",
+]);
+
+/**
+ * Legacy / unpromoted rows the 0069 backfill (and recovery action) may reprocess.
+ * Excludes archived/rejected and anything already linked to a direct report.
+ */
+export function isEligibleUnpromotedSubmission(
+  submission: {
+    id: string;
+    status: string;
+    promotedDirectReportId?: string | null;
+  },
+  reports: Array<{ formSubmissionId?: string | null }> = [],
+): boolean {
+  if (submission.promotedDirectReportId) return false;
+  if (!ELIGIBLE_BACKFILL_STATUSES.has(submission.status)) return false;
+  if (reports.some((report) => report.formSubmissionId === submission.id)) return false;
+  return true;
+}
+
+export function countEligibleUnpromotedSubmissions(
+  submissions: Array<{
+    id: string;
+    status: string;
+    promotedDirectReportId?: string | null;
+  }>,
+  reports: Array<{ formSubmissionId?: string | null }> = [],
+): number {
+  return submissions.filter((submission) => isEligibleUnpromotedSubmission(submission, reports)).length;
+}
+
+export type BackfillUnpromotedCounts = {
+  inspected: number;
+  published: number;
+  needsReview: number;
+  alreadyPromoted: number;
+  failures: number;
+};
+
 export function submissionStatusLabel(status: string): string {
   switch (status) {
     case "new":

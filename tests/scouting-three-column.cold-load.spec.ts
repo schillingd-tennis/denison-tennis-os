@@ -70,6 +70,11 @@ test("Scouting Match Reports Needs Review and Form Submissions audit", async ({ 
   await page.getByRole("navigation", { name: /Scouting sections/i }).getByRole("button", { name: /^Form Submissions$/i }).click();
   const submissionsView = page.locator("[data-scouting-submissions-view]");
   await expect(submissionsView).toBeVisible({ timeout: 30_000 });
+  // Recovery control appears only when unpromoted rows exist (optional in empty envs).
+  const reprocess = page.locator("[data-scouting-reprocess-unpromoted]");
+  if ((await reprocess.count()) > 0) {
+    await expect(reprocess.getByRole("button", { name: /Reprocess unpromoted submissions/i })).toBeVisible();
+  }
   const preview = page.locator("[data-scouting-submission-preview]");
   if ((await preview.count()) > 0) {
     await preview.first().click();

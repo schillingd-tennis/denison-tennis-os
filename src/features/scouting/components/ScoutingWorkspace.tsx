@@ -2,6 +2,7 @@
 
 import { ArrowLeft, Brain, Link2, Plus, RefreshCw } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
 
 import EmptyState from "@/components/EmptyState";
@@ -19,6 +20,7 @@ import {
   loadTeamWorkspaceAction,
   regeneratePlayerAiAction,
   regenerateTeamAiAction,
+  reprocessUnpromotedSubmissionsAction,
   reviewAndPublishFormSubmissionAction,
   revokeFormLinkAction,
   saveDirectReportAction,
@@ -40,7 +42,10 @@ import {
   isOpponentArchived,
   selectNextActivePlayerId,
 } from "../playerLifecycle";
-import { submissionStatusLabel } from "../promotion";
+import {
+  countEligibleUnpromotedSubmissions,
+  submissionStatusLabel,
+} from "../promotion";
 import {
   resolveScoutingTeamIdentity,
   scoutingTeamCanonicalLabel,
@@ -238,6 +243,10 @@ export default function ScoutingWorkspace({
     () =>
       sortSubmissions(filterSubmissions(submissions, filters), submissionSort.key, submissionSort.direction),
     [filters, submissionSort, submissions],
+  );
+  const unpromotedSubmissionCount = useMemo(
+    () => countEligibleUnpromotedSubmissions(submissions, reports),
+    [reports, submissions],
   );
 
   /** Left nav: teams that have players in the current Active/Archived pool. */
@@ -930,6 +939,7 @@ export default function ScoutingWorkspace({
             <SubmissionsCardGrid
               rows={submissionRows}
               sort={submissionSort}
+              unpromotedCount={unpromotedSubmissionCount}
               onSort={(key) =>
                 setSubmissionSort((current) => ({
                   key,
@@ -1746,15 +1756,21 @@ function ReportsCardGrid({
 function SubmissionsCardGrid({
   rows,
   sort,
+  unpromotedCount,
   onSort,
   onOpen,
 }: {
   rows: ScoutingFormSubmission[];
   sort: { key: SubmissionSortKey; direction: ScoutingSortDirection };
+  unpromotedCount: number;
   onSort: (key: SubmissionSortKey) => void;
   onOpen: (submission: ScoutingFormSubmission) => void;
 }) {
-  if (!rows.length) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [reprocessMessage, setReprocessMessage] = useState<string | null>(null);
+
+  if (!rows.length && unpromotedCount === 0) {
     return (
       <div className="p-5">
         <EmptyState
@@ -1766,6 +1782,44 @@ function SubmissionsCardGrid({
   }
   return (
     <div data-scouting-submissions-view="" className="p-4 sm:p-5">
+      {unpromotedCount > 0 ? (
+        <div
+          data-scouting-reprocess-unpromoted=""
+          className="mb-3 flex flex-wrap items-center gap-2 rounded-control border border-border bg-[var(--module-tint)] px-3 py-2"
+        >
+          <p className="text-xs text-text-secondary">
+            {unpromotedCount} unpromoted submission{unpromotedCount === 1 ? "" : "s"} not yet linked to
+            Teams or Opponent Players.
+          </p>
+          <button
+            type="button"
+            disabled={pending}
+            className="h-9 rounded-control bg-[var(--module-accent)] px-3 text-xs font-semibold text-white disabled:opacity-60"
+            onClick={() => {
+              setReprocessMessage(null);
+              startTransition(async () => {
+                const result = await reprocessUnpromotedSubmissionsAction();
+                if (!result.success) {
+                  setReprocessMessage(result.message);
+                  return;
+                }
+                const { counts } = result;
+                setReprocessMessage(
+                  `Reprocessed ${counts.inspected}: ${counts.published} published, ${counts.needsReview} needs review, ${counts.alreadyPromoted} already promoted, ${counts.failures} failures.`,
+                );
+                router.refresh();
+              });
+            }}
+          >
+            {pending ? "Reprocessing…" : "Reprocess unpromoted submissions"}
+          </button>
+          {reprocessMessage ? (
+            <p className="w-full text-xs text-text-secondary" role="status">
+              {reprocessMessage}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       <div className="mb-3 flex flex-wrap gap-2">
         <SortChip label="Submitted" active={sort.key === "createdAt"} onClick={() => onSort("createdAt")} />
         <SortChip
@@ -1780,13 +1834,20 @@ function SubmissionsCardGrid({
         />
         <SortChip label="Status" active={sort.key === "status"} onClick={() => onSort("status")} />
       </div>
-      <ul className="grid gap-2 lg:grid-cols-2">
-        {rows.map((row) => (
-          <li key={row.id}>
-            <ScoutingSubmissionPreviewCard submission={row} onOpen={onOpen} />
-          </li>
-        ))}
-      </ul>
+      {rows.length ? (
+        <ul className="grid gap-2 lg:grid-cols-2">
+          {rows.map((row) => (
+            <li key={row.id}>
+              <ScoutingSubmissionPreviewCard submission={row} onOpen={onOpen} />
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <EmptyState
+          title="No form submissions"
+          description="Create a shareable form link to collect post-match notes."
+        />
+      )}
     </div>
   );
 }

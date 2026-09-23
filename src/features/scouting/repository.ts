@@ -709,6 +709,26 @@ export async function promoteFormSubmission(submissionId: string): Promise<{
   };
 }
 
+export async function backfillUnpromotedSubmissions(): Promise<{
+  inspected: number;
+  published: number;
+  needsReview: number;
+  alreadyPromoted: number;
+  failures: number;
+}> {
+  const client = await createSupabaseServerClient();
+  const { data, error } = await client.rpc("scouting_backfill_unpromoted_submissions");
+  if (error) throw new Error(error.message);
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    inspected: Number(row?.inspected ?? 0),
+    published: Number(row?.published ?? 0),
+    needsReview: Number(row?.needs_review ?? 0),
+    alreadyPromoted: Number(row?.already_promoted ?? 0),
+    failures: Number(row?.failures ?? 0),
+  };
+}
+
 export async function reviewAndPublishFormSubmission(input: {
   submissionId: string;
   teamId: string;

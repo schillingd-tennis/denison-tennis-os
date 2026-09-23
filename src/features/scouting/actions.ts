@@ -7,6 +7,7 @@ import { parseSubmissionStatus, readDirectReportFormData, readPublicScoutingForm
 import { scoutingFormPublicPath } from "./formPaths";
 import {
   archiveOpponentPlayer,
+  backfillUnpromotedSubmissions,
   createFormLink,
   getPlayerWorkspace,
   getTeamWorkspace,
@@ -252,6 +253,21 @@ export async function promoteFormSubmissionAction(submissionId: string) {
     return {
       success: false as const,
       message: error instanceof Error ? error.message : "Could not promote submission.",
+    };
+  }
+}
+
+export async function reprocessUnpromotedSubmissionsAction() {
+  const auth = await requireScoutingWriteUser();
+  if (!auth.ok) return { success: false as const, message: auth.error };
+  try {
+    const counts = await backfillUnpromotedSubmissions();
+    revalidateScouting();
+    return { success: true as const, counts };
+  } catch (error) {
+    return {
+      success: false as const,
+      message: error instanceof Error ? error.message : "Could not reprocess submissions.",
     };
   }
 }

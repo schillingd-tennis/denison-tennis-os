@@ -39,7 +39,9 @@ import {
 import { buildScoutingDuplicateAuditCounts } from "./duplicateAudit";
 import { parseDoubles, parseHandedness, readDirectReportFormData, readPublicScoutingFormData } from "./formData";
 import {
+  countEligibleUnpromotedSubmissions,
   isCleanSinglePlayerName,
+  isEligibleUnpromotedSubmission,
   normalizeSchoolAlias,
   playerFormSourceKey,
   resolveSubmissionPromotion,
@@ -1706,4 +1708,298 @@ test("18 duplicate audit is counts-only and hybrid Match Reports layout markers 
   assert.ok(counts.directReportsOnDuplicateTeams >= 1);
   assert.ok(counts.formLinksOnDuplicateTeams >= 1);
   assert.equal(counts.unknownTeamLabelsInSubmissions, 1);
+});
+
+// ---------------------------------------------------------------------------
+// 0069 legacy backfill eligibility + recovery UI conventions
+// ---------------------------------------------------------------------------
+
+const backfillMigrationPath = fileURLToPath(
+  new URL("../../../supabase/migrations/0069_scouting_existing_submission_backfill.sql", import.meta.url),
+);
+const DEPAUW = { id: "team-depauw", displayName: "DePauw", identitySlug: "depauw" };
+const ALIASES_WITH_DPU = [
+  ...ALIASES,
+  { teamId: DEPAUW.id, normalizedAlias: "depauw", displayAlias: "DePauw" },
+  { teamId: DEPAUW.id, normalizedAlias: "dpu", displayAlias: "DPU" },
+];
+
+test("19 five legacy New submissions are eligible; archived/rejected skipped", () => {
+  const legacyNew = [1, 2, 3, 4, 5].map((n) => ({
+    id: `legacy-new-${n}`,
+    status: "new",
+    promotedDirectReportId: null as string | null,
+  }));
+  const archived = { id: "arch-1", status: "archived", promotedDirectReportId: null };
+  const rejected = { id: "rej-1", status: "rejected", promotedDirectReportId: null };
+  const already = { id: "done-1", status: "new", promotedDirectReportId: "r-1" };
+  const linkedByReport = { id: "linked-1", status: "needs_review", promotedDirectReportId: null };
+  const reports = [{ formSubmissionId: "linked-1" }];
+
+  assert.equal(countEligibleUnpromotedSubmissions([...legacyNew, archived, rejected, already, linkedByReport], reports), 5);
+  for (const row of legacyNew) {
+    assert.equal(isEligibleUnpromotedSubmission(row, reports), true);
+  }
+  assert.equal(isEligibleUnpromotedSubmission(archived, reports), false);
+  assert.equal(isEligibleUnpromotedSubmission(rejected, reports), false);
+  assert.equal(isEligibleUnpromotedSubmission(already, reports), false);
+  assert.equal(isEligibleUnpromotedSubmission(linkedByReport, reports), false);
+});
+
+test("20 legacy Reviewed status is eligible and promotes via same rules", () => {
+  const reviewed = {
+    id: "legacy-reviewed",
+    status: "reviewed",
+    promotedDirectReportId: null as string | null,
+  };
+  assert.equal(isEligibleUnpromotedSubmission(reviewed, []), true);
+
+  const decision = resolveSubmissionPromotion({
+    submission: {
+      id: "legacy-reviewed",
+      formLinkId: "l",
+      status: "reviewed",
+      opponentDisplayName: "Jon Totorica",
+      teamDisplayName: "CWRU",
+    },
+    link: null,
+    teams: [CWRU],
+    players: [
+      {
+        id: "p-jon",
+        teamId: CWRU.id,
+        displayName: "Jon Totorica",
+        normalizedName: "jon totorica",
+      },
+    ],
+    aliases: ALIASES,
+  });
+  assert.equal(decision.submissionStatus, "published");
+  assert.equal(decision.teamId, CWRU.id);
+  assert.equal(decision.shouldCreateDirectReport, true);
+});
+
+test("21 CWRU/Case and DPU/DePauw resolve to one canonical team each", () => {
+  assert.equal(resolveTeamIdByAlias("CWRU", ALIASES_WITH_DPU, [CWRU, DEPAUW]), CWRU.id);
+  assert.equal(resolveTeamIdByAlias("Case", ALIASES_WITH_DPU, [CWRU, DEPAUW]), CWRU.id);
+  assert.equal(resolveTeamIdByAlias("DPU", ALIASES_WITH_DPU, [CWRU, DEPAUW]), DEPAUW.id);
+  assert.equal(resolveTeamIdByAlias("DePauw", ALIASES_WITH_DPU, [CWRU, DEPAUW]), DEPAUW.id);
+
+  const casePromo = resolveSubmissionPromotion({
+    submission: {
+      id: "sub-case",
+      formLinkId: "l",
+      status: "new",
+      opponentDisplayName: "Backfill Case Player",
+      teamDisplayName: "Case",
+    },
+    link: null,
+    teams: [CWRU, DEPAUW],
+    players: [],
+    aliases: ALIASES_WITH_DPU,
+  });
+  assert.equal(casePromo.teamId, CWRU.id);
+
+  const dpuPromo = resolveSubmissionPromotion({
+    submission: {
+      id: "sub-dpu",
+      formLinkId: "l",
+      status: "new",
+      opponentDisplayName: "Backfill Dpu Player",
+      teamDisplayName: "DPU",
+    },
+    link: null,
+    teams: [CWRU, DEPAUW],
+    players: [],
+    aliases: ALIASES_WITH_DPU,
+  });
+  assert.equal(dpuPromo.teamId, DEPAUW.id);
+});
+
+test("22 published promotions land on Match Reports / teams; unknown stays Needs Review inbox", () => {
+  const publishedDecision = resolveSubmissionPromotion({
+    submission: {
+      id: "sub-pub-backfill",
+      formLinkId: "l",
+      status: "new",
+      opponentDisplayName: "Rex Harrison",
+      teamDisplayName: "Amherst",
+    },
+    link: null,
+    teams: [AMHERST],
+    players: [
+      {
+        id: "p-rex",
+        teamId: AMHERST.id,
+        displayName: "Rex Harrison",
+        normalizedName: "rex harrison",
+      },
+    ],
+    aliases: ALIASES,
+  });
+  assert.equal(publishedDecision.submissionStatus, "published");
+  assert.equal(publishedDecision.shouldCreateDirectReport, true);
+
+  const unknown = resolveSubmissionPromotion({
+    submission: {
+      id: "sub-unknown-backfill",
+      formLinkId: "l",
+      status: "new",
+      opponentDisplayName: "Mystery",
+      teamDisplayName: "NotARealSchoolXYZ",
+    },
+    link: null,
+    teams: [AMHERST],
+    players: [],
+    aliases: ALIASES,
+  });
+  assert.equal(unknown.submissionStatus, "needs_review");
+  assert.equal(unknown.shouldCreateDirectReport, false);
+  assert.equal(unknown.teamId, null);
+
+  const items = buildMatchReportsListItems({
+    reports: [
+      sampleDirect({
+        id: "r-pub",
+        teamId: AMHERST.id,
+        opponentPlayerId: "p-rex",
+        formSubmissionId: "sub-pub-backfill",
+        importStatus: "imported",
+      }),
+    ],
+    submissions: [
+      {
+        id: "sub-unknown-backfill",
+        formLinkId: "l",
+        status: "needs_review",
+        opponentDisplayName: "Mystery",
+        teamDisplayName: "NotARealSchoolXYZ",
+        matchDate: null,
+        handedness: null,
+        strengthsWeaknesses: "",
+        scoutingReport: "",
+        reportBy: "Coach",
+        isDoubles: false,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        reviewedAt: null,
+        resolvedTeamId: null,
+        resolvedOpponentPlayerId: null,
+        promotedDirectReportId: null,
+      },
+      {
+        id: "sub-pub-backfill",
+        formLinkId: "l",
+        status: "published",
+        opponentDisplayName: "Rex Harrison",
+        teamDisplayName: "Amherst",
+        matchDate: null,
+        handedness: null,
+        strengthsWeaknesses: "",
+        scoutingReport: "",
+        reportBy: "Coach",
+        isDoubles: false,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        reviewedAt: "2026-01-02T00:00:00.000Z",
+        resolvedTeamId: AMHERST.id,
+        resolvedOpponentPlayerId: "p-rex",
+        promotedDirectReportId: "r-pub",
+      },
+    ],
+    filters: { query: "", teamId: "", importStatus: "" },
+  });
+  assert.ok(items.some((item) => item.kind === "direct_report" && item.report.id === "r-pub"));
+  assert.ok(
+    items.some((item) => item.kind === "needs_review_submission" && item.submission.id === "sub-unknown-backfill"),
+  );
+  assert.equal(
+    items.some((item) => item.kind === "needs_review_submission" && item.submission.id === "sub-pub-backfill"),
+    false,
+  );
+});
+
+test("23 same player name at two schools never cross-links after backfill rules", () => {
+  const players = [
+    {
+      id: "p-cwru-alex",
+      teamId: CWRU.id,
+      displayName: "Alex Smith",
+      normalizedName: "alex smith",
+    },
+    {
+      id: "p-dpu-alex",
+      teamId: DEPAUW.id,
+      displayName: "Alex Smith",
+      normalizedName: "alex smith",
+    },
+  ];
+  const a = resolveSubmissionPromotion({
+    submission: {
+      id: "sub-a",
+      formLinkId: "l",
+      status: "new",
+      opponentDisplayName: "Alex Smith",
+      teamDisplayName: "Case",
+    },
+    link: null,
+    teams: [CWRU, DEPAUW],
+    players,
+    aliases: ALIASES_WITH_DPU,
+  });
+  const b = resolveSubmissionPromotion({
+    submission: {
+      id: "sub-b",
+      formLinkId: "l",
+      status: "new",
+      opponentDisplayName: "Alex Smith",
+      teamDisplayName: "DPU",
+    },
+    link: null,
+    teams: [CWRU, DEPAUW],
+    players,
+    aliases: ALIASES_WITH_DPU,
+  });
+  assert.equal(a.opponentPlayerId, "p-cwru-alex");
+  assert.equal(b.opponentPlayerId, "p-dpu-alex");
+  assert.notEqual(a.opponentPlayerId, b.opponentPlayerId);
+});
+
+test("24 idempotent second backfill: already-promoted rows leave eligibility", () => {
+  const afterFirst = [
+    { id: "s1", status: "published", promotedDirectReportId: "r1" },
+    { id: "s2", status: "needs_review", promotedDirectReportId: "r2" },
+    { id: "s3", status: "needs_review", promotedDirectReportId: null }, // unknown team still eligible
+  ];
+  const reports = [
+    { formSubmissionId: "s1" },
+    { formSubmissionId: "s2" },
+  ];
+  assert.equal(countEligibleUnpromotedSubmissions(afterFirst, reports), 1);
+  assert.equal(isEligibleUnpromotedSubmission(afterFirst[0]!, reports), false);
+  assert.equal(isEligibleUnpromotedSubmission(afterFirst[1]!, reports), false);
+  assert.equal(playerFormSourceKey("s1"), playerFormSourceKey("s1"));
+});
+
+test("25 0069 migration conventions: calls promote, counts-only, no 0067/UTR, 0068 untouched", () => {
+  const migration = readFileSync(backfillMigrationPath, "utf8");
+  const migration0068 = readFileSync(promotionMigrationPath, "utf8");
+  assert.match(migration, /scouting_backfill_unpromoted_submissions/);
+  assert.match(migration, /scouting_promote_form_submission/);
+  assert.match(migration, /raise notice 'scouting_backfill_unpromoted_submissions inspected=%/);
+  assert.match(migration, /status in \('new', 'reviewed', 'needs_clarification', 'needs_review'\)/);
+  assert.match(migration, /promoted_direct_report_id is null/);
+  assert.match(migration, /grant execute on function public\.scouting_backfill_unpromoted_submissions\(\) to authenticated/);
+  assert.doesNotMatch(migration, /raise notice[^;]*(scouting_report|strengths_weaknesses)/i);
+  assert.doesNotMatch(migration, /0067_utr|utr_background/i);
+  assert.doesNotMatch(migration, /grant execute[^\n]+to anon/);
+  // 0068 file must remain the promotion foundation (not rewritten by 0069 work)
+  assert.match(migration0068, /Submission → main Scouting promotion/);
+  assert.doesNotMatch(migration0068, /scouting_backfill_unpromoted_submissions/);
+
+  const workspace = readFileSync(
+    fileURLToPath(new URL("./components/ScoutingWorkspace.tsx", import.meta.url)),
+    "utf8",
+  );
+  assert.match(workspace, /Reprocess unpromoted submissions/);
+  assert.match(workspace, /data-scouting-reprocess-unpromoted/);
+  assert.match(workspace, /reprocessUnpromotedSubmissionsAction/);
 });
