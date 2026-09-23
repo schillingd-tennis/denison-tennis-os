@@ -15,7 +15,7 @@ const text=`Friday, September 18 — Singles
 test('Friday Invite paste resolves all seven players and preserves results',()=>{
  const draft=parseTournamentResults({text,roster,referenceDate:'2026-09-18',seasonYear:2027});
  assert.equal(draft.results.length,7);assert.equal(draft.title,null);assert.deepEqual(draft.flags,[]);
- draft.results.forEach((row,i)=>{assert.equal(row.denisonA.personId,String(i));assert.equal(row.matchDate,'2026-09-18');assert.equal(row.winnerSide,'denison');assert.equal(row.opponentSchool,'KEN');assert.equal(row.scoreSets.length,2);});
+ draft.results.forEach((row,i)=>{assert.equal(row.denisonA.personId,String(i));assert.equal(row.matchDate,'2026-09-18');assert.equal(row.winnerSide,'denison');assert.equal(row.opponentSchool,'Kenyon College');assert.equal(row.scoreSets.length,2);});
  assert.equal(draft.results[0]!.opponentAName,'Alejandro González');
  assert.equal(draft.results[0]!.scoreText,'6-4, 7-5');
 });

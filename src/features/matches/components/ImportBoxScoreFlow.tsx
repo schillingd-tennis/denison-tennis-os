@@ -28,6 +28,7 @@ import {
   scheduleResultsFormat,
 } from "../scheduleLink";
 import { validateImportDraft } from "../validateDraft";
+import { resolveMatchSchoolName } from "../schoolNames";
 import type {
   DualImportDraft,
   MatchesImportDraft,
@@ -683,9 +684,33 @@ function TournamentReviewPanel({
                           />
                         ) : null}
                       </td>
-                      <td className="py-2 pr-2 text-text-secondary">
-                        {[row.opponentAName, row.opponentBName].filter(Boolean).join(" / ") || "—"}
-                        {row.opponentSchool ? ` (${row.opponentSchool})` : ""}
+                      <td className="min-w-52 py-2 pr-2 text-text-secondary">
+                        <span className="block">
+                          {[row.opponentAName, row.opponentBName].filter(Boolean).join(" / ") || "—"}
+                        </span>
+                        <label className="mt-1 block text-[10px] font-semibold tracking-wide uppercase">
+                          School
+                          <input
+                            value={row.opponentSchool ?? ""}
+                            onChange={(event) => {
+                              const results = [...draft.results];
+                              const opponentSchool = event.target.value || null;
+                              const school = resolveMatchSchoolName(opponentSchool);
+                              const flags = row.flags.filter((flag) => !flag.startsWith("Unknown school abbreviation "));
+                              if (school.needsConfirmation && opponentSchool) {
+                                flags.push(`Unknown school abbreviation ${opponentSchool} — enter the full school name before saving.`);
+                              }
+                              results[index] = { ...row, opponentSchool, flags };
+                              onChange({
+                                ...draft,
+                                results,
+                                flags: [...new Set(results.flatMap((result) => result.flags))],
+                              });
+                            }}
+                            placeholder="Enter full school name"
+                            className="mt-0.5 h-8 w-full rounded-control border border-border bg-surface px-2 text-xs font-normal normal-case tracking-normal text-text-primary outline-none focus:border-[var(--module-accent)]"
+                          />
+                        </label>
                       </td>
                       <td className="py-2 pr-2 tabular-nums">{row.scoreText ?? "—"}</td>
                       <td className="py-2 capitalize">{row.status}</td>

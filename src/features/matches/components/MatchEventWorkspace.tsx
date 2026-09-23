@@ -33,6 +33,7 @@ import {
   markMatchResultsCompleteAction,
   reopenMatchResultsEntryAction,
 } from "../actions";
+import { resolveMatchSchoolName } from "../schoolNames";
 import {
   eventDisplayTitle,
   formatTeamOutcome,
@@ -556,7 +557,9 @@ function ResultGroup({
             </span>
             <span className="text-text-secondary">
               {[row.opponentPlayerAName, row.opponentPlayerBName].filter(Boolean).join(" / ") || "—"}
-              {row.opponentSchool ? ` (${row.opponentSchool})` : ""}
+              {resolveMatchSchoolName(row.opponentSchool).name
+                ? ` (${resolveMatchSchoolName(row.opponentSchool).name})`
+                : ""}
             </span>
             <span className="tabular-nums">{row.scoreText ?? "—"}</span>
             <span className="font-semibold">

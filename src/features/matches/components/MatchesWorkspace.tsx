@@ -42,6 +42,7 @@ import {
   pairDisplayName,
   playerNameFor,
 } from "../display";
+import { resolveMatchSchoolName } from "../schoolNames";
 import {
   buildTeamCompetitionRows,
   competitionRowHref,
@@ -219,6 +220,7 @@ export default function MatchesWorkspace({
         result.opponentPlayerAName,
         result.opponentPlayerBName,
         result.opponentSchool,
+        resolveMatchSchoolName(result.opponentSchool).name,
         result.scoreText,
         result.drawName,
         result.roundLabel,
@@ -818,8 +820,8 @@ function ResultsTable({
                   <td className="px-4 py-3">{denison}</td>
                   <td className="px-4 py-3 text-text-secondary">
                     {opponent || "—"}
-                    {result.opponentSchool ? (
-                      <span className="block text-[11px]">{result.opponentSchool}</span>
+                    {resolveMatchSchoolName(result.opponentSchool).name ? (
+                      <span className="block text-[11px]">{resolveMatchSchoolName(result.opponentSchool).name}</span>
                     ) : null}
                   </td>
                   <td className="px-4 py-3 tabular-nums">{result.scoreText ?? "—"}</td>

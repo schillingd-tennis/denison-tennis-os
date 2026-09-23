@@ -1,5 +1,6 @@
 import { resultDate } from "./resultDate";
-import { detectResultStatusFromText, parseScoreSets } from "./scoreParse";
+import { detectResultStatusFromText, formatScoreSets, invertScoreSets, parseScoreSets } from "./scoreParse";
+import { isDenisonSchoolName, resolveMatchSchoolName } from "./schoolNames";
 import { splitPairNames, toDraftParticipant } from "./resolvePlayers";
 import type {
   MatchResultStatus,
@@ -140,6 +141,7 @@ function parseCompactResultLine(
   const denisonB = denisonPair ? toDraftParticipant(denisonPair[1], roster) : null;
   const opponentToken = match[3]!.trim();
   const schoolMatch = /\(([^)]+)\)\s*$/.exec(opponentToken);
+  const school = resolveMatchSchoolName(schoolMatch?.[1]);
   const opponentName = opponentToken.replace(/\s*\([^)]+\)\s*$/, "").trim();
   const opponentPair = splitPairNames(opponentName);
   const scoreRaw = match[4]!.trim();
@@ -153,6 +155,9 @@ function parseCompactResultLine(
   }
   if (Boolean(denisonPair) !== Boolean(opponentPair)) {
     rowFlags.push("Doubles pair needs review: both sides should have two players.");
+  }
+  if (school.needsConfirmation) {
+    rowFlags.push(`Unknown school abbreviation ${school.name} — enter the full school name before saving.`);
   }
   if ("error" in parsedScore) rowFlags.push(parsedScore.error);
   if (
@@ -175,7 +180,7 @@ function parseCompactResultLine(
     denisonB,
     opponentAName: opponentPair?.[0] ?? opponentName,
     opponentBName: opponentPair?.[1] ?? null,
-    opponentSchool: schoolMatch?.[1]?.trim() ?? null,
+    opponentSchool: school.name,
     status: "completed",
     winnerSide: match[2]!.toUpperCase() === "W" ? "denison" : "opponent",
     scoreText: "error" in parsedScore ? scoreRaw : parsedScore.scoreText,
@@ -277,6 +282,11 @@ export function parseTournamentResults(input: {
       if (winnerSide === "denison") winnerSide = "opponent";
       else if (winnerSide === "opponent") winnerSide = "denison";
     }
+    const resolvedSchool = resolveMatchSchoolName(opponentSchool);
+    opponentSchool = resolvedSchool.name;
+    if (resolvedSchool.needsConfirmation) {
+      rowFlags.push(`Unknown school abbreviation ${resolvedSchool.name} — enter the full school name before saving.`);
+    }
 
     let discipline: "singles" | "doubles" = /doubles/i.test(line) ? "doubles" : "singles";
     let denisonAName = left;
@@ -330,6 +340,8 @@ export function parseTournamentResults(input: {
     flags.push(...rowFlags);
   }
 
+  const expandedResults = expandTournamentPlayerResults(results, input.roster);
+
   return {
     kind: "tournament",
     title,
@@ -338,12 +350,53 @@ export function parseTournamentResults(input: {
     startDate,
     endDate,
     locationText: null,
-    results,
-    confidence: results.length > 0 ? 0.7 : 0.3,
+    results: expandedResults,
+    confidence: expandedResults.length > 0 ? 0.7 : 0.3,
     interpretation:
-      results.length > 0
-        ? `Tournament draft with ${results.length} result(s) — no team W/L invented`
+      expandedResults.length > 0
+        ? `Tournament draft with ${expandedResults.length} player result(s) — no team W/L invented`
         : "No tournament results detected — review or enter manually",
-    flags: [...new Set(flags)],
+    flags: [...new Set(expandedResults.flatMap((row) => row.flags))],
   };
+}
+
+export function expandTournamentPlayerResults(
+  results: readonly TournamentDraftResult[],
+  roster: readonly RosterPlayer[],
+): TournamentDraftResult[] {
+  return results.flatMap((row) => {
+    const school = resolveMatchSchoolName(row.opponentSchool);
+    const normalizedRow = { ...row, opponentSchool: school.name };
+    if (school.needsConfirmation && !normalizedRow.flags.some((flag) => flag.includes("Unknown school abbreviation"))) {
+      normalizedRow.flags = [
+        ...normalizedRow.flags,
+        `Unknown school abbreviation ${school.name} — enter the full school name before saving.`,
+      ];
+    }
+    const opponentA = normalizedRow.opponentAName ? toDraftParticipant(normalizedRow.opponentAName, roster) : null;
+    const opponentB = normalizedRow.opponentBName ? toDraftParticipant(normalizedRow.opponentBName, roster) : null;
+    const opponentSideResolved = opponentA?.resolution === "resolved" &&
+      (normalizedRow.discipline === "singles" || opponentB?.resolution === "resolved");
+    const distinctPlayers = opponentA?.personId !== normalizedRow.denisonA.personId &&
+      (!normalizedRow.denisonB || opponentB?.personId !== normalizedRow.denisonB.personId);
+    if (!opponentSideResolved || !distinctPlayers ||
+      (!isDenisonSchoolName(normalizedRow.opponentSchool) && !/\(DEN\)/i.test(normalizedRow.sourceExcerpt))) {
+      return [normalizedRow];
+    }
+
+    const invertedSets = invertScoreSets(normalizedRow.scoreSets);
+    const mirrored: TournamentDraftResult = {
+      ...normalizedRow,
+      denisonA: opponentA!,
+      denisonB: normalizedRow.discipline === "doubles" ? opponentB : null,
+      opponentAName: normalizedRow.denisonA.rawName,
+      opponentBName: normalizedRow.denisonB?.rawName ?? null,
+      opponentSchool: "Denison University",
+      winnerSide: normalizedRow.winnerSide === "denison" ? "opponent" :
+        normalizedRow.winnerSide === "opponent" ? "denison" : normalizedRow.winnerSide,
+      scoreSets: invertedSets,
+      scoreText: invertedSets.length > 0 ? formatScoreSets(invertedSets) : normalizedRow.scoreText,
+    };
+    return [normalizedRow, mirrored];
+  });
 }

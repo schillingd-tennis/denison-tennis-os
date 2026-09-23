@@ -1,4 +1,5 @@
 import { resultFingerprint } from "./scoreParse";
+import { resolveMatchSchoolName } from "./schoolNames";
 import type { DualImportDraft, MatchesImportDraft, TournamentImportDraft } from "./types";
 
 export type DraftValidation = {
@@ -43,6 +44,10 @@ function validateDual(
 
   const fingerprints = new Set<string>();
   for (const [index, row] of draft.results.entries()) {
+    const school = resolveMatchSchoolName(row.opponentSchool);
+    if (school.needsConfirmation) {
+      errors.push(`Row ${index + 1}: enter the full school name for abbreviation ${school.name}.`);
+    }
     if (!row.denisonA.personId) {
       errors.push(
         `Row ${index + 1}: select a Denison player (ambiguous/unknown names cannot be saved silently).`,
@@ -87,6 +92,10 @@ function validateTournament(
 
   const fingerprints = new Set<string>();
   for (const [index, row] of draft.results.entries()) {
+    const school = resolveMatchSchoolName(row.opponentSchool);
+    if (school.needsConfirmation) {
+      errors.push(`Row ${index + 1}: enter the full school name for abbreviation ${school.name}.`);
+    }
     if (!row.denisonA.personId) {
       errors.push(`Row ${index + 1}: select a Denison player.`);
     }

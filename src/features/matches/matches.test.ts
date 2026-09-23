@@ -145,7 +145,8 @@ test("comma-separated W/L results parse all singles without AI", async () => {
     "opponent", "denison", "opponent", "denison", "denison",
   ]);
   assert.deepEqual(result.draft.results.map((row) => row.opponentSchool), [
-    "CMU", "CMU", "CWRU", "DPU", "DPU",
+    "Carnegie Mellon University", "Carnegie Mellon University",
+    "Case Western Reserve University", "DePauw University", "DePauw University",
   ]);
   assert.deepEqual(result.draft.results.map((row) => row.scoreText), [
     "5-7, 3-6", "7-5, 6-2", "2-6, 6-3, 6-10", "6-3, 6-4", "7-6(5), 7-5",
@@ -180,7 +181,9 @@ test("flattened Friday–Sunday doubles paste yields 15 dated, reviewable matche
   assert.equal(draft.results[10]?.winnerSide, "opponent");
   assert.equal(draft.results[9]?.scoreText, "7-6(5)");
   assert.equal(draft.results[9]?.scoreSets[0]?.winnerTb, 5);
-  assert.deepEqual(draft.results.map((row) => row.opponentSchool).slice(0, 4), ["KEN", "KEN", "KEN", "KEN"]);
+  assert.deepEqual(draft.results.map((row) => row.opponentSchool).slice(0, 4), [
+    "Kenyon College", "Kenyon College", "Kenyon College", "Kenyon College",
+  ]);
   assert.deepEqual(draft.flags, ["Loss score orientation needs review; the pasted score is preserved as written."]);
   const review = validateImportDraft(draft, { scheduleLinked: true });
   assert.equal(review.ok, true);
@@ -195,6 +198,58 @@ test("doubles reversed names share pair key", () => {
   assert.ok(row!.denisonB?.personId);
   const key = doublesPairKey(row!.denisonA.personId!, row!.denisonB!.personId!);
   assert.equal(key, doublesPairKey(row!.denisonB!.personId!, row!.denisonA.personId!));
+});
+
+test("unknown school abbreviations are preserved and explicitly require confirmation", () => {
+  const draft = parseTournamentResults({
+    text: "Nick Meyers, W, Alex Player (XYZ), 6-3, 6-2",
+    roster: [{ id: "nick", firstName: "Nick", lastName: "Meyers" }],
+  });
+  assert.equal(draft.results[0]?.opponentSchool, "XYZ");
+  assert.ok(draft.flags.some((flag) => flag.includes("Unknown school abbreviation XYZ")));
+  const validation = validateImportDraft(draft, { scheduleLinked: true });
+  assert.equal(validation.ok, false);
+  assert.ok(validation.errors.some((error) => error.includes("full school name for abbreviation XYZ")));
+});
+
+test("Denison-versus-Denison tournament singles creates a record for both players", () => {
+  const roster = [
+    { id: "nick", firstName: "Nick", lastName: "Meyers" },
+    { id: "mason", firstName: "Mason", lastName: "Conlin" },
+  ];
+  const draft = parseTournamentResults({
+    text: "Nick Meyers (DEN) def. Mason Conlin (DEN) 6-4, 7-5",
+    roster,
+    referenceDate: "2026-09-18",
+  });
+  assert.equal(draft.results.length, 2);
+  assert.deepEqual(draft.results.map((row) => row.denisonA.personId), ["nick", "mason"]);
+  assert.deepEqual(draft.results.map((row) => row.winnerSide), ["denison", "opponent"]);
+  assert.deepEqual(draft.results.map((row) => row.opponentAName), ["Mason Conlin", "Nick Meyers"]);
+  assert.deepEqual(draft.results.map((row) => row.opponentSchool), ["Denison University", "Denison University"]);
+  assert.deepEqual(draft.results.map((row) => row.scoreText), ["6-4, 7-5", "4-6, 5-7"]);
+});
+
+test("Denison-versus-Denison tournament doubles creates a record for both teams", () => {
+  const roster = [
+    { id: "nick", firstName: "Nick", lastName: "Meyers" },
+    { id: "chika", firstName: "Chika", lastName: "Nwaozuzu" },
+    { id: "mason", firstName: "Mason", lastName: "Conlin" },
+    { id: "aidan", firstName: "Aidan", lastName: "Borosko" },
+  ];
+  const draft = parseTournamentResults({
+    text: "Meyers / Nwaozuzu, W, Conlin / Borosko (DEN), 6-4",
+    roster,
+    referenceDate: "2026-09-18",
+  });
+  assert.equal(draft.results.length, 2);
+  assert.deepEqual(draft.results.map((row) => [row.denisonA.personId, row.denisonB?.personId]), [
+    ["nick", "chika"],
+    ["mason", "aidan"],
+  ]);
+  assert.deepEqual(draft.results.map((row) => row.winnerSide), ["denison", "opponent"]);
+  assert.deepEqual(draft.results.map((row) => row.scoreText), ["6-4", "4-6"]);
+  assert.ok(draft.results.every((row) => row.opponentSchool === "Denison University"));
 });
 
 test("ambiguous Nguyen requires manual select", () => {

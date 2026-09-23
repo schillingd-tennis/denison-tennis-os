@@ -10,6 +10,7 @@ import { modulePrimaryButtonClassSm } from "@/components/module-theme";
 
 import { correctPlayerMatchResultAction } from "../playerRecordActions";
 import { eventDisplayTitle, playerNameFor } from "../display";
+import { resolveMatchSchoolName } from "../schoolNames";
 import { MATCH_RESULT_STATUSES, type MatchEvent, type MatchResult, type MatchResultStatus, type RosterPlayer, type WinnerSide } from "../types";
 import DeleteMatchResultButton from "./DeleteMatchResultButton";
 
@@ -20,7 +21,7 @@ function initialForm(row: HistoryRow, playerId: string) {
     matchDate: row.matchDate ?? row.event.startDate,
     opponentPlayerAName: row.opponentPlayerAName ?? "",
     opponentPlayerBName: row.opponentPlayerBName ?? "",
-    opponentSchool: row.opponentSchool ?? "",
+    opponentSchool: resolveMatchSchoolName(row.opponentSchool).name ?? "",
     status: row.status,
     winnerSide: row.winnerSide,
     scoreText: row.scoreText ?? "",
@@ -92,7 +93,7 @@ export default function PlayerResultRow({ row, playerId, roster, showPartnerColu
             <span className="mt-0.5 block text-xs text-text-secondary">Partner: {playerNameFor(row.partnerId, roster)}</span>
           ) : null}
         </td>
-        <td className="px-4 py-3 text-text-secondary">{row.opponentSchool ?? "—"}</td>
+        <td className="px-4 py-3 text-text-secondary">{resolveMatchSchoolName(row.opponentSchool).name ?? "—"}</td>
         <td className="px-4 py-3 font-semibold">
           {row.winnerSide === "denison" ? "W" : row.winnerSide === "opponent" ? "L" : "—"}
           {row.status !== "completed" ? <span className="mt-0.5 block text-xs font-normal text-text-secondary">{row.status}</span> : null}

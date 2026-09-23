@@ -7,6 +7,7 @@ import {
 
 import { formatRecord } from "./scoringRules";
 import { rosterPlayerDisplayName } from "./resolvePlayers";
+import { resolveMatchSchoolName } from "./schoolNames";
 import {
   MATCHES_TABS,
   type MatchEvent,
@@ -68,8 +69,9 @@ export function formatTeamOutcome(outcome: TeamOutcome | null): string {
 
 export function formatOpponentLine(result: MatchResult): string {
   const names = [result.opponentPlayerAName, result.opponentPlayerBName].filter(Boolean).join(" / ");
-  if (!names) return result.opponentSchool ?? "—";
-  return result.opponentSchool ? `${names} (${result.opponentSchool})` : names;
+  const school = resolveMatchSchoolName(result.opponentSchool).name;
+  if (!names) return school ?? "—";
+  return school ? `${names} (${school})` : names;
 }
 
 export function playerNameFor(

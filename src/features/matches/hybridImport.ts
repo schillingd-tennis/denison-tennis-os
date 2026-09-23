@@ -11,7 +11,7 @@ import {
   calculateDualTeamScores,
   teamOutcomeFromScores,
 } from "./scoringRules";
-import { parseTournamentResults } from "./tournamentParse";
+import { expandTournamentPlayerResults, parseTournamentResults } from "./tournamentParse";
 import type {
   DualDraftLineResult,
   DualImportDraft,
@@ -320,6 +320,7 @@ function mergeTournamentAi(
     };
   });
 
+  const expandedResults = expandTournamentPlayerResults(results, roster);
   return {
     kind: "tournament",
     title: ai.title ?? base.title,
@@ -328,9 +329,9 @@ function mergeTournamentAi(
     startDate: ai.startDate ?? base.startDate,
     endDate: ai.endDate ?? base.endDate,
     locationText: ai.locationText ?? base.locationText,
-    results,
+    results: expandedResults,
     confidence: ai.confidence,
     interpretation: ai.interpretation,
-    flags: [...new Set(results.flatMap((r) => r.flags))],
+    flags: [...new Set(expandedResults.flatMap((r) => r.flags))],
   };
 }
