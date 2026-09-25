@@ -10,8 +10,10 @@ const read = (path: string) => readFileSync(join(here, path), "utf8");
 describe("provider-neutral outbound acquisition architecture", () => {
   const sectionSource = read("components/UtrAutomaticCheckSection.tsx");
   const statusSource = read("components/UtrBackgroundStatus.tsx");
+  const statusChipSource = read("components/TodayBetaAgentStatusChip.tsx");
   const actionsSource = read("backgroundActions.ts");
   const backgroundSource = read("../../../../local-agents/utr-results-agent/src/background.ts");
+  const runCheckSource = read("../../../../local-agents/utr-results-agent/src/runCheck.ts");
   const serverSource = read("../../../../local-agents/utr-results-agent/src/server.ts");
 
   it("hosted UI queues work through Supabase and never calls localhost", () => {
@@ -20,6 +22,12 @@ describe("provider-neutral outbound acquisition architecture", () => {
     assert.match(actionsSource, /request_tennis_data_job/);
     assert.doesNotMatch(sectionSource, /localhost|requestUtrAgentCheckFromBrowser/);
     assert.doesNotMatch(statusSource, /localhost|requestUtrAgentCheckFromBrowser/);
+    assert.match(statusChipSource, /getAcquisitionProviderStatus\("utr"\)/);
+    assert.doesNotMatch(statusChipSource, /localhost|fetchUtrAgentHealthFromBrowser/);
+  });
+
+  it("refreshes server-rendered KPIs when a queued job finishes", () => {
+    assert.match(statusSource, /router\.refresh\(\)/);
   });
 
   it("worker claims durable jobs outbound and retains the existing UTR adapter", () => {
@@ -27,6 +35,10 @@ describe("provider-neutral outbound acquisition architecture", () => {
     assert.match(backgroundSource, /PROVIDER = "utr"/);
     assert.match(backgroundSource, /runRecruitChecks/);
     assert.match(backgroundSource, /importSingleUtrAgentRecruitResult/);
+  });
+
+  it("reopens the saved browser profile after UTR reauthentication", () => {
+    assert.match(runCheckSource, /finally\s*{[\s\S]*await closePersistentContext\(\)/);
   });
 
   it("provider status distinguishes connectivity from authentication", () => {

@@ -1,5 +1,10 @@
 import { checkRecruit } from "./checkRecruit.js";
-import { getPersistentContext, isAgentBusy, setAgentBusy } from "./browser.js";
+import {
+  closePersistentContext,
+  getPersistentContext,
+  isAgentBusy,
+  setAgentBusy,
+} from "./browser.js";
 import { isDebugBrowser, ISAAC_UTR_PLAYER_ID, PAUSE_BETWEEN_RECRUITS_MS } from "./config.js";
 import { logRecruitDiagnostics } from "./logger.js";
 import type {
@@ -84,7 +89,13 @@ export async function runRecruitChecks(
       }
     }
   } finally {
-    setAgentBusy(false);
+    // Release the profile lock and force the next job to load any cookies saved
+    // by a subsequent interactive `npm run utr:login` session.
+    try {
+      await closePersistentContext();
+    } finally {
+      setAgentBusy(false);
+    }
   }
 
   const finishedAt = new Date().toISOString();

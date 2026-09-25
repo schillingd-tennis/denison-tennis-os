@@ -1,24 +1,35 @@
 "use client";
 
 import { ShieldCheck } from "lucide-react";
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 
-import { fetchUtrAgentHealthFromBrowser } from "../utrAgentBrowserClient";
+import { getAcquisitionProviderStatus } from "../backgroundActions";
+
+const ONLINE_WINDOW_MS = 2 * 60_000;
 
 export default function TodayBetaAgentStatusChip() {
   const [online, setOnline] = useState<boolean | null>(null);
-  const [, startTransition] = useTransition();
-
-  const refresh = useCallback(() => {
-    startTransition(async () => {
-      const health = await fetchUtrAgentHealthFromBrowser();
-      setOnline(health.online);
-    });
-  }, []);
 
   useEffect(() => {
+    let active = true;
+    function refresh() {
+      void getAcquisitionProviderStatus("utr")
+        .then((status) => {
+          if (!active) return;
+          const heartbeatAt = status.heartbeat_at
+            ? Date.parse(status.heartbeat_at)
+            : Number.NaN;
+          setOnline(Number.isFinite(heartbeatAt) && Date.now() - heartbeatAt < ONLINE_WINDOW_MS);
+        })
+        .catch(() => active && setOnline(false));
+    }
     refresh();
-  }, [refresh]);
+    const timer = window.setInterval(refresh, 15_000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, []);
 
   return (
     <div className="flex items-center gap-2 text-xs">

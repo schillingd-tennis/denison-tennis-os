@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 import {
   getAcquisitionProviderStatus,
@@ -9,21 +10,34 @@ import {
 } from "../backgroundActions";
 
 const ONLINE_WINDOW_MS = 2 * 60_000;
+type AcquisitionJobStatus = NonNullable<AcquisitionProviderStatus["job"]>["status"];
 
 function displayTimestamp(value: string | null): string | null {
   return value ? new Date(value).toLocaleString() : null;
 }
 
 export default function UtrBackgroundStatus() {
+  const router = useRouter();
   const [status, setStatus] = useState<AcquisitionProviderStatus | null>(null);
   const [statusCheckedAt, setStatusCheckedAt] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const previousJobStatus = useRef<AcquisitionJobStatus | null>(null);
 
   function applyStatus(nextStatus: AcquisitionProviderStatus) {
+    const previous = previousJobStatus.current;
+    const next = nextStatus.job?.status ?? null;
     setStatus(nextStatus);
     setStatusCheckedAt(Date.now());
     setError(null);
+    previousJobStatus.current = next;
+    if (
+      (previous === "queued" || previous === "running") &&
+      next !== "queued" &&
+      next !== "running"
+    ) {
+      router.refresh();
+    }
   }
 
   useEffect(() => {
