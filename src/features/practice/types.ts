@@ -1,9 +1,10 @@
-export type PracticeTab = "daily-plan" | "drills" | "dates-of-competition" | "114-day-tracker" | "practice-log";
+export type PracticeTab = "daily-plan" | "drills" | "dates-of-competition" | "114-day-tracker" | "calendar" | "practice-log";
 
 export const PRACTICE_TABS: { id: PracticeTab; label: string }[] = [
   { id: "daily-plan", label: "Daily Plan" },
   { id: "drills", label: "Drill Library" },
   { id: "114-day-tracker", label: "114-Day Tracker" },
+  { id: "calendar", label: "Calendar" },
   { id: "dates-of-competition", label: "Dates of Competition" },
   { id: "practice-log", label: "Practice Log" },
 ];
@@ -22,7 +23,7 @@ export type PracticeDrill = {
 export type PracticeDay = { id: string; date: string; notes: string };
 export type DayRuleDay = { date: string; sources: { type: "practice" | "competition"; label: string }[] };
 export type DayBudgetRow = { month: number; label: string; budget: number; budgetToDate: number; used: number; usedToDate: number; variance: number; varianceToDate: number; days: DayRuleDay[] };
-export type DayRuleSummary = { limit: number; budgetTotal: number; budgetToDate: number; used: number; usedToDate: number; remaining: number; varianceToDate: number; rows: DayBudgetRow[] };
+export type DayRuleSummary = { limit: number; budgetTotal: number; budgetToDate: number; used: number; usedToDate: number; remaining: number; varianceToDate: number; yearToDateBudget: number; yearToDateUsed: number; yearToDateVariance: number; rows: DayBudgetRow[] };
 
 export type DailyPracticePlan = {
   id: string;

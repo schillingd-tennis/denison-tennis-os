@@ -15,6 +15,7 @@ import ModuleSectionTabs from "@/components/ModuleSectionTabs";
 import { PRACTICE_TABS, type PracticeCompetitionDate, type PracticeDrill, type PracticeTab } from "../types";
 import type { DailyPracticePlan, DayRuleSummary } from "../types";
 import DayRuleTracker from "./DayRuleTracker";
+import DayRuleCalendar from "./DayRuleCalendar";
 import DailyPlanBuilder from "./DailyPlanBuilder";
 import EditableDrillLibrary from "./DrillLibrary";
 
@@ -153,6 +154,7 @@ export default function PracticeDashboard({ drills, competitionDates, dayRule, p
     {activeTab === "drills" ? <EditableDrillLibrary drills={drills} plans={plans}/> : null}
     {activeTab === "dates-of-competition" ? <CompetitionDates dates={competitionDates}/> : null}
     {activeTab === "114-day-tracker" ? <DayRuleTracker summary={dayRule} plans={plans} onOpenPlan={(id) => { setNewPlanDate(null); setOpenedPlanId(id); setActiveTab("daily-plan"); }} onAddPlan={(date) => { setOpenedPlanId(null); setNewPlanDate(date ?? null); setActiveTab("daily-plan"); }}/> : null}
+    {activeTab === "calendar" ? <DayRuleCalendar summary={dayRule}/> : null}
     {activeTab === "practice-log" ? <PracticeLog plans={plans} dayRule={dayRule} onOpenPlan={(id) => { setNewPlanDate(null); setOpenedPlanId(id); setActiveTab("daily-plan"); }}/> : null}
   </ModulePageShell>;
 }

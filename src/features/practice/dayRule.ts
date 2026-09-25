@@ -47,5 +47,32 @@ export function calculateDayRule(practices: (string | { date: string; label?: st
     return { month, label, budget, budgetToDate, used, usedToDate, variance: budget - used, varianceToDate: budgetToDate - usedToDate, days };
   });
   const used = usedDates.length; const budgetTotal = rows.reduce((sum, row) => sum + row.budget, 0); const budgetToDate = rows.reduce((sum, row) => sum + row.budgetToDate, 0); const usedToDate = usedDates.filter((date) => date <= today).length;
-  return { limit: DAY_RULE_LIMIT, budgetTotal, budgetToDate, used, usedToDate, remaining: DAY_RULE_LIMIT - used, varianceToDate: budgetToDate - usedToDate, rows };
+  const yearToDateRows = currentBudgetIndex >= 0
+    ? rows.slice(0, currentBudgetIndex + 1)
+    : currentMonth >= 5 && currentMonth <= 7
+      ? rows
+      : [];
+  const yearToDateBudget = yearToDateRows.reduce((sum, row) => sum + row.budget, 0);
+  const yearToDateUsed = yearToDateRows.reduce(
+    (sum, row) =>
+      sum + row.days.filter(
+        (day) =>
+          day.date <= today ||
+          day.sources.some((source) => source.type === "competition"),
+      ).length,
+    0,
+  );
+  return {
+    limit: DAY_RULE_LIMIT,
+    budgetTotal,
+    budgetToDate,
+    used,
+    usedToDate,
+    remaining: DAY_RULE_LIMIT - used,
+    varianceToDate: budgetToDate - usedToDate,
+    yearToDateBudget,
+    yearToDateUsed,
+    yearToDateVariance: yearToDateBudget - yearToDateUsed,
+    rows,
+  };
 }
