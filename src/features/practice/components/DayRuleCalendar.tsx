@@ -82,7 +82,7 @@ export default function DayRuleCalendar({ summary }: { summary: DayRuleSummary }
 
   return (
     <div className="grid gap-3">
-      <section className="grid gap-3 sm:grid-cols-3">
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-card border border-border bg-surface p-4 shadow-sm">
           <p className="text-[10px] font-semibold tracking-wide text-text-secondary uppercase">{row.label} budget</p>
           <p className="mt-1 text-2xl font-semibold tabular-nums">{row.budget} days</p>
@@ -97,6 +97,11 @@ export default function DayRuleCalendar({ summary }: { summary: DayRuleSummary }
           <p className="text-[10px] font-semibold tracking-wide uppercase">Month +/−</p>
           <p className="mt-1 text-2xl font-semibold tabular-nums">{signed(monthVariance)}</p>
           <p className="mt-1 text-xs">Upcoming DOCs included</p>
+        </div>
+        <div className={`rounded-card border p-4 shadow-sm ${summary.yearToDateVariance < 0 ? "border-red-200 bg-red-50 text-danger" : "border-emerald-200 bg-emerald-50 text-success"}`}>
+          <p className="text-[10px] font-semibold tracking-wide uppercase">Year-to-date +/−</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums">{signed(summary.yearToDateVariance)}</p>
+          <p className="mt-1 text-xs">Positive means under budget</p>
         </div>
       </section>
 
