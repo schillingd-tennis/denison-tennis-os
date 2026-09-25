@@ -4,126 +4,40 @@ import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import {
-  isAllowedUtrAgentBrowserOrigin,
-  UTR_AGENT_ALLOWED_BROWSER_ORIGINS,
-} from "./utrAgentAllowedOrigins";
-
 const here = dirname(fileURLToPath(import.meta.url));
+const read = (path: string) => readFileSync(join(here, path), "utf8");
 
-describe("UTR agent browser architecture", () => {
-  const actionsSource = readFileSync(join(here, "actions.ts"), "utf8");
-  const utrAgentRunSource = readFileSync(join(here, "utrAgentRun.ts"), "utf8");
-  const sectionSource = readFileSync(
-    join(here, "components/UtrAutomaticCheckSection.tsx"),
-    "utf8",
-  );
-  const browserClientSource = readFileSync(join(here, "utrAgentBrowserClient.ts"), "utf8");
-  const agentConfigSource = readFileSync(join(here, "utrAgentConfig.ts"), "utf8");
-  const importRouteSource = readFileSync(
-    join(here, "../../../app/api/recruiting/today-beta/utr-agent-import/route.ts"),
-    "utf8",
-  );
-  const agentServerSource = readFileSync(
-    join(here, "../../../../local-agents/utr-results-agent/src/server.ts"),
-    "utf8",
-  );
-  const agentRequestHandlerSource = readFileSync(
-    join(here, "../../../../local-agents/utr-results-agent/src/requestHandler.ts"),
-    "utf8",
-  );
-  const agentConfigSourceAgent = readFileSync(
-    join(here, "../../../../local-agents/utr-results-agent/src/config.ts"),
-    "utf8",
-  );
-  const gitignoreSource = readFileSync(join(here, "../../../../.gitignore"), "utf8");
-  const agentCorsSource = readFileSync(
-    join(here, "../../../../local-agents/utr-results-agent/src/cors.ts"),
-    "utf8",
-  );
+describe("provider-neutral outbound acquisition architecture", () => {
+  const sectionSource = read("components/UtrAutomaticCheckSection.tsx");
+  const statusSource = read("components/UtrBackgroundStatus.tsx");
+  const actionsSource = read("backgroundActions.ts");
+  const backgroundSource = read("../../../../local-agents/utr-results-agent/src/background.ts");
+  const serverSource = read("../../../../local-agents/utr-results-agent/src/server.ts");
 
-  it("1. production health check is client-side", () => {
-    assert.match(sectionSource, /fetchUtrAgentHealthFromBrowser/);
-    assert.doesNotMatch(sectionSource, /result\.data\.online/);
+  it("hosted UI queues work through Supabase and never calls localhost", () => {
+    assert.match(sectionSource, /UtrBackgroundStatus/);
+    assert.match(statusSource, /queueAcquisitionJob\("utr"\)/);
+    assert.match(actionsSource, /request_tennis_data_job/);
+    assert.doesNotMatch(sectionSource, /localhost|requestUtrAgentCheckFromBrowser/);
+    assert.doesNotMatch(statusSource, /localhost|requestUtrAgentCheckFromBrowser/);
   });
 
-  it("2. browser client calls loopback agent over HTTPS with CORS", () => {
-    assert.match(agentConfigSource, /https:\/\/localhost:4317/);
-    assert.doesNotMatch(agentConfigSource, /http:\/\/127\.0\.0\.1:4317/);
-    assert.match(browserClientSource, /UTR_AGENT_BASE_URL/);
-    assert.match(browserClientSource, /mode: "cors"/);
-    assert.match(browserClientSource, /\/health/);
-    assert.match(browserClientSource, /\/check-recruits/);
-    assert.match(browserClientSource, /errorSummary/);
-    assert.match(browserClientSource, /agentStartedAt/);
+  it("worker claims durable jobs outbound and retains the existing UTR adapter", () => {
+    assert.match(backgroundSource, /claim_tennis_data_job/);
+    assert.match(backgroundSource, /PROVIDER = "utr"/);
+    assert.match(backgroundSource, /runRecruitChecks/);
+    assert.match(backgroundSource, /importSingleUtrAgentRecruitResult/);
   });
 
-  it("3. Vercel server does NOT call localhost agent for checks", () => {
-    assert.doesNotMatch(actionsSource, /fetchUtrAgentHealth\(\)/);
-    assert.match(utrAgentRunSource, /Vercel cannot reach the local agent/);
-    assert.doesNotMatch(sectionSource, /runUtrAutomaticCheckAction/);
+  it("provider status distinguishes connectivity from authentication", () => {
+    assert.match(statusSource, /auth_status === "reauth_required"/);
+    assert.match(statusSource, /heartbeat_at/);
+    assert.match(statusSource, /TRN and WTN adapters: not configured/);
   });
 
-  it("4–6. allowed CORS origins include local dev and production", () => {
-    assert.ok(isAllowedUtrAgentBrowserOrigin("http://localhost:3000"));
-    assert.ok(isAllowedUtrAgentBrowserOrigin("http://localhost:3001"));
-    assert.ok(isAllowedUtrAgentBrowserOrigin("https://denison-tennis-os.vercel.app"));
-    assert.equal(isAllowedUtrAgentBrowserOrigin("https://evil.example"), false);
-    assert.match(agentCorsSource, /denison-tennis-os\.vercel\.app/);
-    for (const origin of UTR_AGENT_ALLOWED_BROWSER_ORIGINS) {
-      assert.match(agentCorsSource, new RegExp(origin.replace(/\./g, "\\.")));
-    }
-  });
-
-  it("7. agent rejects disallowed browser origin on OPTIONS", () => {
-    assert.match(agentRequestHandlerSource, /req\.method === "OPTIONS"/);
-    assert.match(agentRequestHandlerSource, /Origin not allowed/);
-  });
-
-  it("8. production import endpoint requires authenticated Denison user", () => {
-    assert.match(importRouteSource, /getUser\(\)/);
-    assert.match(importRouteSource, /importSingleUtrAgentRecruitResult/);
-    assert.match(importRouteSource, /status: 401/);
-  });
-
-  it("9. browser posts one recruit at a time to same-origin import API", () => {
-    assert.match(sectionSource, /importSingleRecruitToDenison/);
-    assert.match(sectionSource, /UtrAutomaticCheckStrip/);
-    assert.match(sectionSource, /recruits: \[recruit\]/);
-  });
-
-  it("10. agent allows browser auth via Origin without exposing secret in client", () => {
-    assert.match(agentRequestHandlerSource, /isAuthorizedBrowserRequest/);
-    assert.doesNotMatch(browserClientSource, /UTR_AGENT_SECRET/);
-    assert.doesNotMatch(browserClientSource, /X-Denison-Utr-Agent-Secret/);
-  });
-
-  it("11. Check button enables when local agent is online; Refresh Status only re-probes health", () => {
-    assert.match(sectionSource, /agentOnline/);
-    const stripSource = readFileSync(join(here, "components/UtrAutomaticCheckStrip.tsx"), "utf8");
-    assert.match(stripSource, /disabled=\{busy \|\| !agentOnline/);
-    assert.match(stripSource, /Refresh Status/);
-    assert.doesNotMatch(stripSource, /Refresh Agent/);
-    assert.match(sectionSource, /fetchUtrAgentHealthFromBrowser/);
-  });
-
-  it("12–13. baseline import semantics and Rank Board cohort preserved in import pipeline", () => {
-    assert.match(utrAgentRunSource, /importUtrAgentCheckResults/);
-    assert.match(utrAgentRunSource, /processUtrAgentRecruitResult/);
-    assert.match(actionsSource, /getUtrAgentRecruitRequestsAction/);
-    assert.match(actionsSource, /countMonitoredRecruitsForBatch/);
-  });
-
-  it("14–16. local agent uses HTTPS with mkcert certs and gitignored storage", () => {
-    assert.match(agentServerSource, /createHttpsServer|node:https/);
-    assert.match(agentServerSource, /loadAgentTlsCredentials/);
-    assert.match(agentConfigSourceAgent, /utr-agent-cert\.pem/);
-    assert.match(agentConfigSourceAgent, /AGENT_PUBLIC_HOST = "localhost"/);
-    assert.match(agentConfigSourceAgent, /https:\/\/\$\{AGENT_PUBLIC_HOST\}/);
-    assert.match(gitignoreSource, /\.local\/utr-agent-cert\.pem/);
-    assert.match(gitignoreSource, /\.local\/utr-agent-key\.pem/);
-    assert.doesNotMatch(browserClientSource, /http:\/\/127\.0\.0\.1:4317/);
-    assert.match(agentRequestHandlerSource, /startedAt: AGENT_STARTED_AT/);
-    assert.match(agentRequestHandlerSource, /status: "online"/);
+  it("local HTTPS server remains an optional diagnostic surface, not the hosted path", () => {
+    assert.match(serverSource, /createHttpsServer|node:https/);
+    assert.match(serverSource, /startBackgroundWorker/);
+    assert.doesNotMatch(sectionSource, /fetchUtrAgentHealthFromBrowser/);
   });
 });

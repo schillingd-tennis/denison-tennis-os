@@ -27,6 +27,7 @@ export async function fetchUtrAgentHealthFromBrowser(): Promise<UtrAgentHealth> 
     const response = await fetch(`${UTR_AGENT_BASE_URL}/health`, {
       cache: "no-store",
       mode: "cors",
+      signal: AbortSignal.timeout(8_000),
     });
     if (!response.ok) {
       return {

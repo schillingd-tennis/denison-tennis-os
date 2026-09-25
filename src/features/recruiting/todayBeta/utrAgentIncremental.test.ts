@@ -87,6 +87,10 @@ describe("UTR incremental import", () => {
     "utf8",
   );
   const batchSource = readFileSync(join(here, "utrAgentIncrementalBatch.ts"), "utf8");
+  const backgroundSource = readFileSync(
+    join(here, "../../../../local-agents/utr-results-agent/src/background.ts"),
+    "utf8",
+  );
 
   it("1. batch sends one recruit to agent at a time", async () => {
     const isaac = recruitRequest("Isaac Lewis", "isaac");
@@ -126,17 +130,16 @@ describe("UTR incremental import", () => {
     assert.deepEqual(agentCalls, ["Isaac Lewis", "Finnegan Keenan"]);
   });
 
-  it("2. one recruit payload sent to Vercel at a time", async () => {
+  it("2. legacy incremental importer still sends one recruit at a time", async () => {
     assert.match(incrementalImportSource, /mode: "single"/);
-    assert.match(sectionSource, /UtrAutomaticCheckStrip/);
+    assert.match(sectionSource, /UtrBackgroundStatus/);
     assert.doesNotMatch(sectionSource, /JSON\.stringify\(\{ mode, agentResult \}\)/);
   });
 
-  it("3. UI progress updates after each recruit", async () => {
-    assert.match(sectionSource, /runIncrementalUtrAgentBatch/);
-    assert.match(sectionSource, /BatchProgressCard/);
+  it("3. hosted UI reads durable worker status instead of running browser acquisition", async () => {
+    assert.doesNotMatch(sectionSource, /runIncrementalUtrAgentBatch/);
+    assert.doesNotMatch(sectionSource, /requestUtrAgentCheckFromBrowser/);
     assert.match(sectionSource, /BatchRunSummaryBar/);
-    assert.match(sectionSource, /RecentActivityCard/);
   });
 
   it("4. first recruit saved before second recruit begins", async () => {
@@ -296,8 +299,8 @@ describe("UTR incremental import", () => {
   });
 
   it("11. no full-cohort raw payload is sent in one request", () => {
-    assert.match(sectionSource, /recruits: \[recruit\]/);
-    assert.doesNotMatch(sectionSource, /recruits: recruitRequests/);
+    assert.match(backgroundSource, /recruits: \[recruit\]/);
+    assert.doesNotMatch(backgroundSource, /recruits: recruitRequests/);
     assert.match(importRouteSource, /mode === "single"/);
     assert.match(importRouteSource, /recruits\?\.length !== 1/);
   });

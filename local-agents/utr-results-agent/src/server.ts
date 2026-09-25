@@ -40,3 +40,15 @@ server.listen(AGENT_PORT, AGENT_HOST, () => {
   console.log(`Agent secret file: .local/utr-agent-secret`);
   console.log(`HTTPS certificates: .local/utr-agent-cert.pem`);
 });
+
+// The explicit service flag keeps tests and ad-hoc diagnostic servers read-only.
+if (process.env.UTR_BACKGROUND_ENABLED === "true") {
+  void import("./background.js")
+    .then(({ startBackgroundWorker }) => startBackgroundWorker())
+    .catch(() => {
+      // Keep manual localhost checks available even if the hosted worker setup is incomplete.
+      console.error(
+        "Unable to start UTR background worker. Verify Keychain credentials and migration 0070.",
+      );
+    });
+}

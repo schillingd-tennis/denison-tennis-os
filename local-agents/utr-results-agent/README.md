@@ -1,6 +1,6 @@
 # UTR Results Agent (Local)
 
-This small program runs on your Mac and checks UTR match results for the five Today Beta recruits using your normal UTR login in a saved browser session.
+This small program runs on your Mac and checks UTR match results for configured Rank Board recruits using your normal UTR login in a saved browser session.
 
 Denison Tennis OS sends check requests to this agent. The agent reads UTR in the browser and returns match data. Denison OS imports results into Today Beta.
 
@@ -84,3 +84,20 @@ Run logs are in:
 - Start the agent: `npm run utr:agent` (fails with a setup hint if certificates are missing).
 - Checks run one recruit at a time — no scheduling yet.
 - TRN manual import remains available as fallback.
+
+## Start automatically at Mac login
+
+Run `bash macos/install-utr-results-agent.sh` from the repository root, after HTTPS setup.
+This installs a per-user LaunchAgent with automatic restart. It preserves the existing
+UTR browser profile and secret. Stop a manually started agent before installing, so
+port 4317 is available. Service logs are in `.local/utr-agent-logs/service.*.log`.
+
+The installed service checks once per Eastern calendar day after 7:00 a.m. and also
+accepts a manual queue request from Today Beta. If the Mac is asleep or offline at
+7:00 a.m., the check starts after it wakes and reconnects. The Mac must be logged in,
+and UTR may still require you to renew the saved browser login.
+
+The outbound worker requires production migration `0070_tennis_data_acquisition.sql`.
+That migration provides the shared UTR/TRN/WTN job queue, provider heartbeats, leases,
+progress, and safe errors. UTR is the first active adapter; TRN and WTN remain explicitly
+not configured until their authorized acquisition methods are connected.

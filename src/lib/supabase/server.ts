@@ -13,11 +13,14 @@
  * previously-valid session until the next request passes through proxy.
  */
 import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { workerSupabaseScope } from "./workerScope";
 
 import { getSupabaseEnv } from "./env";
 
 export async function createSupabaseServerClient() {
+  const workerClient = workerSupabaseScope.getStore();
+  if (workerClient) return workerClient;
+  const { cookies } = await import("next/headers");
   const cookieStore = await cookies();
   const { url, publishableKey } = getSupabaseEnv();
 
