@@ -71,16 +71,14 @@ export function classYearSelectOptions(years: readonly number[]): { value: strin
 }
 
 export function RecruitingTableColgroup({
-  variant = "directory",
+  variant = "rank",
 }: {
-  variant?: "directory" | "commit";
+  variant?: "rank" | "list" | "commit";
 }) {
   const C = RECRUITING_TABLE_COLUMNS;
   if (variant === "commit") {
     return (
       <colgroup>
-        <col style={{ width: C.handle }} />
-        <col style={{ width: C.rank }} />
         <col />
         <col style={{ width: C.classYear }} />
         <col style={{ width: C.pipeline }} />
@@ -88,6 +86,25 @@ export function RecruitingTableColgroup({
         <col style={{ width: C.tier }} />
         <col style={{ width: C.outcome }} />
         <col style={{ width: C.schoolChosen }} />
+        <col style={{ width: C.utr }} />
+        <col style={{ width: C.trn }} />
+        <col style={{ width: C.wtn }} />
+        <col style={{ width: C.rankAction }} />
+        <col style={{ width: C.contact }} />
+      </colgroup>
+    );
+  }
+
+  if (variant === "list") {
+    return (
+      <colgroup>
+        <col />
+        <col style={{ width: C.classYear }} />
+        <col style={{ width: C.pipeline }} />
+        <col style={{ width: C.priority }} />
+        <col style={{ width: C.tier }} />
+        <col style={{ width: C.interest }} />
+        <col style={{ width: C.outcome }} />
         <col style={{ width: C.utr }} />
         <col style={{ width: C.trn }} />
         <col style={{ width: C.wtn }} />

@@ -53,7 +53,7 @@ import RecruitingKpiRow from "./RecruitingKpiRow";
 const RECRUITING_VIEW_OPTIONS = [
   { value: "cards" as const, label: "Cards", icon: LayoutGrid },
   { value: "list" as const, label: "List", icon: List },
-  { value: "rank" as const, label: "Rank", icon: ListOrdered },
+  { value: "rank" as const, label: "Board", icon: ListOrdered },
   { value: "commit" as const, label: "Commit", icon: GraduationCap },
   { value: "metrics" as const, label: "Metrics", icon: BarChart3 },
 ];

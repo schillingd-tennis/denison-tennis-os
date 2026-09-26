@@ -131,6 +131,12 @@ test("LOCKED RECRUIT LAYOUT: Schools of Interest remains in the right-side Recru
   );
 });
 
+test("Recruit School Chosen is shown in the header and Personal Info recruiting status", () => {
+  assert.match(summarySlots, /field="schoolChosen"/);
+  assert.match(personalAw, /aria-label="Recruiting status"[\s\S]*field="schoolChosen"/);
+  assert.doesNotMatch(academicsAw, /field="schoolChosen"/);
+});
+
 test("LOCKED RECRUIT LAYOUT: summary fields are not moved into an Adaptive Workspace", () => {
   assert.doesNotMatch(
     academicsAw,

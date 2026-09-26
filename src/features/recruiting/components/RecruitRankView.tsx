@@ -28,6 +28,7 @@ import {
   resolveRankClassYearFromFilters,
 } from "../coachRank/classYear";
 import type { RecruitDirectoryRow } from "../directory";
+import { RECRUIT_OUTCOME_KEYS } from "../lookupSeed";
 import {
   readStoredRecruitingRankClassYear,
   subscribeRecruitingRankClassYear,
@@ -644,6 +645,9 @@ function RankBoardSequenceCard({
   const displayRank = row.profile.coachRank ?? null;
   const utrDisplay = formatUtr(row.person.utr);
   const isDragging = draggedPersonId === row.person.id;
+  const committedToDenison =
+    row.profile.outcome?.key === RECRUIT_OUTCOME_KEYS.committedDenison ||
+    row.profile.outcome?.label.trim().toLowerCase() === "committed to denison";
   const edit = { isEditing, fieldError, startEdit, cancelEdit, commit };
 
   return (
@@ -652,10 +656,13 @@ function RankBoardSequenceCard({
       data-person-id={row.person.id}
       data-tier-section={String(section)}
       data-section-index={String(sectionIndex)}
+      data-denison-commit={committedToDenison ? "true" : "false"}
       className={`flex items-center gap-2 rounded-control border p-2.5 transition ${
         isDragging
           ? "scale-[1.01] border-[var(--module-accent)] bg-white shadow-lg"
-          : "border-[color-mix(in_srgb,var(--module-accent)_35%,transparent)] bg-[var(--module-tint)]/55"
+          : committedToDenison
+            ? "border-emerald-300 bg-emerald-100 shadow-[inset_4px_0_0_#16a34a]"
+            : "border-[color-mix(in_srgb,var(--module-accent)_35%,transparent)] bg-[var(--module-tint)]/55"
       }`}
     >
       {reorderEnabled ? (
@@ -1267,4 +1274,3 @@ export default function RecruitRankView({
     </ViewChrome>
   );
 }
-

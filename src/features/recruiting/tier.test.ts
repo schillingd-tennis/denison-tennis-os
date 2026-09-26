@@ -170,6 +170,12 @@ describe("recruit board tier", () => {
     assert.match(rankViewSource, /commit/);
   });
 
+  it("shows Denison commits with a light-green Rank Board card", () => {
+    assert.match(rankViewSource, /RECRUIT_OUTCOME_KEYS\.committedDenison/);
+    assert.match(rankViewSource, /data-denison-commit/);
+    assert.match(rankViewSource, /border-emerald-300 bg-emerald-100/);
+  });
+
   it("filtered Rank Board disables reorder when ranked rows are hidden", () => {
     assert.match(rankViewSource, /ranked\.length === classRankedCount/);
     assert.match(rankViewSource, /reorderEnabled/);

@@ -751,6 +751,16 @@ export function RecruitingPersonalInfoWorkspace() {
               />
             </WorkspaceStatusStripItem>
           </WorkspaceStatusStrip>
+          <WorkspaceFieldGrid columns={3} className="mt-3">
+            <WorkspaceField label="School Chosen">
+              <RecruitProfileField
+                field="schoolChosen"
+                label="School Chosen"
+                type="text"
+                align="left"
+              />
+            </WorkspaceField>
+          </WorkspaceFieldGrid>
         </section>
       </div>
 
@@ -759,7 +769,7 @@ export function RecruitingPersonalInfoWorkspace() {
           <WorkspaceAccentHeading icon={MapPin} tone="neutral">
             Contact & location
           </WorkspaceAccentHeading>
-          <WorkspaceFieldGrid columns={3} className="mt-[5px]">
+          <WorkspaceFieldGrid columns={2} className="mt-[5px]">
             <WorkspaceField label="Hometown">
               <RecruitHometownField />
             </WorkspaceField>
@@ -847,14 +857,6 @@ export function RecruitingAcademicsWorkspace() {
                 field="prereadScholarshipAmount"
                 label="Pre Read $"
                 type="number"
-                align="left"
-              />
-            </WorkspaceField>
-            <WorkspaceField label="School Chosen">
-              <RecruitProfileField
-                field="schoolChosen"
-                label="School Chosen"
-                type="text"
                 align="left"
               />
             </WorkspaceField>

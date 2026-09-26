@@ -266,11 +266,9 @@ export default function RecruitList({
           <>
             <RecruitingTableSectionBar title="Recruits" count={sortedItems.length} />
             <table className={BOARD.table} role="grid" aria-label="Recruiting list">
-              <RecruitingTableColgroup />
+              <RecruitingTableColgroup variant="list" />
               <thead>
                 <tr>
-                  <th scope="col" className={BOARD.th} aria-label="Handle" />
-                  <th scope="col" className={BOARD.th} aria-label="Rank" />
                   <RecruitingHeaderLabel
                     label="Recruit"
                     sortDirection={sortDir("name")}
@@ -334,8 +332,6 @@ export default function RecruitList({
                     key={row.person.id}
                     className={`${BOARD.rowHover} last:[&>td]:border-b-0`}
                   >
-                    <td className={`${BOARD.td} pr-0 pl-1.5`} />
-                    <td className={`${BOARD.td} pr-1`} />
                     <td className={BOARD.td}>
                       <RecruitingIdentityCell row={row} listCoachRank />
                     </td>

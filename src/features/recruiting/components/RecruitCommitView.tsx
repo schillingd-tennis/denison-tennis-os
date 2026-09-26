@@ -152,8 +152,6 @@ export default function RecruitCommitView({
             <RecruitingTableColgroup variant="commit" />
             <thead>
               <tr>
-                <th scope="col" className={BOARD.th} aria-label="Handle" />
-                <th scope="col" className={BOARD.th} aria-label="Rank" />
                 <RecruitingHeaderLabel
                   label="Recruit"
                   sortDirection={sortDir("name")}
@@ -212,8 +210,6 @@ export default function RecruitCommitView({
                   key={row.person.id}
                   className={`${BOARD.rowHover} last:[&>td]:border-b-0`}
                 >
-                  <td className={`${BOARD.td} pr-0 pl-1.5`} />
-                  <td className={`${BOARD.td} pr-1`} />
                   <td className={BOARD.td}>
                     <RecruitingIdentityCell row={row} />
                   </td>

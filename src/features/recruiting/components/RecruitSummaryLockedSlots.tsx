@@ -58,6 +58,21 @@ export function RecruitSummaryAcademicInterestsSlot() {
   );
 }
 
+export function RecruitSummarySchoolChosenSlot() {
+  return (
+    <SummaryField label="School chosen">
+      <RecruitProfileField
+        field="schoolChosen"
+        label="School chosen"
+        type="text"
+        align="left"
+        slot="summary"
+        className="[&>span]:font-bold [&>span]:text-[var(--module-accent)]"
+      />
+    </SummaryField>
+  );
+}
+
 export function RecruitSummarySchoolsOfInterestSlot() {
   return (
     <SummaryField data-recruit-summary-schools="" label="Schools of interest" className="mt-2.5">
@@ -83,7 +98,10 @@ export function RecruitSummaryAcademicColumn({ children }: { children?: ReactNod
     >
       {children ?? (
         <>
-          <RecruitSummaryAcademicInterestsSlot />
+          <div className="grid min-w-0 grid-cols-1 gap-x-5 gap-y-2.5 sm:grid-cols-2">
+            <RecruitSummaryAcademicInterestsSlot />
+            <RecruitSummarySchoolChosenSlot />
+          </div>
           <RecruitSummarySchoolsOfInterestSlot />
         </>
       )}
