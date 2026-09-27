@@ -83,6 +83,7 @@ export type IntraSquadTab =
   | "dashboard"
   | "match-log"
   | "rankings"
+  | "head-to-head"
   | "player-records"
   | "match-value"
   | "elo";
@@ -90,6 +91,7 @@ export type IntraSquadTab =
 export const INTRA_SQUAD_TABS: { id: IntraSquadTab; label: string }[] = [
   { id: "dashboard", label: "Dashboard" },
   { id: "rankings", label: "Rankings" },
+  { id: "head-to-head", label: "Head-to-Head" },
   { id: "player-records", label: "Player Records" },
   { id: "match-value", label: "Match Value" },
   { id: "elo", label: "Elo Rankings" },

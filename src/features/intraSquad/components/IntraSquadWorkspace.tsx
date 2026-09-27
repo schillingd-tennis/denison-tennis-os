@@ -20,6 +20,7 @@ import type { IntraSquadMatch, IntraSquadTab, MatchStatus, RosterPlayer } from "
 import EloRankingsTable from "./EloRankingsTable";
 import EloRatingTrendCard from "./EloRatingTrendCard";
 import HowRankingsWorkCard from "./HowRankingsWorkCard";
+import HeadToHeadView from "./HeadToHeadView";
 import IntraSquadDeleteConfirm from "./IntraSquadDeleteConfirm";
 import IntraSquadMatchForm from "./IntraSquadMatchForm";
 import IntraSquadMatchList from "./IntraSquadMatchList";
@@ -358,6 +359,8 @@ export default function IntraSquadWorkspace({
             />
           </section>
         ) : null}
+
+        {tab === "head-to-head" ? <HeadToHeadView matches={ordered} roster={roster} /> : null}
 
         {tab === "player-records" ? (
           <section className="flex min-w-0 w-full flex-col gap-2">

@@ -12,7 +12,18 @@ import {
   resolveQuickMatchDate,
   todayLocalIsoDate,
 } from "./dates";
-import { formatPlayedAtLabel, intraSquadDashboardStats, sortMatchesNewestFirst } from "./display";
+import {
+  formatPlayedAtLabel,
+  intraSquadDashboardStats,
+  parseIntraSquadTab,
+  sortMatchesNewestFirst,
+} from "./display";
+import {
+  buildHeadToHeadRecords,
+  headToHeadPlayers,
+  headToHeadRecordFor,
+  uniqueHeadToHeadMatchupCount,
+} from "./headToHead";
 import { inputToRow, normalizeIntraSquadInput } from "./mapping";
 import { interpretMatchEntry, parseMatchSkeleton, parseMatchText } from "./parseMatchText";
 import { invertScoreSets } from "./parseScore";
@@ -160,6 +171,58 @@ describe("intra-squad migration", () => {
     assert.match(unfinishedMigrationSql, /status in \('completed', 'unfinished'\)/);
     assert.doesNotMatch(unfinishedMigrationSql, /drop table/i);
     assert.doesNotMatch(unfinishedMigrationSql, /truncate/i);
+  });
+});
+
+describe("head-to-head records", () => {
+  const headToHeadMatches = [
+    match({ id: "h2h-1", winnerPlayerId: "arya", loserPlayerId: "aidan" }),
+    match({ id: "h2h-2", winnerPlayerId: "arya", loserPlayerId: "aidan", playedAt: "2026-09-04" }),
+    match({ id: "h2h-3", winnerPlayerId: "aidan", loserPlayerId: "arya", playedAt: "2026-09-05" }),
+    match({
+      id: "h2h-4",
+      status: "unfinished",
+      winnerPlayerId: null,
+      loserPlayerId: null,
+      leaderPlayerId: "aidan",
+      trailingPlayerId: "nick",
+      playedAt: "2026-09-06",
+    }),
+  ];
+
+  it("builds directional series records without counting unfinished matches in W-L", () => {
+    const records = buildHeadToHeadRecords(headToHeadMatches);
+    assert.deepEqual(
+      headToHeadRecordFor(records, "arya", "aidan") && {
+        wins: headToHeadRecordFor(records, "arya", "aidan")?.wins,
+        losses: headToHeadRecordFor(records, "arya", "aidan")?.losses,
+        unfinished: headToHeadRecordFor(records, "arya", "aidan")?.unfinished,
+      },
+      { wins: 2, losses: 1, unfinished: 0 },
+    );
+    assert.deepEqual(
+      headToHeadRecordFor(records, "aidan", "nick") && {
+        wins: headToHeadRecordFor(records, "aidan", "nick")?.wins,
+        losses: headToHeadRecordFor(records, "aidan", "nick")?.losses,
+        unfinished: headToHeadRecordFor(records, "aidan", "nick")?.unfinished,
+      },
+      { wins: 0, losses: 0, unfinished: 1 },
+    );
+    assert.equal(uniqueHeadToHeadMatchupCount(headToHeadMatches), 2);
+  });
+
+  it("sorts players by aggregate head-to-head performance", () => {
+    const records = buildHeadToHeadRecords(headToHeadMatches);
+    const ordered = headToHeadPlayers(records, roster);
+    assert.equal(ordered[0].playerId, "arya");
+    assert.equal(ordered[0].winPct, (2 / 3) * 100);
+    assert.equal(ordered.at(-1)?.wins, 0);
+    assert.equal(ordered.at(-1)?.losses, 0);
+  });
+
+  it("registers the Head-to-Head route tab", () => {
+    assert.equal(parseIntraSquadTab("head-to-head"), "head-to-head");
+    assert.match(workspaceSource, /HeadToHeadView/);
   });
 });
 
@@ -1226,4 +1289,3 @@ describe("intra-squad unfinished matches", () => {
     assert.equal(intraSquadDashboardStats([kept]).totalMatches, 1);
   });
 });
-
