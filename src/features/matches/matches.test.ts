@@ -28,6 +28,7 @@ import {
 } from "./records";
 import { doublesPairKey, resolvePlayerName, rosterPlayerDisplayName, splitPairNames } from "./resolvePlayers";
 import { detectResultStatusFromText, parseScoreSets, resultFingerprint } from "./scoreParse";
+import { resolveMatchSchoolIdentity, resolveMatchSchoolName } from "./schoolNames";
 import {
   calculateDualTeamScores,
   calculateNcaaDoublesPoint,
@@ -36,6 +37,19 @@ import {
 import { parseTournamentResults } from "./tournamentParse";
 import type { MatchEvent, MatchResult } from "./types";
 import { validateImportDraft } from "./validateDraft";
+
+test("match result schools resolve to canonical names and stored logos", () => {
+  assert.equal(resolveMatchSchoolName("KEN").name, "Kenyon College");
+  assert.match(resolveMatchSchoolIdentity("KEN")?.logoSrc ?? "", /^\/school-logos\//);
+  assert.equal(resolveMatchSchoolIdentity("CMU")?.label, "Carnegie Mellon");
+});
+
+test("unknown match result schools retain an initials logo fallback", () => {
+  const identity = resolveMatchSchoolIdentity("Example Tennis Academy");
+  assert.equal(identity?.label, "Example Tennis Academy");
+  assert.equal(identity?.initials, "ETA");
+  assert.equal(identity?.logoSrc, null);
+});
 
 test("detects complete dual box score", () => {
   const detection = detectMatchEventType(FIXTURE_COMPLETE_DUAL);

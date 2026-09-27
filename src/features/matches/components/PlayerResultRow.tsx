@@ -7,10 +7,11 @@ import Link from "next/link";
 import { formatDate } from "@/lib/formatting";
 import { matchesEventPath } from "@/lib/module-routes";
 import { modulePrimaryButtonClassSm } from "@/components/module-theme";
+import ScheduleIdentityMark from "@/features/teamSchedule/components/ScheduleIdentityMark";
 
 import { correctPlayerMatchResultAction } from "../playerRecordActions";
 import { eventDisplayTitle, playerNameFor } from "../display";
-import { resolveMatchSchoolName } from "../schoolNames";
+import { resolveMatchSchoolIdentity, resolveMatchSchoolName } from "../schoolNames";
 import { MATCH_RESULT_STATUSES, type MatchEvent, type MatchResult, type MatchResultStatus, type RosterPlayer, type WinnerSide } from "../types";
 import DeleteMatchResultButton from "./DeleteMatchResultButton";
 
@@ -42,6 +43,8 @@ export default function PlayerResultRow({ row, playerId, roster, showPartnerColu
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState(() => initialForm(row, playerId));
+  const schoolName = resolveMatchSchoolName(row.opponentSchool).name;
+  const schoolIdentity = resolveMatchSchoolIdentity(row.opponentSchool);
 
   function openEditor() {
     setForm(initialForm(row, playerId));
@@ -93,7 +96,16 @@ export default function PlayerResultRow({ row, playerId, roster, showPartnerColu
             <span className="mt-0.5 block text-xs text-text-secondary">Partner: {playerNameFor(row.partnerId, roster)}</span>
           ) : null}
         </td>
-        <td className="px-4 py-3 text-text-secondary">{resolveMatchSchoolName(row.opponentSchool).name ?? "—"}</td>
+        <td className="px-4 py-3 text-text-secondary">
+          {schoolIdentity && schoolName ? (
+            <div className="flex min-w-0 items-center gap-2.5">
+              <ScheduleIdentityMark identity={schoolIdentity} size={30} />
+              <span className="min-w-0 leading-tight">{schoolName}</span>
+            </div>
+          ) : (
+            "—"
+          )}
+        </td>
         <td className="px-4 py-3 font-semibold">
           {row.winnerSide === "denison" ? "W" : row.winnerSide === "opponent" ? "L" : "—"}
           {row.status !== "completed" ? <span className="mt-0.5 block text-xs font-normal text-text-secondary">{row.status}</span> : null}

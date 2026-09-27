@@ -1,4 +1,7 @@
-import { resolveSchoolIdentityFromLabelExact } from "@/features/teamSchedule/schoolIdentity";
+import {
+  resolveSchoolIdentityFromLabelExact,
+  type ScheduleIdentity,
+} from "@/features/teamSchedule/schoolIdentity";
 
 const MATCH_SCHOOL_CODE_NAMES: Readonly<Record<string, string>> = {
   DEN: "Denison University",
@@ -41,4 +44,38 @@ export function resolveMatchSchoolName(raw: string | null | undefined): {
 
 export function isDenisonSchoolName(value: string | null | undefined): boolean {
   return resolveMatchSchoolName(value).name === "Denison University";
+}
+
+function schoolInitials(label: string): string {
+  const words = label
+    .replace(/[^a-zA-Z0-9\s]/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (words.length === 0) return "?";
+  return words
+    .slice(0, 3)
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase();
+}
+
+/** Shared logo identity for Matches result histories, with an initials fallback. */
+export function resolveMatchSchoolIdentity(
+  raw: string | null | undefined,
+): ScheduleIdentity | null {
+  const schoolName = resolveMatchSchoolName(raw).name;
+  if (!schoolName) return null;
+
+  return (
+    resolveSchoolIdentityFromLabelExact(schoolName) ??
+    (raw ? resolveSchoolIdentityFromLabelExact(raw) : null) ?? {
+      slug: `match-school-${schoolName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+      label: schoolName,
+      initials: schoolInitials(schoolName),
+      logoSrc: null,
+      kind: "school",
+      accentColor: "#64748B",
+    }
+  );
 }
