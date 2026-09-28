@@ -52,6 +52,7 @@ import ImportBoxScoreFlow from "./ImportBoxScoreFlow";
 import LinkSchedulePanel from "./LinkSchedulePanel";
 import ManualResultsEntry from "./ManualResultsEntry";
 import DeleteMatchResultButton from "./DeleteMatchResultButton";
+import EditMatchResultButton from "./EditMatchResultButton";
 
 export default function MatchEventWorkspace({
   event: initialEvent,
@@ -565,7 +566,10 @@ function ResultGroup({
             <span className="font-semibold">
               {row.winnerSide === "denison" ? "W" : row.winnerSide === "opponent" ? "L" : "—"}
             </span>
-            <DeleteMatchResultButton resultId={row.id} eventId={row.eventId} />
+            <span className="flex items-start justify-end gap-2">
+              <EditMatchResultButton result={row} roster={roster} />
+              <DeleteMatchResultButton resultId={row.id} eventId={row.eventId} />
+            </span>
             {row.sourceExcerpt ? (
               <p className="text-[11px] text-text-secondary sm:col-span-6">{row.sourceExcerpt}</p>
             ) : null}
