@@ -83,6 +83,7 @@ import {
 } from "@/features/people/utils";
 import { formatDate, parseDisplayDate } from "@/lib/formatting";
 import { PLAYERS_COACHES_ROUTE, playersCoachesPersonPath } from "@/lib/module-routes";
+import type { PlayerAcademicSummary } from "@/features/teamGrades/types";
 
 import AcademicsWorkspace from "./AcademicsWorkspace";
 import ContactInformationWorkspace from "./ContactInformationWorkspace";
@@ -200,12 +201,21 @@ export default function PersonWorkspace({
   person,
   fromPlayerId,
   recruitClassYear,
+  singlesRecord,
+  doublesRecord,
+  academicSummary,
 }: {
   person: Person;
   /** Originating player id when opened from a player's Family workspace (`?fromPlayer=`). */
   fromPlayerId?: string;
   /** HS graduation / recruiting class from RecruitProfile, when present (BP-043E). */
   recruitClassYear?: number;
+  /** Overall official Matches record for this player. */
+  singlesRecord?: string;
+  /** Overall official doubles record, credited once per match. */
+  doublesRecord?: string;
+  /** Calculated from the imported semester-grade history. */
+  academicSummary?: PlayerAcademicSummary;
 }) {
   const [record, setRecord] = useState(person);
   const [trackedPerson, setTrackedPerson] = useState(person);
@@ -580,24 +590,7 @@ export default function PersonWorkspace({
     familyPerson,
     familySummary.hasEmergencyContact,
     familySummary.parentCount,
-    record.cellPhone,
-    record.classYear,
-    record.gpa,
-    record.major,
-    record.personalEmail,
-    record.racket,
-    record.tShirtSize,
-    record.driFitSize,
-    record.collaredShirtSize,
-    record.longSleeveSize,
-    record.jacketSize,
-    record.hoodieSize,
-    record.shortsSize,
-    record.pantsSize,
-    record.shoeSize,
-    record.gripSize,
-    record.string,
-    record.role.key,
+    record,
     relatedPlayerCount,
   ]);
 
@@ -675,6 +668,7 @@ export default function PersonWorkspace({
             person={record}
             onPersonChange={setRecord}
             runSave={runSave}
+            academicSummary={academicSummary}
           />
         ),
       },
@@ -726,7 +720,7 @@ export default function PersonWorkspace({
       communicationsWorkspace,
     );
     return workspaces;
-  }, [displayName, familyPerson, record, recruitClassYear, runSave]);
+  }, [academicSummary, displayName, familyPerson, record, recruitClassYear, runSave]);
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
@@ -817,6 +811,9 @@ export default function PersonWorkspace({
       <PersonWorkspaceProfile
         person={record}
         followUpValue={followUpStatusLine(communications)}
+        singlesRecord={singlesRecord}
+        doublesRecord={doublesRecord}
+        gpa={academicSummary?.cumulativeGpa}
         statusSlot={
           <InlineEditCell
             label="Status"

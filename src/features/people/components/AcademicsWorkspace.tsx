@@ -19,6 +19,7 @@ import {
 } from "@/features/people/fieldCatalog";
 import type { Person } from "@/features/people/types";
 import { EMPTY_VALUE, formatDisplay, formatGpa } from "@/lib/formatting";
+import type { PlayerAcademicSummary } from "@/features/teamGrades/types";
 
 /**
  * Player Academics adaptive workspace.
@@ -116,15 +117,15 @@ function AcademicTextTile({
   );
 }
 
-function AcademicGpaTile() {
+function AcademicGpaTile({ academicSummary }: { academicSummary?: PlayerAcademicSummary }) {
   const session = usePersonFieldSession();
-  const displayValue = formatGpa(session.person.gpa);
+  const displayValue = formatGpa(academicSummary?.cumulativeGpa ?? session.person.gpa);
   const empty = displayValue === EMPTY_VALUE;
   const tone = "warning" as const;
 
   return (
     <AcademicSummaryTile label="Overall GPA" icon={Percent} tone={tone}>
-      <FieldRenderer
+      {academicSummary ? <span className={`block truncate text-[24px] leading-none font-semibold tabular-nums ${empty ? typeRole.metadataEmpty : summaryTileTone[tone].value}`}>{displayValue}</span> : <FieldRenderer
         field="gpa"
         align="left"
         editOn="click"
@@ -141,7 +142,7 @@ function AcademicGpaTile() {
             {displayValue}
           </span>
         }
-      />
+      />}
     </AcademicSummaryTile>
   );
 }
@@ -150,10 +151,12 @@ export default function AcademicsWorkspace({
   person,
   onPersonChange,
   runSave,
+  academicSummary,
 }: {
   person: Person;
   onPersonChange: (person: Person) => void;
   runSave: (fn: () => Promise<void>) => Promise<boolean>;
+  academicSummary?: PlayerAcademicSummary;
 }) {
   return (
     <PersonFieldSession
@@ -170,7 +173,7 @@ export default function AcademicsWorkspace({
           <div className="mt-[5px] grid w-full min-w-0 grid-cols-1 items-stretch gap-3 sm:grid-cols-3">
             <AcademicTextTile field="major" label="Major" tone="crimson" icon={GraduationCap} />
             <AcademicTextTile field="minor" label="Minor" tone="info" icon={BookOpen} />
-            <AcademicGpaTile />
+            <AcademicGpaTile academicSummary={academicSummary} />
           </div>
         </section>
 
@@ -179,7 +182,20 @@ export default function AcademicsWorkspace({
             <WorkspaceAccentHeading icon={Percent} tone="success">
               GPA Performance
             </WorkspaceAccentHeading>
-            <dl className="mt-[5px] grid grid-cols-1 gap-x-6 gap-y-[7px] sm:grid-cols-2">
+            {academicSummary ? <>
+              <div className="mt-2 grid grid-cols-2 gap-3 lg:grid-cols-4">
+                {[
+                  ["Last Semester", formatGpa(academicSummary.latestSemesterGpa), academicSummary.latestSemesterLabel],
+                  ["Academic Year", formatGpa(academicSummary.academicYearGpa), academicSummary.academicYearLabel],
+                  ["Cumulative", formatGpa(academicSummary.cumulativeGpa), "Career"],
+                  ["Credit Hours", academicSummary.totalCreditHours.toFixed(1), "Career"],
+                ].map(([label, value, caption]) => <div key={label} className="rounded-control border border-emerald-200/70 bg-gradient-to-br from-emerald-50 to-white px-3 py-3"><p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">{label}</p><p className="mt-1 text-xl font-semibold tabular-nums text-text-primary">{value}</p><p className="mt-1 text-[11px] text-text-secondary">{caption}</p></div>)}
+              </div>
+              <div className="mt-3 overflow-hidden rounded-control border border-border/70">
+                <div className="grid grid-cols-[1.3fr_.65fr_.8fr_.8fr] bg-emerald-50/70 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-emerald-800"><span>Semester</span><span>Hours</span><span>Semester GPA</span><span>Cumulative</span></div>
+                {academicSummary.history.slice().reverse().map((item) => <div key={item.termLabel} className="grid grid-cols-[1.3fr_.65fr_.8fr_.8fr] border-t border-border/50 px-3 py-2 text-sm"><span className="font-medium">{item.termLabel}</span><span className="tabular-nums text-text-secondary">{item.creditHours}</span><span className="font-semibold tabular-nums">{item.semesterGpa.toFixed(2)}</span><span className="tabular-nums text-text-secondary">{formatGpa(item.cumulativeGpa)}</span></div>)}
+              </div>
+            </> : <dl className="mt-[5px] grid grid-cols-1 gap-x-6 gap-y-[7px] sm:grid-cols-2">
               <WorkspaceField label="GPA Last Semester">
                 <FieldRenderer
                   field="gpaLastSemester"
@@ -200,7 +216,7 @@ export default function AcademicsWorkspace({
                   step={0.01}
                 />
               </WorkspaceField>
-            </dl>
+            </dl>}
           </section>
         </div>
       </div>

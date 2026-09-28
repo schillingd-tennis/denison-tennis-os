@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { ClipboardList, Download } from "lucide-react";
 
 import ContactActionSlots from "@/components/ContactActionSlots";
@@ -60,6 +60,7 @@ import {
 } from "@/features/people/utils";
 import { formatUtr, formatWtn } from "@/lib/formatting";
 import { playersCoachesPersonPath } from "@/lib/module-routes";
+import type { PlayerAcademicSummaryMap } from "@/features/teamGrades/types";
 
 import PlayerAvatar from "@/components/PlayerAvatar";
 import QuickActionButton from "@/components/QuickActionButton";
@@ -103,13 +104,12 @@ const C = RECRUITING_TABLE_COLUMNS;
 function PlayersCoachesListColgroup() {
   return (
     <colgroup>
-      <col style={{ width: C.handle }} />
-      <col style={{ width: C.rank }} />
       <col />
       <col style={{ width: 160 }} />
       <col style={{ width: C.classYear }} />
       <col style={{ width: C.utr }} />
       <col style={{ width: C.wtn }} />
+      <col style={{ width: 72 }} />
       <col style={{ width: 132 }} />
       <col />
       <col style={{ width: C.contact }} />
@@ -196,12 +196,14 @@ export default function PersonList({
   people,
   allPeople,
   activeFilterIds,
+  academicSummaries = {},
   onPersonCommit,
 }: {
   people: Person[];
   /** Unfiltered Team directory (search/filters not applied). Used for All Players. */
   allPeople?: Person[];
   activeFilterIds: readonly string[];
+  academicSummaries?: PlayerAcademicSummaryMap;
   onPersonCommit?: (person: Person) => void;
 }) {
   const router = useRouter();
@@ -228,6 +230,18 @@ export default function PersonList({
     getInitialSort: readStoredTeamListSort,
     onSortChange: writeStoredTeamListSort,
   });
+  const playerItems = useMemo(
+    () => sortedItems.filter((person) => !isCoachDirectoryPerson(person)),
+    [sortedItems],
+  );
+  const coachItems = useMemo(
+    () => sortedItems.filter((person) => isCoachDirectoryPerson(person)),
+    [sortedItems],
+  );
+  const groupedItems = useMemo(
+    () => [...playerItems, ...coachItems],
+    [coachItems, playerItems],
+  );
 
   // Keep the Team found set in session so Workspace Copy / Export match
   // the list's current search · filter · sort (BP-021).
@@ -235,27 +249,27 @@ export default function PersonList({
     publishFoundSet({
       moduleKey: TEAM_FOUND_SET_MODULE_KEY,
       filenameBase: TEAM_FOUND_SET_FILENAME_BASE,
-      rows: sortedItems,
+      rows: groupedItems,
       columns: TEAM_FOUND_SET_COLUMNS,
     });
-  }, [sortedItems]);
+  }, [groupedItems]);
 
   const [foundSetFeedback, setFoundSetFeedback] = useState<string | undefined>(undefined);
 
   const handleCopyFoundSet = useCallback(async () => {
-    if (sortedItems.length === 0) return;
+    if (groupedItems.length === 0) return;
     try {
-      await copyFoundSet(sortedItems, TEAM_FOUND_SET_COLUMNS);
+      await copyFoundSet(groupedItems, TEAM_FOUND_SET_COLUMNS);
       setFoundSetFeedback("Found set copied");
       window.setTimeout(() => setFoundSetFeedback(undefined), 2000);
     } catch {
       setFoundSetFeedback("Copy failed");
       window.setTimeout(() => setFoundSetFeedback(undefined), 2000);
     }
-  }, [sortedItems]);
+  }, [groupedItems]);
 
   const handleExportFoundSet = useCallback(() => {
-    if (sortedItems.length === 0) return;
+    if (groupedItems.length === 0) return;
     openDrawer({
       id: "team-export",
       title: "Export",
@@ -266,7 +280,7 @@ export default function PersonList({
             module: TEAM_EXPORT_MODULE,
             populations: {
               all: allPeople ?? people,
-              foundSet: sortedItems,
+              foundSet: groupedItems,
             },
             initialPresetId: "playerDirectory",
             initialWho: "found_set",
@@ -282,7 +296,7 @@ export default function PersonList({
       },
       cancelAction: { label: "Cancel" },
     });
-  }, [allPeople, bindExport, closeDrawer, openDrawer, people, sortedItems]);
+  }, [allPeople, bindExport, closeDrawer, groupedItems, openDrawer, people]);
 
   const openWorkspace = useCallback(
     (personId: string) => {
@@ -313,7 +327,7 @@ export default function PersonList({
 
   const moveEditing = useCallback(
     (from: EditingCell, direction: "next" | "prev") => {
-      const rowIndex = sortedItems.findIndex((person) => person.id === from.personId);
+      const rowIndex = groupedItems.findIndex((person) => person.id === from.personId);
       if (rowIndex < 0) {
         setEditing(null);
         return;
@@ -331,18 +345,18 @@ export default function PersonList({
         nextRow -= 1;
       }
 
-      if (nextRow < 0 || nextRow >= sortedItems.length) {
+      if (nextRow < 0 || nextRow >= groupedItems.length) {
         setEditing(null);
         return;
       }
 
       setFieldError(undefined);
       setEditing({
-        personId: sortedItems[nextRow].id,
+        personId: groupedItems[nextRow].id,
         field: EDITABLE_FIELDS[nextField],
       });
     },
-    [sortedItems],
+    [groupedItems],
   );
 
   const buildPatch = useCallback(
@@ -472,14 +486,14 @@ export default function PersonList({
   const actionButtons = (
     <DesktopOnlyActions>
       <QuickActionButton
-        onAction={sortedItems.length > 0 ? handleCopyFoundSet : undefined}
+        onAction={groupedItems.length > 0 ? handleCopyFoundSet : undefined}
         icon={ClipboardList}
         label="Copy Found Set"
         tone="neutral"
         unavailableTitle="No records in found set"
       />
       <QuickActionButton
-        onAction={sortedItems.length > 0 ? handleExportFoundSet : undefined}
+        onAction={groupedItems.length > 0 ? handleExportFoundSet : undefined}
         icon={Download}
         label="Export Found Set"
         tone="neutral"
@@ -523,7 +537,7 @@ export default function PersonList({
     >
       <div className="min-w-0">
         <section className={`${BOARD.section} max-md:hidden`}>
-          <RecruitingTableSectionBar title="Team" count={sortedItems.length} />
+          <RecruitingTableSectionBar title="Players" count={playerItems.length} />
           <table
             className="w-full table-fixed border-collapse text-left"
             role="grid"
@@ -532,8 +546,6 @@ export default function PersonList({
             <PlayersCoachesListColgroup />
             <thead>
               <tr>
-                <th scope="col" className={BOARD.th} aria-label="Handle" />
-                <th scope="col" className={BOARD.th} aria-label="Rank" />
                 <RecruitingHeaderLabel
                   label="Player / Coach"
                   sortDirection={sortDir("name")}
@@ -561,6 +573,7 @@ export default function PersonList({
                   sortDirection={sortDir("wtn")}
                   onSort={() => toggleSort("wtn")}
                 />
+                <RecruitingHeaderLabel label="GPA" align="right" />
                 <RecruitingHeaderLabel
                   label="Cell #"
                   sortDirection={sortDir("cellPhone")}
@@ -575,7 +588,7 @@ export default function PersonList({
               </tr>
             </thead>
             <tbody>
-              {sortedItems.map((person) => {
+              {groupedItems.map((person, index) => {
                 const displayName = getDisplayName(person);
                 const hometown = getHometown(person);
                 const hrefs = contactHrefs(person);
@@ -590,17 +603,33 @@ export default function PersonList({
                 const wtnDisplay = showPlayerMetrics
                   ? recruitingMetricDisplay(formatWtn(person.wtn))
                   : TEAM_DIRECTORY_EMPTY;
+                const cumulativeGpa = academicSummaries[person.id]?.cumulativeGpa;
+                const gpaDisplay = showPlayerMetrics && cumulativeGpa != null
+                  ? cumulativeGpa.toFixed(2)
+                  : TEAM_DIRECTORY_EMPTY;
                 const phoneDisplay = directoryCellValue(formatPhoneDisplay(person.cellPhone));
                 const emailDisplay = directoryCellValue(personListEmail(person));
 
                 return (
-                  <tr
-                    key={person.id}
-                    onClick={() => handleRowClick(person.id)}
-                    className={`cursor-pointer ${BOARD.rowHover} last:[&>td]:border-b-0`}
-                  >
-                    <td className={`${BOARD.td} pr-0 pl-1.5`} />
-                    <td className={`${BOARD.td} pr-1`} />
+                  <Fragment key={person.id}>
+                    {index === playerItems.length && coachItems.length > 0 ? (
+                      <tr>
+                        <th
+                          scope="rowgroup"
+                          colSpan={9}
+                          className="border-y border-black/[0.06] bg-surface px-3 py-2 text-left text-[11px] font-medium tracking-wide text-text-secondary"
+                        >
+                          <span className="flex items-center justify-between">
+                            <span>Coaches</span>
+                            <span className="text-xs tabular-nums">{coachItems.length}</span>
+                          </span>
+                        </th>
+                      </tr>
+                    ) : null}
+                    <tr
+                      onClick={() => handleRowClick(person.id)}
+                      className={`cursor-pointer ${BOARD.rowHover} last:[&>td]:border-b-0`}
+                    >
                     <td className={BOARD.td}>
                       <Link
                         href={playersCoachesPersonPath(person.id)}
@@ -720,6 +749,9 @@ export default function PersonList({
                         <span className={BOARD.metric}>{TEAM_DIRECTORY_EMPTY}</span>
                       )}
                     </td>
+                    <td className={`${BOARD.td} ${BOARD.metric}`}>
+                      <span className={gpaDisplay === TEAM_DIRECTORY_EMPTY ? "text-text-secondary" : "font-semibold text-amber-700"}>{gpaDisplay}</span>
+                    </td>
                     <td className={BOARD.td}>
                       <span
                         title={phoneDisplay === TEAM_DIRECTORY_EMPTY ? undefined : phoneDisplay}
@@ -750,7 +782,8 @@ export default function PersonList({
                         />
                       </div>
                     </td>
-                  </tr>
+                    </tr>
+                  </Fragment>
                 );
               })}
             </tbody>
@@ -758,7 +791,7 @@ export default function PersonList({
         </section>
         <div className="md:hidden">
           <ul className="divide-y divide-border/50">
-            {sortedItems.map((person) => {
+            {groupedItems.map((person, index) => {
               const displayName = getDisplayName(person);
               const roleDisplay = getPersonRoleDisplay(person);
               const hometown = getHometown(person);
@@ -770,7 +803,20 @@ export default function PersonList({
                     .join(" · ");
 
               return (
-                <li key={person.id}>
+                <Fragment key={person.id}>
+                  {index === 0 ? (
+                    <li className="flex items-center justify-between bg-app-background px-4 py-2 text-[11px] font-medium tracking-wide text-text-secondary">
+                      <span>Players</span>
+                      <span className="text-xs tabular-nums">{playerItems.length}</span>
+                    </li>
+                  ) : null}
+                  {index === playerItems.length && coachItems.length > 0 ? (
+                    <li className="flex items-center justify-between border-t border-border/50 bg-app-background px-4 py-2 text-[11px] font-medium tracking-wide text-text-secondary">
+                      <span>Coaches</span>
+                      <span className="text-xs tabular-nums">{coachItems.length}</span>
+                    </li>
+                  ) : null}
+                  <li>
                   <Link
                     href={playersCoachesPersonPath(person.id)}
                     className="flex items-center gap-3 px-4 py-4 transition-colors duration-150 active:bg-app-background"
@@ -792,9 +838,13 @@ export default function PersonList({
                           {TEAM_DIRECTORY_EMPTY}
                         </p>
                       )}
+                      {!coachDirectory && academicSummaries[person.id]?.cumulativeGpa != null ? (
+                        <p className="mt-1 text-xs font-semibold text-amber-700">GPA {academicSummaries[person.id].cumulativeGpa!.toFixed(2)}</p>
+                      ) : null}
                     </div>
                   </Link>
-                </li>
+                  </li>
+                </Fragment>
               );
             })}
           </ul>

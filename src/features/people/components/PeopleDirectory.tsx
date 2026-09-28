@@ -45,6 +45,7 @@ import AddPersonFlow from "./AddPersonFlow";
 import PeopleDirectoryKpiRow from "./PeopleDirectoryKpiRow";
 import PersonCard from "./PersonCard";
 import PersonList from "./PersonList";
+import type { PlayerAcademicSummaryMap } from "@/features/teamGrades/types";
 import RoleFilterControl from "./RoleFilterControl";
 
 /**
@@ -64,7 +65,7 @@ const TEAM_VIEW_OPTIONS = [
  * Base set is program membership only (players + coaches) — not all People.
  * Visual shell matches Recruiting List via ModulePageShell.
  */
-export default function PeopleDirectory({ people }: { people: Person[] }) {
+export default function PeopleDirectory({ people, academicSummaries = {} }: { people: Person[]; academicSummaries?: PlayerAcademicSummaryMap }) {
   const router = useRouter();
   const { openDrawer, closeDrawer } = useDrawerManager();
   const query = useSyncExternalStore(
@@ -252,7 +253,7 @@ export default function PeopleDirectory({ people }: { people: Person[] }) {
         ) : view === "cards" ? (
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {filtered.map((person) => (
-              <PersonCard key={person.id} person={person} onPersonCommit={replacePerson} />
+              <PersonCard key={person.id} person={person} academicSummary={academicSummaries[person.id]} onPersonCommit={replacePerson} />
             ))}
           </div>
         ) : (
@@ -260,6 +261,7 @@ export default function PeopleDirectory({ people }: { people: Person[] }) {
             people={filtered}
             allPeople={livePeople}
             activeFilterIds={activeFilterIds}
+            academicSummaries={academicSummaries}
             onPersonCommit={replacePerson}
           />
         )}

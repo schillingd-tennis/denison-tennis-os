@@ -8,7 +8,7 @@ import {
   Gauge,
   GraduationCap,
   ListOrdered,
-  UserCheck,
+  Users,
 } from "lucide-react";
 
 import PlayerAvatar from "@/components/PlayerAvatar";
@@ -20,7 +20,6 @@ import {
   getHometown,
   getInitials,
   getPersonRoleDisplay,
-  getPlayerStatusLabel,
   isCoachDirectoryPerson,
   isFamilyPerson,
 } from "@/features/people/utils";
@@ -205,12 +204,18 @@ export function PersonWorkspaceProfile({
   roleSlot,
   playerStatusSlot,
   followUpValue,
+  singlesRecord,
+  doublesRecord,
+  gpa,
 }: {
   person: Person;
   statusSlot?: ReactNode;
   roleSlot?: ReactNode;
   playerStatusSlot?: ReactNode;
   followUpValue?: string;
+  singlesRecord?: string;
+  doublesRecord?: string;
+  gpa?: number | null;
 }) {
   const fullName = getFullDisplayName(person);
   const preferred =
@@ -233,9 +238,6 @@ export function PersonWorkspaceProfile({
     : metricOrNoData(formatDisplay(person.denisonEmail ?? person.personalEmail));
   const utr = metricOrNoData(coachDirectory || familyPerson ? EMPTY_VALUE : formatUtr(person.utr));
   const wtn = metricOrNoData(coachDirectory || familyPerson ? EMPTY_VALUE : formatWtn(person.wtn));
-  const playerStatusDisplay = person.playerStatus
-    ? getPlayerStatusLabel(person.playerStatus)
-    : NO_DATA;
 
   return (
     <section
@@ -318,18 +320,18 @@ export function PersonWorkspaceProfile({
             <MetricTile label="UTR" value={utr} icon={Gauge} tone="crimson" />
             <MetricTile label="WTN" value={wtn} icon={Activity} tone="info" />
             <MetricTile
-              label="Team Record"
-              value={COMING_SOON}
+              label="Player Record"
+              value={coachDirectory ? NO_DATA : singlesRecord ?? NO_DATA}
               icon={ListOrdered}
               tone="success"
             />
-            <MetricTile label="GPA" value={COMING_SOON} icon={GraduationCap} tone="warning" />
             <MetricTile
-              label="Player Status"
-              value={coachDirectory ? NO_DATA : playerStatusDisplay}
-              icon={UserCheck}
+              label="Doubles Record"
+              value={coachDirectory ? NO_DATA : doublesRecord ?? NO_DATA}
+              icon={Users}
               tone="research"
             />
+            <MetricTile label="GPA" value={gpa == null ? NO_DATA : gpa.toFixed(2)} icon={GraduationCap} tone="warning" />
             <MetricTile
               label="Next Follow-up"
               value={followUpValue ?? COMING_SOON}

@@ -132,6 +132,14 @@ test("/recruiting/log is the last Recruiting submenu item", () => {
 const teamOperations = primaryNavItems.find((item) => item.label === "Team Operations");
 if (!teamOperations) throw new Error("expected Team Operations nav item");
 
+const team = primaryNavItems.find((item) => item.label === "Team");
+if (!team) throw new Error("expected Team nav item");
+
+test("Grades is a Team submodule after Roster", () => {
+  assert.deepEqual(team.children?.map((item) => item.label), ["Roster", "Grades"]);
+  assert.equal(isNavChildActive("/players-coaches/grades", team.children![1]!), true);
+});
+
 test("Practice sits between Schedule and Intra Squad in Team Operations", () => {
   const labels = teamOperations.children?.map((item) => item.label) ?? [];
   assert.deepEqual(labels, ["Schedule", "Practice", "Intra Squad", "Scouting"]);
