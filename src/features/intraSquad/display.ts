@@ -56,6 +56,7 @@ export function parseIntraSquadTab(raw: string | undefined): import("./types").I
     raw === "match-log" ||
     raw === "rankings" ||
     raw === "head-to-head" ||
+    raw === "performance" ||
     raw === "player-records" ||
     raw === "match-value" ||
     raw === "elo"

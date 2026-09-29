@@ -33,6 +33,7 @@ import IntraSquadTabs from "./IntraSquadTabs";
 import LiveRankingsPreview from "./LiveRankingsPreview";
 import MatchValueRankingsTable from "./MatchValueRankingsTable";
 import PlayerRecordsTable, { RankingsTable } from "./PlayerRecordsTable";
+import PerformanceView from "./PerformanceView";
 import QuickMatchEntry from "./QuickMatchEntry";
 import styles from "./intraSquadDashboard.module.css";
 
@@ -361,6 +362,8 @@ export default function IntraSquadWorkspace({
         ) : null}
 
         {tab === "head-to-head" ? <HeadToHeadView matches={ordered} roster={roster} /> : null}
+
+        {tab === "performance" ? <PerformanceView matches={ordered} roster={roster} /> : null}
 
         {tab === "player-records" ? (
           <section className="flex min-w-0 w-full flex-col gap-2">
