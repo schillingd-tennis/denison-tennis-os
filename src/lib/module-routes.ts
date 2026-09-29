@@ -60,6 +60,7 @@ export const TEAM_OPERATIONS_SCOUTING_ROUTE = "/team-operations/scouting";
 export const KNOWLEDGE_ROUTE = "/knowledge";
 export const KNOWLEDGE_HOTELS_ROUTE = "/knowledge/hotels";
 export const KNOWLEDGE_OFFICIALS_ROUTE = "/knowledge/officials";
+export const KNOWLEDGE_RECORD_BOOK_ROUTE = "/knowledge/record-book";
 
 /** Rankings module — ITA / NPI team rankings. */
 export const RANKINGS_ROUTE = "/rankings";
@@ -101,6 +102,7 @@ export const TOP_LEVEL_MODULE_PATHS = [
   "/knowledge",
   KNOWLEDGE_HOTELS_ROUTE,
   KNOWLEDGE_OFFICIALS_ROUTE,
+  KNOWLEDGE_RECORD_BOOK_ROUTE,
   "/people",
 ] as const;
 

@@ -11,6 +11,7 @@
     "import:tournaments": "tsx scripts/import-tournaments.ts",
     "import:interactions": "tsx scripts/import-interactions.ts",
     "import:team-grades": "tsx scripts/import-team-grades.ts",
+    "sync:record-book": "node scripts/sync-record-book.mjs",
     "import:apple-messages": "tsx scripts/import-apple-messages.ts",
     "apple-messages-helper": "tsx scripts/apple-messages-helper.ts",
     "build:apple-messages-helper": "tsc -p tsconfig.apple-messages-helper.json",

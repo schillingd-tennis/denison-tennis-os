@@ -1,0 +1,133 @@
+.archive { display: grid; gap: .875rem; color: var(--color-text-primary); }
+.archive :global([data-record-section]) { display: grid; gap: .875rem; }
+.archive :global([data-record-section] + [data-record-section]) { margin-top: .5rem; border-top: 1px solid var(--color-border); padding-top: 1.25rem; }
+.archive :global(.section-inner), .archive :global(.sect-inner), .archive :global(.story-inner) { display: grid; gap: .875rem; }
+.archive :global(h1), .archive :global(h2) { margin: 0; font-size: 1.25rem; font-weight: 600; letter-spacing: -.02em; }
+.archive :global(h3), .archive :global(h4) { margin: 0; font-size: .95rem; font-weight: 600; }
+.archive :global(.sec-num) { display: none; }
+.archive :global(.eyebrow), .archive :global(.section-kicker) { color: var(--module-accent-text); font-size: .7rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.archive :global(p) { margin: 0; color: var(--color-text-secondary); font-size: .875rem; line-height: 1.6; }
+.archive :global(.section-intro) { max-width: 65rem; }
+.archive :global(.hero-stat-strip), .archive :global(.glance-grid), .archive :global(.stats-grid), .archive :global(.award-grid) { display: grid; grid-template-columns: repeat(auto-fit,minmax(10rem,1fr)); gap: .75rem; }
+.archive :global(.hero-stat), .archive :global(.glance-card), .archive :global(.stat-card), .archive :global(.award-card) { border: 1px solid var(--color-border); border-radius: .75rem; background: var(--color-surface); padding: 1rem; }
+.archive :global(.hero-stat-num), .archive :global(.glance-num), .archive :global(.stat-num) { color: var(--module-accent-text); font-size: 1.5rem; font-weight: 600; }
+.archive :global(.hero-stat-label), .archive :global(.glance-label), .archive :global(.stat-label) { color: var(--color-text-secondary); font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; }
+.archive :global(details) { overflow: hidden; border: 1px solid var(--color-border); border-radius: .75rem; background: var(--color-surface); }
+.archive :global(summary) { cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: .75rem; min-height: 3.25rem; padding: .75rem 1rem; font-size: .875rem; font-weight: 600; list-style: none; }
+.archive :global(summary::-webkit-details-marker) { display: none; }
+.archive :global(details[open] > summary) { border-bottom: 1px solid var(--color-border); background: color-mix(in srgb,var(--module-tint) 55%,transparent); }
+.archive :global(.stat-collapsibles) { display: grid; gap: .75rem; }
+.archive :global(.stat-coll-title) { display: flex; align-items: baseline; gap: .5rem; }
+.archive :global(.coll-title) { font-weight: 600; }
+.archive :global(.coll-meta) { color: var(--color-text-secondary); font-size: .72rem; font-weight: 500; }
+.archive :global(.results-list summary) { display: grid; grid-template-columns: 10rem minmax(0,1fr) auto; justify-content: initial; text-align: left; }
+.archive :global(.results-list .coll-sub) { justify-self: start; text-align: left; }
+.archive :global(.coll-body), .archive :global(.coll-body-stat) { padding: .875rem; }
+.archive :global(.coll-icon) { color: var(--module-accent-text); }
+.archive :global(ol), .archive :global(ul) { margin: 0; padding: 0; list-style: none; }
+.archive :global(.stat-list), .archive :global(.letter-list) { display: grid; gap: .35rem; }
+.archive :global(.coll-body-stat) { overflow-x: auto; }
+.archive :global(.stat-list) { min-width: 42rem; }
+.archive :global(.stat-list li) { display: grid; grid-template-columns: 2rem minmax(12rem,1fr) minmax(7rem,10rem) minmax(4rem,auto); align-items: center; gap: .7rem; border-bottom: 1px solid color-mix(in srgb,var(--color-border) 70%,transparent); padding: .65rem .35rem; font-size: .82rem; }
+.archive :global(.letter-list li) { display: grid; grid-template-columns: 2rem minmax(0,1fr) auto; align-items: center; gap: .7rem; border-bottom: 1px solid color-mix(in srgb,var(--color-border) 70%,transparent); padding: .65rem .35rem; font-size: .82rem; }
+.archive :global(.stat-list li:last-child), .archive :global(.letter-list li:last-child) { border-bottom: 0; }
+.archive :global(.rank), .archive :global(.yrs), .archive :global(.years) { color: var(--color-text-secondary); font-size: .72rem; }
+.archive :global(.stat-list .rank) { grid-column: 1; }
+.archive :global(.stat-list .name) { grid-column: 2; }
+.archive :global(.stat-list .years) { grid-column: 3; }
+.archive :global(.stat-list .val) { grid-column: 4; }
+.archive :global(.stat-list li:has(.rank:empty)) { grid-template-columns: minmax(15rem,1fr) minmax(9rem,14rem) minmax(4rem,auto); }
+.archive :global(.stat-list li:has(.rank:empty) .rank) { display: none; }
+.archive :global(.stat-list li:has(.rank:empty) .name) { grid-column: 1; }
+.archive :global(.stat-list li:has(.rank:empty) .years) { grid-column: 2; }
+.archive :global(.stat-list li:has(.rank:empty) .val) { grid-column: 3; text-align: right; }
+.archive :global(.years) { white-space: nowrap; }
+.archive :global(.name) { min-width: 0; font-weight: 500; }
+.archive :global(.val) { color: var(--module-accent-text); font-weight: 600; white-space: nowrap; }
+.archive :global(.table-wrap), .archive :global(.table-scroll), .archive :global(.rb-wrap) { overflow-x: auto; }
+.archive :global(table) { width: 100%; min-width: 40rem; border-collapse: collapse; background: var(--color-surface); font-size: .78rem; }
+.archive :global(th) { background: var(--color-app-background); color: var(--color-text-secondary); font-size: .67rem; font-weight: 600; letter-spacing: .04em; text-align: left; text-transform: uppercase; }
+.archive :global(th), .archive :global(td) { border-bottom: 1px solid var(--color-border); padding: .65rem .75rem; vertical-align: top; }
+.archive :global(.center) { text-align: center; }
+.archive :global(.num) { font-variant-numeric: tabular-nums; }
+.archive :global(.muted) { color: var(--color-text-secondary); }
+.archive :global(.result-w) { color: #15803d; font-weight: 600; }
+.archive :global(.result-l) { color: #b91c1c; font-weight: 600; }
+.archive :global(.bracket-record-banner) { display: flex; align-items: center; gap: 1rem; border: 1px solid var(--module-border); border-radius: .75rem; background: var(--module-tint); padding: 1rem 1.25rem; }
+.archive :global(.brb-num) { color: var(--module-accent-text); font-size: 1.75rem; font-weight: 700; }
+.archive :global(.brb-label) { font-weight: 600; }
+.archive :global(.brb-sub) { margin-top: .2rem; color: var(--color-text-secondary); font-size: .75rem; line-height: 1.45; }
+.archive :global(.match-detail-row) { display: grid; grid-template-columns: 9rem minmax(12rem,1fr) 6rem minmax(16rem,1.5fr); align-items: center; gap: 1rem; }
+.archive :global(.md-notes) { color: var(--color-text-secondary); }
+.archive :global(.badge-natl), .archive :global(.coll-tag) { display: inline-flex; align-items: center; border-radius: 999px; background: #fef3c7; padding: .15rem .45rem; color: #92400e; font-size: .64rem; font-weight: 600; }
+.archive :global(.record-sort-header) { cursor: pointer; user-select: none; }
+.archive :global(.record-sort-header:hover), .archive :global(.record-sort-header:focus-visible) { color: var(--module-accent-text); }
+.archive :global(.record-sort-header:focus-visible) { outline: 2px solid var(--module-accent); outline-offset: -2px; }
+.archive :global(.record-sort-header::after) { content: " ↕"; color: var(--color-text-secondary); font-size: .7rem; }
+.archive :global(.record-sort-header[aria-sort="ascending"]::after) { content: " ↑"; color: var(--module-accent-text); }
+.archive :global(.record-sort-header[aria-sort="descending"]::after) { content: " ↓"; color: var(--module-accent-text); }
+.archive :global(tbody tr:hover) { background: color-mix(in srgb,var(--module-tint) 42%,transparent); }
+.archive :global([data-record-section="coaches"] .table-wrap ~ *) { display: none; }
+.archive :global(.bracket-toggle) { cursor: pointer; transition: background-color .15s ease; }
+.archive :global(.bracket-toggle:hover), .archive :global(.bracket-toggle:focus-visible), .archive :global(.bracket-toggle.expanded) { background: color-mix(in srgb,var(--module-tint) 58%,transparent); }
+.archive :global(.bracket-toggle:focus-visible) { outline: 2px solid var(--module-accent); outline-offset: -2px; }
+.archive :global(.bracket-toggle-icon) { float: right; color: var(--module-accent-text); font-size: 1rem; font-weight: 700; }
+.archive :global(.bracket-detail td) { background: color-mix(in srgb,var(--color-app-background) 82%,var(--module-tint)); padding: .5rem 1rem; }
+.archive :global(.yr-row) { display: grid; grid-template-columns: minmax(5rem,.6fr) minmax(14rem,2fr) minmax(5rem,.55fr) minmax(5rem,.55fr); align-items: center; gap: 1rem; }
+.archive :global(.yr-year) { font-weight: 600; }
+.archive :global(.yr-record), .archive :global(.yr-rank) { display: grid; gap: .1rem; }
+.archive :global(.yr-num) { font-weight: 600; }
+.archive :global(.yr-lbl) { color: var(--color-text-secondary); font-size: .65rem; letter-spacing: .04em; text-transform: uppercase; }
+.archive :global(.story-grid), .archive :global(.season-grid), .archive :global(.coaches-grid) { display: grid; gap: .75rem; }
+.archive :global(.story-photo), .archive :global(.feature-image), .archive :global(.hero-image), .archive :global(.photo-placeholder), .archive :global(.back-to-top), .archive :global(button) { display: none; }
+.archive :global([hidden]) { display: none !important; }
+.archive :global(.sect-head) { display: grid; gap: .35rem; }
+.archive :global(.sect-lede) { max-width: 68rem; }
+.archive :global(.sect-body) { display: grid; gap: 1rem; }
+.archive :global(.cols-2) { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1rem; align-items: start; }
+.archive :global(.awards-block) { overflow: hidden; border: 1px solid var(--color-border); border-radius: .75rem; background: var(--color-surface); padding: 1rem; box-shadow: 0 8px 24px rgba(17,24,39,.035); }
+.archive :global(.awards-h) { margin: 0; border-top: 1px solid var(--color-border); padding-top: 1rem; color: var(--color-text-primary); font-size: .95rem; font-weight: 600; }
+.archive :global(.awards-h:first-child) { border-top: 0; padding-top: 0; }
+.archive :global(.awards-sub) { margin: .25rem 0 .75rem; color: var(--color-text-secondary); font-size: .75rem; line-height: 1.5; }
+.archive :global(.awards-block table) { margin-bottom: 1.25rem; border: 1px solid var(--color-border); }
+.archive :global(.awards-block table:last-child) { margin-bottom: 0; }
+.archive :global(.award-card) { box-shadow: 0 8px 24px rgba(17,24,39,.035); }
+.archive :global(.award-card h4) { margin: -1rem -1rem .5rem; border-bottom: 1px solid var(--module-border); background: var(--module-tint); padding: .8rem 1rem; color: var(--module-accent-text); }
+.archive :global(.award-card li) { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; border-bottom: 1px solid color-mix(in srgb,var(--color-border) 70%,transparent); padding: .5rem 0; font-size: .78rem; }
+.archive :global(.award-card li:last-child) { border-bottom: 0; }
+.archive :global(.award-card .yr) { color: var(--color-text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.archive :global(.aa-detail-row) { display: grid; grid-template-columns: 6rem minmax(0,1fr); align-items: center; gap: 1rem; padding: .15rem 0; }
+.archive :global(.aa-detail-year) { color: var(--module-accent-text); font-weight: 600; font-variant-numeric: tabular-nums; }
+.archive :global(.aa-detail-cat) { color: var(--color-text-secondary); }
+.coachingPanel { display: grid; gap: .875rem; color: var(--color-text-primary); }
+.coachingPanel h2 { margin: 0; font-size: 1.25rem; font-weight: 600; letter-spacing: -.02em; line-height: 1.3; }
+.coachingPanel p { font-size: .875rem; line-height: 1.6; }
+.coachTable { overflow-x: auto; border: 1px solid var(--color-border); border-radius: .75rem; background: var(--color-surface); box-shadow: 0 8px 24px rgba(17,24,39,.04); }
+.coachHeader, .coachSummary { display: grid; grid-template-columns: 8rem minmax(11rem,1.2fr) 5rem 4rem 4rem 5rem minmax(15rem,1.6fr); align-items: center; min-width: 58rem; }
+.coachHeader { border-bottom: 1px solid var(--color-border); background: var(--color-app-background); }
+.coachSort { display: flex; align-items: center; justify-content: flex-start; gap: .3rem; min-height: 2.75rem; border: 0; background: transparent; padding: .65rem .75rem; color: var(--color-text-secondary); font: inherit; font-size: .67rem; font-weight: 600; letter-spacing: .04em; text-align: left; text-transform: uppercase; cursor: pointer; }
+.coachSort:hover, .coachSort[aria-pressed="true"] { color: var(--module-accent-text); }
+.coachRows { min-width: 58rem; }
+.coachAccordion { border: 0; border-radius: 0; }
+.coachAccordion + .coachAccordion { border-top: 1px solid var(--color-border); }
+.coachSummary { min-height: 3.5rem; padding: 0; font-size: .82rem; line-height: 1.4; list-style: none; cursor: pointer; }
+.coachSummary::-webkit-details-marker { display: none; }
+.coachSummary > * { min-width: 0; padding: .75rem; text-align: left; }
+.coachSummary strong { font-size: .82rem; font-weight: 600; }
+.coachSummary > span:nth-child(3), .coachSummary > span:nth-child(4), .coachSummary > span:nth-child(5), .coachSummary > span:nth-child(6) { font-variant-numeric: tabular-nums; }
+.coachAccordion[open] .coachSummary { border-bottom: 1px solid var(--color-border); background: color-mix(in srgb,var(--module-tint) 58%,transparent); }
+.coachHistory { padding: .5rem 1rem 1rem; background: color-mix(in srgb,var(--color-app-background) 82%,var(--module-tint)); }
+.coachSeasonHeader, .coachSeason { display: grid; grid-template-columns: 7rem minmax(18rem,1fr) 7rem 8rem; align-items: center; gap: 1rem; }
+.coachSeasonHeader { padding: .65rem .5rem; color: var(--color-text-secondary); font-size: .67rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.coachSeason { min-height: 3.25rem; border-top: 1px solid color-mix(in srgb,var(--color-border) 75%,transparent); padding: .6rem .5rem; font-size: .8rem; }
+.coachSeason > * { min-width: 0; }
+@media (max-width: 640px) {
+  .archive :global(.cols-2) { grid-template-columns: 1fr; }
+  .archive :global(.results-list summary) { grid-template-columns: minmax(0,1fr) auto; }
+  .archive :global(.results-list .coll-sub) { grid-column: 1; }
+  .archive :global(.results-list .coll-icon) { grid-column: 2; grid-row: 1 / span 2; }
+  .archive :global(.letter-list li) { grid-template-columns: 1.6rem minmax(0,1fr); }
+  .archive :global(.letter-list .val) { grid-column: 2; }
+  .archive :global(.yr-row) { grid-template-columns: 1fr 1fr; }
+  .archive :global(.yr-finish) { grid-column: 1 / -1; }
+}

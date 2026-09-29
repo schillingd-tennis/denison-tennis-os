@@ -8,6 +8,7 @@ import { primaryNavItems, getPageTitle } from "@/components/nav-items";
 import {
   KNOWLEDGE_HOTELS_ROUTE,
   KNOWLEDGE_OFFICIALS_ROUTE,
+  KNOWLEDGE_RECORD_BOOK_ROUTE,
   KNOWLEDGE_ROUTE,
   TOP_LEVEL_MODULE_PATHS,
   isTopLevelModulePage,
@@ -57,7 +58,7 @@ test("Resources landing and Officials route helpers are registered", () => {
   assert.equal(getPageTitle(KNOWLEDGE_HOTELS_ROUTE), "Hotels");
 });
 
-test("Resources nested nav lists Hotels then Officials List", () => {
+test("Resources nested nav lists Hotels, Officials List, then Record Book", () => {
   const resources = primaryNavItems.find((item) => item.href === KNOWLEDGE_ROUTE);
   assert.ok(resources?.children);
   assert.deepEqual(
@@ -65,6 +66,7 @@ test("Resources nested nav lists Hotels then Officials List", () => {
     [
       { label: "Hotels", href: KNOWLEDGE_HOTELS_ROUTE },
       { label: "Officials List", href: KNOWLEDGE_OFFICIALS_ROUTE },
+      { label: "Record Book", href: KNOWLEDGE_RECORD_BOOK_ROUTE },
     ],
   );
 });
