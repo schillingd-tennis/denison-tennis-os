@@ -40,9 +40,11 @@
     "test:team-schedule": "tsx --test src/features/teamSchedule/*.test.ts",
     "test:interactions": "tsx --test src/features/interactions/*.test.ts src/features/interactions/components/*.test.ts src/features/interactions/appleMessagesSync/*.test.ts src/features/interactions/whatsappSync/*.test.ts src/app/settings/*.test.ts",
     "utr:agent": "npm --prefix local-agents/utr-results-agent start",
-    "utr:agent:local": "tsx scripts/run-local-utr-agent.ts",
+    "utr:agent:local": "node --import tsx scripts/run-local-utr-agent.ts",
     "utr:https-setup": "tsx scripts/utr-https-setup.ts",
     "utr:login": "npm --prefix local-agents/utr-results-agent run login",
+    "wtn:login": "node --import tsx scripts/wtn-login.ts",
+    "wtn:diagnostic": "node --import tsx scripts/wtn-profile-diagnostic.ts",
     "test:utr-agent": "tsx --test src/features/recruiting/todayBeta/utrAgent.test.ts && npm --prefix local-agents/utr-results-agent test"
   },
   "dependencies": {

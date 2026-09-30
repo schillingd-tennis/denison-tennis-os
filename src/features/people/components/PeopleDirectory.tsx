@@ -65,7 +65,7 @@ const TEAM_VIEW_OPTIONS = [
  * Base set is program membership only (players + coaches) — not all People.
  * Visual shell matches Recruiting List via ModulePageShell.
  */
-export default function PeopleDirectory({ people, academicSummaries = {} }: { people: Person[]; academicSummaries?: PlayerAcademicSummaryMap }) {
+export default function PeopleDirectory({ people, academicSummaries = {}, power6 = null }: { people: Person[]; academicSummaries?: PlayerAcademicSummaryMap; power6?: number | null }) {
   const router = useRouter();
   const { openDrawer, closeDrawer } = useDrawerManager();
   const query = useSyncExternalStore(
@@ -210,7 +210,7 @@ export default function PeopleDirectory({ people, academicSummaries = {} }: { pe
       }
     >
       <DesktopOnlySummary>
-        <PeopleDirectoryKpiRow kpis={kpis} />
+        <PeopleDirectoryKpiRow kpis={kpis} power6={power6} />
       </DesktopOnlySummary>
 
       <MobileDirectorySearchRegion

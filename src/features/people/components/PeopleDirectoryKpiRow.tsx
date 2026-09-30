@@ -1,19 +1,18 @@
 import type { LucideIcon } from "lucide-react";
-import { Bell, User, UserCog, Users } from "lucide-react";
+import { Gauge, User, UserCog, Users } from "lucide-react";
 
 import type { PeopleDirectoryKpis } from "../directorySummary";
 
 const cards: {
-  key: keyof PeopleDirectoryKpis | "placeholder";
+  key: keyof PeopleDirectoryKpis | "power6";
   label: string;
   icon: LucideIcon;
   tone: "crimson" | "research" | "success" | "warning";
-  placeholder?: true;
 }[] = [
   { key: "total", label: "Total", icon: Users, tone: "crimson" },
   { key: "players", label: "Players", icon: User, tone: "research" },
   { key: "coaches", label: "Coaches", icon: UserCog, tone: "success" },
-  { key: "placeholder", label: "Placeholder", icon: Bell, tone: "warning", placeholder: true },
+  { key: "power6", label: "Denison Power 6 UTR", icon: Gauge, tone: "warning" },
 ];
 
 const toneClass: Record<(typeof cards)[number]["tone"], string> = {
@@ -43,15 +42,17 @@ const valueClass: Record<(typeof cards)[number]["tone"], string> = {
  */
 export default function PeopleDirectoryKpiRow({
   kpis,
+  power6,
 }: {
   kpis: PeopleDirectoryKpis;
+  power6: number | null;
 }) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {cards.map((card) => {
         const Icon = card.icon;
-        const value = card.placeholder
-          ? "—"
+        const value = card.key === "power6"
+          ? power6 == null ? "—" : power6.toFixed(2)
           : kpis[card.key as keyof PeopleDirectoryKpis];
         return (
           <div

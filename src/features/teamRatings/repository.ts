@@ -2,6 +2,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 import type { TeamRatingDashboardRow, TeamRatingObservation, TeamRatingPlayer, TeamRatingProvider } from "./types";
 
+export const DENISON_POWER_6_BASELINE = 68.17;
+
 type TeamPersonRow = {
   id: string;
   first_name: string;
@@ -70,6 +72,38 @@ export async function recordTeamRatingObservation(
     p_diagnostic: observation.diagnostic ?? null,
   });
   if (error) throw new Error(`Failed to record ${observation.provider.toUpperCase()} rating: ${error.message}`);
+}
+
+export async function recordTeamPower6Observation(input: {
+  rating: number;
+  ratingDate: string;
+  sourceUrl: string;
+  diagnostic?: string;
+}, jobId: string): Promise<void> {
+  const db = await createSupabaseServerClient();
+  const { error } = await db.rpc("record_team_utr_power_6", {
+    p_rating: input.rating,
+    p_rating_date: input.ratingDate,
+    p_source_url: input.sourceUrl,
+    p_job_id: jobId,
+    p_diagnostic: input.diagnostic ?? null,
+  });
+  if (error) throw new Error(`Failed to record Denison Power 6: ${error.message}`);
+}
+
+export async function getLatestTeamPower6(): Promise<number | null> {
+  const db = await createSupabaseServerClient();
+  const { data, error } = await db
+    .from("team_utr_power_6_snapshots")
+    .select("rating")
+    .order("rating_date", { ascending: false })
+    .order("captured_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const tableMissing = error?.code === "42P01" || error?.code === "PGRST205";
+  if (error && !tableMissing) throw new Error(`Failed to load Denison Power 6: ${error.message}`);
+  if (tableMissing) return DENISON_POWER_6_BASELINE;
+  return data?.rating == null ? DENISON_POWER_6_BASELINE : Number(data.rating);
 }
 
 type DashboardPersonRow = TeamPersonRow & { utr: number | null; wtn: number | null };

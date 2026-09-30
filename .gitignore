@@ -53,6 +53,9 @@ private-imports/
 
 # local UTR Results Agent (browser profile, secret, logs)
 .local/utr-browser-profile/
+.local/wtn-browser-profile/
+.local/wtn-diagnostic.json
+.local/wtn-diagnostic.png
 .local/utr-agent-secret
 .local/utr-agent-cert.pem
 .local/utr-agent-key.pem

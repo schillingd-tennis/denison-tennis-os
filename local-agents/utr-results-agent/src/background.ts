@@ -14,6 +14,7 @@ import {
 } from "../../../src/features/recruiting/todayBeta/utrAgentRun";
 import {
   listCurrentTeamRatingPlayers,
+  recordTeamPower6Observation,
   recordTeamRatingObservation,
 } from "../../../src/features/teamRatings/repository";
 import { workerSupabaseScope } from "../../../src/lib/supabase/workerScope";
@@ -26,6 +27,7 @@ import {
 import { isAgentBusy } from "./browser.js";
 import { runRecruitChecks } from "./runCheck.js";
 import { runTeamUtrRatingChecks } from "./runTeamRatings.js";
+import { DENISON_UTR_TEAM_URL } from "./checkTeamPower6.js";
 
 const HELPER_HOME = join(homedir(), "Library/Application Support/DenisonTennisOS");
 const PROVIDER = "utr";
@@ -156,6 +158,16 @@ export function startBackgroundWorker(options?: { client?: SupabaseClient }): ()
           const players = await listCurrentTeamRatingPlayers("utr");
           await updateJob({ total_count: players.length });
           const run = await runTeamUtrRatingChecks(players);
+          if (run.power6.status === "ok" && run.power6.rating != null) {
+            await recordTeamPower6Observation({
+              rating: run.power6.rating,
+              ratingDate: run.ratingDate,
+              sourceUrl: DENISON_UTR_TEAM_URL,
+              diagnostic: run.power6.diagnostic,
+            }, jobId!);
+          } else {
+            console.error(`Denison Power 6: ${run.power6.diagnostic ?? "rating_check_failed"}`);
+          }
           let saved = 0;
           let failed = 0;
           let authRequired = false;

@@ -27,8 +27,7 @@ if (!apiUrl || !serviceRole) {
 }
 
 console.log(`Starting UTR background worker against ${apiUrl}`);
-const tsxBin = resolve(process.cwd(), "node_modules/.bin/tsx");
-const child = spawn(tsxBin, ["local-agents/utr-results-agent/src/localBackground.ts"], {
+const child = spawn(process.execPath, ["--import", "tsx", "local-agents/utr-results-agent/src/localBackground.ts"], {
   cwd: process.cwd(),
   stdio: "inherit",
   env: {
