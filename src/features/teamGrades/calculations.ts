@@ -24,11 +24,11 @@ export function weightedGpa(records: readonly AcademicRecord[]): number | null {
   return eligible.reduce((sum, record) => sum + record.semesterGpa * record.creditHours, 0) / hours;
 }
 
-export function classLevelFor(person: Person, term: AcademicTerm | null): ClassLevel {
+export function classLevelFor(person: Person, term: AcademicTerm | null, asOf = new Date()): ClassLevel {
   if (!person.classYear) return "FR";
   const academicEndYear = term
     ? Number(term.academicYear.split("-")[0]) + 1
-    : new Date().getFullYear();
+    : asOf.getFullYear() + (asOf.getMonth() >= 6 ? 1 : 0);
   const difference = person.classYear - academicEndYear;
   if (difference <= 0) return "SR";
   if (difference === 1) return "JR";
@@ -61,7 +61,11 @@ export function buildGradeRows({
   const latestTerm = orderedTerms.at(-1) ?? null;
   const activeIds = new Set(records.filter((record) => record.termId === latestTerm?.id).map((record) => record.personId));
   const termsById = new Map(terms.map((term) => [term.id, term]));
-  const selectedTerm = view.kind === "term" ? termsById.get(view.id) ?? null : latestTerm;
+  const selectedTerm = view.kind === "term"
+    ? termsById.get(view.id) ?? null
+    : view.kind === "year"
+      ? orderedTerms.filter((term) => term.academicYear === view.academicYear).at(-1) ?? null
+      : null;
 
   return people
     .map((person): GradePlayerRow | null => {

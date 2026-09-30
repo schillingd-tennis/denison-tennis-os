@@ -5,7 +5,7 @@ import test from "node:test";
 
 import type { Person } from "@/features/people/types";
 
-import { buildGradeRows, buildPlayerAcademicSummaries, gpaStatus, weightedGpa } from "./calculations";
+import { buildGradeRows, buildPlayerAcademicSummaries, classLevelFor, gpaStatus, weightedGpa } from "./calculations";
 import type { AcademicRecord, AcademicTerm } from "./types";
 
 const terms: AcademicTerm[] = [
@@ -28,6 +28,20 @@ test("academic-year and cumulative views derive from raw semester rows", () => {
   assert.equal(rows[0]?.cumulativeGpa, 3.4);
   assert.equal(rows[0]?.hours, 30);
   assert.equal(rows[0]?.active, true);
+});
+
+test("current and historical class levels use the appropriate academic year", () => {
+  const kyle = { ...person, id: "kyle", classYear: 2027 };
+  assert.equal(classLevelFor(kyle, null, new Date("2026-09-29T12:00:00Z")), "SR");
+  assert.equal(classLevelFor(kyle, terms[1]), "SO");
+  const allTime = buildGradeRows({
+    people: [kyle],
+    terms,
+    records: records.map((record) => ({ ...record, personId: "kyle" })),
+    view: { kind: "all" },
+    rosterView: "all",
+  });
+  assert.equal(allTime[0]?.classLevel, "SR");
 });
 
 test("player academic summaries keep roster and workspace GPA values synchronized", () => {
