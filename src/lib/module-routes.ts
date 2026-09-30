@@ -3,6 +3,7 @@ import { ROLE_KEYS } from "@/features/lookups/seed";
 /** Team module — player/coach directory and workspaces. */
 export const PLAYERS_COACHES_ROUTE = "/players-coaches";
 export const TEAM_GRADES_ROUTE = "/players-coaches/grades";
+export const TEAM_RATINGS_ROUTE = "/players-coaches/ratings";
 
 /** Recruiting module — recruit directory and workspaces. */
 export const RECRUITING_ROUTE = "/recruiting";
@@ -77,6 +78,7 @@ export const TOP_LEVEL_MODULE_PATHS = [
   "/",
   PLAYERS_COACHES_ROUTE,
   TEAM_GRADES_ROUTE,
+  TEAM_RATINGS_ROUTE,
   TEAM_ROUTE,
   RECRUITING_ROUTE,
   RECRUITING_LIST_ROUTE,

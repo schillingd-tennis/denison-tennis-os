@@ -135,9 +135,10 @@ if (!teamOperations) throw new Error("expected Team Operations nav item");
 const team = primaryNavItems.find((item) => item.label === "Team");
 if (!team) throw new Error("expected Team nav item");
 
-test("Grades is a Team submodule after Roster", () => {
-  assert.deepEqual(team.children?.map((item) => item.label), ["Roster", "Grades"]);
+test("Grades and Ratings are Team submodules after Roster", () => {
+  assert.deepEqual(team.children?.map((item) => item.label), ["Roster", "Grades", "Ratings"]);
   assert.equal(isNavChildActive("/players-coaches/grades", team.children![1]!), true);
+  assert.equal(isNavChildActive("/players-coaches/ratings", team.children![2]!), true);
 });
 
 test("Practice sits between Schedule and Intra Squad in Team Operations", () => {

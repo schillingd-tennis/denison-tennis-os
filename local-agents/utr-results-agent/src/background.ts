@@ -3,7 +3,7 @@ import { hostname } from "node:os";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { createProductionSupabaseClient } from "../../../src/features/interactions/appleMessagesSync/liveRuntime";
 import {
@@ -12,6 +12,10 @@ import {
   importSingleUtrAgentRecruitResult,
   type UtrAgentRecruitRunRow,
 } from "../../../src/features/recruiting/todayBeta/utrAgentRun";
+import {
+  listCurrentTeamRatingPlayers,
+  recordTeamRatingObservation,
+} from "../../../src/features/teamRatings/repository";
 import { workerSupabaseScope } from "../../../src/lib/supabase/workerScope";
 import {
   easternDay,
@@ -21,10 +25,27 @@ import {
 } from "./backgroundSchedule.js";
 import { isAgentBusy } from "./browser.js";
 import { runRecruitChecks } from "./runCheck.js";
+import { runTeamUtrRatingChecks } from "./runTeamRatings.js";
 
 const HELPER_HOME = join(homedir(), "Library/Application Support/DenisonTennisOS");
 const PROVIDER = "utr";
 const WORKER_ID = `mac:${hostname()}`;
+
+function createWorkerSupabaseClient(): SupabaseClient {
+  const localUrl = process.env.UTR_AGENT_LOCAL_SUPABASE_URL;
+  const localServiceRole = process.env.UTR_AGENT_LOCAL_SERVICE_ROLE_KEY;
+  if (localUrl || localServiceRole) {
+    if (!localUrl || !localServiceRole) throw new Error("local_supabase_config_incomplete");
+    const parsed = new URL(localUrl);
+    if (parsed.hostname !== "127.0.0.1" && parsed.hostname !== "localhost") {
+      throw new Error("local_supabase_url_must_be_loopback");
+    }
+    return createClient(localUrl, localServiceRole, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+  }
+  return createProductionSupabaseClient(HELPER_HOME);
+}
 
 type WorkerPatch = {
   heartbeat_at?: string;
@@ -47,7 +68,7 @@ type JobPatch = {
 };
 
 export function startBackgroundWorker(options?: { client?: SupabaseClient }): () => void {
-  const client = options?.client ?? createProductionSupabaseClient(HELPER_HOME);
+  const client = options?.client ?? createWorkerSupabaseClient();
   let ticking = false;
   let jobId: string | null = null;
   let leaseToken: string | null = null;
@@ -124,6 +145,65 @@ export function startBackgroundWorker(options?: { client?: SupabaseClient }): ()
       leaseToken = nextToken;
       jobId = String(data);
       await workerSupabaseScope.run(client, async () => {
+        const { data: claimedJob, error: jobError } = await client
+          .from("tennis_data_jobs")
+          .select("kind, scope")
+          .eq("id", jobId)
+          .single();
+        if (jobError || !claimedJob) throw new Error("Claimed acquisition job could not be loaded.");
+
+        if (claimedJob.kind === "rating" && claimedJob.scope === "team") {
+          const players = await listCurrentTeamRatingPlayers("utr");
+          await updateJob({ total_count: players.length });
+          const run = await runTeamUtrRatingChecks(players);
+          let saved = 0;
+          let failed = 0;
+          let authRequired = false;
+
+          for (const row of run.rows) {
+            if (row.status === "auth_required") {
+              authRequired = true;
+              failed += 1;
+              break;
+            }
+            if (row.status !== "ok" || row.rating == null) {
+              failed += 1;
+              console.error(`${row.player.displayName}: ${row.diagnostic ?? "rating_check_failed"}`);
+            } else {
+              await recordTeamRatingObservation({
+                ...row.player,
+                rating: row.rating,
+                ratingDate: run.ratingDate,
+                diagnostic: row.diagnostic,
+              }, jobId!);
+              saved += 1;
+            }
+            await updateJob({ checked_count: saved + failed });
+            await updateWorker({ checked_count: saved + failed });
+          }
+
+          const finishedAt = new Date().toISOString();
+          const message = authRequired
+            ? "UTR login expired. Run npm run utr:login on the Mac, then request a new check."
+            : failed ? `${failed} team rating check(s) failed.` : null;
+          await updateJob({
+            status: authRequired ? "auth_required" : failed ? "partial" : "complete",
+            finished_at: finishedAt,
+            checked_count: saved + failed,
+            error: message,
+            lease_until: null,
+            lease_token: null,
+          });
+          await updateWorker({
+            auth_status: authRequired ? "reauth_required" : "valid",
+            last_error: message,
+            last_finished_at: finishedAt,
+            checked_count: saved + failed,
+          });
+          console.log(`Weekly team UTR ratings finished: ${saved} saved, ${failed} failed.`);
+          return;
+        }
+
         const startedAt = new Date().toISOString();
         const recruits = await buildUtrAgentRecruitRequests();
         const rows: UtrAgentRecruitRunRow[] = [];
@@ -181,8 +261,9 @@ export function startBackgroundWorker(options?: { client?: SupabaseClient }): ()
           `UTR background check finished: ${rows.length} checked, ${summary.totals.savedAsNew} new, ${summary.totals.failed} failed.`,
         );
       });
-    } catch {
-      console.error("UTR background check failed; inspect worker status and local service logs.");
+    } catch (error) {
+      const diagnostic = error instanceof Error ? error.message : "unknown_error";
+      console.error(`UTR background check failed: ${diagnostic}`);
       await markFailed("Background check failed. Check Mac agent logs and UTR login; retry in one hour.");
     } finally {
       jobId = null;

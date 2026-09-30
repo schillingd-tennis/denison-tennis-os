@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import { Home, IdCard, Mail, NotebookPen, Phone, UserRound } from "lucide-react";
+import { Activity, Home, IdCard, Mail, NotebookPen, Phone, UserRound } from "lucide-react";
 
 import {
   WorkspaceAccentHeading,
@@ -66,6 +66,8 @@ const PLAYER_PERSONAL_INFO_FIELDS = [
   "dorm",
   "roomNumber",
   "notes",
+  "utrUrl",
+  "wtnUrl",
 ] as const;
 
 function isFamilyContactFieldVisible(field: PersonFieldDefinition): boolean {
@@ -293,6 +295,18 @@ function PlayerCoachPersonalInfo({
 
         <div className="border-t border-border/50 pt-[14px]">
           <ContactInfoSection />
+        </div>
+
+        <div className="border-t border-border/50 pt-[14px]">
+          <section aria-label="Rating Profiles">
+            <WorkspaceAccentHeading icon={Activity} tone="module">
+              Rating Profiles
+            </WorkspaceAccentHeading>
+            <PersonalInfoFieldGrid>
+              <PersonalInfoField field="utrUrl" label="UTR Profile URL" />
+              <PersonalInfoField field="wtnUrl" label="WTN Profile URL" />
+            </PersonalInfoFieldGrid>
+          </section>
         </div>
 
         <div className="border-t border-border/50 pt-[14px]">

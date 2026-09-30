@@ -15,6 +15,7 @@ import {
 import {
   PLAYERS_COACHES_ROUTE,
   TEAM_GRADES_ROUTE,
+  TEAM_RATINGS_ROUTE,
   RECRUITING_LIST_ROUTE,
   RECRUITING_ROUTE,
   RECRUITING_TOURNAMENTS_ROUTE,
@@ -61,6 +62,7 @@ export const primaryNavItems: NavItem[] = [
   { label: "Team", href: PLAYERS_COACHES_ROUTE, icon: Users, accent: "#64748b", children: [
       { label: "Roster", href: PLAYERS_COACHES_ROUTE, exact: true },
       { label: "Grades", href: TEAM_GRADES_ROUTE },
+      { label: "Ratings", href: TEAM_RATINGS_ROUTE },
     ] },
   { label: "Team Operations", href: TEAM_OPERATIONS_ROUTE, icon: ClipboardList, accent: "#16a34a", children: [
       { label: "Schedule", href: TEAM_OPERATIONS_SCHEDULE_ROUTE },
