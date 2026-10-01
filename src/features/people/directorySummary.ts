@@ -15,19 +15,12 @@ export type PeopleDirectoryKpis = {
   coaches: number;
 };
 
-export function computePeopleDirectoryKpis(
-  people: readonly Person[],
-): PeopleDirectoryKpis {
+export function computePeopleDirectoryKpis(people: readonly Person[]): PeopleDirectoryKpis {
   const members = people.filter(isTeamDirectoryPerson);
-  let players = 0;
-  let coaches = 0;
-  for (const person of members) {
-    if (hasRole(person, ROLE_KEYS.player)) players += 1;
-    if (hasRole(person, ROLE_KEYS.coach)) coaches += 1;
-  }
+  const players = members.filter((person) => hasRole(person, ROLE_KEYS.player)).length;
   return {
     total: members.length,
     players,
-    coaches,
+    coaches: members.filter((person) => hasRole(person, ROLE_KEYS.coach)).length,
   };
 }

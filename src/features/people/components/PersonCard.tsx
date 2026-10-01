@@ -29,7 +29,6 @@ import {
 } from "@/features/people/utils";
 import { EMPTY_VALUE, formatDisplay, formatUtr, formatWtn } from "@/lib/formatting";
 import { playersCoachesPersonPath } from "@/lib/module-routes";
-import type { PlayerAcademicSummary } from "@/features/teamGrades/types";
 
 type CardEditableField = "hometown" | "classYear" | "utr" | "wtn";
 
@@ -56,11 +55,9 @@ function parseHometown(raw: string): { city?: string; state?: string } {
  */
 export default function PersonCard({
   person,
-  academicSummary,
   onPersonCommit,
 }: {
   person: Person;
-  academicSummary?: PlayerAcademicSummary;
   onPersonCommit?: (person: Person) => void;
 }) {
   const hometown = getHometown(person);
@@ -202,7 +199,7 @@ export default function PersonCard({
       </div>
 
       {!coachDirectory ? (
-        <div className="relative z-10 grid grid-cols-3 gap-2 rounded-control bg-app-background px-3 py-2.5 text-center">
+        <div className="relative z-10 grid grid-cols-2 gap-2 rounded-control bg-app-background px-3 py-2.5 text-center">
           <div>
             <p className={typeRole.sectionLabel}>UTR</p>
             <InlineEditCell
@@ -264,12 +261,6 @@ export default function PersonCard({
               }}
               onCommit={(raw) => commit("wtn", raw)}
             />
-          </div>
-          <div>
-            <p className={typeRole.sectionLabel}>GPA</p>
-            <p className={`text-sm font-semibold tabular-nums ${academicSummary?.cumulativeGpa == null ? typeRole.metadataEmpty : "text-amber-700"}`}>
-              {academicSummary?.cumulativeGpa?.toFixed(2) ?? EMPTY_VALUE}
-            </p>
           </div>
         </div>
       ) : null}

@@ -38,3 +38,24 @@ export function sparklinePointsInRange(
     })
     .join(" ");
 }
+
+export type UtrMover = {
+  personId: string;
+  displayName: string;
+  utr: number | null;
+  utrChange: number | null;
+};
+
+/** Largest week-over-week UTR moves, regardless of direction. */
+export function topUtrMovers<T extends UtrMover>(
+  rows: readonly T[],
+  limit = 5,
+): T[] {
+  return rows
+    .filter((row) => row.utrChange != null && Number.isFinite(row.utrChange) && row.utrChange !== 0)
+    .sort((a, b) => {
+      const magnitude = Math.abs(b.utrChange!) - Math.abs(a.utrChange!);
+      return magnitude || a.displayName.localeCompare(b.displayName);
+    })
+    .slice(0, Math.max(0, limit));
+}

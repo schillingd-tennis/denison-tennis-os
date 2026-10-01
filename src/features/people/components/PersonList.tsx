@@ -60,7 +60,6 @@ import {
 } from "@/features/people/utils";
 import { formatUtr, formatWtn } from "@/lib/formatting";
 import { playersCoachesPersonPath } from "@/lib/module-routes";
-import type { PlayerAcademicSummaryMap } from "@/features/teamGrades/types";
 
 import PlayerAvatar from "@/components/PlayerAvatar";
 import QuickActionButton from "@/components/QuickActionButton";
@@ -109,7 +108,6 @@ function PlayersCoachesListColgroup() {
       <col style={{ width: C.classYear }} />
       <col style={{ width: C.utr }} />
       <col style={{ width: C.wtn }} />
-      <col style={{ width: 72 }} />
       <col style={{ width: 132 }} />
       <col />
       <col style={{ width: C.contact }} />
@@ -196,14 +194,12 @@ export default function PersonList({
   people,
   allPeople,
   activeFilterIds,
-  academicSummaries = {},
   onPersonCommit,
 }: {
   people: Person[];
   /** Unfiltered Team directory (search/filters not applied). Used for All Players. */
   allPeople?: Person[];
   activeFilterIds: readonly string[];
-  academicSummaries?: PlayerAcademicSummaryMap;
   onPersonCommit?: (person: Person) => void;
 }) {
   const router = useRouter();
@@ -573,7 +569,6 @@ export default function PersonList({
                   sortDirection={sortDir("wtn")}
                   onSort={() => toggleSort("wtn")}
                 />
-                <RecruitingHeaderLabel label="GPA" align="right" />
                 <RecruitingHeaderLabel
                   label="Cell #"
                   sortDirection={sortDir("cellPhone")}
@@ -603,10 +598,6 @@ export default function PersonList({
                 const wtnDisplay = showPlayerMetrics
                   ? recruitingMetricDisplay(formatWtn(person.wtn))
                   : TEAM_DIRECTORY_EMPTY;
-                const cumulativeGpa = academicSummaries[person.id]?.cumulativeGpa;
-                const gpaDisplay = showPlayerMetrics && cumulativeGpa != null
-                  ? cumulativeGpa.toFixed(2)
-                  : TEAM_DIRECTORY_EMPTY;
                 const phoneDisplay = directoryCellValue(formatPhoneDisplay(person.cellPhone));
                 const emailDisplay = directoryCellValue(personListEmail(person));
 
@@ -616,7 +607,7 @@ export default function PersonList({
                       <tr>
                         <th
                           scope="rowgroup"
-                          colSpan={9}
+                          colSpan={8}
                           className="border-y border-black/[0.06] bg-surface px-3 py-2 text-left text-[11px] font-medium tracking-wide text-text-secondary"
                         >
                           <span className="flex items-center justify-between">
@@ -749,9 +740,6 @@ export default function PersonList({
                         <span className={BOARD.metric}>{TEAM_DIRECTORY_EMPTY}</span>
                       )}
                     </td>
-                    <td className={`${BOARD.td} ${BOARD.metric}`}>
-                      <span className={gpaDisplay === TEAM_DIRECTORY_EMPTY ? "text-text-secondary" : "font-semibold text-amber-700"}>{gpaDisplay}</span>
-                    </td>
                     <td className={BOARD.td}>
                       <span
                         title={phoneDisplay === TEAM_DIRECTORY_EMPTY ? undefined : phoneDisplay}
@@ -838,9 +826,6 @@ export default function PersonList({
                           {TEAM_DIRECTORY_EMPTY}
                         </p>
                       )}
-                      {!coachDirectory && academicSummaries[person.id]?.cumulativeGpa != null ? (
-                        <p className="mt-1 text-xs font-semibold text-amber-700">GPA {academicSummaries[person.id].cumulativeGpa!.toFixed(2)}</p>
-                      ) : null}
                     </div>
                   </Link>
                   </li>

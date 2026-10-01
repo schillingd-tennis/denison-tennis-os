@@ -199,6 +199,18 @@ describe("sorting", () => {
     assert.equal(indices.length, 2);
     assert.equal(Math.abs(indices[0] - indices[1]), 1);
   });
+
+  it("13a. same-day matches sort earliest to latest regardless of manual order", () => {
+    const owu = events.find((event) => event.opponentName === "OWU")!;
+    const kenyon = events.find((event) => event.opponentName === "Kenyon")!;
+    const tbd = { ...owu, id: "same-day-tbd", opponentName: "TBD Opponent", timeText: "TBD", sortOrder: 0 };
+    const afternoon = { ...owu, timeText: "3:00 PM", sortOrder: 1 };
+    const morning = { ...kenyon, timeText: "10:00 AM", sortOrder: 2 };
+
+    const sorted = sortScheduleEvents([tbd, afternoon, morning]);
+
+    assert.deepEqual(sorted.map((event) => event.timeText), ["10:00 AM", "3:00 PM", "TBD"]);
+  });
 });
 
 describe("validation and metrics", () => {

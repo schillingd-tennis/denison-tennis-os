@@ -79,6 +79,24 @@ describe("school identity resolver", () => {
     }
   });
 
+  it("Wilmington College aliases resolve to the local logo", () => {
+    for (const label of ["Wilmington", "Wilmington College", "Wilmington College Ohio"]) {
+      const identity = resolveScheduleIdentityFromLabel(label);
+      assert.ok(identity);
+      assert.equal(identity.slug, "wilmington-ohio");
+      assert.equal(identity.logoSrc, `${SCHOOL_LOGOS_BASE_PATH}/wilmington-ohio.png`);
+    }
+  });
+
+  it("University of Findlay aliases resolve to the local logo", () => {
+    for (const label of ["Findlay", "University of Findlay", "Findlay University"]) {
+      const identity = resolveScheduleIdentityFromLabel(label);
+      assert.ok(identity);
+      assert.equal(identity.slug, "findlay");
+      assert.equal(identity.logoSrc, `${SCHOOL_LOGOS_BASE_PATH}/university-findlay.webp`);
+    }
+  });
+
   it("20. missing logo uses initials fallback safely", () => {
     const identity = genericScheduleIdentity("Mystery College");
     assert.equal(identity.kind, "generic");

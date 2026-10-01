@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { dayRulePercent, sparklinePoints, sparklinePointsInRange } from "./dashboardMath";
+import { dayRulePercent, sparklinePoints, sparklinePointsInRange, topUtrMovers } from "./dashboardMath";
 
 test("sparklinePoints handles empty and flat data", () => {
   assert.equal(sparklinePoints([]), "");
@@ -20,4 +20,14 @@ test("dayRulePercent clamps invalid and over-limit totals", () => {
 
 test("sparklinePointsInRange keeps multiple series on a shared scale", () => {
   assert.equal(sparklinePointsInRange([1400, 1500], 1400, 1600, 100, 50), "0,42 100,25");
+});
+
+test("topUtrMovers ranks positive and negative movement by absolute change", () => {
+  const rows = [
+    { personId: "a", displayName: "A", utr: 11, utrChange: 0.2 },
+    { personId: "b", displayName: "B", utr: 10, utrChange: -0.5 },
+    { personId: "c", displayName: "C", utr: 9, utrChange: null },
+    { personId: "d", displayName: "D", utr: 12, utrChange: 0 },
+  ];
+  assert.deepEqual(topUtrMovers(rows).map((row) => row.personId), ["b", "a"]);
 });

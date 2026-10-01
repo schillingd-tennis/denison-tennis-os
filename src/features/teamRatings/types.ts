@@ -26,3 +26,9 @@ export type TeamRatingDashboardRow = {
   utrCheckedAt: string | null;
   wtnCheckedAt: string | null;
 };
+
+export type TeamPower6HistoryPoint = {
+  rating: number;
+  ratingDate: string;
+  capturedAt: string;
+};

@@ -1,6 +1,12 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-import type { TeamRatingDashboardRow, TeamRatingObservation, TeamRatingPlayer, TeamRatingProvider } from "./types";
+import type {
+  TeamPower6HistoryPoint,
+  TeamRatingDashboardRow,
+  TeamRatingObservation,
+  TeamRatingPlayer,
+  TeamRatingProvider,
+} from "./types";
 
 export const DENISON_POWER_6_BASELINE = 68.17;
 
@@ -104,6 +110,27 @@ export async function getLatestTeamPower6(): Promise<number | null> {
   if (error && !tableMissing) throw new Error(`Failed to load Denison Power 6: ${error.message}`);
   if (tableMissing) return DENISON_POWER_6_BASELINE;
   return data?.rating == null ? DENISON_POWER_6_BASELINE : Number(data.rating);
+}
+
+export async function listTeamPower6History(limit = 10): Promise<TeamPower6HistoryPoint[]> {
+  const db = await createSupabaseServerClient();
+  const safeLimit = Math.max(1, Math.min(52, Math.trunc(limit)));
+  const { data, error } = await db
+    .from("team_utr_power_6_snapshots")
+    .select("rating, rating_date, captured_at")
+    .order("rating_date", { ascending: false })
+    .order("captured_at", { ascending: false })
+    .limit(safeLimit);
+  const tableMissing = error?.code === "42P01" || error?.code === "PGRST205";
+  if (error && !tableMissing) {
+    throw new Error(`Failed to load Denison Power 6 history: ${error.message}`);
+  }
+  if (tableMissing) return [];
+  return (data ?? []).map((row) => ({
+    rating: Number(row.rating),
+    ratingDate: row.rating_date,
+    capturedAt: row.captured_at,
+  }));
 }
 
 type DashboardPersonRow = TeamPersonRow & { utr: number | null; wtn: number | null };

@@ -12,16 +12,24 @@ import { listRecentUtrRecruitResults } from "@/features/recruiting/todayBeta/rep
 import { listScheduleEvents } from "@/features/teamSchedule/repository";
 import { resolveScheduleIdentity } from "@/features/teamSchedule/schoolIdentity";
 import { displayOpponentOrEvent } from "@/features/teamSchedule/types";
+import {
+  getLatestTeamPower6,
+  listTeamPower6History,
+  listTeamRatingDashboard,
+} from "@/features/teamRatings/repository";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [intra, dayRule, interactions, directory, utrResults, schedule] = await Promise.all([
+  const [intra, dayRule, interactions, directory, utrResults, schedule, teamRatings, power6, power6History] = await Promise.all([
     loadIntraSquadWorkspaceData(),
     getDayRuleSummary(),
     listVisibleRecruitingInteractions(),
     loadRecruitingDirectory(),
     listRecentUtrRecruitResults(5),
     listScheduleEvents(),
+    listTeamRatingDashboard().catch(() => []),
+    getLatestTeamPower6().catch(() => null),
+    listTeamPower6History(10).catch(() => []),
   ]);
   const names = new Map(
     intra.roster.map((player) => [
@@ -75,6 +83,9 @@ export default async function Home() {
       utrResults={utrResults}
       monthRule={currentMonth ? { label: currentMonth.label, used: currentMonth.used, budget: currentMonth.budget } : null}
       events={events}
+      teamRatings={teamRatings}
+      power6={power6}
+      power6History={power6History}
     />
   );
 }
