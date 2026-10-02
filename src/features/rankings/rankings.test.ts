@@ -31,6 +31,7 @@ import {
 import { CURRENT_ITA_NATIONAL_TEAM_MEN_DIV3_SNAPSHOT } from "./snapshot/currentIta";
 import { RANKINGS_SUBMODULES } from "./submodules";
 import { validateRankingSnapshot } from "./validate";
+import { currentTeamRanking } from "./currentTeamRanking";
 
 const PUBLIC_SCHOOL_LOGOS_DIR = path.join(process.cwd(), "public", "school-logos");
 
@@ -104,6 +105,17 @@ test("Current ITA snapshot is complete, ordered, and validates", () => {
   }
   const names = new Set(snapshot.entries.map((entry) => entry.schoolName));
   assert.equal(names.size, snapshot.entries.length);
+});
+
+test("home dashboard ranking lookup uses the Rankings module snapshot", () => {
+  assert.deepEqual(
+    currentTeamRanking(CURRENT_ITA_NATIONAL_TEAM_MEN_DIV3_SNAPSHOT, "Denison"),
+    { rank: 4, rankingDate: "2026-06-03" },
+  );
+  assert.equal(
+    currentTeamRanking(CURRENT_ITA_NATIONAL_TEAM_MEN_DIV3_SNAPSHOT, "Unknown College"),
+    null,
+  );
 });
 
 test("ties are supported by validation", () => {

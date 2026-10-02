@@ -1,4 +1,4 @@
-import type { DayBudgetRow, DayRuleSummary } from "./types";
+import type { DailyPracticePlan, DayBudgetRow, DayRuleSummary } from "./types";
 
 export type DayRuleCalendarCell = {
   date: string | null;
@@ -10,6 +10,15 @@ export type DayRuleCalendarCount = {
   monthCount: number;
   monthBudget: number;
 };
+
+export function practicePlanForCalendarSource(
+  plans: DailyPracticePlan[],
+  date: string,
+  label: string,
+): DailyPracticePlan | undefined {
+  const plansForDate = plans.filter((plan) => plan.planDate === date);
+  return plansForDate.find((plan) => plan.title === label) ?? plansForDate[0];
+}
 
 export function practiceSeasonStartYear(today: string): number {
   const year = Number(today.slice(0, 4));

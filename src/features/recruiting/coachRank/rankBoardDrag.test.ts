@@ -258,6 +258,10 @@ describe("Rank Board Practice-style DnD persistence payloads", () => {
     );
     assert.match(view, /data-rank-board-root/);
     assert.match(view, /data-tier-drop-zone=\{String\(section\)\}/);
+    assert.match(view, /TennisRecruiting\.net rank/);
+    assert.match(view, /label="UTR"/);
+    assert.match(view, /label="TRN"/);
+    assert.match(view, /label="WTN"/);
     assert.match(view, /hoverTarget/);
     assert.match(view, /hoverSection/);
     assert.doesNotMatch(view, /DndContext|SortableContext|@dnd-kit/);

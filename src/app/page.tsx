@@ -9,6 +9,8 @@ import {
 import { recentInteractions, upcomingVisits } from "@/features/recruiting/dashboard";
 import { loadRecruitingDirectory } from "@/features/recruiting/directory";
 import { listRecentUtrRecruitResults } from "@/features/recruiting/todayBeta/repository";
+import { currentTeamRanking } from "@/features/rankings/currentTeamRanking";
+import { CURRENT_ITA_NATIONAL_TEAM_MEN_DIV3_SNAPSHOT } from "@/features/rankings/snapshot/currentIta";
 import { listScheduleEvents } from "@/features/teamSchedule/repository";
 import { resolveScheduleIdentity } from "@/features/teamSchedule/schoolIdentity";
 import { displayOpponentOrEvent } from "@/features/teamSchedule/types";
@@ -20,6 +22,10 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
+  const currentItaRanking = currentTeamRanking(
+    CURRENT_ITA_NATIONAL_TEAM_MEN_DIV3_SNAPSHOT,
+    "Denison",
+  );
   const [intra, dayRule, interactions, directory, utrResults, schedule, teamRatings, power6, power6History] = await Promise.all([
     loadIntraSquadWorkspaceData(),
     getDayRuleSummary(),
@@ -86,6 +92,8 @@ export default async function Home() {
       teamRatings={teamRatings}
       power6={power6}
       power6History={power6History}
+      currentItaRanking={currentItaRanking}
+      currentNpiRanking={null}
     />
   );
 }

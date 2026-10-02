@@ -19,8 +19,8 @@ import {
   TEAM_DIRECTORY_EMPTY,
   TEAM_DIRECTORY_META,
 } from "@/features/people/directoryHierarchy";
-import { getDisplayName } from "@/features/people/utils";
-import { EMPTY_VALUE, formatUtr } from "@/lib/formatting";
+import { getDisplayName, getHometown } from "@/features/people/utils";
+import { EMPTY_VALUE, formatUtr, formatWtn } from "@/lib/formatting";
 
 import { parseDirectCoachRank } from "../coachRank";
 import {
@@ -583,7 +583,7 @@ function TierSectionBar({
 
 /**
  * Practice Sequence-style sortable card for one ranked recruit.
- * [handle] [rank] [name + info] [UTR] [Tier] [status/actions]
+ * [handle] [rank] [name + info] [UTR / TRN / WTN] [Tier] [status/actions]
  */
 function RankBoardSequenceCard({
   row,
@@ -644,6 +644,10 @@ function RankBoardSequenceCard({
   const name = getDisplayName(row.person);
   const displayRank = row.profile.coachRank ?? null;
   const utrDisplay = formatUtr(row.person.utr);
+  const trnDisplay =
+    row.person.trnRank == null ? EMPTY_VALUE : String(row.person.trnRank);
+  const wtnDisplay = formatWtn(row.person.wtn);
+  const hometown = getHometown(row.person);
   const isDragging = draggedPersonId === row.person.id;
   const committedToDenison =
     row.profile.outcome?.key === RECRUIT_OUTCOME_KEYS.committedDenison ||
@@ -695,12 +699,23 @@ function RankBoardSequenceCard({
         </span>
         <span className={`mt-0.5 block truncate ${TEAM_DIRECTORY_META}`}>
           {row.profile.recruitClassYear ?? TEAM_DIRECTORY_EMPTY}
-          {utrDisplay !== EMPTY_VALUE ? ` · UTR ${utrDisplay}` : ""}
+          {hometown ? ` · ${hometown}` : ""}
+        </span>
+        <span className="mt-1 flex gap-2 text-[10px] font-medium tabular-nums text-text-secondary sm:hidden">
+          <span>UTR {utrDisplay}</span>
+          <span>TRN {trnDisplay}</span>
+          <span>WTN {wtnDisplay}</span>
         </span>
       </Link>
-      <span className="hidden w-14 shrink-0 text-right text-xs font-semibold tabular-nums text-text-primary sm:block">
-        {utrDisplay === EMPTY_VALUE ? "—" : utrDisplay}
-      </span>
+      <div className="hidden shrink-0 grid-cols-3 overflow-hidden rounded-control border border-black/[0.07] bg-white/75 sm:grid">
+        <RankedCardMetric label="UTR" value={utrDisplay} />
+        <RankedCardMetric
+          label="TRN"
+          value={trnDisplay}
+          title="TennisRecruiting.net rank"
+        />
+        <RankedCardMetric label="WTN" value={wtnDisplay} />
+      </div>
       <div
         className="w-14 shrink-0"
         onPointerDown={(event) => event.stopPropagation()}
@@ -747,6 +762,30 @@ function RankBoardSequenceCard({
         onClick={() => onUnrank(row.person.id)}
       />
     </div>
+  );
+}
+
+function RankedCardMetric({
+  label,
+  value,
+  title,
+}: {
+  label: string;
+  value: string;
+  title?: string;
+}) {
+  return (
+    <span
+      className="min-w-[3.75rem] border-l border-black/[0.06] px-2 py-1 text-center first:border-l-0"
+      title={title}
+    >
+      <span className="block text-[9px] font-semibold uppercase tracking-[0.08em] text-text-secondary">
+        {label}
+      </span>
+      <span className="mt-0.5 block text-xs font-semibold tabular-nums text-text-primary">
+        {value}
+      </span>
+    </span>
   );
 }
 

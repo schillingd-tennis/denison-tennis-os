@@ -1,14 +1,15 @@
 "use client";
 
-import { CalendarCheck2, ChevronLeft, ChevronRight, Swords, Trophy } from "lucide-react";
+import { CalendarCheck2, ChevronLeft, ChevronRight, Pencil, Swords, Trophy } from "lucide-react";
 import { useState } from "react";
 
 import {
   buildDayRuleCalendarCells,
   buildDayRuleCalendarCounts,
+  practicePlanForCalendarSource,
   practiceCalendarYear,
 } from "../dayRuleCalendar";
-import type { DayRuleDay, DayRuleSummary } from "../types";
+import type { DailyPracticePlan, DayRuleDay, DayRuleSummary } from "../types";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -45,7 +46,15 @@ function sourceKinds(day?: DayRuleDay) {
   };
 }
 
-export default function DayRuleCalendar({ summary }: { summary: DayRuleSummary }) {
+export default function DayRuleCalendar({
+  summary,
+  plans,
+  onOpenPlan,
+}: {
+  summary: DayRuleSummary;
+  plans: DailyPracticePlan[];
+  onOpenPlan: (id: string) => void;
+}) {
   const today = easternToday();
   const currentMonth = Number(today.slice(5, 7));
   const initialIndex = Math.max(
@@ -125,10 +134,11 @@ export default function DayRuleCalendar({ summary }: { summary: DayRuleSummary }
         <div className="grid grid-cols-7">
           {cells.map((cell, index) => {
             if (!cell.date || !cell.dayNumber) return <div key={`empty-${index}`} className="min-h-16 border-r border-b border-border bg-app-background/50 sm:min-h-24"/>;
-            const day = dayByDate.get(cell.date);
-            const count = countByDate.get(cell.date);
+            const cellDate = cell.date;
+            const day = dayByDate.get(cellDate);
+            const count = countByDate.get(cellDate);
             const kinds = sourceKinds(day);
-            const selected = selectedDate === cell.date;
+            const selected = selectedDate === cellDate;
             const background = kinds.practice && kinds.competition
               ? "bg-[linear-gradient(135deg,rgba(124,58,237,0.10)_0_50%,rgba(245,158,11,0.14)_50%_100%)]"
               : kinds.practice
@@ -137,13 +147,27 @@ export default function DayRuleCalendar({ summary }: { summary: DayRuleSummary }
                   ? "bg-amber-50"
                   : "bg-surface";
             return (
-              <button key={cell.date} type="button" onClick={() => setSelectedDate(cell.date)} aria-label={`${dateLabel(cell.date)}${count ? `, day ${count.seasonCount} of 114 and ${count.monthCount} of ${count.monthBudget} for ${row.label}` : ", not counted"}`} className={`min-h-16 border-r border-b border-border p-1.5 text-left transition-shadow sm:min-h-24 sm:p-2 ${background} ${selected ? "ring-2 ring-inset ring-blue-600" : "hover:ring-1 hover:ring-inset hover:ring-border"}`}>
-                <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold ${cell.date === today ? "bg-blue-600 text-white" : "text-text-primary"}`}>{cell.dayNumber}</span>
+              <div key={cellDate} className={`min-h-16 border-r border-b border-border p-1.5 text-left transition-shadow sm:min-h-24 sm:p-2 ${background} ${selected ? "ring-2 ring-inset ring-blue-600" : "hover:ring-1 hover:ring-inset hover:ring-border"}`}>
+                <button type="button" onClick={() => setSelectedDate(cellDate)} aria-label={`${dateLabel(cellDate)}${count ? `, day ${count.seasonCount} of 114 and ${count.monthCount} of ${count.monthBudget} for ${row.label}` : ", not counted"}`} className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold ${cellDate === today ? "bg-blue-600 text-white" : "text-text-primary hover:bg-black/5"}`}>{cell.dayNumber}</button>
                 <span className="mt-1 block space-y-1">
-                  {day?.sources.map((source, sourceIndex) => <span key={`${source.type}-${source.label}-${sourceIndex}`} className={`flex min-w-0 items-center gap-1 text-[9px] font-semibold ${source.type === "practice" ? "text-violet-700" : "text-amber-800"}`}><span className={`h-1.5 w-1.5 shrink-0 rounded-full ${source.type === "practice" ? "bg-violet-600" : "bg-amber-500"}`}/><span className="hidden truncate sm:block">{source.label}</span></span>)}
+                  {day?.sources.map((source, sourceIndex) => {
+                    const plan = source.type === "practice"
+                      ? practicePlanForCalendarSource(plans, cellDate, source.label)
+                      : undefined;
+                    const content = <><span className={`h-1.5 w-1.5 shrink-0 rounded-full ${source.type === "practice" ? "bg-violet-600" : "bg-amber-500"}`}/><span className="hidden truncate sm:block">{source.label}</span>{plan ? <Pencil className="hidden h-2.5 w-2.5 shrink-0 sm:block"/> : null}</>;
+                    return plan ? (
+                      <button key={`${source.type}-${source.label}-${sourceIndex}`} type="button" onClick={() => onOpenPlan(plan.id)} title={`Edit ${source.label}`} className="flex w-full min-w-0 items-center gap-1 rounded-sm text-[9px] font-semibold text-violet-700 hover:bg-violet-100 hover:underline focus:outline-none focus:ring-1 focus:ring-violet-500">
+                        {content}
+                      </button>
+                    ) : (
+                      <button key={`${source.type}-${source.label}-${sourceIndex}`} type="button" onClick={() => setSelectedDate(cellDate)} className={`flex w-full min-w-0 items-center gap-1 rounded-sm text-[9px] font-semibold ${source.type === "practice" ? "text-violet-700" : "text-amber-800"}`}>
+                        {content}
+                      </button>
+                    );
+                  })}
                   {count ? <span className="block text-[9px] font-semibold tabular-nums text-text-secondary">Year {count.seasonCount}/{summary.limit} · Month {count.monthCount}/{count.monthBudget}</span> : null}
                 </span>
-              </button>
+              </div>
             );
           })}
         </div>
@@ -151,7 +175,13 @@ export default function DayRuleCalendar({ summary }: { summary: DayRuleSummary }
         <div className="flex flex-col gap-3 bg-app-background px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs font-semibold">{selectedDate ? dateLabel(selectedDate) : `No counted dates in ${row.label}`}</p>
-            {selectedDay ? <div className="mt-1 flex flex-wrap items-center gap-2">{selectedDay.sources.map((source, index) => <span key={`${source.type}-${source.label}-${index}`} className={`inline-flex items-center gap-1 text-[11px] ${source.type === "practice" ? "text-violet-700" : "text-amber-800"}`}>{source.type === "practice" ? <Swords className="h-3 w-3"/> : <Trophy className="h-3 w-3"/>}{source.label}</span>)}{selectedDate && countByDate.get(selectedDate) ? <span className="text-[11px] font-semibold tabular-nums text-text-secondary">Year {countByDate.get(selectedDate)?.seasonCount}/{summary.limit} · Month {countByDate.get(selectedDate)?.monthCount}/{countByDate.get(selectedDate)?.monthBudget}</span> : null}</div> : <p className="mt-1 text-[11px] text-text-secondary">{selectedDate ? "No countable practice or competition scheduled." : "Select a highlighted date to see what is counted."}</p>}
+            {selectedDay ? <div className="mt-1 flex flex-wrap items-center gap-2">{selectedDay.sources.map((source, index) => {
+              const plan = selectedDate && source.type === "practice"
+                ? practicePlanForCalendarSource(plans, selectedDate, source.label)
+                : undefined;
+              const content = <>{source.type === "practice" ? <Swords className="h-3 w-3"/> : <Trophy className="h-3 w-3"/>}{source.label}{plan ? <Pencil className="h-3 w-3"/> : null}</>;
+              return plan ? <button key={`${source.type}-${source.label}-${index}`} type="button" onClick={() => onOpenPlan(plan.id)} className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2 py-1 text-[11px] font-semibold text-violet-800 hover:bg-violet-200 hover:underline">{content}</button> : <span key={`${source.type}-${source.label}-${index}`} className={`inline-flex items-center gap-1 text-[11px] ${source.type === "practice" ? "text-violet-700" : "text-amber-800"}`}>{content}</span>;
+            })}{selectedDate && countByDate.get(selectedDate) ? <span className="text-[11px] font-semibold tabular-nums text-text-secondary">Year {countByDate.get(selectedDate)?.seasonCount}/{summary.limit} · Month {countByDate.get(selectedDate)?.monthCount}/{countByDate.get(selectedDate)?.monthBudget}</span> : null}</div> : <p className="mt-1 text-[11px] text-text-secondary">{selectedDate ? "No countable practice or competition scheduled." : "Select a highlighted date to see what is counted."}</p>}
           </div>
           {selectedDay ? <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-bold text-emerald-800"><CalendarCheck2 className="h-3.5 w-3.5"/>Counts as 1 day</span> : null}
         </div>

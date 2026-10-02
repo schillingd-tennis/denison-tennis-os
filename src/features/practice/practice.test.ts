@@ -3,8 +3,8 @@ import test from "node:test";
 
 import { PRACTICE_TABS } from "./types";
 import { TEAM_OPERATIONS_PRACTICE_ROUTE, TOP_LEVEL_MODULE_PATHS, isTopLevelModulePage } from "@/lib/module-routes";
-import { calculateDayRule, calculateMonthlyPracticeBudget, enumerateDates } from "./dayRule";
-import { buildDayRuleCalendarCells, buildDayRuleCalendarCounts, practiceCalendarYear } from "./dayRuleCalendar";
+import { calculateDayRule, calculateDayRuleTrackerRows, calculateMonthlyPracticeBudget, enumerateDates } from "./dayRule";
+import { buildDayRuleCalendarCells, buildDayRuleCalendarCounts, practiceCalendarYear, practicePlanForCalendarSource } from "./dayRuleCalendar";
 import { moveItem } from "./reorder";
 
 test("Practice uses one Team Operations route with six internal tabs", () => {
@@ -54,6 +54,17 @@ test("calendar dates show cumulative 114-day and monthly-budget counts", () => {
   });
 });
 
+test("calendar practice sources resolve to the saved plan that opens in the editor", () => {
+  const plans = [
+    { id: "morning", planDate: "2026-09-10", title: "Morning practice" },
+    { id: "afternoon", planDate: "2026-09-10", title: "Afternoon practice" },
+  ] as Parameters<typeof practicePlanForCalendarSource>[0];
+
+  assert.equal(practicePlanForCalendarSource(plans, "2026-09-10", "Afternoon practice")?.id, "afternoon");
+  assert.equal(practicePlanForCalendarSource(plans, "2026-09-10", "Renamed practice")?.id, "morning");
+  assert.equal(practicePlanForCalendarSource(plans, "2026-09-11", "Morning practice"), undefined);
+});
+
 test("drill sequence reorders optimistically without mutating the original", () => {
   const original = ["serve", "return", "points"];
   assert.deepEqual(moveItem(original, 0, 2), ["return", "points", "serve"]);
@@ -99,4 +110,18 @@ test("year-to-date usage counts upcoming DOCs once but not future practices", ()
   assert.equal(summary.yearToDateBudget, 20);
   assert.equal(summary.yearToDateUsed, 5);
   assert.equal(summary.yearToDateVariance, 15);
+});
+
+test("tracker rows accumulate year-to-date variance and leave future months blank", () => {
+  const summary = calculateDayRule(
+    ["2026-08-20", "2026-09-05", "2026-09-08"],
+    [{ start: "2026-09-18", end: "2026-09-19", label: "Invite" }],
+    "2026-09-10",
+  );
+  const rows = calculateDayRuleTrackerRows(summary.rows, "2026-09-10");
+
+  assert.equal(rows[0]?.yearToDateVariance, 1);
+  assert.equal(rows[1]?.yearToDateVariance, 15);
+  assert.equal(rows[2]?.yearToDateVariance, null);
+  assert.equal(rows[1]?.yearToDateVariance, summary.yearToDateVariance);
 });

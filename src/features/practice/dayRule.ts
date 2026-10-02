@@ -30,6 +30,27 @@ export function calculateMonthlyPracticeBudget(row: DayBudgetRow, today: string)
   };
 }
 
+export function calculateDayRuleTrackerRows(rows: DayBudgetRow[], today: string) {
+  const currentMonth = Number(today.slice(5, 7));
+  const currentIndex = rows.findIndex((row) => row.month === currentMonth);
+  const lastYearToDateIndex = currentIndex >= 0
+    ? currentIndex
+    : currentMonth >= 5 && currentMonth <= 7
+      ? rows.length - 1
+      : -1;
+  let cumulativeVariance = 0;
+
+  return rows.map((row, index) => {
+    const metrics = calculateMonthlyPracticeBudget(row, today);
+    cumulativeVariance += metrics.variance;
+    return {
+      row,
+      ...metrics,
+      yearToDateVariance: index <= lastYearToDateIndex ? cumulativeVariance : null,
+    };
+  });
+}
+
 export function calculateDayRule(practices: (string | { date: string; label?: string })[], competitions: { start: string; end: string; label?: string }[], today = new Date().toISOString().slice(0, 10)): DayRuleSummary {
   const dayMap = new Map<string, { type: "practice" | "competition"; label: string }[]>();
   const add = (date: string, type: "practice" | "competition", label: string) => dayMap.set(date, [...(dayMap.get(date) ?? []), { type, label }]);
