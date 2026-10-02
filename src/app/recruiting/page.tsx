@@ -1,4 +1,9 @@
 import RecruitingDashboard from "@/features/recruiting/components/RecruitingDashboard";
+import RecruitingAddRecruitButton from "@/features/recruiting/components/RecruitingAddRecruitButton";
+import RecruitingCommandTabs, {
+  type RecruitingCommandTab,
+} from "@/features/recruiting/components/RecruitingCommandTabs";
+import ModulePageShell from "@/components/ModulePageShell";
 import {
   activeRecruitCount,
   communicationAlertEligibleIds,
@@ -21,17 +26,35 @@ import { listVisibleRecruitingInteractions } from "@/features/interactions/repos
 import { getAppleMessagesSyncStatusAction } from "@/features/interactions/appleMessagesSync/actions";
 import { getDisplayName } from "@/features/people/utils";
 import { listTournaments } from "@/features/tournaments/repository";
+import TodayBetaPage from "@/features/recruiting/todayBeta/components/TodayBetaPage";
+import { loadTodayBetaPageData } from "@/features/recruiting/todayBeta/repository";
 
 export const dynamic = "force-dynamic";
 
-export default async function RecruitingPage() {
+const COMMAND_TABS = new Set<RecruitingCommandTab>([
+  "overview",
+  "results",
+  "follow-ups",
+  "monitoring",
+]);
+
+export default async function RecruitingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
+  const requestedTab = (await searchParams).tab;
+  const activeTab: RecruitingCommandTab = COMMAND_TABS.has(requestedTab as RecruitingCommandTab)
+    ? (requestedTab as RecruitingCommandTab)
+    : "overview";
   const now = new Date();
-  const [interactions, directory, tournamentResult, recentChangeLogs, apple] = await Promise.all([
+  const [interactions, directory, tournamentResult, recentChangeLogs, apple, todayBeta] = await Promise.all([
     listVisibleRecruitingInteractions(),
     loadRecruitingDirectory(),
     listTournaments(),
     listRecentRecruitChangeLog(),
     getAppleMessagesSyncStatusAction(),
+    loadTodayBetaPageData(),
   ]);
   const tournaments = tournamentResult.ok ? tournamentResult.tournaments : [];
   const commits = denisonCommitSummary(directory.denisonCommitRecruits);
@@ -39,7 +62,7 @@ export default async function RecruitingPage() {
   const alertEligibleIds = communicationAlertEligibleIds(directory.rows);
   const alerts = dashboardCommunicationAlerts(interactions, alertEligibleIds, now);
 
-  return (
+  const dashboard = (
     <RecruitingDashboard
       kpis={dashboardKpis({
         activeRecruits: activeRecruitCount(directory.rows),
@@ -72,6 +95,28 @@ export default async function RecruitingPage() {
       upcomingTournaments={upcomingTournaments(tournaments)}
       upcomingVisits={visits}
       commits={commits.recruits}
+      recentResults={todayBeta.newResults}
+      embedded
     />
+  );
+
+  return (
+    <ModulePageShell
+      title="Recruiting Command Center"
+      subtitle="Pipeline, live results, visits, follow-ups, and monitoring in one workspace"
+      actions={<RecruitingAddRecruitButton />}
+    >
+      <div className="flex flex-col gap-4">
+        <RecruitingCommandTabs active={activeTab} />
+        {activeTab === "overview" ? dashboard : null}
+        {activeTab === "results" ? <TodayBetaPage data={todayBeta} embedded view="results" /> : null}
+        {activeTab === "follow-ups" ? (
+          <TodayBetaPage data={todayBeta} embedded view="follow-ups" />
+        ) : null}
+        {activeTab === "monitoring" ? (
+          <TodayBetaPage data={todayBeta} embedded view="monitoring" />
+        ) : null}
+      </div>
+    </ModulePageShell>
   );
 }

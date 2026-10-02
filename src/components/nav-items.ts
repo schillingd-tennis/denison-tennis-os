@@ -82,8 +82,7 @@ export const primaryNavItems: NavItem[] = [
     icon: UserPlus,
     accent: "#c8102e",
     children: [
-      { label: "Today Beta", href: RECRUITING_TODAY_BETA_ROUTE },
-      { label: "Dashboard", href: RECRUITING_ROUTE, exact: true },
+      { label: "Command Center", href: RECRUITING_ROUTE, exact: true },
       { label: "Recruits", href: RECRUITING_LIST_ROUTE },
       { label: "Tournaments", href: RECRUITING_TOURNAMENTS_ROUTE },
       { label: "Agencies", href: RECRUITING_AGENCIES_ROUTE },
@@ -161,7 +160,7 @@ export function getPageTitle(pathname: string): string {
     return "Agencies";
   }
   if (pathname === RECRUITING_ROUTE) {
-    return "Dashboard";
+    return "Recruiting Command Center";
   }
   if (pathname.startsWith("/recruiting")) {
     return "Recruiting";

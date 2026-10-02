@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
+  Activity,
   BadgeCheck,
   Bell,
   CalendarDays,
@@ -59,6 +60,7 @@ import RecruitingDashboardPipeline from "./dashboard/RecruitingDashboardPipeline
 import type { DenisonCommitRecruit } from "../directory";
 import { writeStoredRecruitingDirectoryView } from "../directorySessionState";
 import { ADD_RECRUIT_BUTTON_CLASS, useAddRecruitDrawer } from "../useAddRecruitDrawer";
+import type { TodayBetaPageData } from "../todayBeta/types";
 
 type Tone = "red" | "violet" | "orange" | "green" | "blue" | "teal" | "amber";
 
@@ -288,6 +290,8 @@ export default function RecruitingDashboard({
   upcomingTournaments,
   upcomingVisits,
   commits,
+  recentResults,
+  embedded = false,
 }: {
   kpis: DashboardKpis;
   pipeline: DashboardPipelineStage[];
@@ -301,6 +305,8 @@ export default function RecruitingDashboard({
   upcomingTournaments: Tournament[];
   upcomingVisits: UpcomingDashboardVisit[];
   commits: DenisonCommitRecruit[];
+  recentResults: TodayBetaPageData["newResults"];
+  embedded?: boolean;
 }) {
   const router = useRouter();
   const { openDrawer, closeDrawer } = useDrawerManager();
@@ -330,6 +336,98 @@ export default function RecruitingDashboard({
     router.push(RECRUITING_LIST_ROUTE);
   }
 
+  const content = (
+    <div className="flex flex-col gap-4">
+      <RecruitingDashboardKpis kpis={kpis} />
+
+      <div data-recruiting-dashboard-grid="">
+        <div data-recruiting-dashboard-col="">
+          <section data-recruiting-dashboard-section="pipeline">
+            <DashboardCard title="Pipeline Snapshot" tone="violet" icon={Users}>
+              <RecruitingDashboardPipeline stages={pipeline} />
+            </DashboardCard>
+          </section>
+
+          <section data-recruiting-dashboard-section="upcoming-visits">
+            <DashboardCard title="Upcoming Visits" meta="Next 4" tone="blue" icon={Plane}>
+              {upcomingVisits.length === 0 ? (
+                <p className="px-3.5 py-3 text-[13px] text-text-secondary">No upcoming visits.</p>
+              ) : (
+                <ul>
+                  {upcomingVisits.map((visit) => {
+                    const date = monthDay(visit.visitStartDate);
+                    const days = visitDaysLabel(visit.dayCount);
+                    return (
+                      <li key={visit.personId}>
+                        <Link href={recruitingPersonVisitPath(visit.personId)} className={`flex items-center gap-2.5 px-3.5 py-1.5 ${TONE.blue.hover}`}>
+                          {date ? <span className="flex h-[38px] w-9 shrink-0 flex-col items-center justify-center rounded-control bg-info/15 text-info"><span className="text-[8px] font-bold tracking-[0.12em]">{date.month}</span><span className="text-[14px] leading-none font-bold tabular-nums">{date.day}</span></span> : null}
+                          <div className="min-w-0 flex-1"><p className="truncate text-[13px] font-semibold text-text-primary">{visit.name}</p><p className="mt-0.5 truncate text-[11px] text-text-secondary">{[visitRangeLabel(visit.visitStartDate,visit.visitEndDate),days,visit.travelType?.trim()||null].filter(Boolean).join(" · ")}</p></div>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </DashboardCard>
+          </section>
+
+          <section data-recruiting-dashboard-section="top-ranked">
+            <DashboardCard title="Top Ranked Recruits" meta="Top 5" tone="violet" icon={Trophy} footer={{href:RECRUITING_LIST_ROUTE,label:"View rankings",onClick:openRankView}}>
+              {topRanked.length === 0 ? <p className="px-3.5 py-3 text-[13px] text-text-secondary">No ranked recruits yet.</p> : <ol>{topRanked.map((recruit)=><li key={recruit.personId}><Link href={recruitingPersonPath(recruit.personId)} className={`flex items-center gap-2.5 px-3.5 py-1.5 ${TONE.violet.hover}`}><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-research/12 text-[11px] font-bold text-research">{recruit.coachRank}</span><span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-semibold text-text-primary">{recruit.name}</span><span className="text-[11px] text-text-secondary">{[recruit.classYear?String(recruit.classYear):null,recruit.trnRank!==undefined?`TRN #${recruit.trnRank}`:null].filter(Boolean).join(" · ")||"—"}</span></span>{recruit.utr!==undefined?<span className="text-[12px] font-semibold tabular-nums">{formatUtr(recruit.utr)} UTR</span>:null}</Link></li>)}</ol>}
+            </DashboardCard>
+          </section>
+
+          <section data-recruiting-dashboard-section="upcoming-tournaments">
+            <DashboardCard title="Upcoming Tournaments" meta="Next 5" tone="orange" icon={CalendarDays} footer={{href:RECRUITING_TOURNAMENTS_ROUTE,label:"View all tournaments"}}>
+              {upcomingTournaments.length===0?<p className="px-3.5 py-3 text-[13px] text-text-secondary">No upcoming tournaments.</p>:<ul>{upcomingTournaments.map((tournament)=><li key={tournament.id}><Link href={recruitingTournamentPath(tournament.id)} className={`flex items-center gap-2.5 px-3.5 py-1.5 ${TONE.orange.hover}`}><div className="min-w-0 flex-1"><p className="truncate text-[13px] font-semibold text-text-primary">{tournament.name}</p><p className="mt-0.5 truncate text-[11px] text-text-secondary">{formatTournamentDates(tournament.startDate,tournament.endDate)} · {tournament.location?.trim()||"TBD"}</p></div><span className="text-[10px] font-semibold text-warning">{tournament.linkedRecruits.length} recruits</span></Link></li>)}</ul>}
+            </DashboardCard>
+          </section>
+        </div>
+
+        <div data-recruiting-dashboard-col="" data-recruiting-dashboard-results="">
+          <section data-recruiting-dashboard-section="live-results">
+            <DashboardCard title="Latest Recruit Results" meta="Top 12" tone="red" icon={Activity} footer={{href:"/recruiting?tab=results",label:"View complete results workspace"}}>
+              {recentResults.length === 0 ? <RecruitingDashboardPlaceholder>No newly detected results.</RecruitingDashboardPlaceholder> : <ul>{recentResults.slice(0,12).map((result)=><li key={result.id} className={`flex items-center gap-2.5 px-3.5 py-2 ${TONE.red.hover}`}><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-app-background text-[9px] font-bold text-text-secondary">{initials(result.recruitName)}</span><div className="min-w-0 flex-1"><p className="truncate text-[13px] font-semibold text-text-primary">{result.recruitName} <span className="font-normal text-text-secondary">vs. {result.opponentName??"Unknown"}</span></p><p className="mt-0.5 truncate text-[11px] text-text-secondary">{result.tournamentName??"Tournament unavailable"} · {result.tournamentDateLabel}</p></div><span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-semibold ${result.result==="WIN"?"bg-success/10 text-success":result.result==="LOSS"?"bg-danger/10 text-danger":"bg-app-background text-text-secondary"}`}>{result.result}{result.score?` · ${result.score}`:""}</span></li>)}</ul>}
+            </DashboardCard>
+          </section>
+        </div>
+
+        <div data-recruiting-dashboard-col="">
+          <section data-recruiting-dashboard-section="priorities">
+            <DashboardCard title="Today's Recruiting Priorities" tone="red" icon={Target}>
+              {priorities.length===0?<RecruitingDashboardPlaceholder>Priority recommendations will appear here.</RecruitingDashboardPlaceholder>:<ul>{priorities.map((item)=><li key={item.personId}><Link href={item.href} className={`flex items-start gap-2.5 px-3.5 py-1.5 ${TONE.red.hover}`}><div className="min-w-0 flex-1"><p className="truncate text-[13px] font-semibold text-text-primary">{item.name}</p><p className="mt-0.5 truncate text-[12px] text-text-secondary">{item.reason}</p></div><span className="shrink-0 text-[11px] font-semibold text-[var(--module-accent)]">{item.timing}</span></Link></li>)}</ul>}
+            </DashboardCard>
+          </section>
+
+          <section data-recruiting-dashboard-section="recent-interactions">
+            <DashboardCard title="Recent Interactions" meta="Last 10" tone="red" icon={MessageCircle} footer={{href:RECRUITING_INTERACTIONS_ROUTE,label:"View all interactions"}}>
+              {recentInteractions.length===0?<p className="px-3.5 py-3 text-[13px] text-text-secondary">No interactions yet.</p>:<ul data-dashboard-recent-list="">{recentInteractions.map((interaction)=><li key={interaction.id} className={`flex gap-2.5 px-3.5 py-1.5 ${TONE.red.hover}`}><div className="min-w-0 flex-1"><Link href={recruitingPersonPath(interaction.recruitPersonId)} className="block truncate text-[13px] font-semibold text-text-primary hover:underline">{interaction.recruitName}</Link><button type="button" onClick={()=>openInteraction(interaction)} className="mt-0.5 w-full truncate text-left text-[12px] text-text-secondary hover:underline">{previewNotes(interaction.notes)??"Open interaction"}</button></div><time className="shrink-0 text-[11px] text-text-secondary">{shortDate(interaction.occurredAt)}</time></li>)}</ul>}
+            </DashboardCard>
+          </section>
+
+          <section data-recruiting-dashboard-section="communication-alerts">
+            <DashboardCard title="Communication Alerts" tone="amber" icon={Bell}>{alerts.length===0?<RecruitingDashboardPlaceholder>Recruits needing a communication follow-up will appear here.</RecruitingDashboardPlaceholder>:<ul>{alerts.map((alert)=><li key={alert.recruitPersonId}><Link href={recruitingPersonCommunicationsPath(alert.recruitPersonId)} className={`flex items-center gap-2.5 px-3.5 py-1.5 ${TONE.amber.hover}`}><span className="min-w-0 flex-1 truncate text-[13px] font-semibold">{alert.recruitName}</span><span className="text-[11px] font-semibold text-warning">{alert.daysSinceContact} days</span></Link></li>)}</ul>}</DashboardCard>
+          </section>
+
+          <section data-recruiting-dashboard-section="recent-updates">
+            <DashboardCard title="Recent Updates" meta="Latest 5" tone="teal" icon={History} footer={{href:RECRUITING_LOG_ROUTE,label:"View all updates"}}>
+              <DashboardChangeLogRows events={recentChangeLogs} />
+            </DashboardCard>
+          </section>
+
+          <section data-recruiting-dashboard-section="denison-commits">
+            <DashboardCard title="Denison Commits" tone="green" icon={BadgeCheck}>
+              <div className="mx-3.5 mt-2.5 flex items-center gap-3 rounded-control bg-success/[0.08] px-3 py-2.5"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control bg-success text-surface"><BadgeCheck className="h-4 w-4"/></span><div><p className="text-[22px] leading-none font-semibold tabular-nums text-success">{commits.length}</p><p className="mt-1 text-[10px] font-bold tracking-[0.14em] text-success/85 uppercase">Class of {DASHBOARD_COMMIT_CLASS_YEAR}</p></div></div>
+              {commits.length===0?<p className="px-3.5 py-3 text-[13px] text-text-secondary">No recruits committed yet.</p>:<ul className="mt-1">{commits.map((recruit)=><li key={recruit.personId}><Link href={recruitingPersonPath(recruit.personId)} className={`flex items-center gap-2.5 px-3.5 py-1.5 ${TONE.green.hover}`}><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-success/12 text-[10px] font-bold text-success">{initials(recruit.name)}</span><span className="min-w-0 flex-1 truncate text-[13px] font-semibold">{recruit.name}</span><ArrowRight className="h-3.5 w-3.5 text-success/70"/></Link></li>)}</ul>}
+            </DashboardCard>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (embedded) return content;
+
   return (
     <ModulePageShell
       title="Recruiting Dashboard"
@@ -344,9 +442,11 @@ export default function RecruitingDashboard({
         </button>
       }
     >
-      <div className="flex flex-col gap-4">
-        <RecruitingDashboardKpis kpis={kpis} />
-
+      {content}
+      <details className="rounded-card border border-border bg-surface shadow-sm">
+        <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-text-primary">
+          More recruiting dashboard panels
+        </summary>
         <div data-recruiting-dashboard-grid="">
         <div data-recruiting-dashboard-col="">
           <section data-recruiting-dashboard-section="priorities">
@@ -718,8 +818,8 @@ export default function RecruitingDashboard({
           </section>
 
         </div>
-      </div>
-      </div>
+        </div>
+      </details>
     </ModulePageShell>
   );
 }

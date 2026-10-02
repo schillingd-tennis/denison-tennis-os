@@ -283,7 +283,7 @@ test("dashboard page stays on /recruiting and opens existing editors/workspaces"
   const ui = readFileSync(join(here, "components/RecruitingDashboard.tsx"), "utf8");
   assert.match(page, /RecruitingDashboard/);
   assert.doesNotMatch(page, /<RecruitingDirectory/);
-  assert.match(nav, /label: "Dashboard", href: RECRUITING_ROUTE/);
+  assert.match(nav, /label: "Command Center", href: RECRUITING_ROUTE/);
   assert.doesNotMatch(nav, /label: "Overview"/);
   assert.match(ui, /recruitingPersonPath\(interaction\.recruitPersonId\)/);
   assert.match(ui, /openInteraction\(interaction\)/);
@@ -400,7 +400,7 @@ test("upcoming visits empty when none end today or later", () => {
   assert.deepEqual(visits, []);
 });
 
-test("Upcoming Visits card sits below Denison Commits and opens Visit AW", () => {
+test("Upcoming Visits sits in the operations column and opens Visit AW", () => {
   const page = readFileSync(join(here, "../../app/recruiting/page.tsx"), "utf8");
   const ui = readFileSync(join(here, "components/RecruitingDashboard.tsx"), "utf8");
   const personPage = readFileSync(join(here, "../../app/recruiting/[id]/page.tsx"), "utf8");
@@ -422,11 +422,10 @@ test("Upcoming Visits card sits below Denison Commits and opens Visit AW", () =>
   assert.match(ui, /visitDaysLabel\(visit\.dayCount\)/);
   assert.match(ui, /visit\.travelType/);
 
-  const commitsIdx = ui.indexOf('title="Denison Commits"');
   const visitsIdx = ui.indexOf('title="Upcoming Visits"');
   const pipelineIdx = ui.indexOf('title="Pipeline Snapshot"');
-  const rightColIdx = ui.lastIndexOf("data-recruiting-dashboard-col");
-  assert.ok(pipelineIdx > rightColIdx && visitsIdx > pipelineIdx && commitsIdx > visitsIdx);
+  const resultsIdx = ui.indexOf('title="Latest Recruit Results"');
+  assert.ok(pipelineIdx >= 0 && visitsIdx > pipelineIdx && resultsIdx > visitsIdx);
 
   assert.match(personPage, /initialWorkspaceId=\{workspace\}/);
   assert.match(personWorkspace, /initialWorkspaceId \?\? "personal-info"/);
@@ -434,7 +433,7 @@ test("Upcoming Visits card sits below Denison Commits and opens Visit AW", () =>
   assert.doesNotMatch(ui, /Landon Marcus/);
 });
 
-test("command-center dashboard renders ten sections and keeps real selectors", () => {
+test("command-center dashboard renders three focused columns and keeps real selectors", () => {
   const page = readFileSync(join(here, "../../app/recruiting/page.tsx"), "utf8");
   const ui = readFileSync(join(here, "components/RecruitingDashboard.tsx"), "utf8");
   const kpis = readFileSync(join(here, "components/dashboard/RecruitingDashboardKpis.tsx"), "utf8");
@@ -450,6 +449,7 @@ test("command-center dashboard renders ten sections and keeps real selectors", (
     "communication-alerts",
     "top-ranked",
     "denison-commits",
+    "live-results",
   ]) {
     assert.match(ui, new RegExp(`data-recruiting-dashboard-section="${section}"`));
   }
@@ -479,7 +479,12 @@ test("command-center dashboard renders ten sections and keeps real selectors", (
   assert.doesNotMatch(ui, /contents md:flex/);
   assert.doesNotMatch(ui, /md:grid-cols-2/);
   assert.match(layoutLock, /\[data-recruiting-dashboard-grid\]/);
-  assert.match(layoutLock, /minmax\(0, 3fr\) minmax\(0, 2fr\)/);
+  assert.match(
+    layoutLock,
+    /minmax\(0, 0\.9fr\) minmax\(18rem, 1\.35fr\) minmax\(0, 0\.9fr\)/,
+  );
+  assert.match(ui, /recentResults\.slice\(0,\s*12\)/);
+  assert.match(ui, /href:\s*"\/recruiting\?tab=results"/);
 });
 
 test("unsupported dashboard metrics stay placeholders instead of invented counts", () => {

@@ -87,7 +87,7 @@ export default async function Home() {
       interactions={recentInteractions(interactions, 5)}
       visits={upcomingVisits(directory.rows, { limit: 3 })}
       utrResults={utrResults}
-      monthRule={currentMonth ? { label: currentMonth.label, used: currentMonth.used, budget: currentMonth.budget } : null}
+      monthRule={currentMonth ? { label: currentMonth.label, used: currentMonth.used, budget: currentMonth.budget, yearToDateVariance: dayRule.yearToDateVariance } : null}
       events={events}
       teamRatings={teamRatings}
       power6={power6}

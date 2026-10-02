@@ -998,7 +998,17 @@ function ImportResultsDrawerContent({
   );
 }
 
-export default function TodayBetaPage({ data }: { data: TodayBetaPageData }) {
+export type TodayBetaView = "all" | "results" | "follow-ups" | "monitoring";
+
+export default function TodayBetaPage({
+  data,
+  embedded = false,
+  view = "all",
+}: {
+  data: TodayBetaPageData;
+  embedded?: boolean;
+  view?: TodayBetaView;
+}) {
   const router = useRouter();
   const { openDrawer, closeDrawer } = useDrawerManager();
   const [workflowMessage, setWorkflowMessage] = useState<string | null>(null);
@@ -1159,13 +1169,8 @@ export default function TodayBetaPage({ data }: { data: TodayBetaPageData }) {
     });
   }
 
-  return (
-    <ModulePageShell
-      title="Today Beta"
-      subtitle="Monitor recent recruit tennis activity, new results, and who deserves contact."
-      actions={<TodayBetaAgentStatusChip />}
-    >
-      <div className="flex flex-col gap-3">
+  const content = (
+      <div className="flex flex-col gap-3" data-today-beta-view={view}>
         {workflowMessage ? (
           <p className="rounded-control border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-900 shadow-sm">
             {workflowMessage}
@@ -1174,17 +1179,24 @@ export default function TodayBetaPage({ data }: { data: TodayBetaPageData }) {
 
         <TodayBetaKpiCards summary={data.activitySummary} />
 
-        <UtrAutomaticCheckSection
-          players={data.players}
-          lastBatchFromPage={data.activitySummary.utrAgentLastBatch}
-          onComplete={(message) => handleWorkflowComplete(message)}
-          onViewMissingUtr={focusMissingUtrProfiles}
-        />
+        {view === "all" || view === "monitoring" ? (
+          <UtrAutomaticCheckSection
+            players={data.players}
+            lastBatchFromPage={data.activitySummary.utrAgentLastBatch}
+            onComplete={(message) => handleWorkflowComplete(message)}
+            onViewMissingUtr={focusMissingUtrProfiles}
+          />
+        ) : null}
 
-        <LatestResultsSection rows={data.latestResults} />
+        {view === "all" || view === "results" ? (
+          <>
+            <LatestResultsSection rows={data.latestResults} />
+            <NewResultsSection results={data.newResults} />
+          </>
+        ) : null}
 
-        <NewResultsSection results={data.newResults} />
-
+        {view === "all" || view === "follow-ups" ? (
+          <>
         <TodayBetaSection>
           <h2 className={TB_SECTION_TITLE}>Result-Based Contact</h2>
           <p className={TB_SECTION_SUBTITLE}>
@@ -1231,6 +1243,10 @@ export default function TodayBetaPage({ data }: { data: TodayBetaPageData }) {
           )}
         </TodayBetaSection>
 
+          </>
+        ) : null}
+
+        {view === "all" || view === "monitoring" ? (
         <section
           ref={monitoringSectionRef}
           className={`${TODAY_BETA_SECTION_SHELL} overflow-x-auto opacity-95`}
@@ -1445,7 +1461,19 @@ export default function TodayBetaPage({ data }: { data: TodayBetaPageData }) {
             </p>
           ) : null}
         </section>
+        ) : null}
       </div>
+  );
+
+  if (embedded) return content;
+
+  return (
+    <ModulePageShell
+      title="Today Beta"
+      subtitle="Monitor recent recruit tennis activity, new results, and who deserves contact."
+      actions={<TodayBetaAgentStatusChip />}
+    >
+      {content}
     </ModulePageShell>
   );
 }
