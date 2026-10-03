@@ -3,7 +3,19 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, type MouseEvent } from "react";
-import { Home, MapPin, Plane, Plus } from "lucide-react";
+import {
+  Activity,
+  BadgePercent,
+  Home,
+  MapPin,
+  Plane,
+  Plus,
+  RefreshCcw,
+  Trophy,
+  UserRound,
+  UsersRound,
+  type LucideIcon,
+} from "lucide-react";
 
 import EmptyState from "@/components/EmptyState";
 import ModulePageShell from "@/components/ModulePageShell";
@@ -33,7 +45,10 @@ import {
   buildDoublesPlayerRecords,
   buildOverallDoublesRecord,
   buildSinglesPlayerRecords,
+  buildTeamRecordsDashboard,
   buildTeamSeasonRecords,
+  type TeamDashboardRecord,
+  type TeamRecordsDashboard,
 } from "../records";
 import {
   eventDisplayTitle,
@@ -206,6 +221,10 @@ export default function MatchesWorkspace({
     seasonYear: seasonYear === "all" ? null : seasonYear,
     eventType,
   });
+  const teamDashboard = buildTeamRecordsDashboard(results, events, {
+    seasonYear: seasonYear === "all" ? null : seasonYear,
+    eventType,
+  });
 
   const filteredResults = useMemo(() => {
     return results.filter((result) => {
@@ -300,7 +319,7 @@ export default function MatchesWorkspace({
             <option value="tournament">Tournament</option>
           </select>
         </label>
-        {tab === "team" ? (
+        {tab === "events" ? (
           <label className="text-xs text-text-secondary">
             Event status{" "}
             <select
@@ -320,7 +339,7 @@ export default function MatchesWorkspace({
         </div>
       </div>
 
-      {tab === "team" ? (
+      {tab === "events" ? (
         <section className="grid gap-3">
           <div className={`${cardClass} p-4`}>
             <p className="text-[11px] font-semibold tracking-wide text-text-secondary uppercase">
@@ -345,6 +364,8 @@ export default function MatchesWorkspace({
           ) : null}
         </section>
       ) : null}
+
+      {tab === "team" ? <TeamRecordsDashboardView records={teamDashboard} /> : null}
 
       {tab === "players" ? (
         <SinglesTable records={singlesRecords} roster={roster} />
@@ -388,6 +409,83 @@ export default function MatchesWorkspace({
         />
       ) : null}
     </ModulePageShell>
+  );
+}
+
+function recordPercentage(record: TeamDashboardRecord): string {
+  const decided = record.wins + record.losses;
+  return decided > 0 ? `${((record.wins / decided) * 100).toFixed(1)}%` : "—";
+}
+
+function TeamRecordCard({
+  title,
+  description,
+  record,
+  icon: Icon,
+  tone,
+}: {
+  title: string;
+  description: string;
+  record: TeamDashboardRecord;
+  icon: LucideIcon;
+  tone: "red" | "blue" | "green" | "violet" | "orange" | "teal";
+}) {
+  const colors = {
+    red: "border-red-200 bg-gradient-to-br from-red-50 via-white to-white text-red-700",
+    blue: "border-blue-200 bg-gradient-to-br from-blue-50 via-white to-white text-blue-700",
+    green: "border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-white text-emerald-700",
+    violet: "border-violet-200 bg-gradient-to-br from-violet-50 via-white to-white text-violet-700",
+    orange: "border-amber-200 bg-gradient-to-br from-amber-50 via-white to-white text-amber-700",
+    teal: "border-teal-200 bg-gradient-to-br from-teal-50 via-white to-white text-teal-700",
+  } as const;
+  const ties = record.ties ?? 0;
+
+  return (
+    <article className={`rounded-card border p-4 shadow-[0_8px_22px_rgba(17,24,39,0.045)] ${colors[tone]}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold tracking-wide text-text-secondary uppercase">{title}</p>
+          <p className="mt-2 text-[28px] leading-none font-semibold tabular-nums tracking-tight text-text-primary">
+            {record.wins}–{record.losses}{ties ? `–${ties}` : ""}
+          </p>
+        </div>
+        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-current/10">
+          <Icon className="h-5 w-5" strokeWidth={1.8} aria-hidden />
+        </span>
+      </div>
+      <div className="mt-4 flex items-end justify-between gap-3 border-t border-current/10 pt-3">
+        <p className="text-xs leading-5 text-text-secondary">{description}</p>
+        <div className="shrink-0 text-right">
+          <p className="text-lg font-semibold tabular-nums text-current">{recordPercentage(record)}</p>
+          <p className="text-[9px] font-semibold tracking-wide text-text-secondary uppercase">Win rate</p>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function TeamRecordsDashboardView({ records }: { records: TeamRecordsDashboard }) {
+  return (
+    <section className="grid gap-4" aria-label="Team records dashboard">
+      <div className="rounded-card border border-border bg-gradient-to-r from-slate-950 via-slate-900 to-red-950 px-5 py-4 text-white shadow-sm">
+        <p className="text-[10px] font-semibold tracking-[0.16em] text-red-300 uppercase">Performance dashboard</p>
+        <div className="mt-1 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold">Team Records</h2>
+            <p className="mt-1 text-sm text-slate-300">Team, player, doubles, and pressure-match performance.</p>
+          </div>
+          <p className="text-xs text-slate-300">Win rate uses decided wins and losses only.</p>
+        </div>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <TeamRecordCard title="Team Record" description="Confirmed dual-match outcomes" record={records.team} icon={Trophy} tone="red" />
+        <TeamRecordCard title="Player Record" description="All individual singles matches" record={records.players} icon={UserRound} tone="blue" />
+        <TeamRecordCard title="Doubles Record" description="Each doubles match counted once" record={records.doubles} icon={UsersRound} tone="green" />
+        <TeamRecordCard title="Three-Set Record" description="Matches with three recorded sets" record={records.threeSet} icon={RefreshCcw} tone="violet" />
+        <TeamRecordCard title="Tiebreaker Record" description="Decided 7–6, 8–7, or by a match tiebreak" record={records.tiebreakers} icon={BadgePercent} tone="orange" />
+        <TeamRecordCard title="Super Tiebreaker Record" description="Third-set match tiebreaks scored to 10+" record={records.superTiebreakers} icon={Activity} tone="teal" />
+      </div>
+    </section>
   );
 }
 

@@ -21,11 +21,11 @@ export function parseMatchesTab(value: string | undefined | null): MatchesTab {
   if (value && (MATCHES_TABS as readonly string[]).includes(value)) {
     return value as MatchesTab;
   }
-  return "team";
+  return "events";
 }
 
 export function matchesTabHref(tab: MatchesTab): string {
-  return tab === "team" ? MATCHES_ROUTE : `${MATCHES_ROUTE}?tab=${tab}`;
+  return tab === "events" ? MATCHES_ROUTE : `${MATCHES_ROUTE}?tab=${tab}`;
 }
 
 export function formatSeasonLabel(seasonYear: number): string {

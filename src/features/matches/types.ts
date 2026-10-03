@@ -48,6 +48,7 @@ export const TEAM_POINT_SIDES = ["denison", "opponent", "none"] as const;
 export type TeamPointSide = (typeof TEAM_POINT_SIDES)[number];
 
 export const MATCHES_TABS = [
+  "events",
   "team",
   "players",
   "doubles-players",
@@ -57,7 +58,8 @@ export const MATCHES_TABS = [
 export type MatchesTab = (typeof MATCHES_TABS)[number];
 
 export const MATCHES_TAB_LABELS: Record<MatchesTab, string> = {
-  team: "Events",
+  events: "Events",
+  team: "Team",
   players: "Players",
   "doubles-players": "Doubles Players",
   "doubles-teams": "Doubles Teams",

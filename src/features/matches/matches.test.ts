@@ -24,6 +24,7 @@ import {
   buildDoublesPlayerRecords,
   buildOverallDoublesRecord,
   buildSinglesPlayerRecords,
+  buildTeamRecordsDashboard,
   buildTeamSeasonRecords,
 } from "./records";
 import { doublesPairKey, resolvePlayerName, rosterPlayerDisplayName, splitPairNames } from "./resolvePlayers";
@@ -698,6 +699,113 @@ test("resolveForcedEventType respects user choice", () => {
   assert.equal(forced.needsUserChoice, false);
 });
 
+test("team dashboard totals include pressure-match records without counting unfinished as losses", () => {
+  const event: MatchEvent = {
+    id: "dashboard-event",
+    eventType: "dual",
+    title: "Dashboard Dual",
+    opposingTeamName: "Opponent",
+    seasonYear: 2027,
+    seasonSegment: "spring",
+    startDate: "2027-03-01",
+    endDate: "2027-03-01",
+    site: "home",
+    locationText: null,
+    venueName: null,
+    status: "completed",
+    scoringFormat: "ncaa_standard",
+    reportedTeamScoreDenison: 5,
+    reportedTeamScoreOpponent: 2,
+    calculatedTeamScoreDenison: 5,
+    calculatedTeamScoreOpponent: 2,
+    teamOutcome: "win",
+    teamScoreDiscrepancy: false,
+    scheduleEventId: null,
+    scheduleSnapshot: null,
+    scheduleUnlinkedReason: null,
+    resultsMarkedCompleteAt: null,
+    resultsMarkedCompleteBy: null,
+    notes: null,
+    createdAt: "",
+    updatedAt: "",
+  };
+  const makeResult = (
+    id: string,
+    discipline: "singles" | "doubles",
+    winnerSide: "denison" | "opponent" | "unknown",
+    scoreSets: MatchResult["scoreSets"],
+    status: MatchResult["status"] = "completed",
+  ): MatchResult => ({
+    id,
+    eventId: event.id,
+    discipline,
+    resultKind: "dual_lineup",
+    lineupPosition: 1,
+    drawName: null,
+    flightName: null,
+    divisionName: null,
+    roundLabel: null,
+    matchDate: event.startDate,
+    status,
+    winnerSide,
+    scoreText: null,
+    scoreSets,
+    originalScoreText: null,
+    sourceExcerpt: null,
+    notes: null,
+    denisonPlayerAId: "player-a",
+    denisonPlayerBId: discipline === "doubles" ? "player-b" : null,
+    doublesPairId: null,
+    opponentPlayerAName: "Opponent A",
+    opponentPlayerBName: discipline === "doubles" ? "Opponent B" : null,
+    opponentSchool: "Opponent",
+    countsTowardTeamPoint: true,
+    teamPointAwardedTo: winnerSide === "unknown" ? "none" : winnerSide,
+    importFingerprint: null,
+    createdAt: "",
+    updatedAt: "",
+  });
+  const results = [
+    makeResult("three-set-win", "singles", "denison", [
+      { winnerGames: 6, loserGames: 4 },
+      { winnerGames: 3, loserGames: 6 },
+      { winnerGames: 6, loserGames: 3 },
+    ]),
+    makeResult("tb-loss", "singles", "opponent", [
+      { winnerGames: 6, loserGames: 4 },
+      { winnerGames: 3, loserGames: 6 },
+      { winnerGames: 7, loserGames: 6 },
+    ]),
+    makeResult("super-win", "doubles", "denison", [
+      { winnerGames: 6, loserGames: 4 },
+      { winnerGames: 4, loserGames: 6 },
+      { winnerGames: 10, loserGames: 8, isMatchTiebreak: true },
+    ]),
+    makeResult("unfinished", "singles", "unknown", [
+      { winnerGames: 6, loserGames: 4 },
+      { winnerGames: 4, loserGames: 6 },
+      { winnerGames: 4, loserGames: 4 },
+    ], "unfinished"),
+  ];
+
+  const dashboard = buildTeamRecordsDashboard(results, [event], {
+    seasonYear: 2027,
+    eventType: "all",
+  });
+  assert.deepEqual(dashboard.team, { wins: 1, losses: 0, ties: 0 });
+  assert.equal(dashboard.players.wins, 1);
+  assert.equal(dashboard.players.losses, 1);
+  assert.equal(dashboard.players.unfinished, 1);
+  assert.equal(dashboard.doubles.wins, 1);
+  assert.equal(dashboard.threeSet.wins, 2);
+  assert.equal(dashboard.threeSet.losses, 1);
+  assert.equal(dashboard.threeSet.unfinished, 1);
+  assert.equal(dashboard.tiebreakers.wins, 1);
+  assert.equal(dashboard.tiebreakers.losses, 1);
+  assert.equal(dashboard.superTiebreakers.wins, 1);
+  assert.equal(dashboard.superTiebreakers.losses, 0);
+});
+
 test("nav routes helpers exist via module-routes", async () => {
   const routes = await import("@/lib/module-routes");
   assert.equal(routes.MATCHES_ROUTE, "/matches");
@@ -849,7 +957,8 @@ test("Events tab derives competitions from Schedule without inventing match_even
   } = await import("./teamCompetitions");
   const { SEED_2026_27 } = await import("@/features/teamSchedule/seedData");
 
-  assert.equal(MATCHES_TAB_LABELS.team, "Events");
+  assert.equal(MATCHES_TAB_LABELS.events, "Events");
+  assert.equal(MATCHES_TAB_LABELS.team, "Team");
 
   assert.equal(isCompetitiveScheduleEvent(SEED_2026_27[0]!), false); // Hotel Planner non_team_event
   assert.equal(isNoncompetitiveScheduleEvent(SEED_2026_27[0]!), true);

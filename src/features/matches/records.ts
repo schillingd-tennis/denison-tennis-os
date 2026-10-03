@@ -198,6 +198,95 @@ export function buildOverallDoublesRecord(
   return overall;
 }
 
+export type TeamDashboardRecord = {
+  wins: number;
+  losses: number;
+  ties?: number;
+};
+
+export type TeamRecordsDashboard = {
+  team: TeamDashboardRecord;
+  players: WinLossRecord;
+  doubles: WinLossRecord;
+  threeSet: WinLossRecord;
+  tiebreakers: WinLossRecord;
+  superTiebreakers: WinLossRecord;
+};
+
+function isDashboardEvent(
+  event: MatchEvent,
+  options?: { seasonYear?: number | null; eventType?: "dual" | "tournament" | "all" },
+): boolean {
+  if (options?.seasonYear != null && event.seasonYear !== options.seasonYear) return false;
+  if (options?.eventType && options.eventType !== "all" && event.eventType !== options.eventType) {
+    return false;
+  }
+  return true;
+}
+
+function isSuperTiebreakResult(result: MatchResult): boolean {
+  if (result.scoreSets.length < 3) return false;
+  const decidingSet = result.scoreSets.at(-1);
+  if (!decidingSet) return false;
+  return Boolean(
+    decidingSet.isMatchTiebreak ||
+      decidingSet.winnerGames >= 10 ||
+      decidingSet.loserGames >= 10,
+  );
+}
+
+function isTiebreakDecidedResult(result: MatchResult): boolean {
+  const decidingSet = result.scoreSets.at(-1);
+  if (!decidingSet) return false;
+  const high = Math.max(decidingSet.winnerGames, decidingSet.loserGames);
+  const low = Math.min(decidingSet.winnerGames, decidingSet.loserGames);
+  return (high === 7 && low === 6) || (high === 8 && low === 7) || isSuperTiebreakResult(result);
+}
+
+/** Aggregate records for the Matches → Team dashboard. */
+export function buildTeamRecordsDashboard(
+  results: readonly MatchResult[],
+  events: readonly MatchEvent[],
+  options?: { seasonYear?: number | null; eventType?: "dual" | "tournament" | "all" },
+): TeamRecordsDashboard {
+  const eventsById = new Map(events.map((event) => [event.id, event]));
+  const team: TeamDashboardRecord = { wins: 0, losses: 0, ties: 0 };
+  const players = EMPTY_RECORD();
+  const doubles = EMPTY_RECORD();
+  const threeSet = EMPTY_RECORD();
+  const tiebreakers = EMPTY_RECORD();
+  const superTiebreakers = EMPTY_RECORD();
+
+  for (const event of events) {
+    if (event.eventType !== "dual" || !isDashboardEvent(event, options)) continue;
+    if (event.teamOutcome === "win") team.wins += 1;
+    else if (event.teamOutcome === "loss") team.losses += 1;
+    else if (event.teamOutcome === "tie") team.ties = (team.ties ?? 0) + 1;
+  }
+
+  for (const result of results) {
+    const event = eventsById.get(result.eventId);
+    if (!event || !isDashboardEvent(event, options)) continue;
+
+    if (result.discipline === "singles") {
+      applyResultToRecord(players, result.status, result.winnerSide);
+    } else {
+      applyResultToRecord(doubles, result.status, result.winnerSide);
+    }
+    if (result.scoreSets.length >= 3) {
+      applyResultToRecord(threeSet, result.status, result.winnerSide);
+    }
+    if (isTiebreakDecidedResult(result)) {
+      applyResultToRecord(tiebreakers, result.status, result.winnerSide);
+    }
+    if (isSuperTiebreakResult(result)) {
+      applyResultToRecord(superTiebreakers, result.status, result.winnerSide);
+    }
+  }
+
+  return { team, players, doubles, threeSet, tiebreakers, superTiebreakers };
+}
+
 export function assertSubtotalsReconcile(
   results: readonly MatchResult[],
   events: readonly MatchEvent[],
