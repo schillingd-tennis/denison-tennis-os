@@ -82,7 +82,7 @@ export const primaryNavItems: NavItem[] = [
     icon: UserPlus,
     accent: "#c8102e",
     children: [
-      { label: "Command Hub", href: RECRUITING_ROUTE, exact: true },
+      { label: "Dashboard", href: RECRUITING_ROUTE, exact: true },
       { label: "Recruits", href: RECRUITING_LIST_ROUTE },
       { label: "Tournaments", href: RECRUITING_TOURNAMENTS_ROUTE },
       { label: "Agencies", href: RECRUITING_AGENCIES_ROUTE },
@@ -160,7 +160,7 @@ export function getPageTitle(pathname: string): string {
     return "Agencies";
   }
   if (pathname === RECRUITING_ROUTE) {
-    return "Recruiting Command Hub";
+    return "Dashboard";
   }
   if (pathname.startsWith("/recruiting")) {
     return "Recruiting";

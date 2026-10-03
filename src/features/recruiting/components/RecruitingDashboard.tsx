@@ -20,11 +20,12 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 import { useDrawerManager } from "@/components/workspace-drawer";
 import ModulePageShell from "@/components/ModulePageShell";
 import InteractionForm, { type InteractionOption } from "@/features/interactions/components/InteractionForm";
+import RecruitSearchField from "@/features/interactions/components/RecruitSearchField";
 import type { InteractionType, RecruitInteraction } from "@/features/interactions/types";
 import { interactionTypeLabel } from "@/features/interactions/whatsappNotes";
 import { formatTournamentDates } from "@/features/tournaments/display";
@@ -309,6 +310,7 @@ export default function RecruitingDashboard({
   embedded?: boolean;
 }) {
   const router = useRouter();
+  const [quickRecruitId, setQuickRecruitId] = useState("");
   const { openDrawer, closeDrawer } = useDrawerManager();
   const openAddRecruitDrawer = useAddRecruitDrawer();
 
@@ -345,6 +347,26 @@ export default function RecruitingDashboard({
 
   const content = (
     <div className="flex flex-col gap-4" data-recruiting-command-hub="">
+      <section
+        aria-label="Find a recruit"
+        className="relative z-30 rounded-card border border-border/90 bg-gradient-to-r from-[var(--module-tint)] via-surface to-surface px-4 py-3 shadow-[0_8px_22px_rgba(17,24,39,0.045)]"
+      >
+        <div className="grid items-center gap-3 md:grid-cols-[minmax(0,220px)_minmax(280px,1fr)]">
+          <div>
+            <p className="text-sm font-semibold text-text-primary">Find a Recruit</p>
+            <p className="mt-0.5 text-xs text-text-secondary">Search the full recruiting database</p>
+          </div>
+          <RecruitSearchField
+            recruits={interactionRecruits}
+            selectedId={quickRecruitId}
+            onSelect={(id) => {
+              setQuickRecruitId(id);
+              if (id) router.push(recruitingPersonPath(id));
+            }}
+          />
+        </div>
+      </section>
+
       <RecruitingDashboardKpis kpis={kpis} />
 
       <div data-recruiting-dashboard-grid="">
@@ -432,7 +454,7 @@ export default function RecruitingDashboard({
 
   return (
     <ModulePageShell
-      title="Recruiting Dashboard"
+      title="Dashboard"
       subtitle="Your recruiting command center"
       actions={
         <button

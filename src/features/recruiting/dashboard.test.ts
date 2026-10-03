@@ -283,7 +283,7 @@ test("dashboard page stays on /recruiting and opens existing editors/workspaces"
   const ui = readFileSync(join(here, "components/RecruitingDashboard.tsx"), "utf8");
   assert.match(page, /RecruitingDashboard/);
   assert.doesNotMatch(page, /<RecruitingDirectory/);
-  assert.match(nav, /label: "Command Hub", href: RECRUITING_ROUTE/);
+  assert.match(nav, /label: "Dashboard", href: RECRUITING_ROUTE/);
   assert.doesNotMatch(nav, /label: "Overview"/);
   assert.match(ui, /recruitingPersonPath\(interaction\.recruitPersonId\)/);
   assert.match(ui, /openInteraction\(interaction\)/);
@@ -293,10 +293,13 @@ test("dashboard page stays on /recruiting and opens existing editors/workspaces"
   assert.match(ui, /RECRUITING_LIST_ROUTE/);
   assert.match(ui, /Recent Interactions/);
   assert.match(ui, /Top Ranked Recruits/);
+  assert.match(ui, /aria-label="Find a recruit"/);
+  assert.match(ui, /recruits=\{interactionRecruits\}/);
+  assert.match(ui, /router\.push\(recruitingPersonPath\(id\)\)/);
   assert.match(ui, /\+ ADD RECRUIT/);
   assert.match(ui, /useAddRecruitDrawer/);
   assert.match(ui, /ModulePageShell/);
-  assert.match(ui, /title="Recruiting Dashboard"/);
+  assert.match(ui, /title="Dashboard"/);
   assert.match(ui, /subtitle="Your recruiting command center"/);
   assert.doesNotMatch(ui, /data-recruiting-dashboard-header/);
   assert.doesNotMatch(ui, /<AddPersonFlow/);
@@ -667,6 +670,6 @@ test("Recruiting Dashboard header uses ModulePageShell like Recruit List", () =>
   assert.match(ui, /actions=\{/);
   assert.match(directory, /<ModulePageShell/);
   assert.doesNotMatch(ui, /data-recruiting-dashboard-header/);
-  assert.doesNotMatch(ui, /pl-3\.5[\s\S]*Recruiting Dashboard/);
-  assert.doesNotMatch(ui, /text-2xl font-semibold[\s\S]*Recruiting Dashboard/);
+  assert.doesNotMatch(ui, /pl-3\.5[\s\S]*title="Dashboard"/);
+  assert.doesNotMatch(ui, /text-2xl font-semibold[\s\S]*title="Dashboard"/);
 });

@@ -112,12 +112,12 @@ test("/recruiting/[id] does not activate Interactions", () => {
   assert.equal(state.activeChildHref, null);
 });
 
-test("Today Beta is the first Recruiting submenu item", () => {
+test("Dashboard is the first Recruiting submenu item", () => {
   const labels = recruiting.children?.map((item) => item.label) ?? [];
-  assert.deepEqual(labels[0], "Today Beta");
+  assert.deepEqual(labels[0], "Dashboard");
   assert.equal(isNavChildActive("/recruiting/today-beta", todayBeta), true);
-  const state = getNestedNavState("/recruiting/today-beta", recruiting);
-  assert.equal(state.activeChildHref, "/recruiting/today-beta");
+  const state = getNestedNavState("/recruiting", recruiting);
+  assert.equal(state.activeChildHref, "/recruiting");
 });
 
 test("/recruiting/log is the last Recruiting submenu item", () => {

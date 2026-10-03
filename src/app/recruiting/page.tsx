@@ -57,7 +57,7 @@ export default async function RecruitingPage({
 
     return (
       <ModulePageShell
-        title="Recruiting Command Hub"
+        title="Dashboard"
         subtitle="Momentum, priorities, results, and recruiting relationships in one workspace"
         actions={<RecruitingAddRecruitButton />}
       >
@@ -129,7 +129,7 @@ export default async function RecruitingPage({
 
   return (
     <ModulePageShell
-      title="Recruiting Command Hub"
+      title="Dashboard"
       subtitle="Momentum, priorities, results, and recruiting relationships in one workspace"
       actions={<RecruitingAddRecruitButton />}
     >

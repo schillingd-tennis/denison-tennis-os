@@ -96,6 +96,18 @@ test("metric cards stay beneath the complete two-column header row", () => {
   );
 });
 
+test("ranking snapshot cards expose direct editors for fast updates", () => {
+  assert.match(profile, /<EditableMetricTile\s+field="utr"/);
+  assert.match(profile, /<EditableMetricTile\s+field="wtn"/);
+  assert.match(profile, /<EditableMetricTile\s+field="trnRank"/);
+  assert.match(profile, /label="TennisRecruiting\.net"/);
+  assert.match(profile, /<RecruitSummaryStarRatingMetricTile/);
+
+  assert.match(chrome, /session\.startEdit\(field\)/);
+  assert.match(chrome, /session\.commit\(field, nextRaw, reason\)/);
+  assert.match(chrome, /session\.commit\("trnStarRating", String\(value\), "select"\)/);
+});
+
 test("desktop CSS is two-column by default; md: column utilities are not required", () => {
   assert.match(
     css,

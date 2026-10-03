@@ -16,7 +16,7 @@ const MODULE_HEADERS = [
   {
     page: "Dashboard",
     file: "features/recruiting/components/RecruitingDashboard.tsx",
-    title: "Recruiting Dashboard",
+    title: "Dashboard",
   },
   {
     page: "Recruit List",

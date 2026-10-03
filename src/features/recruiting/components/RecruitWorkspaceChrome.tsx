@@ -14,7 +14,14 @@ import {
 import { InlineEditCell } from "@/components/inline-edit";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { typeClass, typeRole } from "@/components/typography";
-import { usePersonFieldSession } from "@/features/field-engine";
+import {
+  isFieldEditable,
+  toEditString,
+  toInlineFieldType,
+  toInlineOptions,
+  usePersonFieldSession,
+} from "@/features/field-engine";
+import { getPersonField } from "@/features/people/fieldCatalog";
 import PersonStatusLabel from "@/features/people/components/PersonStatusLabel";
 import type { Person } from "@/features/people/types";
 import {
@@ -29,7 +36,7 @@ import { EMPTY_VALUE } from "@/lib/formatting";
 
 import { rankingProfileHref } from "../rankingProfileUrl";
 import { RecruitProfileField } from "./RecruitProfileFields";
-import { RecruitStarRatingDisplay } from "./RecruitRatingDisplay";
+import { BlueChipRatingIcon, RecruitStarRatingDisplay } from "./RecruitRatingDisplay";
 import {
   RecruitSummaryAcademicColumn,
   SummaryField,
@@ -138,13 +145,28 @@ type TileTone = keyof typeof tileTone;
 
 export function RecruitSummaryStarRatingMetricTile() {
   const session = usePersonFieldSession();
+  const [open, setOpen] = useState(false);
   const rating = session.person.trnStarRating;
   const empty = rating === undefined;
   const styles = tileTone.warning;
 
   return (
     <div
-      className={`flex min-w-0 items-center justify-between gap-2 rounded-control border px-3 py-2.5 ${styles.card}`}
+      role="button"
+      tabIndex={0}
+      aria-label="Edit Star Rating"
+      onClick={() => {
+        session.startEdit("trnStarRating");
+        setOpen(true);
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          session.startEdit("trnStarRating");
+          setOpen(true);
+        }
+      }}
+      className={`relative flex min-w-0 cursor-pointer items-center justify-between gap-2 rounded-control border px-3 py-2.5 transition-shadow hover:shadow-sm focus-visible:ring-2 focus-visible:ring-warning/35 focus-visible:outline-none ${styles.card}`}
     >
       <div className="min-w-0">
         <div className={`min-h-[17px] leading-none ${empty ? typeRole.metadataEmpty : ""}`}>
@@ -154,6 +176,142 @@ export function RecruitSummaryStarRatingMetricTile() {
           Star Rating
         </p>
       </div>
+      {open ? (
+        <div
+          className="absolute top-full left-0 z-20 mt-2 w-44 rounded-control border border-border bg-surface p-1.5 shadow-lg"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <button
+            type="button"
+            onClick={async () => {
+              await session.commit("trnStarRating", "", "select");
+              setOpen(false);
+            }}
+            className="flex w-full items-center rounded-control px-2 py-1.5 text-left text-sm text-text-primary hover:bg-app-background"
+          >
+            No Rating
+          </button>
+          {([1, 2, 3, 4, 5] as const).map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={async () => {
+                await session.commit("trnStarRating", String(value), "select");
+                setOpen(false);
+              }}
+              className="flex w-full items-center gap-1 rounded-control px-2 py-1.5 hover:bg-app-background"
+            >
+              <RecruitStarRatingDisplay rating={value} size="sm" emptyLabel={null} />
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={async () => {
+              await session.commit("trnStarRating", "6", "select");
+              setOpen(false);
+            }}
+            className="flex w-full items-center gap-2 rounded-control px-2 py-1.5 hover:bg-app-background"
+          >
+            <BlueChipRatingIcon size="sm" />
+            <span className="text-sm font-medium text-text-primary">Blue Chip</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              session.cancelEdit();
+              setOpen(false);
+            }}
+            className="mt-1 flex w-full items-center justify-end text-xs font-medium text-text-secondary hover:text-text-primary"
+          >
+            Cancel
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function EditableMetricTile({
+  field,
+  label,
+  value,
+  icon: Icon,
+  tone,
+  step,
+  profileHref,
+  profileAriaLabel,
+}: {
+  field: "utr" | "wtn" | "trnRank";
+  label: string;
+  value: string;
+  icon: LucideIcon;
+  tone: TileTone;
+  step?: number;
+  profileHref?: string;
+  profileAriaLabel?: string;
+}) {
+  const session = usePersonFieldSession();
+  const def = getPersonField(field);
+  if (!def) return null;
+
+  const empty = !value.trim() || value === EMPTY_VALUE || value === "No data";
+  const styles = tileTone[tone];
+  const wellClass = `inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${styles.well}`;
+  const icon = <Icon className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />;
+
+  return (
+    <div
+      onClick={() => session.startEdit(field)}
+      className={`flex min-w-0 cursor-pointer items-center justify-between gap-2 rounded-control border px-3 py-2.5 transition-shadow hover:shadow-sm ${styles.card}`}
+    >
+      <div className="min-w-0 flex-1">
+        <InlineEditCell
+          label={def.label}
+          type={toInlineFieldType(def)}
+          options={toInlineOptions(def)}
+          step={step}
+          value={toEditString(session.person[field])}
+          displayValue={value}
+          align="left"
+          editOn="click"
+          emphasis="workspace"
+          density="compact"
+          editing={session.isEditing(field)}
+          disabled={!isFieldEditable(def)}
+          error={session.errorFor(field)}
+          onRequestEdit={() => session.startEdit(field)}
+          onCancel={session.cancelEdit}
+          onCommit={(nextRaw, reason) => session.commit(field, nextRaw, reason)}
+          className="!mx-0 !px-0"
+          renderDisplay={
+            <span
+              title={empty ? undefined : value}
+              className={`block truncate text-[17px] leading-none font-semibold tabular-nums tracking-tight ${
+                empty ? typeRole.metadataEmpty : styles.value
+              }`}
+            >
+              {empty ? "No data" : value}
+            </span>
+          }
+        />
+        <p className="mt-1.5 text-[10px] font-medium tracking-wide text-text-secondary uppercase">
+          {label}
+        </p>
+      </div>
+      {profileHref ? (
+        <a
+          href={profileHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={profileAriaLabel}
+          onClick={(event) => event.stopPropagation()}
+          className={`${wellClass} transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-[var(--module-accent)]/40 focus-visible:outline-none`}
+        >
+          {icon}
+        </a>
+      ) : (
+        <span className={`${wellClass} opacity-70`}>{icon}</span>
+      )}
     </div>
   );
 }
@@ -326,27 +484,33 @@ export function RecruitWorkspaceProfile({
           className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6"
           aria-label="Recruit snapshot"
         >
-          <MetricTile
+          <EditableMetricTile
+            field="utr"
             label="UTR"
             value={metrics.utr}
             icon={Gauge}
             tone="crimson"
+            step={0.01}
             profileHref={rankingProfileHref(person.utrUrl)}
             profileAriaLabel={`Open ${displayName}'s UTR profile`}
           />
-          <MetricTile
+          <EditableMetricTile
+            field="wtn"
             label="WTN"
             value={metrics.wtn}
             icon={Activity}
             tone="info"
+            step={0.01}
             profileHref={rankingProfileHref(person.wtnUrl)}
             profileAriaLabel={`Open ${displayName}'s WTN profile`}
           />
-          <MetricTile
-            label="TRN Rank"
+          <EditableMetricTile
+            field="trnRank"
+            label="TennisRecruiting.net"
             value={metrics.trnRank}
             icon={ListOrdered}
             tone="success"
+            step={1}
             profileHref={rankingProfileHref(person.trnUrl)}
             profileAriaLabel={`Open ${displayName}'s TennisRecruiting.net profile`}
           />
