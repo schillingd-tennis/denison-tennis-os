@@ -27,7 +27,10 @@ import { getAppleMessagesSyncStatusAction } from "@/features/interactions/appleM
 import { getDisplayName } from "@/features/people/utils";
 import { listTournaments } from "@/features/tournaments/repository";
 import TodayBetaPage from "@/features/recruiting/todayBeta/components/TodayBetaPage";
-import { loadTodayBetaPageData } from "@/features/recruiting/todayBeta/repository";
+import {
+  listRecruitingOverviewResults,
+  loadTodayBetaPageData,
+} from "@/features/recruiting/todayBeta/repository";
 
 export const dynamic = "force-dynamic";
 
@@ -47,15 +50,39 @@ export default async function RecruitingPage({
   const activeTab: RecruitingCommandTab = COMMAND_TABS.has(requestedTab as RecruitingCommandTab)
     ? (requestedTab as RecruitingCommandTab)
     : "overview";
+
+  if (activeTab !== "overview") {
+    const todayBeta = await loadTodayBetaPageData();
+    const view = activeTab === "results" ? "results" : activeTab === "follow-ups" ? "follow-ups" : "monitoring";
+
+    return (
+      <ModulePageShell
+        title="Recruiting Command Hub"
+        subtitle="Momentum, priorities, results, and recruiting relationships in one workspace"
+        actions={<RecruitingAddRecruitButton />}
+      >
+        <div className="flex flex-col gap-4">
+          <RecruitingCommandTabs active={activeTab} />
+          <TodayBetaPage data={todayBeta} embedded view={view} />
+        </div>
+      </ModulePageShell>
+    );
+  }
+
   const now = new Date();
-  const [interactions, directory, tournamentResult, recentChangeLogs, apple, todayBeta] = await Promise.all([
+  const [interactions, directory, tournamentResult, recentChangeLogs, apple] = await Promise.all([
     listVisibleRecruitingInteractions(),
     loadRecruitingDirectory(),
     listTournaments(),
     listRecentRecruitChangeLog(),
     getAppleMessagesSyncStatusAction(),
-    loadTodayBetaPageData(),
   ]);
+  const recentResults = await listRecruitingOverviewResults(
+    directory.rows.map((row) => ({
+      personId: row.person.id,
+      name: getDisplayName(row.person),
+    })),
+  );
   const tournaments = tournamentResult.ok ? tournamentResult.tournaments : [];
   const commits = denisonCommitSummary(directory.denisonCommitRecruits);
   const visits = upcomingVisits(directory.rows);
@@ -95,27 +122,20 @@ export default async function RecruitingPage({
       upcomingTournaments={upcomingTournaments(tournaments)}
       upcomingVisits={visits}
       commits={commits.recruits}
-      recentResults={todayBeta.newResults}
+      recentResults={recentResults}
       embedded
     />
   );
 
   return (
     <ModulePageShell
-      title="Recruiting Command Center"
-      subtitle="Pipeline, live results, visits, follow-ups, and monitoring in one workspace"
+      title="Recruiting Command Hub"
+      subtitle="Momentum, priorities, results, and recruiting relationships in one workspace"
       actions={<RecruitingAddRecruitButton />}
     >
       <div className="flex flex-col gap-4">
         <RecruitingCommandTabs active={activeTab} />
-        {activeTab === "overview" ? dashboard : null}
-        {activeTab === "results" ? <TodayBetaPage data={todayBeta} embedded view="results" /> : null}
-        {activeTab === "follow-ups" ? (
-          <TodayBetaPage data={todayBeta} embedded view="follow-ups" />
-        ) : null}
-        {activeTab === "monitoring" ? (
-          <TodayBetaPage data={todayBeta} embedded view="monitoring" />
-        ) : null}
+        {dashboard}
       </div>
     </ModulePageShell>
   );

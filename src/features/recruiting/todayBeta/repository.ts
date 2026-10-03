@@ -104,6 +104,12 @@ const PROFILES_TABLE = "recruit_profiles";
 
 export type RecentUtrRecruitResult = RecruitMatchResult & { recruitName: string };
 
+export type RecruitingOverviewResult = RecruitMatchResult & {
+  recruitName: string;
+  firstDetectedAtLabel: string;
+  tournamentDateLabel: string;
+};
+
 type MatchResultRow = {
   id: string;
   recruit_person_id: string;
@@ -190,6 +196,64 @@ export async function listRecentUtrRecruitResults(
     ...rowToMatchResult(row),
     recruitName: names.get(row.recruit_person_id) ?? "Recruit",
   }));
+}
+
+/** Lightweight result feed for the Recruiting Command Hub overview. */
+export async function listRecruitingOverviewResults(
+  recruits: readonly { personId: string; name: string }[],
+  limit = 30,
+): Promise<RecruitingOverviewResult[]> {
+  if (recruits.length === 0) return [];
+
+  const client = await createSupabaseServerClient();
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - CONTACT_OPPORTUNITY_THRESHOLDS.newResultWindowDays);
+
+  const personIds = recruits.map((recruit) => recruit.personId);
+  const batches: string[][] = [];
+  for (let index = 0; index < personIds.length; index += 25) {
+    batches.push(personIds.slice(index, index + 25));
+  }
+
+  const batchResults = await Promise.all(
+    batches.map(async (batch) => {
+      const { data, error } = await client
+        .from(RESULTS_TABLE)
+        .select("*")
+        .in("recruit_person_id", batch)
+        .eq("detection_status", "NEW")
+        .gte("first_detected_at", cutoff.toISOString())
+        .order("first_detected_at", { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        throw new TodayBetaRepositoryError(`Failed to load Command Hub results: ${error.message}`);
+      }
+      return (data as MatchResultRow[] | null) ?? [];
+    }),
+  );
+
+  const names = new Map(recruits.map((recruit) => [recruit.personId, recruit.name]));
+  return batchResults
+    .flat()
+    .sort(
+      (a, b) =>
+        Date.parse(b.first_detected_at) - Date.parse(a.first_detected_at) ||
+        Date.parse(b.last_verified_at) - Date.parse(a.last_verified_at),
+    )
+    .slice(0, limit)
+    .map((row) => {
+      const result = rowToMatchResult(row);
+      return {
+        ...result,
+        recruitName: names.get(result.recruitPersonId) ?? "Recruit",
+        firstDetectedAtLabel: formatDate(result.firstDetectedAt) ?? result.firstDetectedAt,
+        tournamentDateLabel:
+          formatDate(result.tournamentDate) ??
+          result.tournamentDateRaw ??
+          (result.tournamentDate ?? "Unknown"),
+      };
+    });
 }
 
 function asExternalProfiles(value: unknown): RecruitExternalProfiles {

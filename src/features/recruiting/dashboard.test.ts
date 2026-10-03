@@ -283,7 +283,7 @@ test("dashboard page stays on /recruiting and opens existing editors/workspaces"
   const ui = readFileSync(join(here, "components/RecruitingDashboard.tsx"), "utf8");
   assert.match(page, /RecruitingDashboard/);
   assert.doesNotMatch(page, /<RecruitingDirectory/);
-  assert.match(nav, /label: "Command Center", href: RECRUITING_ROUTE/);
+  assert.match(nav, /label: "Command Hub", href: RECRUITING_ROUTE/);
   assert.doesNotMatch(nav, /label: "Overview"/);
   assert.match(ui, /recruitingPersonPath\(interaction\.recruitPersonId\)/);
   assert.match(ui, /openInteraction\(interaction\)/);
@@ -424,7 +424,7 @@ test("Upcoming Visits sits in the operations column and opens Visit AW", () => {
 
   const visitsIdx = ui.indexOf('title="Upcoming Visits"');
   const pipelineIdx = ui.indexOf('title="Pipeline Snapshot"');
-  const resultsIdx = ui.indexOf('title="Latest Recruit Results"');
+  const resultsIdx = ui.indexOf('title="Latest Player Results"');
   assert.ok(pipelineIdx >= 0 && visitsIdx > pipelineIdx && resultsIdx > visitsIdx);
 
   assert.match(personPage, /initialWorkspaceId=\{workspace\}/);
@@ -481,9 +481,9 @@ test("command-center dashboard renders three focused columns and keeps real sele
   assert.match(layoutLock, /\[data-recruiting-dashboard-grid\]/);
   assert.match(
     layoutLock,
-    /minmax\(0, 0\.9fr\) minmax\(18rem, 1\.35fr\) minmax\(0, 0\.9fr\)/,
+    /minmax\(0, 0\.95fr\) minmax\(19rem, 1\.2fr\) minmax\(0, 0\.95fr\)/,
   );
-  assert.match(ui, /recentResults\.slice\(0,\s*12\)/);
+  assert.match(ui, /latestPlayerResults\.map/);
   assert.match(ui, /href:\s*"\/recruiting\?tab=results"/);
 });
 
