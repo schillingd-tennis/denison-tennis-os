@@ -81,7 +81,9 @@ import {
   type MatchResult,
   type MatchesTab,
   type RosterPlayer,
+  type WinLossRecord,
 } from "../types";
+import { EMPTY_RECORD, sumRecords } from "../scoringRules";
 import ImportBoxScoreFlow from "./ImportBoxScoreFlow";
 import LinkSchedulePanel from "./LinkSchedulePanel";
 import DeleteMatchResultButton from "./DeleteMatchResultButton";
@@ -221,6 +223,9 @@ export default function MatchesWorkspace({
     seasonYear: seasonYear === "all" ? null : seasonYear,
     eventType,
   });
+  const singlesTotals = aggregateRecordBreakdown(singlesRecords);
+  const doublesPlayerTotals = aggregateRecordBreakdown(doublesPlayerRecords);
+  const doublesTeamTotals = aggregateRecordBreakdown(doublesPairRecords);
   const teamDashboard = buildTeamRecordsDashboard(results, events, {
     seasonYear: seasonYear === "all" ? null : seasonYear,
     eventType,
@@ -368,21 +373,36 @@ export default function MatchesWorkspace({
       {tab === "team" ? <TeamRecordsDashboardView records={teamDashboard} /> : null}
 
       {tab === "players" ? (
-        <SinglesTable records={singlesRecords} roster={roster} />
+        <section className="grid gap-3">
+          <RecordSummaryCards totals={singlesTotals} recordLabel="Singles" />
+          <SinglesTable records={singlesRecords} roster={roster} totals={singlesTotals} />
+        </section>
       ) : null}
 
       {tab === "doubles-players" ? (
         <section className="grid gap-3">
-          <div className={`${cardClass} px-4 py-3 text-xs text-text-secondary`}>
-            Overall doubles (once per match): {formatRecord(overallDoubles)}. Player rows credit each
-            participant.
-          </div>
-          <DoublesPlayersTable records={doublesPlayerRecords} roster={roster} />
+          <RecordSummaryCards
+            totals={{ ...doublesTeamTotals, overall: overallDoubles }}
+            recordLabel="Doubles"
+            note="Team totals count each match once."
+          />
+          <DoublesPlayersTable
+            records={doublesPlayerRecords}
+            roster={roster}
+            totals={doublesPlayerTotals}
+          />
         </section>
       ) : null}
 
       {tab === "doubles-teams" ? (
-        <DoublesTeamsTable records={doublesPairRecords} roster={roster} />
+        <section className="grid gap-3">
+          <RecordSummaryCards totals={doublesTeamTotals} recordLabel="Doubles teams" />
+          <DoublesTeamsTable
+            records={doublesPairRecords}
+            roster={roster}
+            totals={doublesTeamTotals}
+          />
+        </section>
       ) : null}
 
       {tab === "results" ? (
@@ -732,12 +752,119 @@ function UnlinkedResultsSection({ events }: { events: MatchEvent[] }) {
   );
 }
 
+type RecordBreakdown = {
+  overall: WinLossRecord;
+  dual: WinLossRecord;
+  tournament: WinLossRecord;
+};
+
+function aggregateRecordBreakdown(
+  records: readonly (WinLossRecord & { dual: WinLossRecord; tournament: WinLossRecord })[],
+): RecordBreakdown {
+  return records.reduce<RecordBreakdown>(
+    (totals, record) => ({
+      overall: sumRecords(totals.overall, record),
+      dual: sumRecords(totals.dual, record.dual),
+      tournament: sumRecords(totals.tournament, record.tournament),
+    }),
+    { overall: EMPTY_RECORD(), dual: EMPTY_RECORD(), tournament: EMPTY_RECORD() },
+  );
+}
+
+function winPercentage(record: WinLossRecord): string {
+  const decided = record.wins + record.losses;
+  return decided > 0 ? `${((record.wins / decided) * 100).toFixed(1)}%` : "—";
+}
+
+function RecordSummaryCards({
+  totals,
+  recordLabel,
+  note,
+}: {
+  totals: RecordBreakdown;
+  recordLabel: string;
+  note?: string;
+}) {
+  const cards = [
+    {
+      label: `${recordLabel} record`,
+      value: formatRecord(totals.overall),
+      detail: note ?? `${totals.overall.wins + totals.overall.losses} decided matches`,
+      icon: Trophy,
+      tone: "border-red-200 bg-gradient-to-br from-red-50 to-surface text-red-700",
+      iconTone: "bg-red-100 text-red-700",
+    },
+    {
+      label: "Dual record",
+      value: formatRecord(totals.dual),
+      detail: `${winPercentage(totals.dual)} win rate`,
+      icon: UsersRound,
+      tone: "border-blue-200 bg-gradient-to-br from-blue-50 to-surface text-blue-700",
+      iconTone: "bg-blue-100 text-blue-700",
+    },
+    {
+      label: "Tournament record",
+      value: formatRecord(totals.tournament),
+      detail: `${winPercentage(totals.tournament)} win rate`,
+      icon: Activity,
+      tone: "border-violet-200 bg-gradient-to-br from-violet-50 to-surface text-violet-700",
+      iconTone: "bg-violet-100 text-violet-700",
+    },
+    {
+      label: "Overall win percentage",
+      value: winPercentage(totals.overall),
+      detail: `${totals.overall.wins} wins · ${totals.overall.losses} losses`,
+      icon: BadgePercent,
+      tone: "border-emerald-200 bg-gradient-to-br from-emerald-50 to-surface text-emerald-700",
+      iconTone: "bg-emerald-100 text-emerald-700",
+    },
+  ];
+
+  return (
+    <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label={`${recordLabel} summary`}>
+      {cards.map(({ label, value, detail, icon: Icon, tone, iconTone }) => (
+        <article key={label} className={`rounded-card border p-4 shadow-sm ${tone}`}>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold tracking-wide text-text-secondary uppercase">
+                {label}
+              </p>
+              <p className="mt-2 text-2xl font-semibold tabular-nums text-text-primary">{value}</p>
+              <p className="mt-1 text-xs text-text-secondary">{detail}</p>
+            </div>
+            <span className={`rounded-full p-2 ${iconTone}`}>
+              <Icon className="h-4 w-4" aria-hidden="true" />
+            </span>
+          </div>
+        </article>
+      ))}
+    </section>
+  );
+}
+
+function RecordTableFooter({ label, totals }: { label: string; totals: RecordBreakdown }) {
+  return (
+    <tfoot className="border-t-2 border-border bg-app-background/70 font-semibold text-text-primary">
+      <tr>
+        <th scope="row" className="px-4 py-3 text-left text-xs uppercase tracking-wide">
+          {label}
+        </th>
+        <td className="px-4 py-3 tabular-nums">{formatRecord(totals.overall)}</td>
+        <td className="px-4 py-3 tabular-nums">{formatRecord(totals.dual)}</td>
+        <td className="px-4 py-3 tabular-nums">{formatRecord(totals.tournament)}</td>
+      </tr>
+    </tfoot>
+  );
+}
+
 function SinglesTable({
   records,
   roster,
+  totals,
 }: {
   records: ReturnType<typeof buildSinglesPlayerRecords>;
   roster: RosterPlayer[];
+  totals: RecordBreakdown;
 }) {
   if (records.length === 0) {
     return (
@@ -777,6 +904,7 @@ function SinglesTable({
               </tr>
             ))}
           </tbody>
+          <RecordTableFooter label="Team totals" totals={totals} />
         </table>
       </div>
     </section>
@@ -786,9 +914,11 @@ function SinglesTable({
 function DoublesPlayersTable({
   records,
   roster,
+  totals,
 }: {
   records: ReturnType<typeof buildDoublesPlayerRecords>;
   roster: RosterPlayer[];
+  totals: RecordBreakdown;
 }) {
   if (records.length === 0) {
     return (
@@ -828,8 +958,12 @@ function DoublesPlayersTable({
               </tr>
             ))}
           </tbody>
+          <RecordTableFooter label="Player-credit totals" totals={totals} />
         </table>
       </div>
+      <p className="border-t border-border bg-app-background/35 px-4 py-2 text-[11px] text-text-secondary">
+        Player-credit totals count a doubles result once for each Denison player in the partnership.
+      </p>
     </section>
   );
 }
@@ -837,9 +971,11 @@ function DoublesPlayersTable({
 function DoublesTeamsTable({
   records,
   roster,
+  totals,
 }: {
   records: ReturnType<typeof buildDoublesPairRecords>;
   roster: RosterPlayer[];
+  totals: RecordBreakdown;
 }) {
   if (records.length === 0) {
     return (
@@ -876,6 +1012,7 @@ function DoublesTeamsTable({
               </tr>
             ))}
           </tbody>
+          <RecordTableFooter label="Team totals" totals={totals} />
         </table>
       </div>
     </section>
