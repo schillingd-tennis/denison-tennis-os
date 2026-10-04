@@ -6,6 +6,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { createProductionSupabaseClient } from "../../../src/features/interactions/appleMessagesSync/liveRuntime";
 import { listCurrentTeamRatingPlayers, recordTeamRatingObservation } from "../../../src/features/teamRatings/repository";
+import { listEliteRecruitRatingPlayers, recordRecruitRatingObservation } from "../../../src/features/recruitRatings/repository";
 import { workerSupabaseScope } from "../../../src/lib/supabase/workerScope";
 import { UTR_WORKER_HEARTBEAT_INTERVAL_MS, UTR_WORKER_POLL_INTERVAL_MS, utrWorkerLeaseUntil } from "./backgroundSchedule.js";
 import { runTeamWtnRatingChecks } from "./runWtnRatings.js";
@@ -77,10 +78,17 @@ export function startWtnBackgroundWorker(options?: { client?: SupabaseClient }):
       await workerSupabaseScope.run(client, async () => {
         const { data: job, error: jobError } = await client.from("tennis_data_jobs")
           .select("kind, scope").eq("id", jobId).single();
-        if (jobError || !job || job.kind !== "rating" || job.scope !== "team") {
+        if (jobError || !job || job.kind !== "rating" || !["team", "recruits"].includes(job.scope)) {
           throw new Error("Unsupported WTN acquisition job.");
         }
-        const players = await listCurrentTeamRatingPlayers("wtn");
+        const recruits = job.scope === "recruits" ? await listEliteRecruitRatingPlayers("wtn") : null;
+        const players = recruits?.map((row) => ({
+          personId: row.personId,
+          displayName: row.displayName,
+          provider: "wtn" as const,
+          externalPlayerId: row.externalPlayerId,
+          profileUrl: row.profileUrl,
+        })) ?? await listCurrentTeamRatingPlayers("wtn");
         await updateJob({ total_count: players.length });
         const run = await runTeamWtnRatingChecks(players);
         let saved = 0;
@@ -96,7 +104,12 @@ export function startWtnBackgroundWorker(options?: { client?: SupabaseClient }):
             failed += 1;
             console.error(`${row.player.displayName}: ${row.diagnostic ?? "WTN_RATING_FAILED"}`);
           } else {
-            await recordTeamRatingObservation({ ...row.player, rating: row.rating, ratingDate: run.ratingDate, diagnostic: row.diagnostic }, jobId!);
+            const recruit = recruits?.find((entry) => entry.personId === row.player.personId);
+            if (recruit) {
+              await recordRecruitRatingObservation({ ...recruit, rating: row.rating, ratingDate: run.ratingDate, diagnostic: row.diagnostic }, jobId!);
+            } else {
+              await recordTeamRatingObservation({ ...row.player, rating: row.rating, ratingDate: run.ratingDate, diagnostic: row.diagnostic }, jobId!);
+            }
             saved += 1;
           }
           await updateJob({ checked_count: saved + failed });
@@ -120,7 +133,7 @@ export function startWtnBackgroundWorker(options?: { client?: SupabaseClient }):
           last_finished_at: finishedAt,
           checked_count: saved + failed,
         });
-        console.log(`Weekly team WTN ratings finished: ${saved} saved, ${failed} failed.`);
+        console.log(`Weekly ${job.scope === "recruits" ? "elite recruit" : "team"} WTN ratings finished: ${saved} saved, ${failed} failed.`);
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "WTN background check failed.";

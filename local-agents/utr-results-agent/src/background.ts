@@ -17,6 +17,10 @@ import {
   recordTeamPower6Observation,
   recordTeamRatingObservation,
 } from "../../../src/features/teamRatings/repository";
+import {
+  listEliteRecruitRatingPlayers,
+  recordRecruitRatingObservation,
+} from "../../../src/features/recruitRatings/repository";
 import { workerSupabaseScope } from "../../../src/lib/supabase/workerScope";
 import {
   easternDay,
@@ -213,6 +217,63 @@ export function startBackgroundWorker(options?: { client?: SupabaseClient }): ()
             checked_count: saved + failed,
           });
           console.log(`Weekly team UTR ratings finished: ${saved} saved, ${failed} failed.`);
+          return;
+        }
+
+        if (claimedJob.kind === "rating" && claimedJob.scope === "recruits") {
+          const recruits = await listEliteRecruitRatingPlayers("utr");
+          await updateJob({ total_count: recruits.length });
+          const run = await runTeamUtrRatingChecks(recruits.map((row) => ({
+            personId: row.personId,
+            displayName: row.displayName,
+            provider: "utr" as const,
+            externalPlayerId: row.externalPlayerId,
+            profileUrl: row.profileUrl,
+          })));
+          let saved = 0;
+          let failed = 0;
+          let authRequired = false;
+          for (const row of run.rows) {
+            const recruit = recruits.find((entry) => entry.personId === row.player.personId);
+            if (row.status === "auth_required") {
+              authRequired = true;
+              failed += 1;
+              break;
+            }
+            if (!recruit || row.status !== "ok" || row.rating == null) {
+              failed += 1;
+              console.error(`${row.player.displayName}: ${row.diagnostic ?? "UTR_RATING_FAILED"}`);
+            } else {
+              await recordRecruitRatingObservation({
+                ...recruit,
+                rating: row.rating,
+                ratingDate: run.ratingDate,
+                diagnostic: row.diagnostic,
+              }, jobId!);
+              saved += 1;
+            }
+            await updateJob({ checked_count: saved + failed });
+            await updateWorker({ checked_count: saved + failed });
+          }
+          const finishedAt = new Date().toISOString();
+          const message = authRequired
+            ? "UTR login expired. Run npm run utr:login on the Mac, then request a new check."
+            : failed ? `${failed} elite recruit UTR check(s) failed.` : null;
+          await updateJob({
+            status: authRequired ? "auth_required" : failed ? "partial" : "complete",
+            finished_at: finishedAt,
+            checked_count: saved + failed,
+            error: message,
+            lease_until: null,
+            lease_token: null,
+          });
+          await updateWorker({
+            auth_status: authRequired ? "reauth_required" : "valid",
+            last_error: message,
+            last_finished_at: finishedAt,
+            checked_count: saved + failed,
+          });
+          console.log(`Weekly elite recruit UTR ratings finished: ${saved} saved, ${failed} failed.`);
           return;
         }
 

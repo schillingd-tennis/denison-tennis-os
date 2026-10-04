@@ -43,10 +43,11 @@ server.listen(AGENT_PORT, AGENT_HOST, () => {
 
 // The explicit service flag keeps tests and ad-hoc diagnostic servers read-only.
 if (process.env.UTR_BACKGROUND_ENABLED === "true") {
-  void Promise.all([import("./background.js"), import("./wtnBackground.js")])
-    .then(([{ startBackgroundWorker }, { startWtnBackgroundWorker }]) => {
+  void Promise.all([import("./background.js"), import("./wtnBackground.js"), import("./trnBackground.js")])
+    .then(([{ startBackgroundWorker }, { startWtnBackgroundWorker }, { startTrnBackgroundWorker }]) => {
       startBackgroundWorker();
       startWtnBackgroundWorker();
+      startTrnBackgroundWorker();
     })
     .catch(() => {
       // Keep manual localhost checks available even if the hosted worker setup is incomplete.

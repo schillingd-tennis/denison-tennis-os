@@ -17,6 +17,7 @@ export const RECRUITING_INTERACTIONS_ROUTE = "/recruiting/interactions";
 export const RECRUITING_LOG_ROUTE = "/recruiting/log";
 export const RECRUITING_TODAY_BETA_ROUTE = "/recruiting/today-beta";
 export const RECRUITING_AGENCIES_ROUTE = "/recruiting/agencies";
+export const RECRUITING_RATINGS_ROUTE = "/recruiting/ratings";
 
 /** Official Matches module — dual + tournament season results. */
 export const MATCHES_ROUTE = "/matches";
@@ -87,6 +88,7 @@ export const TOP_LEVEL_MODULE_PATHS = [
   RECRUITING_LOG_ROUTE,
   RECRUITING_TODAY_BETA_ROUTE,
   RECRUITING_AGENCIES_ROUTE,
+  RECRUITING_RATINGS_ROUTE,
   TEAM_OPERATIONS_ROUTE,
   TEAM_OPERATIONS_SCHEDULE_ROUTE,
   TEAM_OPERATIONS_INTRA_SQUAD_ROUTE,
