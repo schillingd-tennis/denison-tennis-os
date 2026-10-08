@@ -644,7 +644,9 @@ function TournamentReviewPanel({
                   <th className="py-1 pr-2">Denison</th>
                   <th className="py-1 pr-2">Opponent</th>
                   <th className="py-1 pr-2">Score</th>
-                  <th className="py-1">Status</th>
+                  <th className="py-1 pr-2">Outcome</th>
+                  <th className="py-1 pr-2">Status</th>
+                  <th className="py-1">Review</th>
                 </tr>
               </thead>
               <tbody>
@@ -713,7 +715,41 @@ function TournamentReviewPanel({
                         </label>
                       </td>
                       <td className="py-2 pr-2 tabular-nums">{row.scoreText ?? "—"}</td>
-                      <td className="py-2 capitalize">{row.status}</td>
+                      <td className="py-2 pr-2">
+                        <select
+                          aria-label={`Outcome for ${row.denisonA.rawName}`}
+                          value={row.winnerSide ?? "unknown"}
+                          onChange={(event) => {
+                            const results = [...draft.results];
+                            const flags = row.flags.filter(
+                              (flag) =>
+                                !flag.startsWith("AI review:") &&
+                                !flag.startsWith("AI confidence") &&
+                                !flag.startsWith("Winner conflicts") &&
+                                !flag.startsWith("Score perspective"),
+                            );
+                            results[index] = {
+                              ...row,
+                              winnerSide: event.target.value as "denison" | "opponent" | "unknown",
+                              flags,
+                            };
+                            onChange({
+                              ...draft,
+                              results,
+                              flags: [...new Set(results.flatMap((result) => result.flags))],
+                            });
+                          }}
+                          className="h-8 rounded-control border border-border bg-surface px-2 text-xs"
+                        >
+                          <option value="denison">Win</option>
+                          <option value="opponent">Loss</option>
+                          <option value="unknown">Review</option>
+                        </select>
+                      </td>
+                      <td className="py-2 pr-2 capitalize">{row.status}</td>
+                      <td className="max-w-64 py-2 text-[11px] text-amber-800">
+                        {row.flags.length > 0 ? row.flags.join(" ") : "—"}
+                      </td>
                     </tr>
                   );
                 })}

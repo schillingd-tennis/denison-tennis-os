@@ -345,6 +345,7 @@ test("AI interprets a recognizable paste first when configured", async () => {
     seasonYear: 2027,
     allowAi: true,
     referenceDate: "2026-09-18",
+    eventContext: { name: "Denison Invite", startDate: "2026-09-18", endDate: "2026-09-20" },
     extractFn: async () => {
       aiCalls += 1;
       return {
@@ -385,6 +386,54 @@ test("AI interprets a recognizable paste first when configured", async () => {
     }
     assert.ok(result.draft.flags.some((flag) => flag.includes("needs review")));
   }
+});
+
+test("AI tournament rows carry event context and flag uncertain or contradictory outcomes", async () => {
+  let receivedContext: { name?: string | null } | undefined;
+  const result = await hybridImportBoxScore({
+    text: "Nick Meyers lost to Alex Player 6-3, 6-2",
+    roster: [{ id: "nick", firstName: "Nick", lastName: "Meyers" }],
+    forcedType: "tournament",
+    allowAi: true,
+    eventContext: { name: "Big Red Invite" },
+    extractFn: async (input) => {
+      receivedContext = input.eventContext;
+      return {
+        title: "Big Red Invite",
+        startDate: null,
+        endDate: null,
+        locationText: null,
+        results: [{
+          discipline: "singles" as const,
+          drawName: null,
+          flightName: null,
+          roundLabel: null,
+          matchDate: null,
+          denisonPlayerName: "Nick Meyers",
+          denisonPartnerName: null,
+          opponentPlayerName: "Alex Player",
+          opponentPartnerName: null,
+          opponentSchool: "Example University",
+          status: "completed" as const,
+          winnerSide: "opponent" as const,
+          scorePerspective: "denison" as const,
+          score: "6-3, 6-2",
+          sourceExcerpt: "Nick Meyers lost to Alex Player 6-3, 6-2",
+          confidence: 0.62,
+          reviewReasons: ["The score orientation is ambiguous."],
+        }],
+        confidence: 0.62,
+        interpretation: "One singles result",
+      };
+    },
+  });
+  assert.equal(receivedContext?.name, "Big Red Invite");
+  assert.equal(result.ok, true);
+  if (!result.ok || result.draft.kind !== "tournament") return;
+  const flags = result.draft.results[0]?.flags ?? [];
+  assert.ok(flags.some((flag) => flag.includes("AI confidence is 62%")));
+  assert.ok(flags.some((flag) => flag.includes("AI review")));
+  assert.ok(flags.some((flag) => flag.includes("Winner conflicts")));
 });
 
 test("AI failure falls back to recognizable results without losing the paste", async () => {

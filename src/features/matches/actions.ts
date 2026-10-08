@@ -189,6 +189,19 @@ export async function parseMatchesBoxScoreAction(input: {
     forcedType,
     seasonYear: input.seasonYear ?? scheduleEvent?.seasonYear,
     referenceDate: scheduleEvent?.startDate,
+    eventContext: scheduleEvent
+      ? {
+          name: scheduleEvent.eventName,
+          opponent: scheduleEvent.opponentName,
+          startDate: scheduleEvent.startDate,
+          endDate: scheduleEvent.endDate,
+          venue: scheduleEvent.venueName,
+          location: [scheduleEvent.locationText, scheduleEvent.city, scheduleEvent.state]
+            .filter(Boolean)
+            .join(", "),
+          teams: scheduleEvent.teamsInEvent,
+        }
+      : undefined,
     allowAi: Boolean(process.env.OPENAI_API_KEY?.trim()),
   });
 

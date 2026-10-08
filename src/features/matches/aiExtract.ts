@@ -126,8 +126,11 @@ export const TOURNAMENT_EXTRACTION_JSON_SCHEMA = {
           "opponentSchool",
           "status",
           "winnerSide",
+          "scorePerspective",
           "score",
           "sourceExcerpt",
+          "confidence",
+          "reviewReasons",
         ],
         properties: {
           discipline: { type: "string", enum: ["singles", "doubles"] },
@@ -158,8 +161,14 @@ export const TOURNAMENT_EXTRACTION_JSON_SCHEMA = {
               { type: "null" },
             ],
           },
+          scorePerspective: {
+            type: "string",
+            enum: ["denison", "opponent", "unknown"],
+          },
           score: { anyOf: [{ type: "string" }, { type: "null" }] },
           sourceExcerpt: { type: "string" },
+          confidence: { type: "number" },
+          reviewReasons: { type: "array", items: { type: "string" } },
         },
       },
     },
@@ -211,8 +220,11 @@ export type AiTournamentExtraction = {
     opponentSchool: string | null;
     status: MatchResultStatus;
     winnerSide: WinnerSide | null;
+    scorePerspective?: "denison" | "opponent" | "unknown";
     score: string | null;
     sourceExcerpt: string;
+    confidence?: number;
+    reviewReasons?: string[];
   }>;
   confidence: number;
   interpretation: string;
@@ -227,7 +239,11 @@ function buildSystemPrompt(eventType: MatchEventType): string {
     "Statuses: completed, retired, walkover, default, unfinished, cancelled, bye.",
     "Byes and missing results are not losses. Unknown winners stay unknown.",
     "Preserve original score text; support tiebreaks like 7-6(5) and MTB like 10-8.",
-    "Input formats vary. A row like 'Player, W/L, Opponent (School), score' uses W/L from the Denison player's perspective; scores are also from that player's perspective.",
+    "Input formats vary. First identify each Denison roster player, then create one result from that player's perspective.",
+    "A row like 'Player, W/L, Opponent (School), score' uses W/L and score from the Denison player's perspective.",
+    "A row like 'Winner def. Loser, score' normally gives the score from the named winner's perspective. Set scorePerspective accordingly.",
+    "Do not infer a Denison loss merely because the opponent is printed first; use W/L, def./d., advancement context, and score together.",
+    "For every tournament row include confidence from 0 to 1 and concise reviewReasons. Use confidence below 0.8 whenever the winner, Denison identity, opponent, or score perspective is uncertain.",
   ];
   if (eventType === "dual") {
     return [
@@ -252,6 +268,15 @@ export async function extractOfficialMatchWithOpenAi(input: {
   eventType: MatchEventType;
   text: string;
   rosterNames: readonly string[];
+  eventContext?: {
+    name?: string | null;
+    opponent?: string | null;
+    startDate?: string | null;
+    endDate?: string | null;
+    venue?: string | null;
+    location?: string | null;
+    teams?: string | null;
+  };
   apiKey?: string;
   model?: string;
   fetchImpl?: typeof fetch;
@@ -285,8 +310,10 @@ export async function extractOfficialMatchWithOpenAi(input: {
           {
             role: "user",
             content: [
-              `Roster: ${input.rosterNames.join(", ")}`,
+              "Authoritative Denison roster (only these people may be treated as Denison players):",
+              input.rosterNames.map((name) => `- ${name}`).join("\n") || "- No roster supplied",
               `Event type: ${input.eventType}`,
+              `Selected Schedule event context: ${JSON.stringify(input.eventContext ?? {})}`,
               `Box score text:\n${input.text}`,
             ].join("\n"),
           },
@@ -387,6 +414,14 @@ function mapAiTournamentRow(value: unknown): AiTournamentExtraction["results"][n
     flightName: nullishString(row.flightName),
     roundLabel: nullishString(row.roundLabel),
     matchDate: nullishString(row.matchDate),
+    scorePerspective:
+      row.scorePerspective === "denison" || row.scorePerspective === "opponent"
+        ? row.scorePerspective
+        : "unknown",
+    confidence: clamp01(Number.isFinite(Number(row.confidence)) ? Number(row.confidence) : 0.5),
+    reviewReasons: Array.isArray(row.reviewReasons)
+      ? row.reviewReasons.map((reason) => String(reason).trim()).filter(Boolean)
+      : [],
   };
 }
 

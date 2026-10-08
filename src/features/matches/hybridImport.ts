@@ -47,6 +47,15 @@ export async function hybridImportBoxScore(input: {
   forcedType?: MatchEventType | "auto";
   seasonYear?: number | null;
   referenceDate?: string | null;
+  eventContext?: {
+    name?: string | null;
+    opponent?: string | null;
+    startDate?: string | null;
+    endDate?: string | null;
+    venue?: string | null;
+    location?: string | null;
+    teams?: string | null;
+  };
   allowAi?: boolean;
   extractFn?: typeof extractOfficialMatchWithOpenAi;
 }): Promise<HybridImportResult> {
@@ -111,6 +120,7 @@ export async function hybridImportBoxScore(input: {
       eventType,
       text,
       rosterNames: input.roster.map(rosterPlayerDisplayName),
+      eventContext: input.eventContext,
     });
   } catch {
     ai = { error: MATCHES_PARSE_UNAVAILABLE };
@@ -279,6 +289,32 @@ function mergeDualAi(
   };
 }
 
+function scoreOutcomeWarning(input: {
+  winnerSide: import("./types").WinnerSide | null;
+  scorePerspective: "denison" | "opponent" | "unknown";
+  scoreSets: readonly import("./types").ScoreSet[];
+  status: import("./types").MatchResultStatus;
+}): string | null {
+  if (input.status !== "completed" || input.scoreSets.length === 0) return null;
+  if (input.scorePerspective === "unknown") {
+    return "Score perspective is uncertain; confirm that the score and Denison win/loss agree.";
+  }
+  let firstSideSets = 0;
+  let secondSideSets = 0;
+  for (const set of input.scoreSets) {
+    if (set.winnerGames > set.loserGames) firstSideSets += 1;
+    else if (set.loserGames > set.winnerGames) secondSideSets += 1;
+  }
+  if (firstSideSets === secondSideSets) return null;
+  const firstSideWon = firstSideSets > secondSideSets;
+  const expected = input.scorePerspective === "denison"
+    ? (firstSideWon ? "denison" : "opponent")
+    : (firstSideWon ? "opponent" : "denison");
+  return input.winnerSide && input.winnerSide !== "unknown" && input.winnerSide !== expected
+    ? "Winner conflicts with the parsed score; confirm the Denison win/loss before saving."
+    : null;
+}
+
 function mergeTournamentAi(
   base: TournamentImportDraft,
   ai: AiTournamentExtraction,
@@ -298,6 +334,17 @@ function mergeTournamentAi(
     if (denisonB && denisonB.resolution !== "resolved") {
       flags.push(`Denison partner needs review: ${denisonB.rawName}`);
     }
+    for (const reason of row.reviewReasons ?? []) flags.push(`AI review: ${reason}`);
+    if ((row.confidence ?? 0.5) < 0.8) {
+      flags.push(`AI confidence is ${Math.round((row.confidence ?? 0.5) * 100)}%; verify this result.`);
+    }
+    const outcomeWarning = scoreOutcomeWarning({
+      winnerSide: row.winnerSide,
+      scorePerspective: row.scorePerspective ?? "unknown",
+      scoreSets,
+      status: row.status,
+    });
+    if (outcomeWarning) flags.push(outcomeWarning);
     return {
       discipline: row.discipline,
       drawName: row.drawName,
