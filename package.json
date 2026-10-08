@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "WATCHPACK_POLLING=true WATCHPACK_POLLING_INTERVAL=1000 next dev --webpack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -46,6 +46,7 @@
     "wtn:login": "node --import tsx scripts/wtn-login.ts",
     "wtn:diagnostic": "node --import tsx scripts/wtn-profile-diagnostic.ts",
     "trn:login": "node --import tsx scripts/trn-login.ts",
+    "trn:login:local": "node --import tsx scripts/trn-login.ts --local",
     "test:utr-agent": "tsx --test src/features/recruiting/todayBeta/utrAgent.test.ts && npm --prefix local-agents/utr-results-agent test"
   },
   "dependencies": {

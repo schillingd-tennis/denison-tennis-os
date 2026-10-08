@@ -85,7 +85,7 @@ export const primaryNavItems: NavItem[] = [
     children: [
       { label: "Dashboard", href: RECRUITING_ROUTE, exact: true },
       { label: "Recruits", href: RECRUITING_LIST_ROUTE },
-      { label: "Elite Ratings", href: RECRUITING_RATINGS_ROUTE },
+      { label: "Weekly Changes", href: RECRUITING_RATINGS_ROUTE },
       { label: "Tournaments", href: RECRUITING_TOURNAMENTS_ROUTE },
       { label: "Agencies", href: RECRUITING_AGENCIES_ROUTE },
       { label: "Interactions", href: RECRUITING_INTERACTIONS_ROUTE },
@@ -149,6 +149,9 @@ export function getPageTitle(pathname: string): string {
   if (pathname === "/settings/developer" || pathname.startsWith("/settings/developer/")) {
     return "Developer";
   }
+  if (pathname === "/settings/automation" || pathname.startsWith("/settings/automation/")) {
+    return "Automation Health";
+  }
   if (pathname === RECRUITING_TOURNAMENTS_ROUTE || pathname.startsWith(`${RECRUITING_TOURNAMENTS_ROUTE}/`)) {
     return "Tournaments";
   }
@@ -162,7 +165,7 @@ export function getPageTitle(pathname: string): string {
     return "Agencies";
   }
   if (pathname === RECRUITING_RATINGS_ROUTE || pathname.startsWith(`${RECRUITING_RATINGS_ROUTE}/`)) {
-    return "Elite Recruit Ratings";
+    return "Weekly Changes";
   }
   if (pathname === RECRUITING_ROUTE) {
     return "Dashboard";

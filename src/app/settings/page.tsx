@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, TerminalSquare } from "lucide-react";
+import { Activity, ChevronRight, TerminalSquare } from "lucide-react";
 
 import PageHeader from "@/components/PageHeader";
 import AppleMessagesSettingsCard from "@/features/interactions/appleMessagesSync/AppleMessagesSettingsCard";
@@ -45,6 +45,14 @@ export default async function SettingsPage() {
         hostedSync={isManualWhatsAppSyncAvailable()}
         localMacStatus={isLocalWhatsAppMacStatusAvailable()}
       />
+
+      <section>
+        <h2 className="text-sm font-semibold tracking-wide text-text-secondary uppercase">Operations</h2>
+        <Link href="/settings/automation" className="mt-3 flex items-center justify-between gap-4 rounded-card border border-[var(--module-border)] bg-surface px-5 py-4 shadow-[0_8px_24px_rgba(17,24,39,0.04)] transition-colors hover:border-[var(--module-accent)]/40 hover:bg-[var(--module-tint)]/50">
+          <div className="flex items-start gap-3"><span className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-control bg-emerald-50 text-emerald-700"><Activity className="h-4 w-4" strokeWidth={2} /></span><div><p className="text-sm font-semibold text-text-primary">Automation Health</p><p className="mt-1 text-sm text-text-secondary">Worker heartbeats, scheduled jobs, progress, authentication, failures, and watchdog alerts.</p></div></div>
+          <ChevronRight className="h-4 w-4 shrink-0 text-text-secondary" strokeWidth={2} />
+        </Link>
+      </section>
 
       <section>
         <h2 className="text-sm font-semibold tracking-wide text-text-secondary uppercase">

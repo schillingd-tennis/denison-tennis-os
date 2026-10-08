@@ -1,9 +1,13 @@
 import { loadRecruitingDirectory } from "@/features/recruiting/directory";
-import { RECRUIT_PRIORITY_KEYS } from "@/features/recruiting/lookupSeed";
+import {
+  RECRUIT_OUTCOME_KEYS,
+  RECRUIT_PRIORITY_KEYS,
+} from "@/features/recruiting/lookupSeed";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 import type {
   RecruitRatingDashboardRow,
+  RecruitRatingJobStatus,
   RecruitRatingObservation,
   RecruitRatingPlayer,
   RecruitRatingProvider,
@@ -33,7 +37,8 @@ async function eliteRows() {
   const { rows } = await loadRecruitingDirectory();
   return rows.filter((row) =>
     row.profile.priority?.key === RECRUIT_PRIORITY_KEYS.elite &&
-    (row.profile.recruitClassYear ?? 0) >= FIRST_ACTIVE_RECRUIT_CLASS
+    (row.profile.recruitClassYear ?? 0) >= FIRST_ACTIVE_RECRUIT_CLASS &&
+    row.profile.outcome?.key !== RECRUIT_OUTCOME_KEYS.committedElsewhere
   );
 }
 
@@ -125,4 +130,30 @@ export async function requestRecruitRatingJob(provider: RecruitRatingProvider): 
   const db = await createSupabaseServerClient();
   const { error } = await db.rpc("request_recruit_rating_job", { p_provider: provider });
   if (error) throw new Error(`Failed to queue recruit ${provider.toUpperCase()} rating check: ${error.message}`);
+}
+
+export async function getLatestRecruitRatingJob(
+  provider: RecruitRatingProvider,
+): Promise<RecruitRatingJobStatus | null> {
+  const db = await createSupabaseServerClient();
+  const { data, error } = await db
+    .from("tennis_data_jobs")
+    .select("id, provider, status, requested_at, checked_count, total_count, error")
+    .eq("provider", provider)
+    .eq("kind", "rating")
+    .eq("scope", "recruits")
+    .order("requested_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(`Failed to load recruit ${provider.toUpperCase()} job status: ${error.message}`);
+  if (!data) return null;
+  return {
+    id: data.id,
+    provider: data.provider as RecruitRatingProvider,
+    status: data.status as RecruitRatingJobStatus["status"],
+    requestedAt: data.requested_at,
+    checkedCount: data.checked_count,
+    totalCount: data.total_count,
+    error: data.error,
+  };
 }

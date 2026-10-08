@@ -32,6 +32,7 @@ import { isAgentBusy } from "./browser.js";
 import { runRecruitChecks } from "./runCheck.js";
 import { runTeamUtrRatingChecks } from "./runTeamRatings.js";
 import { DENISON_UTR_TEAM_URL } from "./checkTeamPower6.js";
+import { recoverExpiredProviderJobs } from "./jobRecovery.js";
 
 const HELPER_HOME = join(homedir(), "Library/Application Support/DenisonTennisOS");
 const PROVIDER = "utr";
@@ -107,8 +108,6 @@ export function startBackgroundWorker(options?: { client?: SupabaseClient }): ()
       await updateWorker(
         {
           heartbeat_at: new Date().toISOString(),
-          auth_status: "valid",
-          last_error: null,
         },
       );
       if (jobId && leaseToken) await updateJob({ lease_until: utrWorkerLeaseUntil() });
@@ -136,6 +135,8 @@ export function startBackgroundWorker(options?: { client?: SupabaseClient }): ()
     ticking = true;
 
     try {
+      const recovered = await recoverExpiredProviderJobs(client, PROVIDER);
+      if (recovered) console.warn(`Released ${recovered} expired UTR job(s).`);
       await heartbeat();
       if (!lastHeartbeatOk) return;
 

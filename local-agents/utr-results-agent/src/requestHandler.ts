@@ -120,6 +120,21 @@ export function createAgentRequestHandler(secret: string) {
       return;
     }
 
+    if (req.method === "POST" && req.url === "/restart-service") {
+      if (!isAuthorizedBrowserRequest(req) && !isAuthorizedServerRequest(req, secret)) {
+        unauthorized(res, cors);
+        return;
+      }
+      if (process.env.UTR_BACKGROUND_ENABLED !== "true") {
+        jsonResponse(res, 409, { ok: false, error: "The installed background service is not active." }, cors ?? {});
+        return;
+      }
+      jsonResponse(res, 202, { ok: true, status: "restarting" }, cors ?? {});
+      // launchd KeepAlive starts a clean process after this service exits.
+      setTimeout(() => process.kill(process.pid, "SIGTERM"), 250);
+      return;
+    }
+
     jsonResponse(res, 404, { ok: false, error: "Not found" }, cors ?? {});
   };
 }

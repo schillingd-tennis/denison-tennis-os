@@ -1,4 +1,7 @@
 @import "tailwindcss";
+/* Browser profiles contain live Unix sockets and thousands of cache files.
+   They are runtime data, never UI source, and must not be scanned by Tailwind. */
+@source not "../../.local";
 
 /*
  * Denison Tennis OS — Design System Tokens (BP-004)

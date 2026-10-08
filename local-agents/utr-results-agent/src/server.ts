@@ -11,6 +11,7 @@ import {
 } from "./config.js";
 import { createAgentRequestHandler, jsonResponse } from "./requestHandler.js";
 import { HTTPS_CERT_MISSING_MESSAGE, loadAgentTlsCredentials } from "./tls.js";
+import { closeTrnContext } from "./trnBrowser.js";
 
 ensureLocalDirs();
 const secret = readAgentSecret();
@@ -43,11 +44,26 @@ server.listen(AGENT_PORT, AGENT_HOST, () => {
 
 // The explicit service flag keeps tests and ad-hoc diagnostic servers read-only.
 if (process.env.UTR_BACKGROUND_ENABLED === "true") {
-  void Promise.all([import("./background.js"), import("./wtnBackground.js"), import("./trnBackground.js")])
-    .then(([{ startBackgroundWorker }, { startWtnBackgroundWorker }, { startTrnBackgroundWorker }]) => {
-      startBackgroundWorker();
-      startWtnBackgroundWorker();
-      startTrnBackgroundWorker();
+  void Promise.all([import("./background.js"), import("./wtnBackground.js"), import("./trnBackground.js"), import("./automationWatchdog.js")])
+    .then(([{ startBackgroundWorker }, { startWtnBackgroundWorker }, { startTrnBackgroundWorker }, { startAutomationWatchdog }]) => {
+      const stopWorkers = [
+        startBackgroundWorker(),
+        startWtnBackgroundWorker(),
+        startTrnBackgroundWorker(),
+        startAutomationWatchdog(),
+      ];
+      let stopping = false;
+      const stop = async (signal: NodeJS.Signals) => {
+        if (stopping) return;
+        stopping = true;
+        console.log(`Stopping ratings service after ${signal}...`);
+        stopWorkers.forEach((stopWorker) => stopWorker());
+        await closeTrnContext();
+        process.exitCode = 0;
+        server.close();
+      };
+      process.once("SIGINT", () => void stop("SIGINT"));
+      process.once("SIGTERM", () => void stop("SIGTERM"));
     })
     .catch(() => {
       // Keep manual localhost checks available even if the hosted worker setup is incomplete.

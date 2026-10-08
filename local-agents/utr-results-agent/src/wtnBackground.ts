@@ -10,6 +10,7 @@ import { listEliteRecruitRatingPlayers, recordRecruitRatingObservation } from ".
 import { workerSupabaseScope } from "../../../src/lib/supabase/workerScope";
 import { UTR_WORKER_HEARTBEAT_INTERVAL_MS, UTR_WORKER_POLL_INTERVAL_MS, utrWorkerLeaseUntil } from "./backgroundSchedule.js";
 import { runTeamWtnRatingChecks } from "./runWtnRatings.js";
+import { recoverExpiredProviderJobs } from "./jobRecovery.js";
 
 const HELPER_HOME = join(homedir(), "Library/Application Support/DenisonTennisOS");
 const PROVIDER = "wtn";
@@ -55,7 +56,7 @@ export function startWtnBackgroundWorker(options?: { client?: SupabaseClient }):
   }
 
   async function heartbeat(): Promise<void> {
-    await updateWorker({ heartbeat_at: new Date().toISOString(), auth_status: "valid", last_error: null });
+    await updateWorker({ heartbeat_at: new Date().toISOString() });
     if (jobId && leaseToken) await updateJob({ lease_until: utrWorkerLeaseUntil() });
   }
 
@@ -63,6 +64,8 @@ export function startWtnBackgroundWorker(options?: { client?: SupabaseClient }):
     if (ticking) return;
     ticking = true;
     try {
+      const recovered = await recoverExpiredProviderJobs(client, PROVIDER);
+      if (recovered) console.warn(`Released ${recovered} expired WTN job(s).`);
       await heartbeat();
       const token = randomUUID();
       const { data, error } = await client.rpc("claim_tennis_data_job", {

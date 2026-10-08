@@ -52,8 +52,10 @@ private-imports/
 /apple-messages-report.csv
 
 # local UTR Results Agent (browser profile, secret, logs)
+.local/
 .local/utr-browser-profile/
 .local/wtn-browser-profile/
+.local/trn-browser-profile/
 .local/wtn-diagnostic.json
 .local/wtn-diagnostic.png
 .local/utr-agent-secret

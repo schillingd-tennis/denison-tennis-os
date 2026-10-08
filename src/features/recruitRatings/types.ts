@@ -1,5 +1,15 @@
 export type RecruitRatingProvider = "utr" | "wtn" | "trn";
 
+export type RecruitRatingJobStatus = {
+  id: string;
+  provider: RecruitRatingProvider;
+  status: "queued" | "running" | "complete" | "partial" | "auth_required" | "error";
+  requestedAt: string;
+  checkedCount: number;
+  totalCount: number;
+  error: string | null;
+};
+
 export type RecruitRatingPlayer = {
   personId: string;
   displayName: string;

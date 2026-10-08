@@ -27,6 +27,36 @@ import { getSupabaseEnv } from "@/lib/supabase/env";
 
 const PUBLIC_AUTH_ROUTES = ["/login"];
 
+function readJwtIssuedAt(accessToken: string | undefined): number | null {
+  if (!accessToken) return null;
+
+  try {
+    const payload = accessToken.split(".")[1];
+    if (!payload) return null;
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const decoded = JSON.parse(atob(normalized)) as { iat?: unknown };
+    return typeof decoded.iat === "number" ? decoded.iat : null;
+  } catch {
+    return null;
+  }
+}
+
+function clearSupabaseSession(
+  request: NextRequest,
+  response: NextResponse,
+): void {
+  for (const cookie of request.cookies.getAll()) {
+    if (cookie.name.startsWith("sb-") || cookie.name.includes("supabase")) {
+      response.cookies.set(cookie.name, "", {
+        expires: new Date(0),
+        maxAge: 0,
+        path: "/",
+        sameSite: "lax",
+      });
+    }
+  }
+}
+
 function isLoginRoute(pathname: string): boolean {
   return PUBLIC_AUTH_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`),
@@ -63,9 +93,36 @@ export async function proxy(request: NextRequest) {
 
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser();
 
+  // getUser() is validated by GoTrue, whose clock can disagree briefly with
+  // PostgREST after a Mac wakes. Inspect the JWT ourselves as well so a token
+  // that GoTrue accepts but PostgREST rejects cannot strand the whole app.
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const issuedAt = readJwtIssuedAt(session?.access_token);
+  const tokenIsFutureDated =
+    issuedAt !== null && issuedAt > Math.floor(Date.now() / 1000);
+
   const { pathname } = request.nextUrl;
+
+  // Docker Desktop can briefly drift from the macOS clock after sleep. Any
+  // session minted during that window is rejected as future-dated on every
+  // subsequent request. Recover once at the edge instead of allowing every
+  // database-backed module to fail independently.
+  if (
+    (authError && /JWT issued at future/i.test(authError.message)) ||
+    tokenIsFutureDated
+  ) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("next", isLoginRoute(pathname) ? "/" : pathname);
+    loginUrl.searchParams.set("reason", "session-clock-reset");
+    const resetResponse = NextResponse.redirect(loginUrl);
+    clearSupabaseSession(request, resetResponse);
+    return resetResponse;
+  }
 
   if (!user && !allowsUnauthenticated(pathname)) {
     const loginUrl = new URL("/login", request.url);

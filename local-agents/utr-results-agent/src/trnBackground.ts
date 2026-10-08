@@ -9,6 +9,7 @@ import { listEliteRecruitRatingPlayers, recordRecruitRatingObservation } from ".
 import { workerSupabaseScope } from "../../../src/lib/supabase/workerScope";
 import { UTR_WORKER_HEARTBEAT_INTERVAL_MS, UTR_WORKER_POLL_INTERVAL_MS, utrWorkerLeaseUntil } from "./backgroundSchedule.js";
 import { runTrnRatingChecks } from "./runTrnRatings.js";
+import { recoverExpiredProviderJobs } from "./jobRecovery.js";
 
 const HELPER_HOME = join(homedir(), "Library/Application Support/DenisonTennisOS");
 const PROVIDER = "trn";
@@ -42,13 +43,18 @@ export function startTrnBackgroundWorker(options?: { client?: SupabaseClient }):
     if (!data?.length) throw new Error("TRN job lease was lost.");
   };
   const heartbeat = async () => {
-    await updateWorker({ heartbeat_at: new Date().toISOString(), auth_status: "valid", last_error: null });
+    // A heartbeat proves the process is alive; it does not prove the saved
+    // browser session is authenticated. Preserve auth/error state until a
+    // completed check explicitly changes it.
+    await updateWorker({ heartbeat_at: new Date().toISOString() });
     if (jobId && leaseToken) await updateJob({ lease_until: utrWorkerLeaseUntil() });
   };
   const tick = async () => {
     if (ticking) return;
     ticking = true;
     try {
+      const recovered = await recoverExpiredProviderJobs(client, PROVIDER);
+      if (recovered) console.warn(`Released ${recovered} expired TRN job(s).`);
       await heartbeat();
       const token = randomUUID();
       const { data, error } = await client.rpc("claim_tennis_data_job", { p_provider: PROVIDER, p_worker_id: WORKER_ID, p_token: token });
@@ -78,9 +84,12 @@ export function startTrnBackgroundWorker(options?: { client?: SupabaseClient }):
           await updateWorker({ checked_count: saved + failed });
         }
         const finishedAt = new Date().toISOString();
-        const message = authRequired ? "TennisRecruiting.net login required. Run npm run trn:login on the Mac, then request a new check." : failed ? `${failed} TRN rating check(s) failed.` : null;
-        await updateJob({ status: authRequired ? "auth_required" : failed ? "partial" : "complete", finished_at: finishedAt, checked_count: saved + failed, error: message, lease_until: null, lease_token: null });
-        await updateWorker({ auth_status: authRequired ? "reauth_required" : "valid", last_error: message, last_finished_at: finishedAt, checked_count: saved + failed });
+        const systemicFailure = run.systemicFailure;
+        const message = authRequired
+          ? "TennisRecruiting.net login required. Open Automation Health and reconnect TRN, then request a new check."
+          : systemicFailure ?? (failed ? `${failed} TRN rating check(s) failed.` : null);
+        await updateJob({ status: authRequired ? "auth_required" : systemicFailure ? "error" : failed ? "partial" : "complete", finished_at: finishedAt, checked_count: saved + failed, error: message, lease_until: null, lease_token: null });
+        await updateWorker({ auth_status: authRequired ? "reauth_required" : systemicFailure ? "error" : "valid", last_error: message, last_finished_at: finishedAt, checked_count: saved + failed });
         console.log(`Weekly elite recruit TRN ratings finished: ${saved} saved, ${failed} failed.`);
       });
     } catch (error) {

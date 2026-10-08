@@ -9,7 +9,7 @@ export default async function RecruitRatingsPage() {
   try {
     rows = await listRecruitRatingDashboard();
   } catch (error) {
-    loadError = error instanceof Error ? error.message : "Could not load elite recruit ratings.";
+    loadError = error instanceof Error ? error.message : "Could not load weekly recruit rating changes.";
   }
   return <RecruitRatingsWorkspace rows={rows} loadError={loadError} />;
 }

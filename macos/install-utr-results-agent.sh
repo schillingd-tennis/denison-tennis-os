@@ -58,9 +58,20 @@ os.chmod(path, 0o644)
 PY
 
 plutil -lint "$PLIST" >/dev/null
-launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
-launchctl bootstrap "gui/$(id -u)" "$PLIST"
-launchctl kickstart -k "gui/$(id -u)/$LABEL"
+DOMAIN="gui/$(id -u)"
+launchctl bootout "$DOMAIN/$LABEL" 2>/dev/null || launchctl remove "$LABEL" 2>/dev/null || true
+for _ in {1..20}; do
+  if ! launchctl print "$DOMAIN/$LABEL" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 0.25
+done
+if launchctl print "$DOMAIN/$LABEL" >/dev/null 2>&1; then
+  echo "Unable to stop the existing $LABEL service. Log out and back in, then rerun this installer." >&2
+  exit 1
+fi
+launchctl bootstrap "$DOMAIN" "$PLIST"
+launchctl kickstart -k "$DOMAIN/$LABEL"
 
-echo "Installed $LABEL. It starts at login, restarts after exit, and runs the daily UTR worker."
+echo "Installed $LABEL. It starts at login, restarts after exit, and runs the UTR, WTN, TRN, and automation-watchdog workers."
 echo "Logs: $REPO_ROOT/.local/utr-agent-logs/service.stdout.log"
