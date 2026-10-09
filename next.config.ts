@@ -5,6 +5,15 @@ const nextConfig: NextConfig = {
   // /_next/* and HMR are not blocked by Next 16 cross-origin protection.
   // Ignored in `next build` / Vercel production.
   allowedDevOrigins: ["192.168.7.46", "127.0.0.1"],
+  webpack(config, { isServer }) {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        crypto: false,
+      };
+    }
+    return config;
+  },
 };
 
 export default nextConfig;

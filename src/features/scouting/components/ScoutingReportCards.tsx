@@ -15,7 +15,7 @@ import {
   scoutingTeamCanonicalLabel,
   scoutingTeamIdentityOrFallback,
 } from "../teamIdentity";
-import { submissionStatusLabel } from "../promotion";
+import { submissionStatusLabel } from "../submissionLifecycle";
 import type { DirectReportSource } from "../csvImport";
 import type {
   ScoutingDirectReport,
@@ -59,6 +59,35 @@ function FullBody({ text, empty = "No notes." }: { text: string; empty?: string 
   const trimmed = text.trim();
   if (!trimmed) return <p className="text-sm text-text-secondary">{empty}</p>;
   return <pre className="whitespace-pre-wrap font-sans text-sm text-text-primary">{trimmed}</pre>;
+}
+
+function doublesPlayerLabel(
+  details: NonNullable<ScoutingDirectReport["doublesDetails"]>,
+  value: string,
+) {
+  if (value === "opponent_1") return details.opponentOneName || "Opponent 1";
+  if (value === "opponent_2") return details.opponentTwoName || "Opponent 2";
+  return EMPTY_VALUE;
+}
+
+function DoublesDetails({ details }: { details: NonNullable<ScoutingDirectReport["doublesDetails"]> }) {
+  return (
+    <WorkspaceSection title="Doubles Alignment" tone="module">
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <DrawerField label="Opponent 1">
+          <p className="text-sm text-text-primary">{details.opponentOneName || EMPTY_VALUE}</p>
+          {details.opponentOnePosition ? <p className="text-xs text-text-secondary">{details.opponentOnePosition}</p> : null}
+        </DrawerField>
+        <DrawerField label="Opponent 2">
+          <p className="text-sm text-text-primary">{details.opponentTwoName || EMPTY_VALUE}</p>
+          {details.opponentTwoPosition ? <p className="text-xs text-text-secondary">{details.opponentTwoPosition}</p> : null}
+        </DrawerField>
+        <DrawerField label="Deuce side"><p className="text-sm text-text-primary">{doublesPlayerLabel(details, details.deuceSide)}</p></DrawerField>
+        <DrawerField label="Ad side"><p className="text-sm text-text-primary">{doublesPlayerLabel(details, details.adSide)}</p></DrawerField>
+        <DrawerField label="Serves first"><p className="text-sm text-text-primary">{doublesPlayerLabel(details, details.servesFirst)}</p></DrawerField>
+      </div>
+    </WorkspaceSection>
+  );
 }
 
 export function ScoutingDirectReportPreviewCard({
@@ -178,6 +207,7 @@ export function ScoutingDirectReportCard({
 
       <div className="space-y-4 px-5 py-5 max-md:px-4">
         <WorkspaceStack>
+          {report.isDoubles && report.doublesDetails ? <DoublesDetails details={report.doublesDetails} /> : null}
           <WorkspaceSection title="Strengths / Weaknesses" tone="operations">
             <div className="mt-3">
               <FullBody text={report.strengthsWeaknesses} empty="No strengths/weaknesses recorded." />
@@ -472,6 +502,7 @@ export function ScoutingSubmissionCard({
         {statusControl}
       </header>
       <div className="space-y-4 px-5 py-5 max-md:px-4">
+        {submission.isDoubles && submission.doublesDetails ? <DoublesDetails details={submission.doublesDetails} /> : null}
         <WorkspaceSection title="Strengths / Weaknesses" tone="operations">
             <div className="mt-3">
             <FullBody text={submission.strengthsWeaknesses} />

@@ -1,5 +1,5 @@
 import { playerMatchesLinkedReportQuery } from "./playerLifecycle";
-import { isUnresolvedSubmissionForMatchReports } from "./promotion";
+import { isUnresolvedSubmissionForMatchReports } from "./submissionLifecycle";
 import type {
   MatchReportSortKey,
   MatchReportsListItem,

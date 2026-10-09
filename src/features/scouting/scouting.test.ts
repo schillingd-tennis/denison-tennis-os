@@ -626,8 +626,28 @@ test("form validation and drawer field label weight contract", () => {
   assert.equal(parseDoubles("true"), true);
 
   const publicForm = new FormData();
+  publicForm.set("reportType", "singles");
+  publicForm.set("opponentDisplayName", "Test Player");
   publicForm.set("strengthsWeaknesses", "notes");
   assert.equal(readPublicScoutingFormData(publicForm).ok, true);
+
+  const doublesForm = new FormData();
+  doublesForm.set("reportType", "doubles");
+  doublesForm.set("opponentDisplayName", "Player One");
+  doublesForm.set("opponentTwoDisplayName", "Player Two");
+  doublesForm.set("deuceSide", "opponent_1");
+  doublesForm.set("adSide", "opponent_2");
+  doublesForm.set("servesFirst", "opponent_1");
+  doublesForm.set("strengthsWeaknesses", "Switches frequently");
+  const parsedDoubles = readPublicScoutingFormData(doublesForm);
+  assert.equal(parsedDoubles.ok, true);
+  if (parsedDoubles.ok) {
+    assert.equal(parsedDoubles.payload.reportType, "doubles");
+    assert.equal(parsedDoubles.payload.doublesDetails?.opponentTwoName, "Player Two");
+  }
+
+  doublesForm.set("adSide", "opponent_1");
+  assert.equal(readPublicScoutingFormData(doublesForm).ok, false);
 
   const workspace = readFileSync(
     fileURLToPath(new URL("./components/ScoutingWorkspace.tsx", import.meta.url)),

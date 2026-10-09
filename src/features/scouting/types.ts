@@ -14,6 +14,16 @@ export type ImportStatus =
 
 export type ReportKind = "manual" | "ai_generated";
 export type ReportReviewStatus = "draft" | "reviewed";
+export type ScoutingReportType = "singles" | "doubles";
+export type ScoutingDoublesDetails = {
+  opponentOneName: string;
+  opponentOnePosition: string;
+  opponentTwoName: string;
+  opponentTwoPosition: string;
+  deuceSide: "opponent_1" | "opponent_2" | "";
+  adSide: "opponent_1" | "opponent_2" | "";
+  servesFirst: "opponent_1" | "opponent_2" | "";
+};
 
 export type FormSubmissionStatus =
   | "new"
@@ -72,6 +82,8 @@ export type ScoutingDirectReport = {
   /** Canonical author identity when known; preferred over reportBy for contributor counts. */
   reportAuthorUserId: string | null;
   isDoubles: boolean;
+  reportType: ScoutingReportType;
+  doublesDetails: ScoutingDoublesDetails | null;
   importStatus: ImportStatus;
   attachmentRefs: string[];
   /** Set when this report was promoted from a form submission. */
@@ -130,6 +142,8 @@ export type ScoutingFormSubmission = {
   scoutingReport: string;
   reportBy: string;
   isDoubles: boolean;
+  reportType: ScoutingReportType;
+  doublesDetails: ScoutingDoublesDetails | null;
   createdAt: string;
   reviewedAt: string | null;
   resolvedTeamId: string | null;

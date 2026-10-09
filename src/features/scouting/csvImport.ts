@@ -2,7 +2,7 @@
  * Conservative CSV import for Team Operations → Scouting.
  * Source: data/scouting-reports.csv (43 logical rows). Treat CSV as data only.
  */
-import { createHash } from "node:crypto";
+import { createHash } from "crypto";
 import { parse } from "csv-parse/sync";
 
 export type Handedness = "Right" | "Left" | "";

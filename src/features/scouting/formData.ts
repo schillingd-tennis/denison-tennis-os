@@ -1,5 +1,5 @@
 import type { Handedness } from "./csvImport";
-import type { FormSubmissionStatus, ImportStatus } from "./types";
+import type { FormSubmissionStatus, ImportStatus, ScoutingDoublesDetails, ScoutingReportType } from "./types";
 
 export function optionalText(value: FormDataEntryValue | null) {
   const text = String(value ?? "").trim();
@@ -85,31 +85,69 @@ export type PublicFormParse =
         scoutingReport: string | null;
         reportBy: string | null;
         isDoubles: boolean;
+        reportType: ScoutingReportType;
+        doublesDetails: ScoutingDoublesDetails | null;
       };
     }
   | { ok: false; message: string };
 
 export function readPublicScoutingFormData(formData: FormData): PublicFormParse {
+  const reportType = String(formData.get("reportType") ?? "").trim() as ScoutingReportType;
+  if (reportType !== "singles" && reportType !== "doubles") {
+    return { ok: false, message: "Choose singles or doubles before continuing." };
+  }
   const opponentDisplayName = String(formData.get("opponentDisplayName") ?? "").trim();
   const strengthsWeaknesses = optionalText(formData.get("strengthsWeaknesses"));
   const scoutingReport = optionalText(formData.get("scoutingReport"));
-  if (!opponentDisplayName && !strengthsWeaknesses && !scoutingReport) {
-    return { ok: false, message: "Add an opponent name or report notes before submitting." };
+  if (!opponentDisplayName) {
+    return { ok: false, message: "Add the opponent's name before submitting." };
   }
   const handedness = parseHandedness(formData.get("handedness"));
   if (handedness === undefined) return { ok: false, message: "Handedness must be Right, Left, or blank." };
 
+  let doublesDetails: ScoutingDoublesDetails | null = null;
+  if (reportType === "doubles") {
+    const opponentTwoName = String(formData.get("opponentTwoDisplayName") ?? "").trim();
+    const deuceSide = String(formData.get("deuceSide") ?? "");
+    const adSide = String(formData.get("adSide") ?? "");
+    const servesFirst = String(formData.get("servesFirst") ?? "");
+    if (!opponentTwoName) return { ok: false, message: "Add both doubles opponents before submitting." };
+    if (
+      (deuceSide !== "opponent_1" && deuceSide !== "opponent_2") ||
+      (adSide !== "opponent_1" && adSide !== "opponent_2") ||
+      deuceSide === adSide
+    ) {
+      return { ok: false, message: "Choose a different player for the deuce and ad sides." };
+    }
+    if (servesFirst !== "opponent_1" && servesFirst !== "opponent_2") {
+      return { ok: false, message: "Choose who serves first." };
+    }
+    doublesDetails = {
+      opponentOneName: opponentDisplayName,
+      opponentOnePosition: String(formData.get("opponentOnePosition") ?? "").trim(),
+      opponentTwoName,
+      opponentTwoPosition: String(formData.get("opponentTwoPosition") ?? "").trim(),
+      deuceSide,
+      adSide,
+      servesFirst,
+    };
+  }
+
   return {
     ok: true,
     payload: {
-      opponentDisplayName,
+      opponentDisplayName: doublesDetails
+        ? `${doublesDetails.opponentOneName} / ${doublesDetails.opponentTwoName}`
+        : opponentDisplayName,
       teamDisplayName: String(formData.get("teamDisplayName") ?? "").trim(),
       matchDate: optionalText(formData.get("matchDate")),
       handedness,
       strengthsWeaknesses,
       scoutingReport,
       reportBy: optionalText(formData.get("reportBy")),
-      isDoubles: parseDoubles(formData.get("isDoubles")),
+      isDoubles: reportType === "doubles",
+      reportType,
+      doublesDetails,
     },
   };
 }

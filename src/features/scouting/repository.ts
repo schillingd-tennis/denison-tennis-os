@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "crypto";
 import { createClient } from "@supabase/supabase-js";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -866,12 +866,14 @@ export async function submitPublicForm(
     scoutingReport: string | null;
     reportBy: string | null;
     isDoubles: boolean;
+    reportType: "singles" | "doubles";
+    doublesDetails: import("./types").ScoutingDoublesDetails | null;
   },
   clientFingerprint?: string,
 ): Promise<{ id: string } | { error: string }> {
   const client = createAnonClient();
   const tokenHash = hashScoutingFormToken(rawToken);
-  const { data, error } = await client.rpc("scouting_submit_form_response", {
+  const { data, error } = await client.rpc("scouting_submit_form_response_v2", {
     p_token_hash: tokenHash,
     p_opponent_display_name: payload.opponentDisplayName,
     p_team_display_name: payload.teamDisplayName,
@@ -882,6 +884,8 @@ export async function submitPublicForm(
     p_report_by: payload.reportBy,
     p_is_doubles: payload.isDoubles,
     p_client_fingerprint: clientFingerprint ?? null,
+    p_report_type: payload.reportType,
+    p_doubles_details: payload.doublesDetails ?? {},
   });
   if (error) {
     const message = error.message || "Submit failed.";

@@ -5,6 +5,7 @@ import type {
   ReportKind,
   ReportReviewStatus,
   ScoutingDirectReport,
+  ScoutingDoublesDetails,
   ScoutingFormLink,
   ScoutingFormSubmission,
   ScoutingOpponentPlayer,
@@ -47,6 +48,8 @@ export type DirectReportRow = {
   report_by: string | null;
   report_author_user_id?: string | null;
   is_doubles: boolean;
+  report_type?: string | null;
+  doubles_details?: unknown;
   import_status: string;
   attachment_refs: unknown;
   form_submission_id?: string | null;
@@ -102,6 +105,8 @@ export type FormSubmissionRow = {
   scouting_report: string | null;
   report_by: string | null;
   is_doubles: boolean;
+  report_type?: string | null;
+  doubles_details?: unknown;
   created_at: string;
   reviewed_at: string | null;
   resolved_team_id?: string | null;
@@ -114,6 +119,22 @@ export type FormSubmissionRow = {
 function attachmentRefs(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.filter((item): item is string => typeof item === "string");
+}
+
+function doublesDetails(value: unknown): ScoutingDoublesDetails | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const row = value as Record<string, unknown>;
+  const side = (entry: unknown) =>
+    entry === "opponent_1" || entry === "opponent_2" ? entry : "";
+  return {
+    opponentOneName: typeof row.opponentOneName === "string" ? row.opponentOneName : "",
+    opponentOnePosition: typeof row.opponentOnePosition === "string" ? row.opponentOnePosition : "",
+    opponentTwoName: typeof row.opponentTwoName === "string" ? row.opponentTwoName : "",
+    opponentTwoPosition: typeof row.opponentTwoPosition === "string" ? row.opponentTwoPosition : "",
+    deuceSide: side(row.deuceSide),
+    adSide: side(row.adSide),
+    servesFirst: side(row.servesFirst),
+  };
 }
 
 export function mapTeam(
@@ -167,6 +188,8 @@ export function mapDirectReport(row: DirectReportRow): ScoutingDirectReport {
     reportBy: row.report_by ?? "",
     reportAuthorUserId: row.report_author_user_id ?? null,
     isDoubles: Boolean(row.is_doubles),
+    reportType: row.report_type === "doubles" || row.is_doubles ? "doubles" : "singles",
+    doublesDetails: doublesDetails(row.doubles_details),
     importStatus: row.import_status as ImportStatus,
     attachmentRefs: attachmentRefs(row.attachment_refs),
     formSubmissionId: row.form_submission_id ?? null,
@@ -232,6 +255,8 @@ export function mapFormSubmission(row: FormSubmissionRow): ScoutingFormSubmissio
     scoutingReport: row.scouting_report ?? "",
     reportBy: row.report_by ?? "",
     isDoubles: Boolean(row.is_doubles),
+    reportType: row.report_type === "doubles" || row.is_doubles ? "doubles" : "singles",
+    doublesDetails: doublesDetails(row.doubles_details),
     createdAt: row.created_at,
     reviewedAt: row.reviewed_at,
     resolvedTeamId: row.resolved_team_id ?? null,

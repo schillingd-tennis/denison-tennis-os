@@ -41,10 +41,7 @@ import {
   isOpponentArchived,
   selectNextActivePlayerId,
 } from "../playerLifecycle";
-import {
-  countEligibleUnpromotedSubmissions,
-  submissionStatusLabel,
-} from "../promotion";
+import { countEligibleUnpromotedSubmissions, submissionStatusLabel } from "../submissionLifecycle";
 import {
   resolveScoutingTeamIdentity,
   scoutingTeamCanonicalLabel,
