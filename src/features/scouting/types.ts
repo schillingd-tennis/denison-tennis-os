@@ -126,7 +126,8 @@ export type ScoutingFormLink = {
   expiresAt: string | null;
   revokedAt: string | null;
   createdAt: string;
-  /** Present only immediately after create — never stored. */
+  isPrimary: boolean;
+  /** Stored only for the single permanent player form so its URL remains retrievable. */
   rawToken?: string;
 };
 

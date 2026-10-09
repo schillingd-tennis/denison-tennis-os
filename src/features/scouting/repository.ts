@@ -184,13 +184,35 @@ export async function listFormLinks(): Promise<ScoutingFormLink[]> {
   const client = await createSupabaseServerClient();
   const { data, error } = await client
     .from("scouting_form_links")
-    .select("id, label, team_id, opponent_player_id, expires_at, revoked_at, created_at")
+    .select("id, label, team_id, opponent_player_id, expires_at, revoked_at, created_at, is_primary, public_token")
     .order("created_at", { ascending: false });
   if (error) {
     if (missingTable(error.message)) return [];
     throw new Error(`Failed to load form links: ${error.message}`);
   }
   return ((data as FormLinkRow[] | null) ?? []).map((row) => mapFormLink(row));
+}
+
+export async function resetPrimaryFormLink(): Promise<ScoutingFormLink> {
+  const client = await createSupabaseServerClient();
+  const { rawToken, tokenHash } = mintScoutingFormToken();
+  const { data, error } = await client
+    .from("scouting_form_links")
+    .update({
+      token_hash: tokenHash,
+      public_token: rawToken,
+      label: "Denison Player Scouting Form",
+      team_id: null,
+      opponent_player_id: null,
+      expires_at: null,
+      revoked_at: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("is_primary", true)
+    .select("id, label, team_id, opponent_player_id, expires_at, revoked_at, created_at, is_primary, public_token")
+    .single();
+  if (error) throw new Error(error.message);
+  return mapFormLink(data as FormLinkRow);
 }
 
 export async function getPlayerWorkspace(playerId: string): Promise<{

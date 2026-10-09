@@ -91,6 +91,8 @@ export type FormLinkRow = {
   expires_at: string | null;
   revoked_at: string | null;
   created_at: string;
+  is_primary?: boolean | null;
+  public_token?: string | null;
 };
 
 export type FormSubmissionRow = {
@@ -238,7 +240,8 @@ export function mapFormLink(row: FormLinkRow, rawToken?: string): ScoutingFormLi
     expiresAt: row.expires_at,
     revokedAt: row.revoked_at,
     createdAt: row.created_at,
-    rawToken,
+    isPrimary: Boolean(row.is_primary),
+    rawToken: rawToken ?? row.public_token ?? undefined,
   };
 }
 

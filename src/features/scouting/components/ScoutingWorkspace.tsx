@@ -1,9 +1,10 @@
 "use client";
 
-import { ArrowLeft, Brain, Link2, Plus, RefreshCw } from "lucide-react";
+import { ArrowLeft, Brain, Copy, ExternalLink, Link2, Plus, QrCode, RefreshCw, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
+import QRCode from "qrcode";
 
 import EmptyState from "@/components/EmptyState";
 import ModulePageShell from "@/components/ModulePageShell";
@@ -15,14 +16,13 @@ import { formatDate } from "@/lib/formatting";
 import { TEAM_OPERATIONS_ROUTE, TEAM_OPERATIONS_SCOUTING_ROUTE } from "@/lib/module-routes";
 
 import {
-  createFormLinkAction,
   loadPlayerWorkspaceAction,
   loadTeamWorkspaceAction,
   regeneratePlayerAiAction,
   regenerateTeamAiAction,
   reprocessUnpromotedSubmissionsAction,
   reviewAndPublishFormSubmissionAction,
-  revokeFormLinkAction,
+  resetPrimaryFormLinkAction,
   saveDirectReportAction,
   saveManualTeamReportAction,
   updateSubmissionStatusAction,
@@ -576,11 +576,11 @@ export default function ScoutingWorkspace({
   function openFormLinks() {
     openDrawer({
       id: "scouting-form-links",
-      title: "Shareable Form Links",
-      subtitle: "Tokenized post-match form",
+      title: "Player Scouting Form",
+      subtitle: "One permanent link for every match",
       hideFooter: true,
       content: (
-        <FormLinksPanel teams={teams} players={activePlayers} links={formLinks} onClose={closeDrawer} />
+        <FormLinksPanel links={formLinks} onClose={closeDrawer} />
       ),
     });
   }
@@ -618,7 +618,7 @@ export default function ScoutingWorkspace({
               className="inline-flex h-10 items-center justify-center gap-2 rounded-control border border-border bg-surface px-4 text-sm font-semibold text-text-primary shadow-sm"
             >
               <Link2 className="h-4 w-4" />
-              Form Links
+              Player Form
             </button>
             <button
               type="button"
@@ -1988,7 +1988,7 @@ function SubmissionsCardGrid({
       <div className="p-5">
         <EmptyState
           title="No form submissions"
-          description="Create a shareable form link to collect post-match notes."
+          description="Share the permanent player form to collect post-match notes."
         />
       </div>
     );
@@ -2058,7 +2058,7 @@ function SubmissionsCardGrid({
       ) : (
         <EmptyState
           title="No form submissions"
-          description="Create a shareable form link to collect post-match notes."
+          description="Share the permanent player form to collect post-match notes."
         />
       )}
     </div>
@@ -2613,101 +2613,69 @@ function DirectReportForm({
 }
 
 function FormLinksPanel({
-  teams,
-  players,
   links,
   onClose,
 }: {
-  teams: ScoutingTeam[];
-  players: ScoutingOpponentPlayer[];
   links: ScoutingFormLink[];
   onClose: () => void;
 }) {
-  const [createdUrl, setCreatedUrl] = useState<string>();
+  const primaryLink = links.find((link) => link.isPrimary);
+  const [formUrl, setFormUrl] = useState(() =>
+    primaryLink?.rawToken && typeof window !== "undefined"
+      ? `${window.location.origin}/scouting-form/${encodeURIComponent(primaryLink.rawToken)}`
+      : "",
+  );
   const [message, setMessage] = useState<string>();
   const [pending, startTransition] = useTransition();
 
+  async function copyLink() {
+    await navigator.clipboard.writeText(formUrl);
+    setMessage("Permanent player scouting link copied.");
+  }
+
+  async function downloadQrCode() {
+    const dataUrl = await QRCode.toDataURL(formUrl, {
+      width: 720,
+      margin: 3,
+      color: { dark: "#111827", light: "#ffffff" },
+    });
+    const anchor = document.createElement("a");
+    anchor.href = dataUrl;
+    anchor.download = "denison-player-scouting-form-qr.png";
+    anchor.click();
+    setMessage("QR code downloaded.");
+  }
+
   return (
-    <div className="space-y-4 p-5">
-      <form
-        className="space-y-3"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const formData = new FormData(event.currentTarget);
-          startTransition(async () => {
-            const result = await createFormLinkAction(formData);
-            if (result.success) {
-              const origin = typeof window !== "undefined" ? window.location.origin : "";
-              setCreatedUrl(result.urlPath ? `${origin}${result.urlPath}` : undefined);
-              setMessage("Link created. Copy now — the raw token is shown only once.");
-            } else setMessage(result.message);
-          });
-        }}
-      >
-        <DrawerField label="Label">
-          <input
-            name="label"
-            defaultValue="Post-match scouting"
-            className="h-10 w-full rounded-control border border-border px-3 text-sm"
-          />
-        </DrawerField>
-        <DrawerField label="Preselect team">
-          <select name="teamId" className="h-10 w-full rounded-control border border-border px-3 text-sm">
-            <option value="">None</option>
-            {teams.map((team) => (
-              <option key={team.id} value={team.id}>
-                {scoutingTeamCanonicalLabel(team.displayName)}
-              </option>
-            ))}
-          </select>
-        </DrawerField>
-        <DrawerField label="Preselect player">
-          <select name="opponentPlayerId" className="h-10 w-full rounded-control border border-border px-3 text-sm">
-            <option value="">None</option>
-            {players.map((player) => (
-              <option key={player.id} value={player.id}>
-                {player.displayName} ({scoutingTeamCanonicalLabel(player.teamDisplayName)})
-              </option>
-            ))}
-          </select>
-        </DrawerField>
-        <DrawerField label="Expires at">
-          <input name="expiresAt" type="datetime-local" className="h-10 w-full rounded-control border border-border px-3 text-sm" />
-        </DrawerField>
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-control bg-[var(--module-accent)] px-4 py-2 text-sm font-semibold text-white"
-        >
-          Create link
-        </button>
-      </form>
-      {createdUrl ? (
-        <p className="break-all rounded-control border border-green-200 bg-green-50 p-3 text-sm">{createdUrl}</p>
-      ) : null}
-      <ul className="space-y-2 text-sm">
-        {links.map((link) => (
-          <li key={link.id} className="flex items-center justify-between gap-2 rounded-control border border-border px-3 py-2">
-            <span>
-              {link.label || "Untitled"} {link.revokedAt ? "(revoked)" : ""}
-            </span>
-            {!link.revokedAt ? (
-              <button
-                type="button"
-                className="text-xs font-semibold text-danger"
-                onClick={() =>
-                  startTransition(async () => {
-                    await revokeFormLinkAction(link.id);
-                    setMessage("Link revoked.");
-                  })
-                }
-              >
-                Revoke
-              </button>
-            ) : null}
-          </li>
-        ))}
-      </ul>
+    <div className="space-y-5 p-5">
+      <div className="rounded-2xl border border-red-100 bg-gradient-to-br from-red-50 via-white to-slate-50 p-5 shadow-sm">
+        <div className="flex items-start gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--module-accent)] text-white"><Link2 className="h-5 w-5" /></span>
+          <div>
+            <h3 className="font-bold text-text-primary">Denison Player Scouting Form</h3>
+            <p className="mt-1 text-sm leading-6 text-text-secondary">One permanent link for every match. Players choose Singles or Doubles, enter the opponent team, and the report routes to the appropriate Adaptive Workspace.</p>
+          </div>
+        </div>
+        <div className="mt-4 rounded-control border border-border bg-white p-3">
+          <p className="break-all text-sm font-medium text-text-primary">{formUrl || "Preparing permanent link…"}</p>
+          <p className="mt-1 text-xs font-semibold text-emerald-700">Active · Does not expire</p>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <button type="button" disabled={!formUrl} onClick={copyLink} className="flex items-center justify-center gap-2 rounded-control bg-[var(--module-accent)] px-3 py-2.5 text-sm font-semibold text-white disabled:opacity-50"><Copy className="h-4 w-4" /> Copy link</button>
+          <button type="button" disabled={!formUrl} onClick={() => window.open(formUrl, "_blank", "noopener,noreferrer")} className="flex items-center justify-center gap-2 rounded-control border border-border bg-white px-3 py-2.5 text-sm font-semibold disabled:opacity-50"><ExternalLink className="h-4 w-4" /> Open form</button>
+          <button type="button" disabled={!formUrl} onClick={downloadQrCode} className="flex items-center justify-center gap-2 rounded-control border border-border bg-white px-3 py-2.5 text-sm font-semibold disabled:opacity-50"><QrCode className="h-4 w-4" /> Download QR</button>
+          <button type="button" disabled={pending || !primaryLink} onClick={() => {
+            if (!window.confirm("Reset the permanent link? The current link and QR code will stop working.")) return;
+            startTransition(async () => {
+              const result = await resetPrimaryFormLinkAction();
+              if (!result.success) return setMessage(result.message);
+              if (result.urlPath) setFormUrl(`${window.location.origin}${result.urlPath}`);
+              setMessage("Permanent link reset. Share the new link with players.");
+            });
+          }} className="flex items-center justify-center gap-2 rounded-control border border-red-200 bg-white px-3 py-2.5 text-sm font-semibold text-danger disabled:opacity-50"><RotateCcw className="h-4 w-4" /> Reset link</button>
+        </div>
+      </div>
+      <div className="rounded-control border border-blue-100 bg-blue-50 p-3 text-sm leading-6 text-blue-900"><strong>No weekly setup:</strong> use this same link for every match and season. Only reset it if the link is being misused.</div>
       {message ? <p className="text-sm text-text-secondary">{message}</p> : null}
       <button type="button" onClick={onClose} className="text-sm font-semibold text-[var(--module-accent-text)]">
         Close

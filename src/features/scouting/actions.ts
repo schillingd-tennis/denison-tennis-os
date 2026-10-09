@@ -16,6 +16,7 @@ import {
   promoteFormSubmission,
   regeneratePlayerAiReport,
   regenerateTeamAiReport,
+  resetPrimaryFormLink,
   restoreOpponentPlayer,
   reviewAndPublishFormSubmission,
   revokeFormLink,
@@ -215,6 +216,24 @@ export async function revokeFormLinkAction(id: string) {
     return {
       success: false,
       message: error instanceof Error ? error.message : "Could not revoke link.",
+    } as const;
+  }
+}
+
+export async function resetPrimaryFormLinkAction() {
+  const auth = await requireScoutingWriteUser();
+  if (!auth.ok) return { success: false, message: auth.error } as const;
+  try {
+    const link = await resetPrimaryFormLink();
+    revalidateScouting();
+    return {
+      success: true,
+      urlPath: link.rawToken ? scoutingFormPublicPath(link.rawToken) : null,
+    } as const;
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Could not reset the player form link.",
     } as const;
   }
 }
