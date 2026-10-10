@@ -96,6 +96,12 @@ const SCOUTING_SELECTION_KEY = "scouting-directory-selection-v1";
 
 type MobilePane = "teams" | "players" | "report";
 
+type DoublesRosterGroup = {
+  key: string;
+  displayName: string;
+  reports: ScoutingDirectReport[];
+};
+
 type SavedDirectorySelection = {
   teamId: string;
   playerId: string;
@@ -154,6 +160,7 @@ export default function ScoutingWorkspace({
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [selectedTeamId, setSelectedTeamId] = useState("");
   const [selectedPlayerId, setSelectedPlayerId] = useState("");
+  const [selectedDoublesKey, setSelectedDoublesKey] = useState("");
   const [mobilePane, setMobilePane] = useState<MobilePane>("teams");
   const [playerLifecycle, setPlayerLifecycle] = useState<OpponentPlayerLifecycleView>("active");
   const [surface, setSurface] = useState<CardSurface>({ kind: "directory" });
@@ -250,10 +257,18 @@ export default function ScoutingWorkspace({
     [reports, submissions],
   );
 
-  /** Left nav: teams that have players in the current Active/Archived pool. */
+  /** Left nav: teams that have players or active doubles combinations in the current pool. */
   const navTeams = useMemo(() => {
-    return teamsAlpha.filter((team) => lifecyclePool.some((player) => player.teamId === team.id));
-  }, [lifecyclePool, teamsAlpha]);
+    return teamsAlpha.filter(
+      (team) =>
+        lifecyclePool.some((player) => player.teamId === team.id) ||
+        (playerLifecycle === "active" &&
+          reports.some(
+            (report) =>
+              report.teamId === team.id && report.opponentPlayerId == null && report.isDoubles,
+          )),
+    );
+  }, [lifecyclePool, playerLifecycle, reports, teamsAlpha]);
 
   /** One-shot directory selection hydrate (adjust state during render — not an effect). */
   if (!selectionHydrated && !loadError && (teams.length > 0 || players.length > 0)) {
@@ -319,10 +334,26 @@ export default function ScoutingWorkspace({
     return focusTeamId ? playerRows.filter((player) => player.teamId === focusTeamId) : playerRows;
   }, [focusTeamId, playerRows]);
 
+  const doublesRosterGroups = useMemo(() => {
+    if (playerLifecycle !== "active") return [];
+    const grouped = new Map<string, DoublesRosterGroup>();
+    for (const report of reports) {
+      if (report.teamId !== focusTeamId || report.opponentPlayerId != null || !report.isDoubles) continue;
+      const key = report.opponentDisplayName.trim().toLocaleLowerCase() || report.id;
+      const existing = grouped.get(key);
+      if (existing) existing.reports.push(report);
+      else grouped.set(key, { key, displayName: report.opponentDisplayName || "Unnamed doubles team", reports: [report] });
+    }
+    return [...grouped.values()].sort((a, b) => a.displayName.localeCompare(b.displayName));
+  }, [focusTeamId, playerLifecycle, reports]);
+
   const effectivePlayerId = rosterPlayers.some((player) => player.id === selectedPlayerId)
     ? selectedPlayerId
     : (rosterPlayers[0]?.id ?? "");
-  const selectedPlayer = rosterPlayers.find((player) => player.id === effectivePlayerId) ?? null;
+  const selectedDoublesGroup = doublesRosterGroups.find((group) => group.key === selectedDoublesKey) ?? null;
+  const selectedPlayer = selectedDoublesGroup
+    ? null
+    : rosterPlayers.find((player) => player.id === effectivePlayerId) ?? null;
   const selectedTeam = teams.find((team) => team.id === focusTeamId) ?? null;
 
   useEffect(() => {
@@ -465,13 +496,22 @@ export default function ScoutingWorkspace({
       .filter((player) => player.teamId === teamId)
       .sort((a, b) => a.displayName.localeCompare(b.displayName))[0];
     setSelectedPlayerId(first?.id ?? "");
+    setSelectedDoublesKey("");
   }
 
   /** Middle-column / roster select — stay on main page; do not open Player Card. */
   function selectPlayer(player: ScoutingOpponentPlayer) {
+    setSelectedDoublesKey("");
     setSelectedPlayerId(player.id);
     setSelectedTeamId(player.teamId);
     setFilters((current) => ({ ...current, teamId: player.teamId }));
+    setMobilePane("report");
+    setSurface({ kind: "directory" });
+  }
+
+  function selectDoublesTeam(group: DoublesRosterGroup) {
+    setSelectedDoublesKey(group.key);
+    setSelectedPlayerId("");
     setMobilePane("report");
     setSurface({ kind: "directory" });
   }
@@ -826,7 +866,10 @@ export default function ScoutingWorkspace({
                   }))}
                   onChange={(teamId) => {
                     setFilters((current) => ({ ...current, teamId }));
-                    if (teamId) setSelectedTeamId(teamId);
+                    if (teamId) {
+                      setSelectedTeamId(teamId);
+                      setSelectedDoublesKey("");
+                    }
                   }}
                 />
               ) : null}
@@ -927,12 +970,15 @@ export default function ScoutingWorkspace({
               reports={reports}
               selectedTeam={selectedTeam}
               selectedPlayer={selectedPlayer}
+              doublesGroups={doublesRosterGroups}
+              selectedDoublesGroup={selectedDoublesGroup}
               mobilePane={mobilePane}
               playerLifecycle={playerLifecycle}
               filtersActive={filtersActive}
               onMobilePane={setMobilePane}
               onSelectTeam={selectTeam}
               onSelectPlayer={selectPlayer}
+              onSelectDoublesTeam={selectDoublesTeam}
               onOpenPlayerCard={openPlayerCardFromDirectory}
               onOpenTeam={openTeamEdit}
               onOpenReport={(report) => openScoutingReport(report.id)}
@@ -1106,12 +1152,15 @@ function OpponentPlayersMasterDetail({
   reports,
   selectedTeam,
   selectedPlayer,
+  doublesGroups,
+  selectedDoublesGroup,
   mobilePane,
   playerLifecycle,
   filtersActive,
   onMobilePane,
   onSelectTeam,
   onSelectPlayer,
+  onSelectDoublesTeam,
   onOpenPlayerCard,
   onOpenTeam,
   onOpenReport,
@@ -1125,12 +1174,15 @@ function OpponentPlayersMasterDetail({
   reports: ScoutingDirectReport[];
   selectedTeam: ScoutingTeam | null;
   selectedPlayer: ScoutingOpponentPlayer | null;
+  doublesGroups: DoublesRosterGroup[];
+  selectedDoublesGroup: DoublesRosterGroup | null;
   mobilePane: MobilePane;
   playerLifecycle: OpponentPlayerLifecycleView;
   filtersActive: boolean;
   onMobilePane: (pane: MobilePane) => void;
   onSelectTeam: (teamId: string) => void;
   onSelectPlayer: (player: ScoutingOpponentPlayer) => void;
+  onSelectDoublesTeam: (group: DoublesRosterGroup) => void;
   onOpenPlayerCard: (player: ScoutingOpponentPlayer) => void;
   onOpenTeam: (team: ScoutingTeam) => void;
   onOpenReport: (report: ScoutingDirectReport) => void;
@@ -1150,16 +1202,9 @@ function OpponentPlayersMasterDetail({
   const linkedReportsForSelected = selectedPlayer
     ? reports.filter((report) => report.opponentPlayerId === selectedPlayer.id)
     : [];
-  const teamLevelReports = selectedTeam
-    ? reports.filter(
-        (report) => report.teamId === selectedTeam.id && report.opponentPlayerId == null,
-      )
-    : [];
   const rosterHeader =
     selectedTeam != null
-      ? `${scoutingTeamCanonicalLabel(selectedTeam.displayName)} · ${rosterPlayers.length} player${
-          rosterPlayers.length === 1 ? "" : "s"
-        }`
+      ? `${scoutingTeamCanonicalLabel(selectedTeam.displayName)} · ${rosterPlayers.length} singles · ${doublesGroups.length} doubles`
       : `Players · ${rosterPlayers.length}`;
 
   const emptyRosterTitle =
@@ -1213,14 +1258,20 @@ function OpponentPlayersMasterDetail({
             <MobileBack label="Teams" onClick={() => onMobilePane("teams")} />
             <PlayerRoster
               players={rosterPlayers}
+              doublesGroups={doublesGroups}
               reports={reports}
               selectedPlayerId={playerId}
+              selectedDoublesKey={selectedDoublesGroup?.key ?? ""}
               headerLabel={rosterHeader}
               emptyTitle={emptyRosterTitle}
               emptyDescription={emptyRosterDescription}
               emptyAction={emptyRosterAction}
               onSelect={onSelectPlayer}
+              onSelectDoubles={onSelectDoublesTeam}
             />
+            {mobilePane === "report" && selectedDoublesGroup ? (
+              <DoublesTeamWorkspace group={selectedDoublesGroup} onOpenReport={onOpenReport} />
+            ) : null}
             {mobilePane === "report" && selectedPlayer ? (
               <div className="border-t border-border p-4">
                 <button
@@ -1235,7 +1286,6 @@ function OpponentPlayersMasterDetail({
                   player={selectedPlayer}
                   reportCount={linkedReportsForSelected.length}
                 />
-                <TeamLevelReports reports={teamLevelReports} onOpenReport={onOpenReport} />
                 <h3 className="mt-5 text-xs font-semibold tracking-wide text-text-secondary uppercase">
                   Individual reports
                 </h3>
@@ -1283,17 +1333,22 @@ function OpponentPlayersMasterDetail({
         >
           <PlayerRoster
             players={rosterPlayers}
+            doublesGroups={doublesGroups}
             reports={reports}
             selectedPlayerId={playerId}
+            selectedDoublesKey={selectedDoublesGroup?.key ?? ""}
             headerLabel={rosterHeader}
             emptyTitle={emptyRosterTitle}
             emptyDescription={emptyRosterDescription}
             emptyAction={emptyRosterAction}
             onSelect={onSelectPlayer}
+            onSelectDoubles={onSelectDoublesTeam}
           />
         </div>
         <div data-scouting-report-column="" className="min-h-0 overflow-y-auto">
-          {selectedPlayer ? (
+          {selectedDoublesGroup ? (
+            <DoublesTeamWorkspace group={selectedDoublesGroup} onOpenReport={onOpenReport} />
+          ) : selectedPlayer ? (
             <div className="p-4 sm:p-5" data-scouting-player-workspace="">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -1334,7 +1389,6 @@ function OpponentPlayersMasterDetail({
                 player={selectedPlayer}
                 reportCount={linkedReportsForSelected.length}
               />
-              <TeamLevelReports reports={teamLevelReports} onOpenReport={onOpenReport} />
               <h3 className="mt-5 text-xs font-semibold tracking-wide text-text-secondary uppercase">
                 Individual reports
               </h3>
@@ -1390,35 +1444,30 @@ function OpponentPlayersMasterDetail({
   );
 }
 
-function TeamLevelReports({
-  reports,
+function DoublesTeamWorkspace({
+  group,
   onOpenReport,
 }: {
-  reports: ScoutingDirectReport[];
+  group: DoublesRosterGroup;
   onOpenReport: (report: ScoutingDirectReport) => void;
 }) {
-  if (!reports.length) return null;
-
   return (
-    <section
-      className="mt-5 rounded-card border border-[var(--module-border)] bg-[var(--module-tint)]/25 p-4"
-      data-scouting-team-level-reports=""
-    >
+    <section className="p-4 sm:p-5" data-scouting-doubles-team-workspace="">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
-          <h3 className="text-xs font-semibold tracking-wide text-text-secondary uppercase">
-            Team &amp; doubles reports
-          </h3>
+          <p className="text-[10px] font-semibold tracking-wide text-text-secondary uppercase">Doubles team</p>
+          <h2 className="mt-1 text-lg font-semibold text-text-primary">{group.displayName}</h2>
           <p className="mt-1 text-xs text-text-secondary">
-            Reports linked to this team rather than one opponent player.
+            Team-level history for this doubles combination.
           </p>
         </div>
         <span className="text-xs font-semibold text-[var(--module-accent-text)]">
-          {reports.length} report{reports.length === 1 ? "" : "s"}
+          {group.reports.length} report{group.reports.length === 1 ? "" : "s"}
         </span>
       </div>
+      <h3 className="mt-5 text-xs font-semibold tracking-wide text-text-secondary uppercase">Match reports</h3>
       <ul className="mt-3 space-y-2">
-        {reports.map((report) => (
+        {group.reports.map((report) => (
           <li key={report.id}>
             <ScoutingDirectReportPreviewCard report={report} onOpen={onOpenReport} />
           </li>
@@ -1510,24 +1559,30 @@ function TeamNavigator({
 
 function PlayerRoster({
   players,
+  doublesGroups,
   reports,
   selectedPlayerId,
+  selectedDoublesKey,
   onSelect,
+  onSelectDoubles,
   headerLabel = "Players",
   emptyTitle = "No players",
   emptyDescription = "Select another team or clear filters.",
   emptyAction,
 }: {
   players: ScoutingOpponentPlayer[];
+  doublesGroups: DoublesRosterGroup[];
   reports: ScoutingDirectReport[];
   selectedPlayerId: string;
+  selectedDoublesKey: string;
   onSelect: (player: ScoutingOpponentPlayer) => void;
+  onSelectDoubles: (group: DoublesRosterGroup) => void;
   headerLabel?: string;
   emptyTitle?: string;
   emptyDescription?: string;
   emptyAction?: ReactNode;
 }) {
-  if (!players.length) {
+  if (!players.length && !doublesGroups.length) {
     return (
       <div data-scouting-player-list="" className="min-h-0 overflow-y-auto p-4">
         <EmptyState title={emptyTitle} description={emptyDescription} />
@@ -1540,7 +1595,7 @@ function PlayerRoster({
       data-scouting-player-list=""
       className="min-h-0 overflow-y-auto"
       role="listbox"
-      aria-label="Opponent players"
+      aria-label="Singles players and doubles teams"
     >
       <p className="sticky top-0 z-[1] border-b border-border bg-app-background px-3 py-2 text-[10px] font-semibold tracking-wide text-text-secondary uppercase">
         {headerLabel}
@@ -1572,6 +1627,39 @@ function PlayerRoster({
                   </span>
                   <span className="mt-0.5 block text-[11px] text-text-secondary">
                     {player.handedness || "Hand?"} · {player.directReportCount} reports
+                    {latest.dateLabel ? ` · ${latest.dateLabel}` : ""}
+                  </span>
+                </span>
+              </button>
+            </li>
+          );
+        })}
+        {doublesGroups.map((group) => {
+          const selected = group.key === selectedDoublesKey;
+          const latest = latestReportMeta(group.reports);
+          return (
+            <li key={`doubles:${group.key}`}>
+              <button
+                type="button"
+                role="option"
+                aria-selected={selected}
+                onClick={() => onSelectDoubles(group)}
+                className={`flex min-h-11 w-full items-start gap-2.5 px-3 py-2.5 text-left transition-colors md:min-h-0 ${
+                  selected
+                    ? "border-l-[3px] border-l-[var(--module-accent)] bg-[var(--module-tint)]/55"
+                    : "border-l-[3px] border-l-transparent hover:bg-[var(--module-tint)]/30"
+                }`}
+              >
+                <ScoutingTeamMark name={group.reports[0]?.teamDisplayName ?? ""} size={22} />
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-start justify-between gap-2">
+                    <span className="truncate text-sm font-semibold text-text-primary">{group.displayName}</span>
+                    <span className="shrink-0 rounded-control bg-[var(--module-tint)] px-1.5 py-0.5 text-[9px] font-semibold text-[var(--module-accent-text)]">
+                      Doubles
+                    </span>
+                  </span>
+                  <span className="mt-0.5 block text-[11px] text-text-secondary">
+                    {group.reports.length} report{group.reports.length === 1 ? "" : "s"}
                     {latest.dateLabel ? ` · ${latest.dateLabel}` : ""}
                   </span>
                 </span>
