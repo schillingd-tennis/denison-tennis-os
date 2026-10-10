@@ -1150,6 +1150,11 @@ function OpponentPlayersMasterDetail({
   const linkedReportsForSelected = selectedPlayer
     ? reports.filter((report) => report.opponentPlayerId === selectedPlayer.id)
     : [];
+  const teamLevelReports = selectedTeam
+    ? reports.filter(
+        (report) => report.teamId === selectedTeam.id && report.opponentPlayerId == null,
+      )
+    : [];
   const rosterHeader =
     selectedTeam != null
       ? `${scoutingTeamCanonicalLabel(selectedTeam.displayName)} · ${rosterPlayers.length} player${
@@ -1230,6 +1235,7 @@ function OpponentPlayersMasterDetail({
                   player={selectedPlayer}
                   reportCount={linkedReportsForSelected.length}
                 />
+                <TeamLevelReports reports={teamLevelReports} onOpenReport={onOpenReport} />
                 <h3 className="mt-5 text-xs font-semibold tracking-wide text-text-secondary uppercase">
                   Individual reports
                 </h3>
@@ -1328,6 +1334,7 @@ function OpponentPlayersMasterDetail({
                 player={selectedPlayer}
                 reportCount={linkedReportsForSelected.length}
               />
+              <TeamLevelReports reports={teamLevelReports} onOpenReport={onOpenReport} />
               <h3 className="mt-5 text-xs font-semibold tracking-wide text-text-secondary uppercase">
                 Individual reports
               </h3>
@@ -1380,6 +1387,44 @@ function OpponentPlayersMasterDetail({
         </div>
       </div>
     </div>
+  );
+}
+
+function TeamLevelReports({
+  reports,
+  onOpenReport,
+}: {
+  reports: ScoutingDirectReport[];
+  onOpenReport: (report: ScoutingDirectReport) => void;
+}) {
+  if (!reports.length) return null;
+
+  return (
+    <section
+      className="mt-5 rounded-card border border-[var(--module-border)] bg-[var(--module-tint)]/25 p-4"
+      data-scouting-team-level-reports=""
+    >
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <div>
+          <h3 className="text-xs font-semibold tracking-wide text-text-secondary uppercase">
+            Team &amp; doubles reports
+          </h3>
+          <p className="mt-1 text-xs text-text-secondary">
+            Reports linked to this team rather than one opponent player.
+          </p>
+        </div>
+        <span className="text-xs font-semibold text-[var(--module-accent-text)]">
+          {reports.length} report{reports.length === 1 ? "" : "s"}
+        </span>
+      </div>
+      <ul className="mt-3 space-y-2">
+        {reports.map((report) => (
+          <li key={report.id}>
+            <ScoutingDirectReportPreviewCard report={report} onOpen={onOpenReport} />
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
