@@ -9,6 +9,7 @@ import {
   archiveOpponentPlayer,
   backfillUnpromotedSubmissions,
   createFormLink,
+  deleteDirectReport,
   getPlayerWorkspace,
   getTeamWorkspace,
   mapScoutingTeamAlias,
@@ -104,6 +105,8 @@ export async function restoreOpponentPlayerAction(opponentPlayerId: string) {
 }
 
 export async function saveDirectReportAction(formData: FormData) {
+  const auth = await requireScoutingWriteUser();
+  if (!auth.ok) return { success: false as const, message: auth.error };
   const parsed = readDirectReportFormData(formData);
   if (!parsed.ok) return { success: false, message: parsed.message } as const;
   try {
@@ -115,6 +118,22 @@ export async function saveDirectReportAction(formData: FormData) {
       success: false,
       message: error instanceof Error ? error.message : "Could not save report.",
     } as const;
+  }
+}
+
+export async function deleteDirectReportAction(reportId: string) {
+  const auth = await requireScoutingWriteUser();
+  if (!auth.ok) return { success: false as const, message: auth.error };
+  if (!reportId.trim()) return { success: false as const, message: "Report is required." };
+  try {
+    await deleteDirectReport(reportId);
+    revalidateScouting();
+    return { success: true as const };
+  } catch (error) {
+    return {
+      success: false as const,
+      message: error instanceof Error ? error.message : "Could not delete report.",
+    };
   }
 }
 

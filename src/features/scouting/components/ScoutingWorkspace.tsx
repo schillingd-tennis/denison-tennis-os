@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Brain, Copy, ExternalLink, Link2, Plus, QrCode, RefreshCw, RotateCcw } from "lucide-react";
+import { ArrowLeft, Brain, Copy, ExternalLink, Link2, Pencil, Plus, QrCode, RefreshCw, RotateCcw, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
@@ -16,6 +16,7 @@ import { formatDate } from "@/lib/formatting";
 import { TEAM_OPERATIONS_ROUTE, TEAM_OPERATIONS_SCOUTING_ROUTE } from "@/lib/module-routes";
 
 import {
+  deleteDirectReportAction,
   loadPlayerWorkspaceAction,
   loadTeamWorkspaceAction,
   regeneratePlayerAiAction,
@@ -147,6 +148,7 @@ export default function ScoutingWorkspace({
   formLinks,
   loadError,
 }: Props) {
+  const router = useRouter();
   const { openDrawer, closeDrawer } = useDrawerManager();
   const [view, setView] = useState<ScoutingView>("teams");
   const [filters, setFilters] = useState(EMPTY_FILTERS);
@@ -573,6 +575,24 @@ export default function ScoutingWorkspace({
     });
   }
 
+  function openEditReport(report: ScoutingDirectReport) {
+    openDrawer({
+      id: `scouting-report-edit-${report.id}`,
+      title: "Edit Match Report",
+      subtitle: report.opponentDisplayName || "Scouting report",
+      hideFooter: true,
+      content: (
+        <DirectReportForm
+          teams={teams}
+          players={activePlayers}
+          archivedPlayers={archivedPlayers}
+          report={report}
+          onCancel={closeDrawer}
+        />
+      ),
+    });
+  }
+
   function openFormLinks() {
     openDrawer({
       id: "scouting-form-links",
@@ -696,6 +716,17 @@ export default function ScoutingWorkspace({
           {surface.kind === "report" && activeReport ? (
             <ScoutingDirectReportCard
               report={activeReport}
+              editable
+              editSlot={
+                <ReportActions
+                  report={activeReport}
+                  onEdit={() => openEditReport(activeReport)}
+                  onDeleted={() => {
+                    setSurface({ kind: "directory" });
+                    router.refresh();
+                  }}
+                />
+              }
               opponentArchived={
                 activeReport.opponentPlayerId
                   ? archivedPlayerIds.has(activeReport.opponentPlayerId)
@@ -2141,9 +2172,11 @@ function SubmissionCardSurface({
             <span className="font-medium">
               {submission.resolvedTeamDisplayName || publishedReport.teamDisplayName}
             </span>
-            {submission.resolvedOpponentDisplayName || publishedReport.opponentDisplayName
-              ? ` · Player: ${submission.resolvedOpponentDisplayName || publishedReport.opponentDisplayName}`
-              : null}
+            {submission.isDoubles
+              ? ` · Doubles team: ${publishedReport.opponentDisplayName}`
+              : submission.resolvedOpponentDisplayName || publishedReport.opponentDisplayName
+                ? ` · Player: ${submission.resolvedOpponentDisplayName || publishedReport.opponentDisplayName}`
+                : null}
           </p>
           <button
             type="button"
@@ -2212,7 +2245,7 @@ function SubmissionCardSurface({
               />
             </DrawerField>
           ) : null}
-          <DrawerField label="Opponent player">
+          {!submission.isDoubles ? <DrawerField label="Opponent player">
             <select
               name="opponentPlayerId"
               value={createPlayer ? "__create__" : opponentPlayerId}
@@ -2235,7 +2268,11 @@ function SubmissionCardSurface({
               ))}
               <option value="__create__">Create new opponent player</option>
             </select>
-          </DrawerField>
+          </DrawerField> : (
+            <div className="rounded-control border border-[var(--module-border)] bg-[var(--module-tint)]/35 px-3 py-2 text-sm text-text-secondary">
+              This doubles report will be saved at the team level for both opponents. It will not create a combined opponent-player record.
+            </div>
+          )}
           <button
             type="submit"
             disabled={pending || !teamId}
@@ -2505,20 +2542,69 @@ function TeamWorkspaceDrawer({
   );
 }
 
+function ReportActions({
+  report,
+  onEdit,
+  onDeleted,
+}: {
+  report: ScoutingDirectReport;
+  onEdit: () => void;
+  onDeleted: () => void;
+}) {
+  const [pending, startTransition] = useTransition();
+  const [message, setMessage] = useState<string | null>(null);
+
+  return (
+    <div className="flex flex-col items-end gap-2">
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          disabled={pending}
+          onClick={onEdit}
+          className="inline-flex h-10 items-center gap-2 rounded-control border border-border bg-surface px-3 text-sm font-semibold text-text-primary disabled:opacity-60"
+        >
+          <Pencil className="h-4 w-4" aria-hidden />
+          Edit
+        </button>
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => {
+            if (!window.confirm(`Delete the scouting report for ${report.opponentDisplayName || "this opponent"}? This cannot be undone.`)) return;
+            setMessage(null);
+            startTransition(async () => {
+              const result = await deleteDirectReportAction(report.id);
+              if (result.success) onDeleted();
+              else setMessage(result.message);
+            });
+          }}
+          className="inline-flex h-10 items-center gap-2 rounded-control border border-red-200 bg-white px-3 text-sm font-semibold text-red-700 disabled:opacity-60"
+        >
+          <Trash2 className="h-4 w-4" aria-hidden />
+          {pending ? "Deleting…" : "Delete"}
+        </button>
+      </div>
+      {message ? <p className="max-w-xs text-right text-xs text-danger">{message}</p> : null}
+    </div>
+  );
+}
+
 function DirectReportForm({
   teams,
   players,
   archivedPlayers = [],
+  report,
   onCancel,
 }: {
   teams: ScoutingTeam[];
   players: ScoutingOpponentPlayer[];
   archivedPlayers?: ScoutingOpponentPlayer[];
+  report?: ScoutingDirectReport;
   onCancel: () => void;
 }) {
   const [message, setMessage] = useState<string>();
   const [pending, startTransition] = useTransition();
-  const [teamId, setTeamId] = useState(teams[0]?.id ?? "");
+  const [teamId, setTeamId] = useState(report?.teamId ?? teams[0]?.id ?? "");
   const activeForTeam = players.filter((player) => player.teamId === teamId);
   const archivedForTeam = archivedPlayers.filter((player) => player.teamId === teamId);
 
@@ -2535,6 +2621,7 @@ function DirectReportForm({
         });
       }}
     >
+      {report ? <input type="hidden" name="id" value={report.id} /> : null}
       <DrawerField label="Team">
         <select
           name="teamId"
@@ -2551,7 +2638,7 @@ function DirectReportForm({
         </select>
       </DrawerField>
       <DrawerField label="Opponent player (optional)">
-        <select name="opponentPlayerId" className="h-10 w-full rounded-control border border-border px-3 text-sm">
+        <select name="opponentPlayerId" defaultValue={report?.opponentPlayerId ?? ""} className="h-10 w-full rounded-control border border-border px-3 text-sm">
           <option value="">Unlinked / compound</option>
           {activeForTeam.map((player) => (
             <option key={player.id} value={player.id}>
@@ -2570,29 +2657,29 @@ function DirectReportForm({
         </select>
       </DrawerField>
       <DrawerField label="Opponent display name">
-        <input name="opponentDisplayName" className="h-10 w-full rounded-control border border-border px-3 text-sm" />
+        <input name="opponentDisplayName" defaultValue={report?.opponentDisplayName ?? ""} className="h-10 w-full rounded-control border border-border px-3 text-sm" />
       </DrawerField>
       <DrawerField label="Match date">
-        <input name="matchDate" type="date" className="h-10 w-full rounded-control border border-border px-3 text-sm" />
+        <input name="matchDate" type="date" defaultValue={report?.matchDate ?? ""} className="h-10 w-full rounded-control border border-border px-3 text-sm" />
       </DrawerField>
       <DrawerField label="Handedness">
-        <select name="handedness" className="h-10 w-full rounded-control border border-border px-3 text-sm">
+        <select name="handedness" defaultValue={report?.handedness ?? ""} className="h-10 w-full rounded-control border border-border px-3 text-sm">
           <option value="">Unknown</option>
           <option value="Right">Right</option>
           <option value="Left">Left</option>
         </select>
       </DrawerField>
       <DrawerField label="Report by">
-        <input name="reportBy" className="h-10 w-full rounded-control border border-border px-3 text-sm" />
+        <input name="reportBy" defaultValue={report?.reportBy ?? ""} className="h-10 w-full rounded-control border border-border px-3 text-sm" />
       </DrawerField>
       <DrawerField label="Strengths / weaknesses / notes">
-        <textarea name="strengthsWeaknesses" rows={6} className="w-full rounded-control border border-border px-3 py-2 text-sm" />
+        <textarea name="strengthsWeaknesses" defaultValue={report?.strengthsWeaknesses ?? ""} rows={6} className="w-full rounded-control border border-border px-3 py-2 text-sm" />
       </DrawerField>
       <DrawerField label="Scouting report">
-        <textarea name="scoutingReport" rows={3} className="w-full rounded-control border border-border px-3 py-2 text-sm" />
+        <textarea name="scoutingReport" defaultValue={report?.scoutingReport ?? ""} rows={3} className="w-full rounded-control border border-border px-3 py-2 text-sm" />
       </DrawerField>
       <label className="flex items-center gap-2 text-sm font-medium text-text-primary">
-        <input name="isDoubles" type="checkbox" value="true" />
+        <input name="isDoubles" type="checkbox" value="true" defaultChecked={report?.isDoubles ?? false} />
         Doubles
       </label>
       {message ? <p className="text-sm text-danger">{message}</p> : null}
@@ -2602,7 +2689,7 @@ function DirectReportForm({
           disabled={pending}
           className="rounded-control bg-[var(--module-accent)] px-4 py-2 text-sm font-semibold text-white"
         >
-          Save
+          {report ? "Save Changes" : "Save"}
         </button>
         <button type="button" onClick={onCancel} className="rounded-control border border-border px-4 py-2 text-sm font-semibold">
           Cancel

@@ -311,8 +311,15 @@ export async function saveDirectReport(
     previousOpponentPlayerId = (existing?.opponent_player_id as string | null) ?? null;
   }
 
+  // Source/provenance belongs to the original record. Editing a promoted or
+  // imported report must not relabel it as a coach-created report.
+  const editablePayload = id
+    ? Object.fromEntries(
+        Object.entries(payload).filter(([key]) => key !== "source" && key !== "import_status"),
+      )
+    : payload;
   const row = {
-    ...payload,
+    ...editablePayload,
     updated_at: new Date().toISOString(),
     user_edited_at: new Date().toISOString(),
     source_key:

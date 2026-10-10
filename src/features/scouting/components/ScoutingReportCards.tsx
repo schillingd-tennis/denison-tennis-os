@@ -454,6 +454,7 @@ export function ScoutingSubmissionPreviewCard({
               : EMPTY_VALUE}{" "}
             · {formatDate(submission.createdAt.slice(0, 10))} ·{" "}
             {submissionStatusLabel(submission.status)}
+            {` · Submitted by ${submission.reportBy || "Unknown"}`}
             {submission.resolvedTeamDisplayName
               ? ` · → ${submission.resolvedTeamDisplayName}`
               : ""}
@@ -496,6 +497,9 @@ export function ScoutingSubmissionCard({
                 : EMPTY_VALUE}{" "}
               · {formatDate(submission.createdAt.slice(0, 10))} ·{" "}
               {submissionStatusLabel(submission.status)}
+            </p>
+            <p className="mt-1 text-xs text-text-secondary">
+              Submitted by {submission.reportBy || "Unknown"} · {submission.isDoubles ? "Doubles" : "Singles"}
             </p>
           </div>
         </div>
