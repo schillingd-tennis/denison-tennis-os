@@ -17,6 +17,7 @@ import {
   markPlayerAiReviewed,
   promoteFormSubmission,
   regeneratePlayerAiReport,
+  regenerateDoublesAiReport,
   regenerateTeamAiReport,
   resetPrimaryFormLink,
   restoreOpponentPlayer,
@@ -169,6 +170,8 @@ export async function saveManualPlayerReportAction(opponentPlayerId: string, bod
 }
 
 export async function regeneratePlayerAiAction(opponentPlayerId: string) {
+  const auth = await requireScoutingWriteUser();
+  if (!auth.ok) return { success: false as const, message: auth.error };
   try {
     const result = await regeneratePlayerAiReport(opponentPlayerId);
     if ("error" in result) return { success: false, message: result.error } as const;
@@ -208,9 +211,14 @@ export async function saveManualTeamReportAction(teamId: string, body: string) {
   }
 }
 
-export async function regenerateTeamAiAction(teamId: string) {
+export async function regenerateTeamAiAction(
+  teamId: string,
+  selection?: { playerIds: string[]; doublesKeys: string[] },
+) {
+  const auth = await requireScoutingWriteUser();
+  if (!auth.ok) return { success: false as const, message: auth.error };
   try {
-    const result = await regenerateTeamAiReport(teamId);
+    const result = await regenerateTeamAiReport(teamId, selection);
     if ("error" in result) return { success: false, message: result.error } as const;
     revalidateScouting();
     return { success: true, report: result } as const;
@@ -219,6 +227,19 @@ export async function regenerateTeamAiAction(teamId: string) {
       success: false,
       message: error instanceof Error ? error.message : "Could not generate team AI summary.",
     } as const;
+  }
+}
+
+export async function regenerateDoublesAiAction(teamId: string, doublesKey: string) {
+  const auth = await requireScoutingWriteUser();
+  if (!auth.ok) return { success: false as const, message: auth.error };
+  try {
+    const result = await regenerateDoublesAiReport(teamId, doublesKey);
+    if ("error" in result) return { success: false, message: result.error } as const;
+    revalidateScouting();
+    return { success: true, report: result } as const;
+  } catch (error) {
+    return { success: false, message: error instanceof Error ? error.message : "Could not generate doubles AI summary." } as const;
   }
 }
 

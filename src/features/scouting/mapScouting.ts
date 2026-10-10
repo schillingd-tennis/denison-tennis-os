@@ -74,6 +74,11 @@ export type TeamReportRow = {
   team_id: string;
   kind: string;
   body: string | null;
+  quick_summary_bullets?: string[] | null;
+  subject_type?: string | null;
+  subject_key?: string | null;
+  subject_label?: string | null;
+  included_subject_keys?: string[] | null;
   status: string;
   cited_direct_report_ids: string[] | null;
   cited_player_report_ids: string[] | null;
@@ -221,6 +226,13 @@ export function mapTeamReport(row: TeamReportRow): ScoutingTeamReport {
     teamId: row.team_id,
     kind: row.kind as ReportKind,
     body: row.body ?? "",
+    quickSummaryBullets: Array.isArray(row.quick_summary_bullets)
+      ? row.quick_summary_bullets.filter((item): item is string => typeof item === "string")
+      : [],
+    subjectType: row.subject_type === "doubles" ? "doubles" : "team",
+    subjectKey: row.subject_key ?? "team",
+    subjectLabel: row.subject_label ?? "",
+    includedSubjectKeys: row.included_subject_keys ?? [],
     status: row.status as ReportReviewStatus,
     citedDirectReportIds: row.cited_direct_report_ids ?? [],
     citedPlayerReportIds: row.cited_player_report_ids ?? [],

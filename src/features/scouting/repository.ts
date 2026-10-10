@@ -33,6 +33,7 @@ import type {
 import type { ScoutEvidence } from "./aiSummarize";
 import { summarizeScoutingWithOpenAi, type ScoutSummarizeFn } from "./aiSummarize";
 import { playerIdsToMarkAiStale, selectPlayerAiEvidenceReports } from "./overviewMetrics";
+import { normalizeDoublesKey } from "./doublesIdentity";
 
 function missingTable(message: string) {
   return /schema cache|does not exist|could not find the table/i.test(message);
@@ -493,11 +494,22 @@ export async function markPlayerAiReviewed(reportId: string): Promise<ScoutingPl
 
 export async function regenerateTeamAiReport(
   teamId: string,
+  selection?: { playerIds: string[]; doublesKeys: string[] },
   summarize: ScoutSummarizeFn = summarizeScoutingWithOpenAi,
 ): Promise<ScoutingTeamReport | { error: string }> {
   const workspace = await getTeamWorkspace(teamId);
   if (!workspace.team) return { error: "Team not found." };
-  const evidence: ScoutEvidence[] = workspace.directReports.map((report) => ({
+  const selectedPlayerIds = new Set(selection?.playerIds ?? workspace.players.map((player) => player.id));
+  const selectedDoublesKeys = new Set(
+    selection?.doublesKeys ?? workspace.directReports.filter((report) => report.isDoubles).map((report) => normalizeDoublesKey(report.opponentDisplayName)),
+  );
+  const selectedReports = workspace.directReports.filter((report) =>
+    report.isDoubles
+      ? selectedDoublesKeys.has(normalizeDoublesKey(report.opponentDisplayName))
+      : Boolean(report.opponentPlayerId && selectedPlayerIds.has(report.opponentPlayerId)),
+  );
+  if (!selectedReports.length) return { error: "Choose at least one player or doubles team with reports." };
+  const evidence: ScoutEvidence[] = selectedReports.map((report) => ({
     id: report.id,
     matchDate: report.matchDate,
     reportBy: report.reportBy,
@@ -525,6 +537,12 @@ export async function regenerateTeamAiReport(
     team_id: teamId,
     kind: "ai_generated",
     body: summary.body,
+    quick_summary_bullets: summary.quickSummaryBullets,
+    subject_type: "team",
+    subject_key: "team",
+    subject_label: workspace.team.displayName,
+    included_subject_keys: [
+      ...selectedPlayerIds].map((id) => `player:${id}`).concat([...selectedDoublesKeys].map((key) => `doubles:${key}`)),
     status: "draft",
     cited_direct_report_ids: summary.citedDirectReportIds,
     cited_player_report_ids: [],
@@ -534,6 +552,50 @@ export async function regenerateTeamAiReport(
     updated_at: new Date().toISOString(),
   };
 
+  const query = existing?.id
+    ? client.from("scouting_team_reports").update(row).eq("id", existing.id).select("*").single()
+    : client.from("scouting_team_reports").insert(row).select("*").single();
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+  return mapTeamReport(data as TeamReportRow);
+}
+
+export async function regenerateDoublesAiReport(
+  teamId: string,
+  doublesKey: string,
+  summarize: ScoutSummarizeFn = summarizeScoutingWithOpenAi,
+): Promise<ScoutingTeamReport | { error: string }> {
+  const workspace = await getTeamWorkspace(teamId);
+  if (!workspace.team) return { error: "Team not found." };
+  const reports = workspace.directReports.filter(
+    (report) => report.isDoubles && normalizeDoublesKey(report.opponentDisplayName) === doublesKey,
+  );
+  if (!reports.length) return { error: "No supported doubles evidence to summarize." };
+  const label = reports[0]?.opponentDisplayName || "Doubles team";
+  const summary = await summarize({
+    subjectLabel: `${label} (${workspace.team.displayName})`,
+    kind: "doubles",
+    evidence: reports.map((report) => ({
+      id: report.id, matchDate: report.matchDate, reportBy: report.reportBy,
+      isDoubles: true, opponentDisplayName: report.opponentDisplayName,
+      strengthsWeaknesses: report.strengthsWeaknesses, scoutingReport: report.scoutingReport,
+      source: report.source,
+    })),
+  });
+  if ("error" in summary) return summary;
+  const client = await createSupabaseServerClient();
+  const { data: existing } = await client.from("scouting_team_reports").select("id")
+    .eq("team_id", teamId).eq("kind", "ai_generated").eq("subject_type", "doubles")
+    .eq("subject_key", doublesKey).maybeSingle();
+  const row = {
+    team_id: teamId, kind: "ai_generated", body: summary.body,
+    quick_summary_bullets: summary.quickSummaryBullets,
+    subject_type: "doubles", subject_key: doublesKey, subject_label: label,
+    included_subject_keys: [`doubles:${doublesKey}`], status: "draft",
+    cited_direct_report_ids: summary.citedDirectReportIds, cited_player_report_ids: [],
+    stale: false, generated_at: new Date().toISOString(), reviewed_at: null,
+    updated_at: new Date().toISOString(),
+  };
   const query = existing?.id
     ? client.from("scouting_team_reports").update(row).eq("id", existing.id).select("*").single()
     : client.from("scouting_team_reports").insert(row).select("*").single();

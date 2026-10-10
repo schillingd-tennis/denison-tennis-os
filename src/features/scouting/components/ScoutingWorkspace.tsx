@@ -21,6 +21,7 @@ import {
   loadPlayerWorkspaceAction,
   loadTeamWorkspaceAction,
   regeneratePlayerAiAction,
+  regenerateDoublesAiAction,
   regenerateTeamAiAction,
   reprocessUnpromotedSubmissionsAction,
   reviewAndPublishFormSubmissionAction,
@@ -44,6 +45,7 @@ import {
   selectNextActivePlayerId,
 } from "../playerLifecycle";
 import { countEligibleUnpromotedSubmissions, submissionStatusLabel } from "../submissionLifecycle";
+import { normalizeDoublesKey } from "../doublesIdentity";
 import {
   resolveScoutingTeamIdentity,
   scoutingTeamCanonicalLabel,
@@ -340,7 +342,7 @@ export default function ScoutingWorkspace({
     const grouped = new Map<string, DoublesRosterGroup>();
     for (const report of reports) {
       if (report.teamId !== focusTeamId || report.opponentPlayerId != null || !report.isDoubles) continue;
-      const key = report.opponentDisplayName.trim().toLocaleLowerCase() || report.id;
+      const key = normalizeDoublesKey(report.opponentDisplayName) || report.id;
       const existing = grouped.get(key);
       if (existing) existing.reports.push(report);
       else grouped.set(key, { key, displayName: report.opponentDisplayName || "Unnamed doubles team", reports: [report] });
@@ -1077,7 +1079,7 @@ function PlayerAiDirectorySummary({
 
   return (
     <section
-      className="mt-4 rounded-card border border-[var(--module-border)] bg-[var(--module-tint)]/25 p-4"
+      className="mt-4 rounded-card border border-indigo-300 border-l-4 bg-indigo-50 p-4 shadow-[0_8px_24px_rgba(79,70,229,0.12)]"
       data-scouting-directory-ai-summary=""
       aria-labelledby="directory-ai-summary-title"
     >
@@ -1089,7 +1091,7 @@ function PlayerAiDirectorySummary({
             </span>
             <div>
               <h3 id="directory-ai-summary-title" className="text-sm font-semibold text-text-primary">
-                AI Player Summary
+                AI Player Summary · AI-GENERATED REPORT
               </h3>
               <p className="text-xs text-text-secondary">
                 {reportCount === 0
@@ -1275,7 +1277,7 @@ function OpponentPlayersMasterDetail({
               onSelectDoubles={onSelectDoublesTeam}
             />
             {mobilePane === "report" && selectedDoublesGroup ? (
-              <DoublesTeamWorkspace group={selectedDoublesGroup} onOpenReport={onOpenReport} />
+              <DoublesTeamWorkspace teamId={selectedTeam?.id ?? ""} group={selectedDoublesGroup} onOpenReport={onOpenReport} />
             ) : null}
             {mobilePane === "report" && selectedPlayer ? (
               <div className="border-t border-border p-4">
@@ -1352,7 +1354,7 @@ function OpponentPlayersMasterDetail({
         </div>
         <div data-scouting-report-column="" className="min-h-0 overflow-y-auto">
           {selectedDoublesGroup ? (
-            <DoublesTeamWorkspace group={selectedDoublesGroup} onOpenReport={onOpenReport} />
+            <DoublesTeamWorkspace teamId={selectedTeam?.id ?? ""} group={selectedDoublesGroup} onOpenReport={onOpenReport} />
           ) : selectedPlayer ? (
             <div className="p-4 sm:p-5" data-scouting-player-workspace="">
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1450,12 +1452,29 @@ function OpponentPlayersMasterDetail({
 }
 
 function DoublesTeamWorkspace({
+  teamId,
   group,
   onOpenReport,
 }: {
+  teamId: string;
   group: DoublesRosterGroup;
   onOpenReport: (report: ScoutingDirectReport) => void;
 }) {
+  const [aiReport, setAiReport] = useState<ScoutingTeamReport | null>(null);
+  const [message, setMessage] = useState<string>();
+  const [pending, startTransition] = useTransition();
+
+  useEffect(() => {
+    startTransition(async () => {
+      const result = await loadTeamWorkspaceAction(teamId);
+      if (result.success) {
+        setAiReport(result.workspace.teamReports.find(
+          (report) => report.subjectType === "doubles" && report.subjectKey === group.key,
+        ) ?? null);
+      }
+    });
+  }, [group.key, teamId]);
+
   return (
     <section className="p-4 sm:p-5" data-scouting-doubles-team-workspace="">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -1469,6 +1488,24 @@ function DoublesTeamWorkspace({
         <span className="text-xs font-semibold text-[var(--module-accent-text)]">
           {group.reports.length} report{group.reports.length === 1 ? "" : "s"}
         </span>
+      </div>
+      <div className="mt-5 border-l-4 border-indigo-500 bg-indigo-50 p-4 shadow-sm" data-ai-generated-report="">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-bold tracking-widest text-indigo-700 uppercase">AI-generated doubles report</p>
+            <p className="mt-1 text-xs text-indigo-800">Consolidates all reports for this combination.</p>
+          </div>
+          <button type="button" disabled={pending} className="rounded-control bg-indigo-700 px-3 py-2 text-sm font-semibold text-white" onClick={() =>
+            startTransition(async () => {
+              const result = await regenerateDoublesAiAction(teamId, group.key);
+              if (result.success) { setAiReport(result.report); setMessage("AI doubles report generated."); }
+              else setMessage(result.message);
+            })
+          }>{pending ? "Generating…" : aiReport ? "Refresh AI" : "Generate AI"}</button>
+        </div>
+        {aiReport?.quickSummaryBullets.length ? <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-indigo-950">{aiReport.quickSummaryBullets.map((bullet) => <li key={bullet}>{bullet}</li>)}</ul> : null}
+        {aiReport?.body ? <p className="mt-3 whitespace-pre-wrap text-sm text-indigo-950">{aiReport.body}</p> : null}
+        {message ? <p className="mt-2 text-xs text-indigo-800">{message}</p> : null}
       </div>
       <h3 className="mt-5 text-xs font-semibold tracking-wide text-text-secondary uppercase">Match reports</h3>
       <ul className="mt-3 space-y-2">
@@ -2621,7 +2658,10 @@ function TeamWorkspaceDrawer({
   const [teamReports, setTeamReports] = useState<ScoutingTeamReport[]>([]);
   const [message, setMessage] = useState<string>();
   const [pending, startTransition] = useTransition();
+  const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
+  const [selectedDoublesKeys, setSelectedDoublesKeys] = useState<string[]>([]);
   const identity = resolveScoutingTeamIdentity(team.displayName);
+  const doublesChoices = useMemo(() => Array.from(new Map(reports.filter((report) => report.isDoubles).map((report) => [normalizeDoublesKey(report.opponentDisplayName), report.opponentDisplayName])).entries()), [reports]);
 
   useEffect(() => {
     startTransition(async () => {
@@ -2630,6 +2670,8 @@ function TeamWorkspaceDrawer({
         const manual = result.workspace.teamReports.find((report) => report.kind === "manual");
         setManualBody(manual?.body ?? "");
         setTeamReports(result.workspace.teamReports);
+        setSelectedPlayerIds(result.workspace.players.map((player) => player.id));
+        setSelectedDoublesKeys(Array.from(new Set(result.workspace.directReports.filter((report) => report.isDoubles).map((report) => normalizeDoublesKey(report.opponentDisplayName)))));
       }
     });
   }, [team.id]);
@@ -2681,6 +2723,14 @@ function TeamWorkspaceDrawer({
           className="w-full rounded-control border border-border px-3 py-2 text-sm"
         />
       </DrawerField>
+      <section className="border-l-4 border-indigo-500 bg-indigo-50 p-4" data-team-ai-builder="">
+        <p className="text-[10px] font-bold tracking-widest text-indigo-700 uppercase">Step 1 · Choose report subjects</p>
+        <p className="mt-1 text-sm text-indigo-950">Select the singles players and doubles teams to include in the AI Team Report.</p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <fieldset><legend className="text-xs font-semibold text-indigo-900">Singles players</legend>{players.map((player) => <label key={player.id} className="mt-2 flex gap-2 text-sm"><input type="checkbox" checked={selectedPlayerIds.includes(player.id)} onChange={(event) => setSelectedPlayerIds((current) => event.target.checked ? [...current, player.id] : current.filter((id) => id !== player.id))} />{player.displayName}</label>)}</fieldset>
+          <fieldset><legend className="text-xs font-semibold text-indigo-900">Doubles teams</legend>{doublesChoices.map(([key, label]) => <label key={key} className="mt-2 flex gap-2 text-sm"><input type="checkbox" checked={selectedDoublesKeys.includes(key)} onChange={(event) => setSelectedDoublesKeys((current) => event.target.checked ? [...current, key] : current.filter((id) => id !== key))} />{label}</label>)}</fieldset>
+        </div>
+      </section>
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
@@ -2701,7 +2751,7 @@ function TeamWorkspaceDrawer({
           className="inline-flex items-center gap-1 rounded-control border border-border px-3 py-2 text-sm font-semibold"
           onClick={() =>
             startTransition(async () => {
-              const result = await regenerateTeamAiAction(team.id);
+              const result = await regenerateTeamAiAction(team.id, { playerIds: selectedPlayerIds, doublesKeys: selectedDoublesKeys });
               if (result.success) {
                 setTeamReports((current) => {
                   const withoutAi = current.filter((row) => row.kind !== "ai_generated");

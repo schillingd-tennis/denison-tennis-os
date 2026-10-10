@@ -37,7 +37,9 @@ import {
   sortPlayers,
 } from "./filtering";
 import { buildScoutingDuplicateAuditCounts } from "./duplicateAudit";
+import { normalizeDoublesKey } from "./doublesIdentity";
 import { parseDoubles, parseHandedness, readDirectReportFormData, readPublicScoutingFormData } from "./formData";
+
 import {
   countEligibleUnpromotedSubmissions,
   isCleanSinglePlayerName,
@@ -65,6 +67,7 @@ import {
   quickAiSourceSubtitle,
   selectPlayerAiEvidenceReports,
 } from "./overviewMetrics";
+
 import {
   activeOpponentPlayers,
   archivedOpponentPlayers,
@@ -84,6 +87,10 @@ import { EMPTY_VALUE, formatDate } from "@/lib/formatting";
 import { mapPlayer, mapTeam } from "./mapScouting";
 
 const csvPath = fileURLToPath(new URL("./data/scouting-reports.csv", import.meta.url));
+
+test("doubles AI identity is stable when partners are entered in either order", () => {
+  assert.equal(normalizeDoublesKey("Jordan Ace / Taylor Volley"), normalizeDoublesKey("Taylor Volley & Jordan Ace"));
+});
 const migrationPath = fileURLToPath(
   new URL("../../../supabase/migrations/0056_team_operations_scouting.sql", import.meta.url),
 );

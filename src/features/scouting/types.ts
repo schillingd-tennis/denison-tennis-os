@@ -109,6 +109,11 @@ export type ScoutingTeamReport = {
   teamId: string;
   kind: ReportKind;
   body: string;
+  quickSummaryBullets: string[];
+  subjectType: "team" | "doubles";
+  subjectKey: string;
+  subjectLabel: string;
+  includedSubjectKeys: string[];
   status: ReportReviewStatus;
   citedDirectReportIds: string[];
   citedPlayerReportIds: string[];

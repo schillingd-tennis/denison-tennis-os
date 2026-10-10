@@ -356,14 +356,14 @@ export function ScoutingTeamReportCard({
     <article
       data-scouting-report-card=""
       data-scouting-team-report-card=""
-      className="rounded-card border border-[var(--module-border)] bg-surface shadow-[0_8px_24px_rgba(17,24,39,0.04)]"
+      className={isAi ? "rounded-card border border-indigo-300 border-l-4 bg-indigo-50 shadow-[0_8px_24px_rgba(79,70,229,0.14)]" : "rounded-card border border-[var(--module-border)] bg-surface shadow-[0_8px_24px_rgba(17,24,39,0.04)]"}
     >
       <header className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--module-border)] px-5 py-4 max-md:px-4">
         <div className="flex min-w-0 items-start gap-3">
           <TeamMark name={teamName} size={40} />
           <div className="min-w-0">
             <p className="text-[10px] font-medium tracking-wide text-text-secondary uppercase">
-              {isAi ? "AI Team Report Card" : "Team Report Card"}
+              {isAi ? "AI-GENERATED SCOUTING REPORT" : "Team Report Card"}
             </p>
             <h2 className="mt-0.5 text-lg font-semibold text-text-primary">{teamLabel}</h2>
             <p className="mt-0.5 text-sm text-text-secondary">
@@ -381,6 +381,11 @@ export function ScoutingTeamReportCard({
           title={isAi ? "AI Team Summary" : "Team Report"}
           tone={isAi ? "research" : "operations"}
         >
+          {isAi && report.quickSummaryBullets.length ? (
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-sm font-medium text-indigo-950">
+              {report.quickSummaryBullets.map((bullet) => <li key={bullet}>{bullet}</li>)}
+            </ul>
+          ) : null}
           <div className="mt-3">
             <FullBody text={report.body} empty="No team report body yet." />
           </div>

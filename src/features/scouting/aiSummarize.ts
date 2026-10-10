@@ -30,13 +30,13 @@ export type ScoutSummaryResult =
 
 export type ScoutSummarizeFn = (input: {
   subjectLabel: string;
-  kind: "player" | "team";
+  kind: "player" | "doubles" | "team";
   evidence: ScoutEvidence[];
 }) => Promise<ScoutSummaryResult>;
 
 export function buildScoutingSummaryPrompt(input: {
   subjectLabel: string;
-  kind: "player" | "team";
+  kind: "player" | "doubles" | "team";
   evidence: ScoutEvidence[];
 }): { system: string; user: string } {
   return {
@@ -47,6 +47,11 @@ export function buildScoutingSummaryPrompt(input: {
       "Separate Strengths and Weaknesses when the evidence supports it; otherwise keep a Notes section.",
       "If evidence conflicts, note the conflict. If evidence is thin, say so.",
       "Distinguish repeated evidence from one-off observations; never present a single report as a repeated tendency.",
+      input.kind === "team"
+        ? "Organize the report by the selected singles players and doubles teams; include only subjects present in the evidence."
+        : input.kind === "doubles"
+          ? "Treat the subject as one doubles combination and emphasize positioning, returns, serving order, teamwork, and tactical patterns when supported."
+          : "Treat the subject as one singles player.",
       "For quick_summary_bullets: 4–7 concise actionable bullets (one idea each), plain tennis language,",
       "covering only supported points such as strengths, weaknesses, patterns, what worked, and match-plan priorities.",
       "No generic filler, no repetition, no unsupported claims.",
@@ -146,7 +151,7 @@ function bulletsFromPlainText(body: string): string[] {
 
 export async function summarizeScoutingWithOpenAi(input: {
   subjectLabel: string;
-  kind: "player" | "team";
+  kind: "player" | "doubles" | "team";
   evidence: ScoutEvidence[];
   apiKey?: string;
   model?: string;
@@ -204,7 +209,9 @@ export async function summarizeScoutingWithOpenAi(input: {
     });
 
     if (!response.ok) {
-      return { error: `AI provider error (${response.status}).` };
+      const detail = await response.text().catch(() => "");
+      const providerMessage = detail.match(/"message"\s*:\s*"([^"]+)"/)?.[1];
+      return { error: `AI provider error (${response.status})${providerMessage ? `: ${providerMessage}` : "."}` };
     }
 
     const json = (await response.json()) as {
