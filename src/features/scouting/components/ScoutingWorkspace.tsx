@@ -17,6 +17,7 @@ import { TEAM_OPERATIONS_ROUTE, TEAM_OPERATIONS_SCOUTING_ROUTE } from "@/lib/mod
 
 import {
   deleteDirectReportAction,
+  deleteFormSubmissionAction,
   loadPlayerWorkspaceAction,
   loadTeamWorkspaceAction,
   regeneratePlayerAiAction,
@@ -790,6 +791,10 @@ export default function ScoutingWorkspace({
               onOpenReport={(reportId) => openScoutingReport(reportId, { origin: surface.origin })}
               onStatusChange={() => {
                 /* status select triggers revalidate via action */
+              }}
+              onDeleted={() => {
+                restoreOrigin(surface.origin);
+                router.refresh();
               }}
             />
           ) : null}
@@ -2146,6 +2151,27 @@ function SubmissionsCardGrid({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [reprocessMessage, setReprocessMessage] = useState<string | null>(null);
+  const [deleteMessage, setDeleteMessage] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  function deleteSubmission(submission: ScoutingFormSubmission) {
+    const linkedReportWarning = submission.promotedDirectReportId
+      ? " and its published Match Report"
+      : "";
+    if (!window.confirm(`Delete this form submission${linkedReportWarning}? This cannot be undone.`)) return;
+    setDeleteMessage(null);
+    setDeletingId(submission.id);
+    startTransition(async () => {
+      const result = await deleteFormSubmissionAction(submission.id);
+      if (!result.success) {
+        setDeleteMessage(result.message);
+        setDeletingId(null);
+        return;
+      }
+      setDeletingId(null);
+      router.refresh();
+    });
+  }
 
   if (!rows.length && unpromotedCount === 0) {
     return (
@@ -2211,11 +2237,19 @@ function SubmissionsCardGrid({
         />
         <SortChip label="Status" active={sort.key === "status"} onClick={() => onSort("status")} />
       </div>
+      {deleteMessage ? (
+        <p className="mb-3 text-sm text-red-700" role="alert">{deleteMessage}</p>
+      ) : null}
       {rows.length ? (
         <ul className="grid gap-2 lg:grid-cols-2">
           {rows.map((row) => (
             <li key={row.id}>
-              <ScoutingSubmissionPreviewCard submission={row} onOpen={onOpen} />
+              <ScoutingSubmissionPreviewCard
+                submission={row}
+                onOpen={onOpen}
+                onDelete={() => deleteSubmission(row)}
+                deleting={pending && deletingId === row.id}
+              />
             </li>
           ))}
         </ul>
@@ -2235,6 +2269,7 @@ function SubmissionCardSurface({
   players,
   reports,
   onOpenReport,
+  onDeleted,
 }: {
   submission: ScoutingFormSubmission;
   teams: ScoutingTeam[];
@@ -2242,6 +2277,7 @@ function SubmissionCardSurface({
   reports: ScoutingDirectReport[];
   onOpenReport: (reportId: string) => void;
   onStatusChange: () => void;
+  onDeleted: () => void;
 }) {
   const [teamId, setTeamId] = useState(submission.resolvedTeamId ?? teams[0]?.id ?? "");
   const [opponentPlayerId, setOpponentPlayerId] = useState(submission.resolvedOpponentPlayerId ?? "");
@@ -2261,6 +2297,20 @@ function SubmissionCardSurface({
     submission.status === "needs_review" ||
     submission.status === "new" ||
     submission.status === "needs_clarification";
+
+  function deleteSubmission() {
+    const linkedReportWarning = publishedReport ? " and its published Match Report" : "";
+    if (!window.confirm(`Delete this form submission${linkedReportWarning}? This cannot be undone.`)) return;
+    setMessage(null);
+    startTransition(async () => {
+      const result = await deleteFormSubmissionAction(submission.id);
+      if (!result.success) {
+        setMessage(result.message);
+        return;
+      }
+      onDeleted();
+    });
+  }
 
   return (
     <div className="space-y-4">
@@ -2294,6 +2344,15 @@ function SubmissionCardSurface({
               <option value="archived">Archived</option>
               <option value="rejected">Rejected</option>
             </select>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={deleteSubmission}
+              className="inline-flex h-9 items-center gap-1.5 rounded-control border border-red-300 bg-surface px-3 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+            >
+              <Trash2 className="h-3.5 w-3.5" aria-hidden />
+              {pending ? "Deleting…" : "Delete report"}
+            </button>
           </div>
         }
       />

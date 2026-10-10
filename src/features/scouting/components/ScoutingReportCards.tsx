@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, Sparkles } from "lucide-react";
+import { FileText, Sparkles, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 
 import {
@@ -430,19 +430,26 @@ export function ScoutingTeamReportCard({
 export function ScoutingSubmissionPreviewCard({
   submission,
   onOpen,
+  onDelete,
+  deleting = false,
 }: {
   submission: ScoutingFormSubmission;
   onOpen: (submission: ScoutingFormSubmission) => void;
+  onDelete?: () => void;
+  deleting?: boolean;
 }) {
   return (
-    <button
-      type="button"
+    <div
       data-scouting-report-card=""
       data-scouting-submission-preview=""
-      onClick={() => onOpen(submission)}
-      className="flex w-full flex-col rounded-card border border-[var(--module-border)] bg-surface px-3.5 py-3 text-left shadow-[0_4px_14px_rgba(17,24,39,0.03)] transition-colors hover:bg-[var(--module-tint)]/35"
+      className="relative rounded-card border border-[var(--module-border)] bg-surface shadow-[0_4px_14px_rgba(17,24,39,0.03)]"
     >
-      <div className="flex items-start gap-2.5">
+      <button
+        type="button"
+        onClick={() => onOpen(submission)}
+        className="flex w-full flex-col px-3.5 py-3 pr-12 text-left transition-colors hover:bg-[var(--module-tint)]/35"
+      >
+        <span className="flex items-start gap-2.5">
         {submission.teamDisplayName ? <TeamMark name={submission.teamDisplayName} size={28} /> : null}
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-semibold text-text-primary">
@@ -460,11 +467,24 @@ export function ScoutingSubmissionPreviewCard({
               : ""}
           </span>
         </span>
-      </div>
-      <p className="mt-2 line-clamp-3 text-sm text-text-primary">
+        </span>
+        <span className="mt-2 line-clamp-3 text-sm text-text-primary">
         <PreviewBody text={submission.strengthsWeaknesses || submission.scoutingReport} />
-      </p>
-    </button>
+        </span>
+      </button>
+      {onDelete ? (
+        <button
+          type="button"
+          aria-label={`Delete ${submission.opponentDisplayName || "form submission"}`}
+          title="Delete report"
+          disabled={deleting}
+          onClick={onDelete}
+          className="absolute top-2.5 right-2.5 inline-flex h-8 w-8 items-center justify-center rounded-control border border-red-200 text-red-700 hover:bg-red-50 disabled:opacity-50"
+        >
+          <Trash2 className={`h-4 w-4 ${deleting ? "animate-pulse" : ""}`} aria-hidden />
+        </button>
+      ) : null}
+    </div>
   );
 }
 

@@ -10,6 +10,7 @@ import {
   backfillUnpromotedSubmissions,
   createFormLink,
   deleteDirectReport,
+  deleteFormSubmission,
   getPlayerWorkspace,
   getTeamWorkspace,
   mapScoutingTeamAlias,
@@ -133,6 +134,22 @@ export async function deleteDirectReportAction(reportId: string) {
     return {
       success: false as const,
       message: error instanceof Error ? error.message : "Could not delete report.",
+    };
+  }
+}
+
+export async function deleteFormSubmissionAction(submissionId: string) {
+  const auth = await requireScoutingWriteUser();
+  if (!auth.ok) return { success: false as const, message: auth.error };
+  if (!submissionId.trim()) return { success: false as const, message: "Form submission is required." };
+  try {
+    const result = await deleteFormSubmission(submissionId);
+    revalidateScouting();
+    return { success: true as const, ...result };
+  } catch (error) {
+    return {
+      success: false as const,
+      message: error instanceof Error ? error.message : "Could not delete form submission.",
     };
   }
 }

@@ -358,6 +358,16 @@ export async function deleteDirectReport(id: string): Promise<void> {
   await markPlayersAiStale(playerIdsToMarkAiStale(previousOpponentPlayerId, null));
 }
 
+export async function deleteFormSubmission(id: string): Promise<{ deletedReportCount: number }> {
+  const client = await createSupabaseServerClient();
+  const { data, error } = await client.rpc("scouting_delete_form_submission", {
+    p_submission_id: id,
+  });
+  if (error) throw new Error(error.message);
+  const row = Array.isArray(data) ? data[0] : data;
+  return { deletedReportCount: Number(row?.deleted_report_count ?? 0) };
+}
+
 async function markPlayersAiStale(opponentPlayerIds: string[]) {
   if (!opponentPlayerIds.length) return;
   const client = await createSupabaseServerClient();
