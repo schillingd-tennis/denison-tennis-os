@@ -632,6 +632,26 @@ test("form validation and drawer field label weight contract", () => {
   assert.equal(parseHandedness("Both"), undefined);
   assert.equal(parseDoubles("true"), true);
 
+  const directDoublesForm = new FormData();
+  directDoublesForm.set("teamId", "team-1");
+  directDoublesForm.set("isDoubles", "true");
+  directDoublesForm.set("opponentOneName", "Kelley");
+  directDoublesForm.set("opponentOneHandedness", "Right");
+  directDoublesForm.set("opponentTwoName", "Yang");
+  directDoublesForm.set("opponentTwoHandedness", "Left");
+  directDoublesForm.set("deuceSide", "opponent_1");
+  directDoublesForm.set("adSide", "opponent_2");
+  directDoublesForm.set("servesFirst", "opponent_2");
+  const parsedDirectDoubles = readDirectReportFormData(directDoublesForm);
+  assert.equal(parsedDirectDoubles.ok, true);
+  if (parsedDirectDoubles.ok) {
+    assert.equal(parsedDirectDoubles.payload.opponent_display_name, "Kelley / Yang");
+    assert.equal(parsedDirectDoubles.payload.doubles_details?.deuceSide, "opponent_1");
+    assert.equal(parsedDirectDoubles.payload.doubles_details?.servesFirst, "opponent_2");
+    assert.equal(parsedDirectDoubles.payload.doubles_details?.opponentOneHandedness, "Right");
+    assert.equal(parsedDirectDoubles.payload.doubles_details?.opponentTwoHandedness, "Left");
+  }
+
   const publicForm = new FormData();
   publicForm.set("reportType", "singles");
   publicForm.set("opponentDisplayName", "Test Player");
@@ -641,7 +661,9 @@ test("form validation and drawer field label weight contract", () => {
   const doublesForm = new FormData();
   doublesForm.set("reportType", "doubles");
   doublesForm.set("opponentDisplayName", "Player One");
+  doublesForm.set("opponentOneHandedness", "Left");
   doublesForm.set("opponentTwoDisplayName", "Player Two");
+  doublesForm.set("opponentTwoHandedness", "Right");
   doublesForm.set("deuceSide", "opponent_1");
   doublesForm.set("adSide", "opponent_2");
   doublesForm.set("servesFirst", "opponent_1");
@@ -651,6 +673,8 @@ test("form validation and drawer field label weight contract", () => {
   if (parsedDoubles.ok) {
     assert.equal(parsedDoubles.payload.reportType, "doubles");
     assert.equal(parsedDoubles.payload.doublesDetails?.opponentTwoName, "Player Two");
+    assert.equal(parsedDoubles.payload.doublesDetails?.opponentOneHandedness, "Left");
+    assert.equal(parsedDoubles.payload.doublesDetails?.opponentTwoHandedness, "Right");
   }
 
   doublesForm.set("adSide", "opponent_1");
@@ -661,6 +685,9 @@ test("form validation and drawer field label weight contract", () => {
     "utf8",
   );
   assert.match(workspace, /DrawerField/);
+  assert.match(workspace, /data-doubles-alignment-editor/);
+  assert.match(workspace, /opponentOneHandedness/);
+  assert.match(workspace, /opponentTwoHandedness/);
   assert.doesNotMatch(workspace, /DrawerField[\s\S]{0,80}font-semibold/);
   const drawerField = readFileSync(
     fileURLToPath(new URL("../../components/workspace-drawer/DrawerField.tsx", import.meta.url)),

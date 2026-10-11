@@ -18,8 +18,10 @@ export type ScoutingReportType = "singles" | "doubles";
 export type ScoutingDoublesDetails = {
   opponentOneName: string;
   opponentOnePosition: string;
+  opponentOneHandedness: Handedness | null;
   opponentTwoName: string;
   opponentTwoPosition: string;
+  opponentTwoHandedness: Handedness | null;
   deuceSide: "opponent_1" | "opponent_2" | "";
   adSide: "opponent_1" | "opponent_2" | "";
   servesFirst: "opponent_1" | "opponent_2" | "";

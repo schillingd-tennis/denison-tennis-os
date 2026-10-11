@@ -2847,6 +2847,10 @@ function DirectReportForm({
   const [message, setMessage] = useState<string>();
   const [pending, startTransition] = useTransition();
   const [teamId, setTeamId] = useState(report?.teamId ?? teams[0]?.id ?? "");
+  const [isDoubles, setIsDoubles] = useState(report?.isDoubles ?? false);
+  const fallbackNames = (report?.opponentDisplayName ?? "").split(/\s*\/\s*/, 2);
+  const [opponentOneName, setOpponentOneName] = useState(report?.doublesDetails?.opponentOneName ?? fallbackNames[0] ?? "");
+  const [opponentTwoName, setOpponentTwoName] = useState(report?.doublesDetails?.opponentTwoName ?? fallbackNames[1] ?? "");
   const activeForTeam = players.filter((player) => player.teamId === teamId);
   const archivedForTeam = archivedPlayers.filter((player) => player.teamId === teamId);
 
@@ -2901,6 +2905,29 @@ function DirectReportForm({
       <DrawerField label="Opponent display name">
         <input name="opponentDisplayName" defaultValue={report?.opponentDisplayName ?? ""} className="h-10 w-full rounded-control border border-border px-3 text-sm" />
       </DrawerField>
+      <label className="flex items-center gap-2 text-sm font-medium text-text-primary">
+        <input name="isDoubles" type="checkbox" value="true" checked={isDoubles} onChange={(event) => setIsDoubles(event.target.checked)} />
+        Doubles
+      </label>
+      {isDoubles ? (
+        <section className="space-y-4 border-l-4 border-indigo-400 bg-indigo-50 p-4" data-doubles-alignment-editor="">
+          <div>
+            <h3 className="text-sm font-semibold text-indigo-950">Doubles alignment</h3>
+            <p className="mt-1 text-xs text-indigo-700">Assign each opponent to the deuce and ad courts, then identify who served first.</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <DrawerField label="Opponent 1 name"><input name="opponentOneName" value={opponentOneName} onChange={(event) => setOpponentOneName(event.target.value)} required className="h-10 w-full rounded-control border border-border px-3 text-sm" /></DrawerField>
+            <DrawerField label="Opponent 1 handedness"><DoublesHandednessSelect name="opponentOneHandedness" defaultValue={report?.doublesDetails?.opponentOneHandedness ?? ""} /></DrawerField>
+            <DrawerField label="Opponent 2 name"><input name="opponentTwoName" value={opponentTwoName} onChange={(event) => setOpponentTwoName(event.target.value)} required className="h-10 w-full rounded-control border border-border px-3 text-sm" /></DrawerField>
+            <DrawerField label="Opponent 2 handedness"><DoublesHandednessSelect name="opponentTwoHandedness" defaultValue={report?.doublesDetails?.opponentTwoHandedness ?? ""} /></DrawerField>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <DoublesPlayerSelect name="deuceSide" label="Deuce side" opponentOneName={opponentOneName} opponentTwoName={opponentTwoName} defaultValue={report?.doublesDetails?.deuceSide ?? ""} />
+            <DoublesPlayerSelect name="adSide" label="Ad side" opponentOneName={opponentOneName} opponentTwoName={opponentTwoName} defaultValue={report?.doublesDetails?.adSide ?? ""} />
+            <DoublesPlayerSelect name="servesFirst" label="Serves first" opponentOneName={opponentOneName} opponentTwoName={opponentTwoName} defaultValue={report?.doublesDetails?.servesFirst ?? ""} />
+          </div>
+        </section>
+      ) : null}
       <DrawerField label="Match date">
         <input name="matchDate" type="date" defaultValue={report?.matchDate ?? ""} className="h-10 w-full rounded-control border border-border px-3 text-sm" />
       </DrawerField>
@@ -2920,10 +2947,6 @@ function DirectReportForm({
       <DrawerField label="Scouting report">
         <textarea name="scoutingReport" defaultValue={report?.scoutingReport ?? ""} rows={3} className="w-full rounded-control border border-border px-3 py-2 text-sm" />
       </DrawerField>
-      <label className="flex items-center gap-2 text-sm font-medium text-text-primary">
-        <input name="isDoubles" type="checkbox" value="true" defaultChecked={report?.isDoubles ?? false} />
-        Doubles
-      </label>
       {message ? <p className="text-sm text-danger">{message}</p> : null}
       <div className="flex gap-2">
         <button
@@ -2938,6 +2961,28 @@ function DirectReportForm({
         </button>
       </div>
     </form>
+  );
+}
+
+function DoublesPlayerSelect({ name, label, opponentOneName, opponentTwoName, defaultValue }: { name: string; label: string; opponentOneName: string; opponentTwoName: string; defaultValue: string }) {
+  return (
+    <DrawerField label={label}>
+      <select name={name} defaultValue={defaultValue} required className="h-10 w-full rounded-control border border-border px-3 text-sm">
+        <option value="" disabled>Select player</option>
+        <option value="opponent_1" disabled={!opponentOneName.trim()}>{opponentOneName.trim() || "Opponent 1"}</option>
+        <option value="opponent_2" disabled={!opponentTwoName.trim()}>{opponentTwoName.trim() || "Opponent 2"}</option>
+      </select>
+    </DrawerField>
+  );
+}
+
+function DoublesHandednessSelect({ name, defaultValue }: { name: string; defaultValue: string }) {
+  return (
+    <select name={name} defaultValue={defaultValue} className="h-10 w-full rounded-control border border-border px-3 text-sm">
+      <option value="">Unknown</option>
+      <option value="Right">Right</option>
+      <option value="Left">Left</option>
+    </select>
   );
 }
 

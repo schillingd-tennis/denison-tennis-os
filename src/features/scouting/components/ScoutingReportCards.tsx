@@ -76,10 +76,12 @@ function DoublesDetails({ details }: { details: NonNullable<ScoutingDirectReport
       <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <DrawerField label="Opponent 1">
           <p className="text-sm text-text-primary">{details.opponentOneName || EMPTY_VALUE}</p>
+          <p className="text-xs text-text-secondary">{details.opponentOneHandedness ? `${details.opponentOneHandedness}-handed` : "Handedness unknown"}</p>
           {details.opponentOnePosition ? <p className="text-xs text-text-secondary">{details.opponentOnePosition}</p> : null}
         </DrawerField>
         <DrawerField label="Opponent 2">
           <p className="text-sm text-text-primary">{details.opponentTwoName || EMPTY_VALUE}</p>
+          <p className="text-xs text-text-secondary">{details.opponentTwoHandedness ? `${details.opponentTwoHandedness}-handed` : "Handedness unknown"}</p>
           {details.opponentTwoPosition ? <p className="text-xs text-text-secondary">{details.opponentTwoPosition}</p> : null}
         </DrawerField>
         <DrawerField label="Deuce side"><p className="text-sm text-text-primary">{doublesPlayerLabel(details, details.deuceSide)}</p></DrawerField>

@@ -133,11 +133,15 @@ function doublesDetails(value: unknown): ScoutingDoublesDetails | null {
   const row = value as Record<string, unknown>;
   const side = (entry: unknown) =>
     entry === "opponent_1" || entry === "opponent_2" ? entry : "";
+  const handedness = (entry: unknown) =>
+    entry === "Right" || entry === "Left" ? entry : null;
   return {
     opponentOneName: typeof row.opponentOneName === "string" ? row.opponentOneName : "",
     opponentOnePosition: typeof row.opponentOnePosition === "string" ? row.opponentOnePosition : "",
+    opponentOneHandedness: handedness(row.opponentOneHandedness),
     opponentTwoName: typeof row.opponentTwoName === "string" ? row.opponentTwoName : "",
     opponentTwoPosition: typeof row.opponentTwoPosition === "string" ? row.opponentTwoPosition : "",
+    opponentTwoHandedness: handedness(row.opponentTwoHandedness),
     deuceSide: side(row.deuceSide),
     adSide: side(row.adSide),
     servesFirst: side(row.servesFirst),

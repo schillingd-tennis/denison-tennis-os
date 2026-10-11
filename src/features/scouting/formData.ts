@@ -35,6 +35,8 @@ export type DirectReportFormParse =
         scouting_report: string | null;
         report_by: string | null;
         is_doubles: boolean;
+        report_type: ScoutingReportType;
+        doubles_details: ScoutingDoublesDetails | null;
         source: "coach_entry";
         import_status: ImportStatus;
       };
@@ -51,6 +53,44 @@ export function readDirectReportFormData(formData: FormData): DirectReportFormPa
   if (handedness === undefined) return { ok: false, message: "Handedness must be Right, Left, or blank." };
 
   const matchDate = optionalText(formData.get("matchDate"));
+  const isDoubles = parseDoubles(formData.get("isDoubles"));
+  let doublesDetails: ScoutingDoublesDetails | null = null;
+  if (isDoubles) {
+    const opponentOneName = String(formData.get("opponentOneName") ?? "").trim();
+    const opponentTwoName = String(formData.get("opponentTwoName") ?? "").trim();
+    const opponentOneHandedness = parseHandedness(formData.get("opponentOneHandedness"));
+    const opponentTwoHandedness = parseHandedness(formData.get("opponentTwoHandedness"));
+    const deuceSide = String(formData.get("deuceSide") ?? "");
+    const adSide = String(formData.get("adSide") ?? "");
+    const servesFirst = String(formData.get("servesFirst") ?? "");
+    if (!opponentOneName || !opponentTwoName) {
+      return { ok: false, message: "Add both doubles opponent names." };
+    }
+    if (opponentOneHandedness === undefined || opponentTwoHandedness === undefined) {
+      return { ok: false, message: "Each doubles handedness must be Right, Left, or blank." };
+    }
+    if (
+      (deuceSide !== "opponent_1" && deuceSide !== "opponent_2") ||
+      (adSide !== "opponent_1" && adSide !== "opponent_2") ||
+      deuceSide === adSide
+    ) {
+      return { ok: false, message: "Choose a different player for the deuce and ad sides." };
+    }
+    if (servesFirst !== "opponent_1" && servesFirst !== "opponent_2") {
+      return { ok: false, message: "Choose who serves first." };
+    }
+    doublesDetails = {
+      opponentOneName,
+      opponentOnePosition: "",
+      opponentOneHandedness,
+      opponentTwoName,
+      opponentTwoPosition: "",
+      opponentTwoHandedness,
+      deuceSide,
+      adSide,
+      servesFirst,
+    };
+  }
 
   return {
     ok: true,
@@ -58,7 +98,9 @@ export function readDirectReportFormData(formData: FormData): DirectReportFormPa
     payload: {
       team_id: teamId,
       opponent_player_id: optionalText(formData.get("opponentPlayerId")),
-      opponent_display_name: opponentDisplayName,
+      opponent_display_name: doublesDetails
+        ? `${doublesDetails.opponentOneName} / ${doublesDetails.opponentTwoName}`
+        : opponentDisplayName,
       match_date: matchDate,
       match_date_raw: matchDate,
       handedness,
@@ -66,7 +108,9 @@ export function readDirectReportFormData(formData: FormData): DirectReportFormPa
       strengths_weaknesses: optionalText(formData.get("strengthsWeaknesses")),
       scouting_report: optionalText(formData.get("scoutingReport")),
       report_by: optionalText(formData.get("reportBy")),
-      is_doubles: parseDoubles(formData.get("isDoubles")),
+      is_doubles: isDoubles,
+      report_type: isDoubles ? "doubles" : "singles",
+      doubles_details: doublesDetails,
       source: "coach_entry",
       import_status: "imported",
     },
@@ -108,10 +152,15 @@ export function readPublicScoutingFormData(formData: FormData): PublicFormParse 
   let doublesDetails: ScoutingDoublesDetails | null = null;
   if (reportType === "doubles") {
     const opponentTwoName = String(formData.get("opponentTwoDisplayName") ?? "").trim();
+    const opponentOneHandedness = parseHandedness(formData.get("opponentOneHandedness"));
+    const opponentTwoHandedness = parseHandedness(formData.get("opponentTwoHandedness"));
     const deuceSide = String(formData.get("deuceSide") ?? "");
     const adSide = String(formData.get("adSide") ?? "");
     const servesFirst = String(formData.get("servesFirst") ?? "");
     if (!opponentTwoName) return { ok: false, message: "Add both doubles opponents before submitting." };
+    if (opponentOneHandedness === undefined || opponentTwoHandedness === undefined) {
+      return { ok: false, message: "Each doubles handedness must be Right, Left, or blank." };
+    }
     if (
       (deuceSide !== "opponent_1" && deuceSide !== "opponent_2") ||
       (adSide !== "opponent_1" && adSide !== "opponent_2") ||
@@ -125,8 +174,10 @@ export function readPublicScoutingFormData(formData: FormData): PublicFormParse 
     doublesDetails = {
       opponentOneName: opponentDisplayName,
       opponentOnePosition: String(formData.get("opponentOnePosition") ?? "").trim(),
+      opponentOneHandedness,
       opponentTwoName,
       opponentTwoPosition: String(formData.get("opponentTwoPosition") ?? "").trim(),
+      opponentTwoHandedness,
       deuceSide,
       adSide,
       servesFirst,
