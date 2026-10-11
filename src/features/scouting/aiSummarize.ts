@@ -17,6 +17,20 @@ export type ScoutEvidence = {
   scoutingReport: string;
   handedness?: string | null;
   source?: string;
+  subjectKey?: string;
+  subjectLabel?: string;
+  subjectType?: "player" | "doubles";
+};
+
+export type TeamScoutSubject = {
+  subjectKey: string;
+  subjectLabel: string;
+  subjectType: "player" | "doubles";
+};
+
+export type TeamScoutSection = TeamScoutSubject & {
+  summary: string;
+  priorities: string[];
 };
 
 export type ScoutSummaryResult =
@@ -223,5 +237,66 @@ export async function summarizeScoutingWithOpenAi(input: {
     return parseScoutSummaryResponse(content, evidenceIds, model);
   } catch {
     return { error: "AI provider request failed." };
+  }
+}
+
+export async function summarizeTeamReportWithOpenAi(input: {
+  teamLabel: string;
+  subjects: TeamScoutSubject[];
+  evidence: ScoutEvidence[];
+  apiKey?: string;
+  model?: string;
+  fetchImpl?: typeof fetch;
+}): Promise<{ body: string; quickSummaryBullets: string[]; sections: TeamScoutSection[]; citedDirectReportIds: string[]; model: string } | { error: string }> {
+  if (!input.subjects.length || !input.evidence.length) return { error: "Choose at least one subject with scouting evidence." };
+  const directKey = input.apiKey !== undefined ? input.apiKey.trim() : process.env.OPENAI_API_KEY?.trim();
+  const gatewayKey = input.apiKey === undefined ? process.env.AI_GATEWAY_API_KEY?.trim() || process.env.VERCEL_OIDC_TOKEN?.trim() : undefined;
+  const apiKey = directKey || gatewayKey;
+  if (!apiKey) return { error: AI_SCOUTING_UNAVAILABLE };
+  const usesGateway = !directKey && Boolean(gatewayKey);
+  const configuredModel = input.model ?? process.env.OPENAI_SCOUTING_MODEL?.trim() ?? process.env.OPENAI_INTRA_SQUAD_MODEL?.trim();
+  const model = configuredModel ? usesGateway && !configuredModel.includes("/") ? `openai/${configuredModel}` : configuredModel : usesGateway ? "openai/gpt-4o-mini" : "gpt-4o-mini";
+  const endpoint = usesGateway ? "https://ai-gateway.vercel.sh/v1/chat/completions" : "https://api.openai.com/v1/chat/completions";
+  const subjectKeys = new Set(input.subjects.map((subject) => subject.subjectKey));
+  try {
+    const response = await (input.fetchImpl ?? fetch)(endpoint, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        temperature: 0.2,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: "Create a concise, coach-ready tennis team scouting report using only supplied evidence. Return JSON with team_overview (string), team_priorities (3-6 strings), and sections. Include exactly one section per requested subject, in requested order. Each section must contain subject_key, subject_type, subject_label, summary (2-4 concise sentences), and priorities (2-4 short actionable strings). Note thin or conflicting evidence instead of inventing facts. Distinguish singles players from doubles teams." },
+          { role: "user", content: [
+            `Team: ${input.teamLabel}`,
+            `Requested subjects: ${JSON.stringify(input.subjects)}`,
+            "Evidence:",
+            ...input.evidence.map((item) => `${item.subjectKey} | ${item.subjectLabel} | ${item.subjectType} | id=${item.id} | date=${item.matchDate ?? "unknown"} | notes=${item.strengthsWeaknesses || "(none)"} | report=${item.scoutingReport || "(none)"}`),
+          ].join("\n") },
+        ],
+      }),
+    });
+    if (!response.ok) return { error: `AI provider error (${response.status}).` };
+    const json = (await response.json()) as { choices?: Array<{ message?: { content?: string } }> };
+    const raw = json.choices?.[0]?.message?.content?.trim();
+    if (!raw) return { error: "AI returned an empty team report." };
+    const parsed = JSON.parse(extractJsonObject(raw) ?? raw) as { team_overview?: unknown; team_priorities?: unknown; sections?: unknown };
+    const byKey = new Map<string, TeamScoutSection>();
+    if (Array.isArray(parsed.sections)) for (const entry of parsed.sections) {
+      if (!entry || typeof entry !== "object") continue;
+      const row = entry as Record<string, unknown>;
+      const key = typeof row.subject_key === "string" ? row.subject_key : "";
+      const expected = input.subjects.find((subject) => subject.subjectKey === key);
+      if (!expected || !subjectKeys.has(key) || typeof row.summary !== "string") continue;
+      byKey.set(key, { ...expected, summary: row.summary.trim(), priorities: normalizeBullets(row.priorities).slice(0, 4) });
+    }
+    const sections = input.subjects.map((subject) => byKey.get(subject.subjectKey)).filter((section): section is TeamScoutSection => Boolean(section));
+    if (sections.length !== input.subjects.length) return { error: "AI did not return a complete summary for every selected subject." };
+    const body = typeof parsed.team_overview === "string" ? parsed.team_overview.trim() : "";
+    const quickSummaryBullets = normalizeBullets(parsed.team_priorities).slice(0, 6);
+    return { body, quickSummaryBullets, sections, citedDirectReportIds: input.evidence.map((item) => item.id), model };
+  } catch {
+    return { error: "AI provider returned an invalid team report." };
   }
 }

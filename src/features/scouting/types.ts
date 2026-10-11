@@ -116,6 +116,8 @@ export type ScoutingTeamReport = {
   subjectKey: string;
   subjectLabel: string;
   includedSubjectKeys: string[];
+  sections: ScoutingTeamReportSection[];
+  layoutPages: 1 | 2;
   status: ReportReviewStatus;
   citedDirectReportIds: string[];
   citedPlayerReportIds: string[];
@@ -123,6 +125,14 @@ export type ScoutingTeamReport = {
   stale: boolean;
   generatedAt: string | null;
   reviewedAt: string | null;
+};
+
+export type ScoutingTeamReportSection = {
+  subjectKey: string;
+  subjectType: "player" | "doubles";
+  subjectLabel: string;
+  summary: string;
+  priorities: string[];
 };
 
 export type ScoutingFormLink = {

@@ -31,7 +31,7 @@ import type {
   ScoutingTeamReport,
 } from "./types";
 import type { ScoutEvidence } from "./aiSummarize";
-import { summarizeScoutingWithOpenAi, type ScoutSummarizeFn } from "./aiSummarize";
+import { summarizeScoutingWithOpenAi, summarizeTeamReportWithOpenAi, type ScoutSummarizeFn } from "./aiSummarize";
 import { playerIdsToMarkAiStale, selectPlayerAiEvidenceReports } from "./overviewMetrics";
 import { normalizeDoublesKey } from "./doublesIdentity";
 
@@ -494,8 +494,8 @@ export async function markPlayerAiReviewed(reportId: string): Promise<ScoutingPl
 
 export async function regenerateTeamAiReport(
   teamId: string,
-  selection?: { playerIds: string[]; doublesKeys: string[] },
-  summarize: ScoutSummarizeFn = summarizeScoutingWithOpenAi,
+  selection?: { playerIds: string[]; doublesKeys: string[]; layoutPages?: 1 | 2 },
+  summarize = summarizeTeamReportWithOpenAi,
 ): Promise<ScoutingTeamReport | { error: string }> {
   const workspace = await getTeamWorkspace(teamId);
   if (!workspace.team) return { error: "Team not found." };
@@ -509,6 +509,14 @@ export async function regenerateTeamAiReport(
       : Boolean(report.opponentPlayerId && selectedPlayerIds.has(report.opponentPlayerId)),
   );
   if (!selectedReports.length) return { error: "Choose at least one player or doubles team with reports." };
+  const subjects = [
+    ...workspace.players.filter((player) => selectedPlayerIds.has(player.id)).map((player) => ({ subjectKey: `player:${player.id}`, subjectLabel: player.displayName, subjectType: "player" as const })),
+    ...[...selectedDoublesKeys].map((key) => ({
+      subjectKey: `doubles:${key}`,
+      subjectLabel: selectedReports.find((report) => report.isDoubles && normalizeDoublesKey(report.opponentDisplayName) === key)?.opponentDisplayName ?? key,
+      subjectType: "doubles" as const,
+    })),
+  ];
   const evidence: ScoutEvidence[] = selectedReports.map((report) => ({
     id: report.id,
     matchDate: report.matchDate,
@@ -517,10 +525,13 @@ export async function regenerateTeamAiReport(
     opponentDisplayName: report.opponentDisplayName,
     strengthsWeaknesses: report.strengthsWeaknesses,
     scoutingReport: report.scoutingReport,
+    subjectKey: report.isDoubles ? `doubles:${normalizeDoublesKey(report.opponentDisplayName)}` : `player:${report.opponentPlayerId}`,
+    subjectLabel: report.opponentDisplayName,
+    subjectType: report.isDoubles ? "doubles" : "player",
   }));
   const summary = await summarize({
-    subjectLabel: workspace.team.displayName,
-    kind: "team",
+    teamLabel: workspace.team.displayName,
+    subjects,
     evidence,
   });
   if ("error" in summary) return summary;
@@ -543,6 +554,8 @@ export async function regenerateTeamAiReport(
     subject_label: workspace.team.displayName,
     included_subject_keys: [
       ...selectedPlayerIds].map((id) => `player:${id}`).concat([...selectedDoublesKeys].map((key) => `doubles:${key}`)),
+    report_sections: summary.sections,
+    layout_pages: selection?.layoutPages === 1 ? 1 : 2,
     status: "draft",
     cited_direct_report_ids: summary.citedDirectReportIds,
     cited_player_report_ids: [],

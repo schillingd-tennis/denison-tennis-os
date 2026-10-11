@@ -2660,8 +2660,11 @@ function TeamWorkspaceDrawer({
   const [pending, startTransition] = useTransition();
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
   const [selectedDoublesKeys, setSelectedDoublesKeys] = useState<string[]>([]);
+  const [builderStep, setBuilderStep] = useState<"select" | "preview">("select");
+  const [layoutPages, setLayoutPages] = useState<1 | 2>(2);
   const identity = resolveScoutingTeamIdentity(team.displayName);
   const doublesChoices = useMemo(() => Array.from(new Map(reports.filter((report) => report.isDoubles).map((report) => [normalizeDoublesKey(report.opponentDisplayName), report.opponentDisplayName])).entries()), [reports]);
+  const aiTeamReport = teamReports.find((report) => report.kind === "ai_generated" && report.subjectType === "team") ?? null;
 
   useEffect(() => {
     startTransition(async () => {
@@ -2724,12 +2727,17 @@ function TeamWorkspaceDrawer({
         />
       </DrawerField>
       <section className="border-l-4 border-indigo-500 bg-indigo-50 p-4" data-team-ai-builder="">
-        <p className="text-[10px] font-bold tracking-widest text-indigo-700 uppercase">Step 1 · Choose report subjects</p>
-        <p className="mt-1 text-sm text-indigo-950">Select the singles players and doubles teams to include in the AI Team Report.</p>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <fieldset><legend className="text-xs font-semibold text-indigo-900">Singles players</legend>{players.map((player) => <label key={player.id} className="mt-2 flex gap-2 text-sm"><input type="checkbox" checked={selectedPlayerIds.includes(player.id)} onChange={(event) => setSelectedPlayerIds((current) => event.target.checked ? [...current, player.id] : current.filter((id) => id !== player.id))} />{player.displayName}</label>)}</fieldset>
-          <fieldset><legend className="text-xs font-semibold text-indigo-900">Doubles teams</legend>{doublesChoices.map(([key, label]) => <label key={key} className="mt-2 flex gap-2 text-sm"><input type="checkbox" checked={selectedDoublesKeys.includes(key)} onChange={(event) => setSelectedDoublesKeys((current) => event.target.checked ? [...current, key] : current.filter((id) => id !== key))} />{label}</label>)}</fieldset>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div><p className="text-[10px] font-bold tracking-widest text-indigo-700 uppercase">AI Team Report Builder</p><p className="mt-1 text-sm text-indigo-950">Choose subjects, then generate a compact coach-ready report.</p></div>
+          <div className="flex gap-1"><button type="button" onClick={() => setBuilderStep("select")} className={`rounded-control px-2.5 py-1.5 text-xs font-semibold ${builderStep === "select" ? "bg-indigo-700 text-white" : "border border-indigo-200 text-indigo-800"}`}>1 · Select</button><button type="button" onClick={() => setBuilderStep("preview")} disabled={!aiTeamReport} className={`rounded-control px-2.5 py-1.5 text-xs font-semibold disabled:opacity-40 ${builderStep === "preview" ? "bg-indigo-700 text-white" : "border border-indigo-200 text-indigo-800"}`}>2 · Preview</button></div>
         </div>
+        {builderStep === "select" ? <>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <fieldset><legend className="text-xs font-semibold text-indigo-900">Singles players</legend>{players.map((player) => <label key={player.id} className="mt-2 flex min-h-9 items-center gap-2 rounded-control bg-white/70 px-2 text-sm"><input type="checkbox" checked={selectedPlayerIds.includes(player.id)} onChange={(event) => setSelectedPlayerIds((current) => event.target.checked ? [...current, player.id] : current.filter((id) => id !== player.id))} /><span className="flex-1">{player.displayName}</span><span className="text-[10px] text-indigo-600">{player.directReportCount} reports</span></label>)}</fieldset>
+            <fieldset><legend className="text-xs font-semibold text-indigo-900">Doubles teams</legend>{doublesChoices.map(([key, label]) => <label key={key} className="mt-2 flex min-h-9 items-center gap-2 rounded-control bg-white/70 px-2 text-sm"><input type="checkbox" checked={selectedDoublesKeys.includes(key)} onChange={(event) => setSelectedDoublesKeys((current) => event.target.checked ? [...current, key] : current.filter((id) => id !== key))} /><span className="flex-1">{label}</span><span className="text-[10px] text-indigo-600">Doubles</span></label>)}</fieldset>
+          </div>
+          <div className="mt-4 flex flex-wrap items-end justify-between gap-3 border-t border-indigo-200 pt-3"><div><p className="text-xs font-semibold text-indigo-900">Report length</p><div className="mt-1 flex gap-3"><label className="text-sm"><input type="radio" name="team-report-pages" checked={layoutPages === 1} onChange={() => setLayoutPages(1)} /> One page</label><label className="text-sm"><input type="radio" name="team-report-pages" checked={layoutPages === 2} onChange={() => setLayoutPages(2)} /> Two pages</label></div></div><p className="text-xs text-indigo-700">{selectedPlayerIds.length + selectedDoublesKeys.length} subjects selected</p></div>
+        </> : aiTeamReport ? <TeamAiPrintPreview report={aiTeamReport} teamName={team.displayName} /> : null}
       </section>
       <div className="flex flex-wrap gap-2">
         <button
@@ -2751,19 +2759,20 @@ function TeamWorkspaceDrawer({
           className="inline-flex items-center gap-1 rounded-control border border-border px-3 py-2 text-sm font-semibold"
           onClick={() =>
             startTransition(async () => {
-              const result = await regenerateTeamAiAction(team.id, { playerIds: selectedPlayerIds, doublesKeys: selectedDoublesKeys });
+              const result = await regenerateTeamAiAction(team.id, { playerIds: selectedPlayerIds, doublesKeys: selectedDoublesKeys, layoutPages });
               if (result.success) {
                 setTeamReports((current) => {
                   const withoutAi = current.filter((row) => row.kind !== "ai_generated");
                   return [...withoutAi, result.report];
                 });
                 setMessage("Team AI summary generated (draft).");
+                setBuilderStep("preview");
               } else setMessage(result.message);
             })
           }
         >
           <RefreshCw className="h-3.5 w-3.5" />
-          Generate AI team summary
+          Generate team report
         </button>
       </div>
       {teamReports.map((report) => (
@@ -2780,6 +2789,24 @@ function TeamWorkspaceDrawer({
       <button type="button" onClick={onClose} className="text-sm font-semibold text-[var(--module-accent-text)]">
         Close
       </button>
+    </div>
+  );
+}
+
+function TeamAiPrintPreview({ report, teamName }: { report: ScoutingTeamReport; teamName: string }) {
+  return (
+    <div className="mt-4 bg-slate-200 p-3" data-team-ai-print-preview="" data-layout-pages={report.layoutPages}>
+      <article className="mx-auto max-w-3xl bg-white p-5 text-slate-950 shadow-sm print:max-w-none print:shadow-none">
+        <header className="flex items-start justify-between gap-3 border-b-4 border-red-800 pb-3">
+          <div><p className="text-[10px] font-bold tracking-widest text-red-800 uppercase">Denison Tennis</p><h3 className="text-lg font-bold">{scoutingTeamCanonicalLabel(teamName)} — Team Scouting Report</h3><p className="text-xs text-slate-500">{report.sections.length} selected subjects · designed for {report.layoutPages} {report.layoutPages === 1 ? "page" : "pages"}</p></div>
+          <span className="rounded-control bg-indigo-100 px-2 py-1 text-[10px] font-bold tracking-wide text-indigo-800">AI-GENERATED</span>
+        </header>
+        {report.body ? <p className="mt-3 text-sm leading-5 text-slate-700">{report.body}</p> : null}
+        {report.quickSummaryBullets.length ? <ul className="mt-3 grid gap-1 pl-5 text-xs text-slate-800 sm:grid-cols-2">{report.quickSummaryBullets.map((bullet) => <li key={bullet} className="list-disc">{bullet}</li>)}</ul> : null}
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {report.sections.map((section) => <section key={section.subjectKey} className={`break-inside-avoid border-l-4 p-3 ${section.subjectType === "doubles" ? "border-indigo-600 bg-indigo-50" : "border-red-800 bg-slate-50"}`}><p className="text-[9px] font-bold tracking-widest text-slate-500 uppercase">{section.subjectType}</p><h4 className="text-sm font-bold">{section.subjectLabel}</h4><p className="mt-1 text-xs leading-5 text-slate-700">{section.summary}</p>{section.priorities.length ? <ul className="mt-2 flex flex-wrap gap-1">{section.priorities.map((priority) => <li key={priority} className="rounded-control bg-white px-2 py-1 text-[10px] font-semibold text-slate-700">{priority}</li>)}</ul> : null}</section>)}
+        </div>
+      </article>
     </div>
   );
 }

@@ -391,6 +391,18 @@ export function ScoutingTeamReportCard({
           <div className="mt-3">
             <FullBody text={report.body} empty="No team report body yet." />
           </div>
+          {isAi && report.sections.length ? (
+            <div className="mt-4 grid gap-3 sm:grid-cols-2" data-team-report-sections="">
+              {report.sections.map((section) => (
+                <section key={section.subjectKey} className={`break-inside-avoid border-l-4 p-3 ${section.subjectType === "doubles" ? "border-indigo-600 bg-white/70" : "border-red-700 bg-white/70"}`}>
+                  <p className="text-[10px] font-bold tracking-wide text-text-secondary uppercase">{section.subjectType}</p>
+                  <h3 className="text-sm font-semibold text-text-primary">{section.subjectLabel}</h3>
+                  <p className="mt-1 whitespace-pre-wrap text-sm text-text-primary">{section.summary}</p>
+                  {section.priorities.length ? <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-text-secondary">{section.priorities.map((priority) => <li key={priority}>{priority}</li>)}</ul> : null}
+                </section>
+              ))}
+            </div>
+          ) : null}
         </WorkspaceSection>
         {report.attachmentRefs.length ? (
           <WorkspaceSection title="Attachment references" tone="neutral">

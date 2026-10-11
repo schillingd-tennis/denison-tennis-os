@@ -213,7 +213,7 @@ export async function saveManualTeamReportAction(teamId: string, body: string) {
 
 export async function regenerateTeamAiAction(
   teamId: string,
-  selection?: { playerIds: string[]; doublesKeys: string[] },
+  selection?: { playerIds: string[]; doublesKeys: string[]; layoutPages?: 1 | 2 },
 ) {
   const auth = await requireScoutingWriteUser();
   if (!auth.ok) return { success: false as const, message: auth.error };

@@ -19,7 +19,9 @@ import {
   buildScoutingSummaryPrompt,
   parseScoutSummaryResponse,
   summarizeScoutingWithOpenAi,
+  summarizeTeamReportWithOpenAi,
 } from "./aiSummarize";
+
 import {
   buildImportAudit,
   classifyCsvRow,
@@ -2070,4 +2072,27 @@ test("25 0069 migration conventions: calls promote, counts-only, no 0067/UTR, 00
   assert.match(workspace, /Reprocess unpromoted submissions/);
   assert.match(workspace, /data-scouting-reprocess-unpromoted/);
   assert.match(workspace, /reprocessUnpromotedSubmissionsAction/);
+});
+
+test("team scouting report builder returns ordered player and doubles sections", async () => {
+  const result = await summarizeTeamReportWithOpenAi({
+    teamLabel: "University of Chicago",
+    subjects: [
+      { subjectKey: "player:p1", subjectType: "player", subjectLabel: "Ajer Sher" },
+      { subjectKey: "doubles:kelley-yang", subjectType: "doubles", subjectLabel: "Kelley / Yang" },
+    ],
+    evidence: [
+      { id: "r1", subjectKey: "player:p1", subjectType: "player", subjectLabel: "Ajer Sher", matchDate: null, reportBy: "Nick", isDoubles: false, opponentDisplayName: "Ajer Sher", strengthsWeaknesses: "Strong forehand", scoutingReport: "" },
+      { id: "r2", subjectKey: "doubles:kelley-yang", subjectType: "doubles", subjectLabel: "Kelley / Yang", matchDate: null, reportBy: "Schills", isDoubles: true, opponentDisplayName: "Kelley / Yang", strengthsWeaknesses: "Strong returns", scoutingReport: "" },
+    ],
+    apiKey: "test-key",
+    model: "test-model",
+    fetchImpl: async () => new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ team_overview: "Compact overview", team_priorities: ["Win the middle"], sections: [{ subject_key: "player:p1", summary: "Forehand-led player.", priorities: ["Attack backhand"] }, { subject_key: "doubles:kelley-yang", summary: "Return-led doubles team.", priorities: ["Serve body"] }] }) } }] }), { status: 200, headers: { "Content-Type": "application/json" } }),
+  });
+  assert.equal("error" in result, false);
+  if (!("error" in result)) {
+    assert.deepEqual(result.sections.map((section) => section.subjectLabel), ["Ajer Sher", "Kelley / Yang"]);
+    assert.deepEqual(result.sections.map((section) => section.subjectType), ["player", "doubles"]);
+    assert.deepEqual(result.citedDirectReportIds, ["r1", "r2"]);
+  }
 });

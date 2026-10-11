@@ -12,6 +12,7 @@ import type {
   ScoutingPlayerReport,
   ScoutingTeam,
   ScoutingTeamReport,
+  ScoutingTeamReportSection,
 } from "./types";
 import type { DirectReportSource } from "./csvImport";
 
@@ -79,6 +80,8 @@ export type TeamReportRow = {
   subject_key?: string | null;
   subject_label?: string | null;
   included_subject_keys?: string[] | null;
+  report_sections?: unknown;
+  layout_pages?: number | null;
   status: string;
   cited_direct_report_ids: string[] | null;
   cited_player_report_ids: string[] | null;
@@ -87,6 +90,23 @@ export type TeamReportRow = {
   generated_at: string | null;
   reviewed_at: string | null;
 };
+
+function teamReportSections(value: unknown): ScoutingTeamReportSection[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((entry) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return [];
+    const row = entry as Record<string, unknown>;
+    const subjectType: "player" | "doubles" | null = row.subjectType === "doubles" ? "doubles" : row.subjectType === "player" ? "player" : null;
+    if (!subjectType || typeof row.subjectKey !== "string" || typeof row.subjectLabel !== "string" || typeof row.summary !== "string") return [];
+    return [{
+      subjectKey: row.subjectKey,
+      subjectType,
+      subjectLabel: row.subjectLabel,
+      summary: row.summary,
+      priorities: Array.isArray(row.priorities) ? row.priorities.filter((item): item is string => typeof item === "string").slice(0, 4) : [],
+    }];
+  });
+}
 
 export type FormLinkRow = {
   id: string;
@@ -237,6 +257,8 @@ export function mapTeamReport(row: TeamReportRow): ScoutingTeamReport {
     subjectKey: row.subject_key ?? "team",
     subjectLabel: row.subject_label ?? "",
     includedSubjectKeys: row.included_subject_keys ?? [],
+    sections: teamReportSections(row.report_sections),
+    layoutPages: row.layout_pages === 1 ? 1 : 2,
     status: row.status as ReportReviewStatus,
     citedDirectReportIds: row.cited_direct_report_ids ?? [],
     citedPlayerReportIds: row.cited_player_report_ids ?? [],
