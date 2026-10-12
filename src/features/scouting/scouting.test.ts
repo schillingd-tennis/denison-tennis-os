@@ -2105,6 +2105,17 @@ test("public scouting submissions auto-publish safely and never default an unres
   assert.match(route, /clientFingerprint/);
 });
 
+test("editing a promoted report keeps its form submission canonical links synchronized", () => {
+  const repository = readFileSync(
+    fileURLToPath(new URL("./repository.ts", import.meta.url)),
+    "utf8",
+  );
+  assert.match(repository, /opponent_player_id, form_submission_id/);
+  assert.match(repository, /resolved_team_id: mapped\.teamId/);
+  assert.match(repository, /resolved_opponent_player_id: nextOpponentPlayerId/);
+  assert.match(repository, /promoted_direct_report_id: mapped\.id/);
+});
+
 test("team scouting report builder returns ordered player and doubles sections", async () => {
   const result = await summarizeTeamReportWithOpenAi({
     teamLabel: "University of Chicago",

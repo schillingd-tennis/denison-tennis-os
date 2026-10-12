@@ -2157,7 +2157,7 @@ function ReportsCardGrid({
                     </span>
                     <span className="mt-0.5 block text-[11px] text-text-secondary">
                       Submitted team: {item.submission.teamDisplayName || "—"} ·{" "}
-                      {formatDate(item.submission.createdAt.slice(0, 10))}
+                      Submitted {formatDate(item.submission.createdAt.slice(0, 10))}
                     </span>
                   </span>
                   <span className="shrink-0 rounded-control bg-amber-100 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-900 uppercase">

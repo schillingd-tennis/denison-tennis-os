@@ -478,7 +478,7 @@ export function ScoutingSubmissionPreviewCard({
             {submission.teamDisplayName
               ? scoutingTeamCanonicalLabel(submission.teamDisplayName)
               : EMPTY_VALUE}{" "}
-            · {formatDate(submission.createdAt.slice(0, 10))} ·{" "}
+            · Submitted {formatDate(submission.createdAt.slice(0, 10))} ·{" "}
             {submissionStatusLabel(submission.status)}
             {` · Submitted by ${submission.reportBy || "Unknown"}`}
             {submission.resolvedTeamDisplayName

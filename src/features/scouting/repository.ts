@@ -303,13 +303,15 @@ export async function saveDirectReport(
 ): Promise<ScoutingDirectReport> {
   const client = await createSupabaseServerClient();
   let previousOpponentPlayerId: string | null = null;
+  let formSubmissionId: string | null = null;
   if (id) {
     const { data: existing } = await client
       .from("scouting_direct_reports")
-      .select("opponent_player_id")
+      .select("opponent_player_id, form_submission_id")
       .eq("id", id)
       .maybeSingle();
     previousOpponentPlayerId = (existing?.opponent_player_id as string | null) ?? null;
+    formSubmissionId = (existing?.form_submission_id as string | null) ?? null;
   }
 
   // Source/provenance belongs to the original record. Editing a promoted or
@@ -339,6 +341,20 @@ export async function saveDirectReport(
   const nextOpponentPlayerId =
     mapped.opponentPlayerId ??
     (typeof payload.opponent_player_id === "string" ? payload.opponent_player_id : null);
+  if (formSubmissionId) {
+    const { error: submissionError } = await client
+      .from("scouting_form_submissions")
+      .update({
+        resolved_team_id: mapped.teamId,
+        resolved_opponent_player_id: nextOpponentPlayerId,
+        status: "published",
+        promoted_direct_report_id: mapped.id,
+        reviewed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", formSubmissionId);
+    if (submissionError) throw new Error(submissionError.message);
+  }
   await markPlayersAiStale(
     playerIdsToMarkAiStale(previousOpponentPlayerId, nextOpponentPlayerId),
   );
