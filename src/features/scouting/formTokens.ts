@@ -2,6 +2,8 @@ import { createHash, randomBytes } from "crypto";
 
 export {
   SCOUTING_PUBLIC_FORM_ROUTE,
+  SCOUTING_PUBLIC_FORM_API_ROUTE,
+  isScoutingPublicFormApiPath,
   isScoutingPublicFormPath,
   scoutingFormPublicPath,
 } from "./formPaths";

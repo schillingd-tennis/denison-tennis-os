@@ -22,7 +22,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { isScoutingPublicFormPath } from "@/features/scouting/formTokens";
+import {
+  isScoutingPublicFormApiPath,
+  isScoutingPublicFormPath,
+} from "@/features/scouting/formTokens";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 
 const PUBLIC_AUTH_ROUTES = ["/login"];
@@ -64,7 +67,11 @@ function isLoginRoute(pathname: string): boolean {
 }
 
 function allowsUnauthenticated(pathname: string): boolean {
-  return isLoginRoute(pathname) || isScoutingPublicFormPath(pathname);
+  return (
+    isLoginRoute(pathname) ||
+    isScoutingPublicFormPath(pathname) ||
+    isScoutingPublicFormApiPath(pathname)
+  );
 }
 
 export async function proxy(request: NextRequest) {

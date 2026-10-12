@@ -44,11 +44,19 @@ export default function PublicScoutingForm({ rawToken, prefill }: {
                 method: "POST",
                 body: formData,
               });
+              const contentType = response.headers.get("content-type") ?? "";
+              if (!contentType.includes("application/json")) {
+                throw new Error(`Unexpected scouting service response (${response.status}).`);
+              }
               const result = (await response.json()) as { success: boolean; message?: string };
               if (response.ok && result.success) setDone(true);
               else setMessage(result.message || "Could not submit the scouting report.");
-            } catch {
-              setMessage("Could not connect to the scouting service. Please try again.");
+            } catch (error) {
+              setMessage(
+                error instanceof Error
+                  ? `${error.message} Please try again.`
+                  : "Could not connect to the scouting service. Please try again.",
+              );
             }
           });
         }}>

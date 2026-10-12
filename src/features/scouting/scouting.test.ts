@@ -53,6 +53,7 @@ import {
 } from "./promotion";
 import {
   hashScoutingFormToken,
+  isScoutingPublicFormApiPath,
   isScoutingPublicFormPath,
   mintScoutingFormToken,
   scoutingFormPublicPath,
@@ -708,10 +709,13 @@ test("public form token architecture hashes secrets and allows unauth path", () 
   assert.equal(tokenHash.length, 64);
   assert.equal(scoutingFormPublicPath(rawToken).startsWith(SCOUTING_PUBLIC_FORM_ROUTE), true);
   assert.equal(isScoutingPublicFormPath("/scouting-form/abc"), true);
+  assert.equal(isScoutingPublicFormApiPath("/api/scouting-form/abc"), true);
+  assert.equal(isScoutingPublicFormApiPath("/api/scouting-form"), false);
   assert.equal(isScoutingPublicFormPath("/team-operations/scouting"), false);
 
   const proxy = readFileSync(fileURLToPath(new URL("../../proxy.ts", import.meta.url)), "utf8");
   assert.match(proxy, /isScoutingPublicFormPath/);
+  assert.match(proxy, /isScoutingPublicFormApiPath/);
   assert.match(proxy, /allowsUnauthenticated/);
   assert.doesNotMatch(proxy, /user && isScoutingPublicFormPath/);
 
