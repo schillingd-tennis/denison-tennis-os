@@ -791,6 +791,7 @@ export default function ScoutingWorkspace({
               players={players}
               reports={reports}
               onOpenReport={(reportId) => openScoutingReport(reportId, { origin: surface.origin })}
+              onEditReport={openEditReport}
               onStatusChange={() => {
                 /* status select triggers revalidate via action */
               }}
@@ -2306,6 +2307,7 @@ function SubmissionCardSurface({
   players,
   reports,
   onOpenReport,
+  onEditReport,
   onDeleted,
 }: {
   submission: ScoutingFormSubmission;
@@ -2313,10 +2315,13 @@ function SubmissionCardSurface({
   players: ScoutingOpponentPlayer[];
   reports: ScoutingDirectReport[];
   onOpenReport: (reportId: string) => void;
+  onEditReport: (report: ScoutingDirectReport) => void;
   onStatusChange: () => void;
   onDeleted: () => void;
 }) {
-  const [teamId, setTeamId] = useState(submission.resolvedTeamId ?? teams[0]?.id ?? "");
+  // An unresolved school must never silently inherit the first team in the
+  // directory. Require an explicit coach choice if automatic routing fails.
+  const [teamId, setTeamId] = useState(submission.resolvedTeamId ?? "");
   const [opponentPlayerId, setOpponentPlayerId] = useState(submission.resolvedOpponentPlayerId ?? "");
   const [createPlayer, setCreatePlayer] = useState(false);
   const [mapAlias, setMapAlias] = useState(
@@ -2407,13 +2412,22 @@ function SubmissionCardSurface({
                 ? ` · Player: ${submission.resolvedOpponentDisplayName || publishedReport.opponentDisplayName}`
                 : null}
           </p>
-          <button
-            type="button"
-            className="mt-2 h-11 rounded-control bg-[var(--module-accent)] px-3 text-sm font-semibold text-white md:h-9"
-            onClick={() => onOpenReport(publishedReport.id)}
-          >
-            View published report
-          </button>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="h-11 rounded-control border border-border bg-surface px-3 text-sm font-semibold text-text-primary md:h-9"
+              onClick={() => onOpenReport(publishedReport.id)}
+            >
+              View published report
+            </button>
+            <button
+              type="button"
+              className="h-11 rounded-control bg-[var(--module-accent)] px-3 text-sm font-semibold text-white md:h-9"
+              onClick={() => onEditReport(publishedReport)}
+            >
+              Edit report
+            </button>
+          </div>
         </div>
       ) : null}
 

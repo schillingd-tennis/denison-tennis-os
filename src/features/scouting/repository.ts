@@ -1008,6 +1008,10 @@ export async function submitPublicForm(
     if (/expired_token/i.test(message)) return { error: "This form link has expired." };
     if (/rate_limited/i.test(message)) return { error: "Too many submissions. Try again in a minute." };
     if (/empty_submission/i.test(message)) return { error: "Add an opponent name or notes before submitting." };
+    if (/missing_doubles_opponent/i.test(message)) return { error: "Add both doubles opponents before submitting." };
+    if (/invalid_doubles_sides/i.test(message)) return { error: "Choose a different player for the deuce and ad sides." };
+    if (/invalid_first_server/i.test(message)) return { error: "Choose who serves first." };
+    if (/invalid_report_type/i.test(message)) return { error: "Choose singles or doubles before submitting." };
     return { error: message };
   }
   return { id: String(data) };

@@ -657,12 +657,14 @@ test("form validation and drawer field label weight contract", () => {
   const publicForm = new FormData();
   publicForm.set("reportType", "singles");
   publicForm.set("opponentDisplayName", "Test Player");
+  publicForm.set("teamDisplayName", "Wesleyan");
   publicForm.set("strengthsWeaknesses", "notes");
   assert.equal(readPublicScoutingFormData(publicForm).ok, true);
 
   const doublesForm = new FormData();
   doublesForm.set("reportType", "doubles");
   doublesForm.set("opponentDisplayName", "Player One");
+  doublesForm.set("teamDisplayName", "Wesleyan");
   doublesForm.set("opponentOneHandedness", "Left");
   doublesForm.set("opponentTwoDisplayName", "Player Two");
   doublesForm.set("opponentTwoHandedness", "Right");
@@ -2072,6 +2074,31 @@ test("25 0069 migration conventions: calls promote, counts-only, no 0067/UTR, 00
   assert.match(workspace, /Reprocess unpromoted submissions/);
   assert.match(workspace, /data-scouting-reprocess-unpromoted/);
   assert.match(workspace, /reprocessUnpromotedSubmissionsAction/);
+});
+
+test("public scouting submissions auto-publish safely and never default an unresolved school", () => {
+  const migration = readFileSync(
+    fileURLToPath(new URL("../../../supabase/migrations/0084_reliable_public_scouting_publish.sql", import.meta.url)),
+    "utf8",
+  );
+  const workspace = readFileSync(
+    fileURLToPath(new URL("./components/ScoutingWorkspace.tsx", import.meta.url)),
+    "utf8",
+  );
+  const route = readFileSync(
+    fileURLToPath(new URL("../../app/api/scouting-form/[token]/route.ts", import.meta.url)),
+    "utf8",
+  );
+
+  assert.match(migration, /scouting_prepare_public_submission/);
+  assert.match(migration, /scouting_autopublish_promoted_submission/);
+  assert.match(migration, /new\.status := 'published'/);
+  assert.match(migration, /public-form-team-/);
+  assert.match(migration, /wesleyan-connecticut/);
+  assert.match(migration, /v_hash \|\| ':' \|\|/);
+  assert.doesNotMatch(workspace, /submission\.resolvedTeamId \?\? teams\[0\]/);
+  assert.match(workspace, /Edit report/);
+  assert.match(route, /clientFingerprint/);
 });
 
 test("team scouting report builder returns ordered player and doubles sections", async () => {

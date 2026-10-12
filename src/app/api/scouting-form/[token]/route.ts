@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createHash } from "node:crypto";
 
 import { readPublicScoutingFormData } from "@/features/scouting/formData";
 import { submitPublicForm } from "@/features/scouting/repository";
@@ -14,7 +15,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
       return NextResponse.json({ success: false, message: parsed.message }, { status: 400 });
     }
 
-    const result = await submitPublicForm(rawToken, parsed.payload);
+    const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "";
+    const clientFingerprint = createHash("sha256")
+      .update(`${forwardedFor}:${request.headers.get("user-agent") ?? "unknown"}`)
+      .digest("hex");
+    const result = await submitPublicForm(rawToken, parsed.payload, clientFingerprint);
     if ("error" in result) {
       return NextResponse.json({ success: false, message: result.error }, { status: 400 });
     }

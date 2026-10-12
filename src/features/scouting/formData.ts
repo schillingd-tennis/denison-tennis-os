@@ -146,6 +146,10 @@ export function readPublicScoutingFormData(formData: FormData): PublicFormParse 
   if (!opponentDisplayName) {
     return { ok: false, message: "Add the opponent's name before submitting." };
   }
+  const teamDisplayName = String(formData.get("teamDisplayName") ?? "").trim();
+  if (!teamDisplayName) {
+    return { ok: false, message: "Add the opponent's school before submitting." };
+  }
   const handedness = parseHandedness(formData.get("handedness"));
   if (handedness === undefined) return { ok: false, message: "Handedness must be Right, Left, or blank." };
 
@@ -190,7 +194,7 @@ export function readPublicScoutingFormData(formData: FormData): PublicFormParse 
       opponentDisplayName: doublesDetails
         ? `${doublesDetails.opponentOneName} / ${doublesDetails.opponentTwoName}`
         : opponentDisplayName,
-      teamDisplayName: String(formData.get("teamDisplayName") ?? "").trim(),
+      teamDisplayName,
       matchDate: optionalText(formData.get("matchDate")),
       handedness,
       strengthsWeaknesses,
