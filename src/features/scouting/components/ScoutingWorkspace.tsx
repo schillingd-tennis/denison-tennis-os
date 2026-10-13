@@ -1265,6 +1265,7 @@ function OpponentPlayersMasterDetail({
           <div>
             <MobileBack label="Teams" onClick={() => onMobilePane("teams")} />
             <PlayerRoster
+              team={selectedTeam}
               players={rosterPlayers}
               doublesGroups={doublesGroups}
               reports={reports}
@@ -1276,6 +1277,7 @@ function OpponentPlayersMasterDetail({
               emptyAction={emptyRosterAction}
               onSelect={onSelectPlayer}
               onSelectDoubles={onSelectDoublesTeam}
+              onOpenTeam={onOpenTeam}
             />
             {mobilePane === "report" && selectedDoublesGroup ? (
               <DoublesTeamWorkspace teamId={selectedTeam?.id ?? ""} group={selectedDoublesGroup} onOpenReport={onOpenReport} />
@@ -1340,6 +1342,7 @@ function OpponentPlayersMasterDetail({
           className="min-h-0 overflow-y-auto border-r border-border"
         >
           <PlayerRoster
+            team={selectedTeam}
             players={rosterPlayers}
             doublesGroups={doublesGroups}
             reports={reports}
@@ -1351,6 +1354,7 @@ function OpponentPlayersMasterDetail({
             emptyAction={emptyRosterAction}
             onSelect={onSelectPlayer}
             onSelectDoubles={onSelectDoublesTeam}
+            onOpenTeam={onOpenTeam}
           />
         </div>
         <div data-scouting-report-column="" className="min-h-0 overflow-y-auto">
@@ -1601,6 +1605,7 @@ function TeamNavigator({
 }
 
 function PlayerRoster({
+  team,
   players,
   doublesGroups,
   reports,
@@ -1608,11 +1613,13 @@ function PlayerRoster({
   selectedDoublesKey,
   onSelect,
   onSelectDoubles,
+  onOpenTeam,
   headerLabel = "Players",
   emptyTitle = "No players",
   emptyDescription = "Select another team or clear filters.",
   emptyAction,
 }: {
+  team: ScoutingTeam | null;
   players: ScoutingOpponentPlayer[];
   doublesGroups: DoublesRosterGroup[];
   reports: ScoutingDirectReport[];
@@ -1620,12 +1627,13 @@ function PlayerRoster({
   selectedDoublesKey: string;
   onSelect: (player: ScoutingOpponentPlayer) => void;
   onSelectDoubles: (group: DoublesRosterGroup) => void;
+  onOpenTeam: (team: ScoutingTeam) => void;
   headerLabel?: string;
   emptyTitle?: string;
   emptyDescription?: string;
   emptyAction?: ReactNode;
 }) {
-  if (!players.length && !doublesGroups.length) {
+  if (!team && !players.length && !doublesGroups.length) {
     return (
       <div data-scouting-player-list="" className="min-h-0 overflow-y-auto p-4">
         <EmptyState title={emptyTitle} description={emptyDescription} />
@@ -1644,6 +1652,29 @@ function PlayerRoster({
         {headerLabel}
       </p>
       <ul className="divide-y divide-border/70">
+        {team ? (
+          <li>
+            <button
+              type="button"
+              onClick={() => onOpenTeam(team)}
+              className="flex min-h-11 w-full items-start gap-2.5 border-l-[3px] border-l-indigo-600 bg-indigo-50 px-3 py-3 text-left transition-colors hover:bg-indigo-100 md:min-h-0"
+              data-team-scouting-report-entry=""
+            >
+              <ScoutingTeamMark name={team.displayName} size={22} />
+              <span className="min-w-0 flex-1">
+                <span className="flex items-start justify-between gap-2">
+                  <span className="truncate text-sm font-semibold text-indigo-950">Team Scouting Report</span>
+                  <span className="shrink-0 rounded-control bg-indigo-100 px-1.5 py-0.5 text-[9px] font-semibold text-indigo-700">
+                    Team
+                  </span>
+                </span>
+                <span className="mt-0.5 block text-[11px] text-indigo-700">
+                  View saved reports or generate a new report
+                </span>
+              </span>
+            </button>
+          </li>
+        ) : null}
         {players.map((player) => {
           const selected = player.id === selectedPlayerId;
           const playerReports = reports.filter((report) => report.opponentPlayerId === player.id);
