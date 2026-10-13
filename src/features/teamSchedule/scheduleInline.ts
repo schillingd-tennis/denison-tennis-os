@@ -128,6 +128,24 @@ export function buildInlinePatch(
   raw: string,
 ): { patch: Partial<TeamScheduleEventInput> } | { error: string } {
   switch (field) {
+    case "countsAsCompetitionDate": {
+      if (raw !== "true" && raw !== "false") {
+        return { error: "Select whether this event counts as a competition date." };
+      }
+      if (raw === "false") {
+        return {
+          patch: {
+            countsAsCompetitionDate: false,
+            competitionDateNumber: null,
+            competitionDateGroup: null,
+          },
+        };
+      }
+      if (event.competitionDateNumber == null) {
+        return { error: "Open the event and assign a competition date number before counting it." };
+      }
+      return { patch: { countsAsCompetitionDate: true } };
+    }
     case "competitionDateNumber": {
       if (!event.countsAsCompetitionDate) {
         return { error: "This event does not use a competition date number." };

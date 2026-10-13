@@ -102,6 +102,18 @@ describe("schedule inline patch building", () => {
     assert.equal(result.patch.competitionDateGroup, owu!.competitionDateGroup);
   });
 
+  it("marking an event exempt clears its count and shared-date assignment", () => {
+    const oberlinInvite = SEED_2026_27.find((event) => event.eventName === "ITA Regionals");
+    assert.ok(oberlinInvite);
+    const result = buildInlinePatch(oberlinInvite!, "countsAsCompetitionDate", "false");
+    assert.ok("patch" in result);
+    assert.deepEqual(result.patch, {
+      countsAsCompetitionDate: false,
+      competitionDateNumber: null,
+      competitionDateGroup: null,
+    });
+  });
+
   it("opponent inline edit updates opponent name for team matches", () => {
     const result = buildInlinePatch(washU!, "opponentOrEvent", "Washington University");
     assert.ok("patch" in result);
