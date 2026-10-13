@@ -289,6 +289,21 @@ export default function ScheduleTable({
                         </button>
                         <button
                           type="button"
+                          className={`block w-full px-3 py-1.5 text-left text-xs hover:bg-amber-50 ${!event.countsAsCompetitionDate ? "font-semibold text-amber-800" : ""}`}
+                          onClick={() => {
+                            setOpenMenuId(null);
+                            void inlineEdit.commit(
+                              event,
+                              "countsAsCompetitionDate",
+                              event.countsAsCompetitionDate ? "false" : "true",
+                              "blur",
+                            );
+                          }}
+                        >
+                          {event.countsAsCompetitionDate ? "Mark Exempt" : "Count as Competition Date"}
+                        </button>
+                        <button
+                          type="button"
                           className="block w-full px-3 py-1.5 text-left text-xs hover:bg-background"
                           onClick={() => {
                             setOpenMenuId(null);

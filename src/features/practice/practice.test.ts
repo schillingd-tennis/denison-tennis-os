@@ -81,6 +81,23 @@ test("multi-day competition counts every calendar day without double counting pr
   assert.equal(summary.varianceToDate, 11);
 });
 
+test("exempt competitions remain on the practice calendar without consuming a counted day", () => {
+  const summary = calculateDayRule(
+    ["2026-10-10"],
+    [
+      { start: "2026-10-15", end: "2026-10-18", label: "ITA Cup", exempt: true },
+      { start: "2026-10-20", end: "2026-10-20", label: "Counted match" },
+    ],
+    "2026-10-21",
+  );
+  const october = summary.rows.find((row) => row.month === 10);
+  assert.ok(october);
+  assert.equal(october.days.some((day) => day.sources.some((source) => source.type === "exempt" && source.label === "ITA Cup")), true);
+  assert.equal(october.used, 2);
+  assert.equal(summary.used, 2);
+  assert.equal(buildDayRuleCalendarCounts(summary, "2026-10-21").has("2026-10-15"), false);
+});
+
 test("monthly practice budget separates practices from scheduled competition dates", () => {
   const summary = calculateDayRule(
     ["2026-09-02", "2026-09-06", "2026-09-22"],

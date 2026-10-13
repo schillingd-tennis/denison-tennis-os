@@ -48,11 +48,11 @@ export async function getDayRuleSummary(): Promise<DayRuleSummary> {
   const client = await createSupabaseServerClient();
   const [{ data: practice, error: practiceError }, { data: events, error: eventsError }] = await Promise.all([
     client.from("practice_days").select("practice_date,notes"),
-    client.from("team_schedule_events").select("start_date,end_date,opponent_name,event_name").eq("counts_as_competition_date", true).neq("status", "cancelled"),
+    client.from("team_schedule_events").select("start_date,end_date,opponent_name,event_name,counts_as_competition_date").neq("status", "cancelled"),
   ]);
   if (practiceError && !missingTable(practiceError.message)) throw new Error(`Failed to load practice days: ${practiceError.message}`);
   if (eventsError && !missingTable(eventsError.message)) throw new Error(`Failed to load competition days: ${eventsError.message}`);
-  return calculateDayRule((practice ?? []).map((row) => ({ date: row.practice_date, label: row.notes ?? "Team practice" })), (events ?? []).map((row) => ({ start: row.start_date, end: row.end_date, label: row.opponent_name ?? row.event_name ?? "Competition" })));
+  return calculateDayRule((practice ?? []).map((row) => ({ date: row.practice_date, label: row.notes ?? "Team practice" })), (events ?? []).map((row) => ({ start: row.start_date, end: row.end_date, label: row.opponent_name ?? row.event_name ?? "Competition", exempt: !row.counts_as_competition_date })));
 }
 
 export async function listDailyPracticePlans(): Promise<DailyPracticePlan[]> {
@@ -72,8 +72,7 @@ export async function listPracticeCompetitionDates(): Promise<PracticeCompetitio
   const client = await createSupabaseServerClient();
   const { data, error } = await client
     .from("team_schedule_events")
-    .select("id,competition_date_number,competition_date_group,start_date,opponent_name,event_name,location_text,status")
-    .eq("counts_as_competition_date", true)
+    .select("id,competition_date_number,competition_date_group,start_date,opponent_name,event_name,location_text,status,counts_as_competition_date")
     .order("start_date")
     .order("sort_order");
   if (error) {
@@ -88,5 +87,6 @@ export async function listPracticeCompetitionDates(): Promise<PracticeCompetitio
     label: row.opponent_name ?? row.event_name ?? "Competition",
     location: row.location_text ?? "TBD",
     status: row.status,
+    exempt: !row.counts_as_competition_date,
   }));
 }

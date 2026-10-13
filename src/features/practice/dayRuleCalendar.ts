@@ -61,7 +61,7 @@ export function buildDayRuleCalendarCounts(
   const seasonStart = `${startYear}-08-01`;
   const seasonEnd = `${startYear + 1}-04-30`;
   const seasonDates = [...new Set(
-    summary.rows.flatMap((row) => row.days.map((day) => day.date)),
+    summary.rows.flatMap((row) => row.days.filter((day) => day.sources.some((source) => source.type !== "exempt")).map((day) => day.date)),
   )]
     .filter((date) => date >= seasonStart && date <= seasonEnd)
     .sort();
@@ -74,7 +74,7 @@ export function buildDayRuleCalendarCounts(
     const year = practiceCalendarYear(row.month, today);
     const prefix = `${year}-${String(row.month).padStart(2, "0")}-`;
     const monthDates = [...new Set(
-      row.days.map((day) => day.date).filter((date) => date.startsWith(prefix)),
+      row.days.filter((day) => day.sources.some((source) => source.type !== "exempt")).map((day) => day.date).filter((date) => date.startsWith(prefix)),
     )].sort();
     monthDates.forEach((date, index) => {
       const seasonCount = seasonCountByDate.get(date);

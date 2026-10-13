@@ -43,6 +43,7 @@ function sourceKinds(day?: DayRuleDay) {
   return {
     practice: Boolean(day?.sources.some((source) => source.type === "practice")),
     competition: Boolean(day?.sources.some((source) => source.type === "competition")),
+    exempt: Boolean(day?.sources.some((source) => source.type === "exempt")),
   };
 }
 
@@ -76,7 +77,9 @@ export default function DayRuleCalendar({
   const selectedDay = selectedDate ? dayByDate.get(selectedDate) : undefined;
   const practiceDays = monthDays.filter((day) => sourceKinds(day).practice).length;
   const competitionDays = monthDays.filter((day) => sourceKinds(day).competition).length;
-  const monthVariance = (row?.budget ?? 0) - monthDays.length;
+  const exemptDays = monthDays.filter((day) => sourceKinds(day).exempt).length;
+  const countedMonthDays = monthDays.filter((day) => day.sources.some((source) => source.type !== "exempt")).length;
+  const monthVariance = (row?.budget ?? 0) - countedMonthDays;
 
   function selectMonth(nextIndex: number) {
     const nextRow = summary.rows[nextIndex];
@@ -99,8 +102,8 @@ export default function DayRuleCalendar({
         </div>
         <div className="rounded-card border border-border bg-surface p-4 shadow-sm">
           <p className="text-[10px] font-semibold tracking-wide text-text-secondary uppercase">Counted this month</p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums">{monthDays.length} days</p>
-          <p className="mt-1 text-xs text-text-secondary">{practiceDays} practice · {competitionDays} DOC</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums">{countedMonthDays} days</p>
+          <p className="mt-1 text-xs text-text-secondary">{practiceDays} practice · {competitionDays} DOC{exemptDays ? ` · ${exemptDays} exempt` : ""}</p>
         </div>
         <div className={`rounded-card border p-4 shadow-sm ${monthVariance < 0 ? "border-red-200 bg-red-50 text-danger" : "border-emerald-200 bg-emerald-50 text-success"}`}>
           <p className="text-[10px] font-semibold tracking-wide uppercase">Month +/−</p>
@@ -124,6 +127,7 @@ export default function DayRuleCalendar({
           <div className="flex flex-wrap gap-3 text-[10px] font-semibold text-text-secondary">
             <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-violet-600"/>Practice</span>
             <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-amber-500"/>Date of competition</span>
+            <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-slate-400"/>Exempt event</span>
             <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-blue-600"/>Today</span>
           </div>
         </div>
@@ -145,6 +149,8 @@ export default function DayRuleCalendar({
                 ? "bg-violet-50"
                 : kinds.competition
                   ? "bg-amber-50"
+                  : kinds.exempt
+                    ? "bg-slate-50"
                   : "bg-surface";
             return (
               <div key={cellDate} className={`min-h-16 border-r border-b border-border p-1.5 text-left transition-shadow sm:min-h-24 sm:p-2 ${background} ${selected ? "ring-2 ring-inset ring-blue-600" : "hover:ring-1 hover:ring-inset hover:ring-border"}`}>
@@ -154,13 +160,13 @@ export default function DayRuleCalendar({
                     const plan = source.type === "practice"
                       ? practicePlanForCalendarSource(plans, cellDate, source.label)
                       : undefined;
-                    const content = <><span className={`h-1.5 w-1.5 shrink-0 rounded-full ${source.type === "practice" ? "bg-violet-600" : "bg-amber-500"}`}/><span className="hidden truncate sm:block">{source.label}</span>{plan ? <Pencil className="hidden h-2.5 w-2.5 shrink-0 sm:block"/> : null}</>;
+                    const content = <><span className={`h-1.5 w-1.5 shrink-0 rounded-full ${source.type === "practice" ? "bg-violet-600" : source.type === "competition" ? "bg-amber-500" : "bg-slate-400"}`}/><span className="hidden truncate sm:block">{source.label}{source.type === "exempt" ? " · Exempt" : ""}</span>{plan ? <Pencil className="hidden h-2.5 w-2.5 shrink-0 sm:block"/> : null}</>;
                     return plan ? (
                       <button key={`${source.type}-${source.label}-${sourceIndex}`} type="button" onClick={() => onOpenPlan(plan.id)} title={`Edit ${source.label}`} className="flex w-full min-w-0 items-center gap-1 rounded-sm text-[9px] font-semibold text-violet-700 hover:bg-violet-100 hover:underline focus:outline-none focus:ring-1 focus:ring-violet-500">
                         {content}
                       </button>
                     ) : (
-                      <button key={`${source.type}-${source.label}-${sourceIndex}`} type="button" onClick={() => setSelectedDate(cellDate)} className={`flex w-full min-w-0 items-center gap-1 rounded-sm text-[9px] font-semibold ${source.type === "practice" ? "text-violet-700" : "text-amber-800"}`}>
+                      <button key={`${source.type}-${source.label}-${sourceIndex}`} type="button" onClick={() => setSelectedDate(cellDate)} className={`flex w-full min-w-0 items-center gap-1 rounded-sm text-[9px] font-semibold ${source.type === "practice" ? "text-violet-700" : source.type === "competition" ? "text-amber-800" : "text-slate-600"}`}>
                         {content}
                       </button>
                     );
@@ -179,11 +185,11 @@ export default function DayRuleCalendar({
               const plan = selectedDate && source.type === "practice"
                 ? practicePlanForCalendarSource(plans, selectedDate, source.label)
                 : undefined;
-              const content = <>{source.type === "practice" ? <Swords className="h-3 w-3"/> : <Trophy className="h-3 w-3"/>}{source.label}{plan ? <Pencil className="h-3 w-3"/> : null}</>;
-              return plan ? <button key={`${source.type}-${source.label}-${index}`} type="button" onClick={() => onOpenPlan(plan.id)} className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2 py-1 text-[11px] font-semibold text-violet-800 hover:bg-violet-200 hover:underline">{content}</button> : <span key={`${source.type}-${source.label}-${index}`} className={`inline-flex items-center gap-1 text-[11px] ${source.type === "practice" ? "text-violet-700" : "text-amber-800"}`}>{content}</span>;
+              const content = <>{source.type === "practice" ? <Swords className="h-3 w-3"/> : <Trophy className="h-3 w-3"/>}{source.label}{source.type === "exempt" ? " · Exempt" : ""}{plan ? <Pencil className="h-3 w-3"/> : null}</>;
+              return plan ? <button key={`${source.type}-${source.label}-${index}`} type="button" onClick={() => onOpenPlan(plan.id)} className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2 py-1 text-[11px] font-semibold text-violet-800 hover:bg-violet-200 hover:underline">{content}</button> : <span key={`${source.type}-${source.label}-${index}`} className={`inline-flex items-center gap-1 text-[11px] ${source.type === "practice" ? "text-violet-700" : source.type === "competition" ? "text-amber-800" : "text-slate-600"}`}>{content}</span>;
             })}{selectedDate && countByDate.get(selectedDate) ? <span className="text-[11px] font-semibold tabular-nums text-text-secondary">Year {countByDate.get(selectedDate)?.seasonCount}/{summary.limit} · Month {countByDate.get(selectedDate)?.monthCount}/{countByDate.get(selectedDate)?.monthBudget}</span> : null}</div> : <p className="mt-1 text-[11px] text-text-secondary">{selectedDate ? "No countable practice or competition scheduled." : "Select a highlighted date to see what is counted."}</p>}
           </div>
-          {selectedDay ? <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-bold text-emerald-800"><CalendarCheck2 className="h-3.5 w-3.5"/>Counts as 1 day</span> : null}
+          {selectedDay ? <span className={`inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold ${selectedDay.sources.some((source) => source.type !== "exempt") ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-700"}`}><CalendarCheck2 className="h-3.5 w-3.5"/>{selectedDay.sources.some((source) => source.type !== "exempt") ? "Counts as 1 day" : "Exempt · does not count"}</span> : null}
         </div>
       </section>
     </div>

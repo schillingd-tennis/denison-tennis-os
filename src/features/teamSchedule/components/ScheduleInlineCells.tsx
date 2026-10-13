@@ -43,7 +43,7 @@ export function ScheduleCompDateCell({
   edit: ScheduleInlineEditApi;
 }) {
   const eventId = event.id;
-  const display = formatCompDateNumber(event) ?? "—";
+  const display = event.countsAsCompetitionDate ? (formatCompDateNumber(event) ?? "—") : "Exempt";
   const editable = event.countsAsCompetitionDate;
 
   return (
@@ -58,7 +58,7 @@ export function ScheduleCompDateCell({
       disabled={!editable}
       editing={edit.isEditing(eventId, "competitionDateNumber")}
       error={cellError(edit, eventId, "competitionDateNumber")}
-      className="text-xs tabular-nums text-text-secondary"
+      className={`text-xs tabular-nums ${event.countsAsCompetitionDate ? "text-text-secondary" : "font-semibold text-amber-800"}`}
       onRequestEdit={() => edit.startEdit(eventId, "competitionDateNumber")}
       onCancel={edit.cancelEdit}
       onCommit={(raw, reason) => edit.commit(event, "competitionDateNumber", raw, reason)}

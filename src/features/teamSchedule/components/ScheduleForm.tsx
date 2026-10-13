@@ -29,10 +29,6 @@ const control =
   "mt-1 h-9 w-full rounded-control border border-border bg-surface px-2.5 text-sm text-text-primary";
 const labelClass = "block text-xs font-semibold text-text-secondary";
 
-function boolField(name: keyof TeamScheduleEventInput, defaultValue: boolean) {
-  return defaultValue;
-}
-
 export default function ScheduleForm({
   event,
   seasonYear,
@@ -90,7 +86,7 @@ export default function ScheduleForm({
       doubleheaderStatus: dhRaw,
       officialsNeeded: form.get("officialsNeeded") ? Number(form.get("officialsNeeded")) : null,
       teamsInEvent: String(form.get("teamsInEvent") || ""),
-      countsAsCompetitionDate: form.get("countsAsCompetitionDate") === "on",
+      countsAsCompetitionDate: countsAsDate,
       competitionDateNumber: form.get("competitionDateNumber")
         ? Number(form.get("competitionDateNumber"))
         : null,
@@ -229,16 +225,22 @@ export default function ScheduleForm({
         </label>
       </div>
 
-      <div className="flex flex-wrap gap-4 text-xs text-text-primary">
-        <label className="inline-flex items-center gap-2">
-          <input
-            name="countsAsCompetitionDate"
-            type="checkbox"
-            defaultChecked={boolField("countsAsCompetitionDate", event?.countsAsCompetitionDate ?? true)}
-            onChange={(e) => setCountsAsDate(e.target.checked)}
-          />
-          Counts as competition date
-        </label>
+      <div className="flex flex-wrap items-center gap-4 text-xs text-text-primary">
+        <button
+          type="button"
+          aria-pressed={!countsAsDate}
+          onClick={() => setCountsAsDate((current) => !current)}
+          className={`inline-flex h-9 items-center rounded-control border px-3 font-semibold ${
+            countsAsDate
+              ? "border-border bg-surface text-text-primary"
+              : "border-amber-300 bg-amber-100 text-amber-900"
+          }`}
+        >
+          {countsAsDate ? "Mark as Exempt" : "Exempt — does not count"}
+        </button>
+        <span className="text-text-secondary">
+          {countsAsDate ? "Counts toward the competition-date limit." : "Still appears on Schedule and Practice calendars."}
+        </span>
         <label className="inline-flex items-center gap-2">
           <input name="ncac" type="checkbox" defaultChecked={event?.ncac ?? false} />
           NCAC

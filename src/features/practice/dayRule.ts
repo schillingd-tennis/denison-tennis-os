@@ -51,20 +51,21 @@ export function calculateDayRuleTrackerRows(rows: DayBudgetRow[], today: string)
   });
 }
 
-export function calculateDayRule(practices: (string | { date: string; label?: string })[], competitions: { start: string; end: string; label?: string }[], today = new Date().toISOString().slice(0, 10)): DayRuleSummary {
-  const dayMap = new Map<string, { type: "practice" | "competition"; label: string }[]>();
-  const add = (date: string, type: "practice" | "competition", label: string) => dayMap.set(date, [...(dayMap.get(date) ?? []), { type, label }]);
+export function calculateDayRule(practices: (string | { date: string; label?: string })[], competitions: { start: string; end: string; label?: string; exempt?: boolean }[], today = new Date().toISOString().slice(0, 10)): DayRuleSummary {
+  const dayMap = new Map<string, { type: "practice" | "competition" | "exempt"; label: string }[]>();
+  const add = (date: string, type: "practice" | "competition" | "exempt", label: string) => dayMap.set(date, [...(dayMap.get(date) ?? []), { type, label }]);
   practices.forEach((practice) => add(typeof practice === "string" ? practice : practice.date, "practice", typeof practice === "string" ? "Team practice" : practice.label || "Team practice"));
-  competitions.forEach((event) => enumerateDates(event.start, event.end).forEach((date) => add(date, "competition", event.label || "Competition")));
-  const usedDates = [...dayMap.keys()];
+  competitions.forEach((event) => enumerateDates(event.start, event.end).forEach((date) => add(date, event.exempt ? "exempt" : "competition", event.label || "Competition")));
+  const displayDates = [...dayMap.keys()];
+  const usedDates = displayDates.filter((date) => dayMap.get(date)?.some((source) => source.type !== "exempt"));
   const currentMonth = Number(today.slice(5, 7));
   const currentBudgetIndex = MONTHLY_DAY_BUDGETS.findIndex(([month]) => month === currentMonth);
   const rows = MONTHLY_DAY_BUDGETS.map(([month, label, budget], budgetIndex) => {
-    const days = usedDates.filter((date) => Number(date.slice(5, 7)) === month).sort().map((date) => ({ date, sources: dayMap.get(date) ?? [] }));
-    const used = days.length;
+    const days = displayDates.filter((date) => Number(date.slice(5, 7)) === month).sort().map((date) => ({ date, sources: dayMap.get(date) ?? [] }));
+    const used = days.filter((day) => day.sources.some((source) => source.type !== "exempt")).length;
     const daysInMonth = new Date(Number(today.slice(0, 4)), month, 0).getDate();
     const budgetToDate = budgetIndex === currentBudgetIndex ? Math.round(budget * Number(today.slice(8, 10)) / daysInMonth) : budgetIndex < currentBudgetIndex ? budget : 0;
-    const usedToDate = days.filter((day) => day.date <= today).length;
+    const usedToDate = days.filter((day) => day.date <= today && day.sources.some((source) => source.type !== "exempt")).length;
     return { month, label, budget, budgetToDate, used, usedToDate, variance: budget - used, varianceToDate: budgetToDate - usedToDate, days };
   });
   const used = usedDates.length; const budgetTotal = rows.reduce((sum, row) => sum + row.budget, 0); const budgetToDate = rows.reduce((sum, row) => sum + row.budgetToDate, 0); const usedToDate = usedDates.filter((date) => date <= today).length;

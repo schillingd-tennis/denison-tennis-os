@@ -109,7 +109,7 @@ export function EventDetailsWorkspace() {
             <ScheduleEventField field="locationText" label="Location display" span />
             <ScheduleEventField field="travelRequired" label="Travel required" />
             <ScheduleEventField field="ncac" label="NCAC" />
-            <ScheduleEventField field="countsAsCompetitionDate" label="Counts as competition date" />
+            <ScheduleEventField field="countsAsCompetitionDate" label="Counts toward competition-date limit" />
             <ScheduleEventField field="competitionDateNumber" label="Competition date #" />
           </WorkspaceFieldGrid>
         </section>

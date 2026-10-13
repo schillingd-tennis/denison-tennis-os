@@ -15,6 +15,7 @@ import {
 
 export const SCHEDULE_INLINE_EDITABLE_FIELDS = [
   "competitionDateNumber",
+  "countsAsCompetitionDate",
   "opponentOrEvent",
   "itaRank",
   "siteDesignation",
