@@ -146,13 +146,13 @@ export default function RecruitRatingsWorkspace({ rows, loadError }: { rows: Rec
               <SortHeader label="Recruit" sortKey="recruit" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
               <SortHeader label="Class" sortKey="class" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
               <SortHeader label="UTR" sortKey="utr" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
-              <SortHeader label="Change" sortKey="utrChange" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
+              <SortHeader label="Since last pull" sortKey="utrChange" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
               <SortHeader label="Checked" sortKey="utrChecked" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
               <SortHeader label="WTN" sortKey="wtn" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
-              <SortHeader label="Change" sortKey="wtnChange" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
+              <SortHeader label="Since last pull" sortKey="wtnChange" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
               <SortHeader label="Checked" sortKey="wtnChecked" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
               <SortHeader label="TRN" sortKey="trn" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
-              <SortHeader label="Change" sortKey="trnChange" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
+              <SortHeader label="Since last pull" sortKey="trnChange" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
               <SortHeader label="Stars" sortKey="stars" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
               <SortHeader label="Checked" sortKey="trnChecked" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
             </tr></thead>
