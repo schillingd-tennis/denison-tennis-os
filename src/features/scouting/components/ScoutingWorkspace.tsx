@@ -2789,16 +2789,24 @@ function TeamWorkspaceDrawer({
           Generate team report
         </button>
       </div>
-      {teamReports.map((report) => (
-        <button
-          key={report.id}
-          type="button"
-          onClick={() => onOpenTeamReport(report.id)}
-          className="block w-full rounded-control border border-border px-3 py-2 text-left text-sm hover:bg-[var(--module-tint)]/40"
-        >
-          Open {report.kind === "ai_generated" ? "AI" : "manual"} team report card
-        </button>
-      ))}
+      {teamReports.length ? (
+        <section className="space-y-2 rounded-control border border-border bg-white p-3" data-saved-team-reports="">
+          <div>
+            <h3 className="text-sm font-semibold">Saved team reports</h3>
+            <p className="text-xs text-text-secondary">Stored with {scoutingTeamCanonicalLabel(team.displayName)} in the Scouting workspace.</p>
+          </div>
+          {teamReports.map((report) => (
+            <button
+              key={report.id}
+              type="button"
+              onClick={() => onOpenTeamReport(report.id)}
+              className="block w-full rounded-control border border-border px-3 py-2 text-left text-sm font-semibold hover:bg-[var(--module-tint)]/40"
+            >
+              Open {report.kind === "ai_generated" ? "generated" : "manual"} team report
+            </button>
+          ))}
+        </section>
+      ) : null}
       {message ? <p className="text-sm text-text-secondary">{message}</p> : null}
       <button type="button" onClick={onClose} className="text-sm font-semibold text-[var(--module-accent-text)]">
         Close

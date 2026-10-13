@@ -48,6 +48,44 @@ export type ScoutSummarizeFn = (input: {
   evidence: ScoutEvidence[];
 }) => Promise<ScoutSummaryResult>;
 
+function evidenceText(item: ScoutEvidence): string {
+  return [item.strengthsWeaknesses, item.scoutingReport]
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .join(" ");
+}
+
+function conciseEvidence(text: string, maxLength = 420): string {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (normalized.length <= maxLength) return normalized;
+  const clipped = normalized.slice(0, maxLength);
+  const sentenceEnd = Math.max(clipped.lastIndexOf(". "), clipped.lastIndexOf("; "));
+  return `${clipped.slice(0, sentenceEnd > maxLength * 0.55 ? sentenceEnd + 1 : maxLength).trim()}…`;
+}
+
+export function buildEvidenceOnlyTeamSummary(input: {
+  teamLabel: string;
+  subjects: TeamScoutSubject[];
+  evidence: ScoutEvidence[];
+}) {
+  const sections: TeamScoutSection[] = input.subjects.map((subject) => {
+    const reports = input.evidence.filter((item) => item.subjectKey === subject.subjectKey);
+    const observations = reports.map(evidenceText).filter(Boolean);
+    return {
+      ...subject,
+      summary: conciseEvidence(observations.join(" ")) || "No written scouting observations were available.",
+      priorities: observations.slice(0, 3).map((text) => conciseEvidence(text, 140)),
+    };
+  });
+  return {
+    body: `Evidence-only team report for ${input.teamLabel}. It consolidates ${input.evidence.length} scouting ${input.evidence.length === 1 ? "report" : "reports"} across ${input.subjects.length} selected ${input.subjects.length === 1 ? "subject" : "subjects"}. Vercel AI Gateway access was unavailable, so the original observations are condensed without adding unsupported conclusions.`,
+    quickSummaryBullets: sections.map((section) => `${section.subjectLabel}: ${conciseEvidence(section.summary, 150)}`).slice(0, 6),
+    sections,
+    citedDirectReportIds: input.evidence.map((item) => item.id),
+    model: "evidence-only-fallback",
+  };
+}
+
 export function buildScoutingSummaryPrompt(input: {
   subjectLabel: string;
   kind: "player" | "doubles" | "team";

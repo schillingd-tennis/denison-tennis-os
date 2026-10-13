@@ -16,6 +16,7 @@ import {
 
 import {
   AI_SCOUTING_UNAVAILABLE,
+  buildEvidenceOnlyTeamSummary,
   buildScoutingSummaryPrompt,
   parseScoutSummaryResponse,
   summarizeScoutingWithOpenAi,
@@ -833,6 +834,25 @@ test("AI provider supports direct keys and Vercel gateway; never overwrites sour
     apiKey: "test-key",
   });
   assert.deepEqual(emptyEvidence, { error: "No supported evidence to summarize." });
+});
+
+test("team reports fall back to a stored evidence-only synthesis when AI authorization is unavailable", () => {
+  const summary = buildEvidenceOnlyTeamSummary({
+    teamLabel: "Skidmore",
+    subjects: [
+      { subjectKey: "player:p1", subjectLabel: "Alton Swan", subjectType: "player" },
+      { subjectKey: "doubles:pair", subjectLabel: "Bitkuri / Dolgushev", subjectType: "doubles" },
+    ],
+    evidence: [
+      { id: "r1", subjectKey: "player:p1", subjectLabel: "Alton Swan", subjectType: "player", matchDate: null, reportBy: "Coach", isDoubles: false, opponentDisplayName: "Alton Swan", strengthsWeaknesses: "Flat ball and an attackable second serve.", scoutingReport: "Stay steady." },
+      { id: "r2", subjectKey: "doubles:pair", subjectLabel: "Bitkuri / Dolgushev", subjectType: "doubles", matchDate: null, reportBy: "Coach", isDoubles: true, opponentDisplayName: "Bitkuri / Dolgushev", strengthsWeaknesses: "Solid first serves and returns.", scoutingReport: "Pressure the middle." },
+    ],
+  });
+  assert.equal(summary.model, "evidence-only-fallback");
+  assert.equal(summary.sections.length, 2);
+  assert.deepEqual(summary.citedDirectReportIds, ["r1", "r2"]);
+  assert.match(summary.sections[0]!.summary, /Flat ball/);
+  assert.match(summary.body, /without adding unsupported conclusions/);
 });
 
 test("Overview summary cards: reports, latest, contributors", () => {

@@ -31,7 +31,13 @@ import type {
   ScoutingTeamReport,
 } from "./types";
 import type { ScoutEvidence } from "./aiSummarize";
-import { summarizeScoutingWithOpenAi, summarizeTeamReportWithOpenAi, type ScoutSummarizeFn } from "./aiSummarize";
+import {
+  AI_SCOUTING_UNAVAILABLE,
+  buildEvidenceOnlyTeamSummary,
+  summarizeScoutingWithOpenAi,
+  summarizeTeamReportWithOpenAi,
+  type ScoutSummarizeFn,
+} from "./aiSummarize";
 import { playerIdsToMarkAiStale, selectPlayerAiEvidenceReports } from "./overviewMetrics";
 import { normalizeDoublesKey } from "./doublesIdentity";
 
@@ -545,11 +551,21 @@ export async function regenerateTeamAiReport(
     subjectLabel: report.opponentDisplayName,
     subjectType: report.isDoubles ? "doubles" : "player",
   }));
-  const summary = await summarize({
+  let summary = await summarize({
     teamLabel: workspace.team.displayName,
     subjects,
     evidence,
   });
+  if (
+    "error" in summary &&
+    (summary.error === AI_SCOUTING_UNAVAILABLE || /AI provider error \((401|403)\)/.test(summary.error))
+  ) {
+    summary = buildEvidenceOnlyTeamSummary({
+      teamLabel: workspace.team.displayName,
+      subjects,
+      evidence,
+    });
+  }
   if ("error" in summary) return summary;
 
   const client = await createSupabaseServerClient();
