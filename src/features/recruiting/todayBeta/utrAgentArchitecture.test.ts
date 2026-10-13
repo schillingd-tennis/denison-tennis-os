@@ -47,6 +47,12 @@ describe("provider-neutral outbound acquisition architecture", () => {
     assert.match(statusSource, /TRN and WTN adapters: not configured/);
   });
 
+  it("allows a manual retry after the operator renews an expired UTR login", () => {
+    assert.match(statusSource, /disabled={busy \|\| queued \|\| running \|\| !online}/);
+    assert.doesNotMatch(statusSource, /disabled={[^{]*reauth/);
+    assert.match(statusSource, /click Check results now to verify the renewed session/);
+  });
+
   it("local HTTPS server remains an optional diagnostic surface, not the hosted path", () => {
     assert.match(serverSource, /createHttpsServer|node:https/);
     assert.match(serverSource, /startBackgroundWorker/);

@@ -91,7 +91,7 @@ export default function UtrBackgroundStatus() {
         </div>
         <button
           type="button"
-          disabled={busy || queued || running || !online || reauth}
+          disabled={busy || queued || running || !online}
           className="rounded-control bg-[var(--module-accent)] px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
           onClick={() => void requestCheck()}
         >
@@ -118,6 +118,11 @@ export default function UtrBackgroundStatus() {
       {visibleError ? (
         <p role="alert" className="text-sm text-red-700">
           {visibleError}
+        </p>
+      ) : null}
+      {reauth && online ? (
+        <p className="text-xs text-text-secondary">
+          After completing UTR login on the Mac, click Check results now to verify the renewed session.
         </p>
       ) : null}
     </section>
