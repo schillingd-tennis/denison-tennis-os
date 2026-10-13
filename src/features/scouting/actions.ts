@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 
 import { TEAM_OPERATIONS_SCOUTING_ROUTE } from "@/lib/module-routes";
 import { parseSubmissionStatus, readDirectReportFormData, readPublicScoutingFormData } from "./formData";
@@ -31,6 +32,11 @@ import {
   updateSubmissionStatus,
 } from "./repository";
 import { requireScoutingWriteUser } from "./scoutingAuth";
+import { summarizeScoutingWithOpenAi, summarizeTeamReportWithOpenAi } from "./aiSummarize";
+
+async function getVercelGatewayToken() {
+  return (await headers()).get("x-vercel-oidc-token")?.trim() || undefined;
+}
 
 function revalidateScouting() {
   revalidatePath(TEAM_OPERATIONS_SCOUTING_ROUTE);
@@ -173,7 +179,10 @@ export async function regeneratePlayerAiAction(opponentPlayerId: string) {
   const auth = await requireScoutingWriteUser();
   if (!auth.ok) return { success: false as const, message: auth.error };
   try {
-    const result = await regeneratePlayerAiReport(opponentPlayerId);
+    const gatewayToken = await getVercelGatewayToken();
+    const result = await regeneratePlayerAiReport(opponentPlayerId, (input) =>
+      summarizeScoutingWithOpenAi({ ...input, gatewayToken }),
+    );
     if ("error" in result) return { success: false, message: result.error } as const;
     revalidateScouting();
     return { success: true, report: result } as const;
@@ -218,7 +227,10 @@ export async function regenerateTeamAiAction(
   const auth = await requireScoutingWriteUser();
   if (!auth.ok) return { success: false as const, message: auth.error };
   try {
-    const result = await regenerateTeamAiReport(teamId, selection);
+    const gatewayToken = await getVercelGatewayToken();
+    const result = await regenerateTeamAiReport(teamId, selection, (input) =>
+      summarizeTeamReportWithOpenAi({ ...input, gatewayToken }),
+    );
     if ("error" in result) return { success: false, message: result.error } as const;
     revalidateScouting();
     return { success: true, report: result } as const;
@@ -234,7 +246,10 @@ export async function regenerateDoublesAiAction(teamId: string, doublesKey: stri
   const auth = await requireScoutingWriteUser();
   if (!auth.ok) return { success: false as const, message: auth.error };
   try {
-    const result = await regenerateDoublesAiReport(teamId, doublesKey);
+    const gatewayToken = await getVercelGatewayToken();
+    const result = await regenerateDoublesAiReport(teamId, doublesKey, (input) =>
+      summarizeScoutingWithOpenAi({ ...input, gatewayToken }),
+    );
     if ("error" in result) return { success: false, message: result.error } as const;
     revalidateScouting();
     return { success: true, report: result } as const;

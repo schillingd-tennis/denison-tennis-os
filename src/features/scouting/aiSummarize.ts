@@ -168,6 +168,7 @@ export async function summarizeScoutingWithOpenAi(input: {
   kind: "player" | "doubles" | "team";
   evidence: ScoutEvidence[];
   apiKey?: string;
+  gatewayToken?: string;
   model?: string;
   fetchImpl?: typeof fetch;
 }): Promise<ScoutSummaryResult> {
@@ -178,7 +179,7 @@ export async function summarizeScoutingWithOpenAi(input: {
   const directOpenAiKey =
     input.apiKey !== undefined ? input.apiKey.trim() : process.env.OPENAI_API_KEY?.trim();
   const gatewayKey = input.apiKey === undefined
-    ? process.env.AI_GATEWAY_API_KEY?.trim() || process.env.VERCEL_OIDC_TOKEN?.trim()
+    ? input.gatewayToken?.trim() || process.env.AI_GATEWAY_API_KEY?.trim() || process.env.VERCEL_OIDC_TOKEN?.trim()
     : undefined;
   const apiKey = directOpenAiKey || gatewayKey;
   if (!apiKey) return { error: AI_SCOUTING_UNAVAILABLE };
@@ -245,12 +246,13 @@ export async function summarizeTeamReportWithOpenAi(input: {
   subjects: TeamScoutSubject[];
   evidence: ScoutEvidence[];
   apiKey?: string;
+  gatewayToken?: string;
   model?: string;
   fetchImpl?: typeof fetch;
 }): Promise<{ body: string; quickSummaryBullets: string[]; sections: TeamScoutSection[]; citedDirectReportIds: string[]; model: string } | { error: string }> {
   if (!input.subjects.length || !input.evidence.length) return { error: "Choose at least one subject with scouting evidence." };
   const directKey = input.apiKey !== undefined ? input.apiKey.trim() : process.env.OPENAI_API_KEY?.trim();
-  const gatewayKey = input.apiKey === undefined ? process.env.AI_GATEWAY_API_KEY?.trim() || process.env.VERCEL_OIDC_TOKEN?.trim() : undefined;
+  const gatewayKey = input.apiKey === undefined ? input.gatewayToken?.trim() || process.env.AI_GATEWAY_API_KEY?.trim() || process.env.VERCEL_OIDC_TOKEN?.trim() : undefined;
   const apiKey = directKey || gatewayKey;
   if (!apiKey) return { error: AI_SCOUTING_UNAVAILABLE };
   const usesGateway = !directKey && Boolean(gatewayKey);

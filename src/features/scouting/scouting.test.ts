@@ -777,6 +777,23 @@ test("AI provider supports direct keys and Vercel gateway; never overwrites sour
   assert.equal(gatewayUrl, "https://ai-gateway.vercel.sh/v1/chat/completions");
   assert.equal(gatewayModel, "openai/gpt-4o-mini");
 
+  let runtimeGatewayUrl = "";
+  const runtimeGateway = await summarizeScoutingWithOpenAi({
+    subjectLabel: "Alejandro Gonzalez",
+    kind: "player",
+    evidence,
+    gatewayToken: "runtime-oidc-token",
+    fetchImpl: async (url) => {
+      runtimeGatewayUrl = String(url);
+      return new Response(
+        JSON.stringify({ choices: [{ message: { content: '{"body":"Runtime gateway summary","quick_summary_bullets":["Big serve"]}' } }] }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    },
+  });
+  assert.ok(!("error" in runtimeGateway));
+  assert.equal(runtimeGatewayUrl, "https://ai-gateway.vercel.sh/v1/chat/completions");
+
   const stubbed = await summarizeScoutingWithOpenAi({
     subjectLabel: "Alejandro Gonzalez",
     kind: "player",
