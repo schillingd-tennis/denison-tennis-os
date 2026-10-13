@@ -73,6 +73,7 @@ import ScoutingPlayerCard, {
 import {
   ScoutingDirectReportCard,
   ScoutingDirectReportPreviewCard,
+  ScoutingPdfButton,
   ScoutingSubmissionCard,
   ScoutingSubmissionPreviewCard,
   ScoutingTeamMark,
@@ -2849,10 +2850,10 @@ function TeamWorkspaceDrawer({
 function TeamAiPrintPreview({ report, teamName }: { report: ScoutingTeamReport; teamName: string }) {
   return (
     <div className="mt-4 bg-slate-200 p-3" data-team-ai-print-preview="" data-layout-pages={report.layoutPages}>
-      <article className="mx-auto max-w-3xl bg-white p-5 text-slate-950 shadow-sm print:max-w-none print:shadow-none">
+      <article data-scouting-report-card="" className="mx-auto max-w-3xl bg-white p-5 text-slate-950 shadow-sm print:max-w-none print:shadow-none">
         <header className="flex items-start justify-between gap-3 border-b-4 border-red-800 pb-3">
           <div><p className="text-[10px] font-bold tracking-widest text-red-800 uppercase">Denison Tennis</p><h3 className="text-lg font-bold">{scoutingTeamCanonicalLabel(teamName)} — Team Scouting Report</h3><p className="text-xs text-slate-500">{report.sections.length} selected subjects · designed for {report.layoutPages} {report.layoutPages === 1 ? "page" : "pages"}</p></div>
-          <span className="rounded-control bg-indigo-100 px-2 py-1 text-[10px] font-bold tracking-wide text-indigo-800">AI-GENERATED</span>
+          <div className="flex items-center gap-2 print:hidden"><span className="rounded-control bg-indigo-100 px-2 py-1 text-[10px] font-bold tracking-wide text-indigo-800">AI-GENERATED</span><ScoutingPdfButton title={`${scoutingTeamCanonicalLabel(teamName)} Team Scouting Report`} /></div>
         </header>
         {report.body ? <p className="mt-3 text-sm leading-5 text-slate-700">{report.body}</p> : null}
         {report.quickSummaryBullets.length ? <ul className="mt-3 grid gap-1 pl-5 text-xs text-slate-800 sm:grid-cols-2">{report.quickSummaryBullets.map((bullet) => <li key={bullet} className="list-disc">{bullet}</li>)}</ul> : null}

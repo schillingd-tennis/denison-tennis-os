@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, Sparkles, Trash2 } from "lucide-react";
+import { FileDown, FileText, Sparkles, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 
 import {
@@ -59,6 +59,52 @@ function FullBody({ text, empty = "No notes." }: { text: string; empty?: string 
   const trimmed = text.trim();
   if (!trimmed) return <p className="text-sm text-text-secondary">{empty}</p>;
   return <pre className="whitespace-pre-wrap font-sans text-sm text-text-primary">{trimmed}</pre>;
+}
+
+function safePdfTitle(value: string) {
+  return value.replace(/[^a-zA-Z0-9 _-]+/g, "").replace(/\s+/g, " ").trim() || "Scouting Report";
+}
+
+export function ScoutingPdfButton({ title }: { title: string }) {
+  return (
+    <button
+      type="button"
+      aria-label={`Save ${title} as PDF`}
+      title="Save as PDF"
+      className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-control border border-border bg-white text-text-primary hover:bg-app-background print:hidden"
+      onClick={(event) => {
+        const report = event.currentTarget.closest<HTMLElement>("[data-scouting-report-card]");
+        if (!report) return;
+        const popup = window.open("", "_blank", "popup,width=900,height=1100");
+        if (!popup) {
+          window.alert("Please allow pop-ups to save this report as a PDF.");
+          return;
+        }
+        const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+          .map((node) => node.outerHTML)
+          .join("\n");
+        const documentTitle = safePdfTitle(title);
+        popup.document.open();
+        popup.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${documentTitle}</title>${styles}<style>
+          @page { size: letter; margin: 0.55in; }
+          html, body { background: #fff !important; color: #111827 !important; }
+          body { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; }
+          [data-pdf-shell] { max-width: 8in; margin: 0 auto; }
+          [data-scouting-report-card] { box-shadow: none !important; border-color: #cbd5e1 !important; }
+          button, [role="button"] { pointer-events: none; }
+          .print\\:hidden { display: none !important; }
+          [data-scouting-report-preview] { break-inside: avoid; }
+          section, article { break-inside: avoid-page; }
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        </style></head><body><main data-pdf-shell>${report.outerHTML}</main><script>
+          window.addEventListener('load', () => setTimeout(() => { window.focus(); window.print(); }, 500));
+        <\/script></body></html>`);
+        popup.document.close();
+      }}
+    >
+      <FileDown className="h-4 w-4" aria-hidden />
+    </button>
+  );
 }
 
 function doublesPlayerLabel(
@@ -204,7 +250,10 @@ export function ScoutingDirectReportCard({
             ) : null}
           </div>
         </div>
-        {editable ? editSlot : null}
+        <div className="flex flex-wrap items-start gap-2 print:hidden">
+          <ScoutingPdfButton title={`${report.opponentDisplayName || "Opponent"} Scouting Report`} />
+          {editable ? editSlot : null}
+        </div>
       </header>
 
       <div className="space-y-4 px-5 py-5 max-md:px-4">
@@ -299,7 +348,10 @@ export function ScoutingAiReportCard({
             </p>
           </div>
         </div>
-        {actions}
+        <div className="flex flex-wrap items-start gap-2 print:hidden">
+          <ScoutingPdfButton title={`${playerName} AI Scouting Report`} />
+          {actions}
+        </div>
       </header>
       <div className="space-y-4 px-5 py-5 max-md:px-4">
         <WorkspaceSection title="AI Summary" tone="research">
@@ -376,7 +428,10 @@ export function ScoutingTeamReportCard({
             </p>
           </div>
         </div>
-        {actions}
+        <div className="flex flex-wrap items-start gap-2 print:hidden">
+          <ScoutingPdfButton title={`${teamLabel} Team Scouting Report`} />
+          {actions}
+        </div>
       </header>
       <div className="space-y-4 px-5 py-5 max-md:px-4">
         <WorkspaceSection
@@ -542,7 +597,10 @@ export function ScoutingSubmissionCard({
             </p>
           </div>
         </div>
-        {statusControl}
+        <div className="flex flex-wrap items-start gap-2 print:hidden">
+          <ScoutingPdfButton title={`${submission.opponentDisplayName || "Opponent"} Scouting Report`} />
+          {statusControl}
+        </div>
       </header>
       <div className="space-y-4 px-5 py-5 max-md:px-4">
         {submission.isDoubles && submission.doublesDetails ? <DoublesDetails details={submission.doublesDetails} /> : null}
