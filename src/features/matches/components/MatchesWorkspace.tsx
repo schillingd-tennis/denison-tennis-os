@@ -48,7 +48,9 @@ import {
   buildOverallDoublesRecord,
   buildSinglesPlayerRecords,
   buildTeamRecordsDashboard,
+  buildTeamRecordDrilldowns,
   buildTeamSeasonRecords,
+  type TeamRecordDrilldowns,
   type TeamDashboardRecord,
   type TeamRecordsDashboard,
 } from "../records";
@@ -232,6 +234,10 @@ export default function MatchesWorkspace({
     seasonYear: seasonYear === "all" ? null : seasonYear,
     eventType,
   });
+  const teamDrilldowns = buildTeamRecordDrilldowns(results, events, {
+    seasonYear: seasonYear === "all" ? null : seasonYear,
+    eventType,
+  });
 
   const filteredResults = useMemo(() => {
     return results.filter((result) => {
@@ -372,7 +378,15 @@ export default function MatchesWorkspace({
         </section>
       ) : null}
 
-      {tab === "team" ? <TeamRecordsDashboardView records={teamDashboard} /> : null}
+      {tab === "team" ? (
+        <TeamRecordsDashboardView
+          records={teamDashboard}
+          drilldowns={teamDrilldowns}
+          events={events}
+          roster={roster}
+          scheduleById={scheduleById}
+        />
+      ) : null}
 
       {tab === "players" ? (
         <section className="grid gap-3">
@@ -445,12 +459,16 @@ function TeamRecordCard({
   record,
   icon: Icon,
   tone,
+  selected,
+  onClick,
 }: {
   title: string;
   description: string;
   record: TeamDashboardRecord;
   icon: LucideIcon;
   tone: "red" | "blue" | "green" | "violet" | "orange" | "teal";
+  selected: boolean;
+  onClick: () => void;
 }) {
   const colors = {
     red: "border-red-200 bg-gradient-to-br from-red-50 via-white to-white text-red-700",
@@ -463,7 +481,12 @@ function TeamRecordCard({
   const ties = record.ties ?? 0;
 
   return (
-    <article className={`rounded-card border p-4 shadow-[0_8px_22px_rgba(17,24,39,0.045)] ${colors[tone]}`}>
+    <button
+      type="button"
+      aria-pressed={selected}
+      onClick={onClick}
+      className={`rounded-card border p-4 text-left shadow-[0_8px_22px_rgba(17,24,39,0.045)] transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current ${colors[tone]} ${selected ? "ring-2 ring-current ring-offset-2" : ""}`}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[11px] font-semibold tracking-wide text-text-secondary uppercase">{title}</p>
@@ -482,11 +505,39 @@ function TeamRecordCard({
           <p className="text-[9px] font-semibold tracking-wide text-text-secondary uppercase">Win rate</p>
         </div>
       </div>
-    </article>
+      <p className="mt-3 text-[10px] font-semibold tracking-wide uppercase">
+        {selected ? "Showing matches below" : "View all matches"}
+      </p>
+    </button>
   );
 }
 
-function TeamRecordsDashboardView({ records }: { records: TeamRecordsDashboard }) {
+type TeamRecordDrilldownKey = keyof TeamRecordDrilldowns;
+
+const TEAM_RECORD_TITLES: Record<TeamRecordDrilldownKey, string> = {
+  team: "Team Record",
+  players: "Player Record",
+  doubles: "Doubles Record",
+  threeSet: "Three-Set Record",
+  tiebreakers: "Tiebreaker Record",
+  superTiebreakers: "Super Tiebreaker Record",
+};
+
+function TeamRecordsDashboardView({
+  records,
+  drilldowns,
+  events,
+  roster,
+  scheduleById,
+}: {
+  records: TeamRecordsDashboard;
+  drilldowns: TeamRecordDrilldowns;
+  events: MatchEvent[];
+  roster: RosterPlayer[];
+  scheduleById: Record<string, TeamScheduleEvent>;
+}) {
+  const [selected, setSelected] = useState<TeamRecordDrilldownKey | null>(null);
+  const select = (key: TeamRecordDrilldownKey) => setSelected((current) => current === key ? null : key);
   return (
     <section className="grid gap-4" aria-label="Team records dashboard">
       <div className="rounded-card border border-border bg-gradient-to-r from-slate-950 via-slate-900 to-red-950 px-5 py-4 text-white shadow-sm">
@@ -500,13 +551,78 @@ function TeamRecordsDashboardView({ records }: { records: TeamRecordsDashboard }
         </div>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        <TeamRecordCard title="Team Record" description="Confirmed dual-match outcomes" record={records.team} icon={Trophy} tone="red" />
-        <TeamRecordCard title="Player Record" description="All individual singles matches" record={records.players} icon={UserRound} tone="blue" />
-        <TeamRecordCard title="Doubles Record" description="Each doubles match counted once" record={records.doubles} icon={UsersRound} tone="green" />
-        <TeamRecordCard title="Three-Set Record" description="Matches with three recorded sets" record={records.threeSet} icon={RefreshCcw} tone="violet" />
-        <TeamRecordCard title="Tiebreaker Record" description="Decided 7–6, 8–7, or by a match tiebreak" record={records.tiebreakers} icon={BadgePercent} tone="orange" />
-        <TeamRecordCard title="Super Tiebreaker Record" description="Third-set match tiebreaks scored to 10+" record={records.superTiebreakers} icon={Activity} tone="teal" />
+        <TeamRecordCard title="Team Record" description="Confirmed dual-match outcomes" record={records.team} icon={Trophy} tone="red" selected={selected === "team"} onClick={() => select("team")} />
+        <TeamRecordCard title="Player Record" description="All individual singles matches" record={records.players} icon={UserRound} tone="blue" selected={selected === "players"} onClick={() => select("players")} />
+        <TeamRecordCard title="Doubles Record" description="Each doubles match counted once" record={records.doubles} icon={UsersRound} tone="green" selected={selected === "doubles"} onClick={() => select("doubles")} />
+        <TeamRecordCard title="Three-Set Record" description="Matches with three recorded sets" record={records.threeSet} icon={RefreshCcw} tone="violet" selected={selected === "threeSet"} onClick={() => select("threeSet")} />
+        <TeamRecordCard title="Tiebreaker Record" description="Decided 7–6, 8–7, or by a match tiebreak" record={records.tiebreakers} icon={BadgePercent} tone="orange" selected={selected === "tiebreakers"} onClick={() => select("tiebreakers")} />
+        <TeamRecordCard title="Super Tiebreaker Record" description="Third-set match tiebreaks scored to 10+" record={records.superTiebreakers} icon={Activity} tone="teal" selected={selected === "superTiebreakers"} onClick={() => select("superTiebreakers")} />
       </div>
+      {selected ? (
+        <TeamRecordMatchList
+          title={TEAM_RECORD_TITLES[selected]}
+          events={events}
+          results={selected === "team" ? null : drilldowns[selected] as MatchResult[]}
+          teamEvents={selected === "team" ? drilldowns.team : null}
+          roster={roster}
+          scheduleById={scheduleById}
+          onClose={() => setSelected(null)}
+        />
+      ) : null}
+    </section>
+  );
+}
+
+function TeamRecordMatchList({
+  title,
+  results,
+  teamEvents,
+  events,
+  roster,
+  scheduleById,
+  onClose,
+}: {
+  title: string;
+  results: MatchResult[] | null;
+  teamEvents: MatchEvent[] | null;
+  events: MatchEvent[];
+  roster: RosterPlayer[];
+  scheduleById: Record<string, TeamScheduleEvent>;
+  onClose: () => void;
+}) {
+  const count = results?.length ?? teamEvents?.length ?? 0;
+  return (
+    <section className="grid gap-3" aria-live="polite">
+      <div className="flex items-center justify-between gap-3 border-b border-border px-1 pb-2">
+        <div>
+          <p className="text-[10px] font-semibold tracking-wide text-text-secondary uppercase">Record detail</p>
+          <h3 className="text-lg font-semibold text-text-primary">{title} · {count} matches</h3>
+        </div>
+        <button type="button" onClick={onClose} className="rounded-control border border-border bg-surface px-3 py-2 text-xs font-semibold hover:bg-app-background">
+          Close
+        </button>
+      </div>
+      {teamEvents ? (
+        <div className={`${cardClass} divide-y divide-border overflow-hidden`}>
+          {teamEvents.map((event) => {
+            const schedule = event.scheduleEventId ? scheduleById[event.scheduleEventId] : undefined;
+            return (
+              <Link key={event.id} href={matchesEventPath(event.id)} className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-app-background/60">
+                <div>
+                  <p className="font-semibold">{eventDisplayTitle(event, schedule)}</p>
+                  <p className="mt-0.5 text-xs text-text-secondary">{formatDate(event.startDate)} · Dual match</p>
+                </div>
+                <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${event.teamOutcome === "win" ? "bg-green-50 text-green-700" : event.teamOutcome === "loss" ? "bg-red-50 text-red-700" : "bg-slate-100 text-slate-700"}`}>
+                  {event.teamOutcome === "win" ? "Win" : event.teamOutcome === "loss" ? "Loss" : "Tie"}
+                  {event.reportedTeamScoreDenison != null && event.reportedTeamScoreOpponent != null ? ` · ${event.reportedTeamScoreDenison}–${event.reportedTeamScoreOpponent}` : ""}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      ) : (
+        <ResultsTable results={results ?? []} events={events} roster={roster} scheduleById={scheduleById} />
+      )}
     </section>
   );
 }

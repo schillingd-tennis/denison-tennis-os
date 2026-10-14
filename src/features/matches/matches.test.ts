@@ -25,6 +25,7 @@ import {
   buildOverallDoublesRecord,
   buildSinglesPlayerRecords,
   buildTeamRecordsDashboard,
+  buildTeamRecordDrilldowns,
   buildTeamSeasonRecords,
 } from "./records";
 import { doublesPairKey, resolvePlayerName, rosterPlayerDisplayName, splitPairNames } from "./resolvePlayers";
@@ -1052,6 +1053,24 @@ test("team dashboard totals include pressure-match records without counting unfi
   assert.equal(dashboard.tiebreakers.losses, 1);
   assert.equal(dashboard.superTiebreakers.wins, 1);
   assert.equal(dashboard.superTiebreakers.losses, 0);
+
+  const drilldowns = buildTeamRecordDrilldowns(results, [event], {
+    seasonYear: 2027,
+    eventType: "all",
+  });
+  assert.equal(drilldowns.team.length, 1);
+  assert.equal(drilldowns.players.length, dashboard.players.wins + dashboard.players.losses);
+  assert.equal(drilldowns.doubles.length, dashboard.doubles.wins + dashboard.doubles.losses);
+  assert.equal(drilldowns.threeSet.length, dashboard.threeSet.wins + dashboard.threeSet.losses);
+  assert.equal(
+    drilldowns.tiebreakers.length,
+    dashboard.tiebreakers.wins + dashboard.tiebreakers.losses,
+  );
+  assert.equal(
+    drilldowns.superTiebreakers.length,
+    dashboard.superTiebreakers.wins + dashboard.superTiebreakers.losses,
+  );
+  assert.equal(drilldowns.tiebreakers.some((result) => result.id === "unfinished"), false);
 });
 
 test("nav routes helpers exist via module-routes", async () => {

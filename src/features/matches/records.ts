@@ -1,4 +1,9 @@
-import { applyResultToRecord, EMPTY_RECORD, recordsReconcile } from "./scoringRules";
+import {
+  applyResultToRecord,
+  EMPTY_RECORD,
+  recordsReconcile,
+  resultCountsAsWinLoss,
+} from "./scoringRules";
 import { doublesPairKey } from "./resolvePlayers";
 import type {
   DoublesPairRecord,
@@ -213,6 +218,15 @@ export type TeamRecordsDashboard = {
   superTiebreakers: WinLossRecord;
 };
 
+export type TeamRecordDrilldowns = {
+  team: MatchEvent[];
+  players: MatchResult[];
+  doubles: MatchResult[];
+  threeSet: MatchResult[];
+  tiebreakers: MatchResult[];
+  superTiebreakers: MatchResult[];
+};
+
 function isDashboardEvent(
   event: MatchEvent,
   options?: { seasonYear?: number | null; eventType?: "dual" | "tournament" | "all" },
@@ -241,6 +255,40 @@ function isTiebreakDecidedResult(result: MatchResult): boolean {
   const high = Math.max(decidingSet.winnerGames, decidingSet.loserGames);
   const low = Math.min(decidingSet.winnerGames, decidingSet.loserGames);
   return (high === 7 && low === 6) || (high === 8 && low === 7) || isSuperTiebreakResult(result);
+}
+
+function isDecidedDashboardResult(result: MatchResult): boolean {
+  return (
+    resultCountsAsWinLoss(result.status) &&
+    (result.winnerSide === "denison" || result.winnerSide === "opponent")
+  );
+}
+
+/** Exact events/results represented by each Matches → Team record card. */
+export function buildTeamRecordDrilldowns(
+  results: readonly MatchResult[],
+  events: readonly MatchEvent[],
+  options?: { seasonYear?: number | null; eventType?: "dual" | "tournament" | "all" },
+): TeamRecordDrilldowns {
+  const eventsById = new Map(events.map((event) => [event.id, event]));
+  const filteredResults = results.filter((result) => {
+    const event = eventsById.get(result.eventId);
+    return Boolean(event && isDashboardEvent(event, options) && isDecidedDashboardResult(result));
+  });
+
+  return {
+    team: events.filter(
+      (event) =>
+        event.eventType === "dual" &&
+        isDashboardEvent(event, options) &&
+        event.teamOutcome != null,
+    ),
+    players: filteredResults.filter((result) => result.discipline === "singles"),
+    doubles: filteredResults.filter((result) => result.discipline === "doubles"),
+    threeSet: filteredResults.filter((result) => result.scoreSets.length >= 3),
+    tiebreakers: filteredResults.filter(isTiebreakDecidedResult),
+    superTiebreakers: filteredResults.filter(isSuperTiebreakResult),
+  };
 }
 
 /** Aggregate records for the Matches → Team dashboard. */
