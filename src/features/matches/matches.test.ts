@@ -30,6 +30,7 @@ import {
 import { doublesPairKey, resolvePlayerName, rosterPlayerDisplayName, splitPairNames } from "./resolvePlayers";
 import { detectResultStatusFromText, parseScoreSets, resultFingerprint } from "./scoreParse";
 import { resolveMatchSchoolIdentity, resolveMatchSchoolName } from "./schoolNames";
+import { formatEventResultsForClipboard } from "./resultsClipboard";
 import {
   calculateDualTeamScores,
   calculateNcaaDoublesPoint,
@@ -38,6 +39,94 @@ import {
 import { parseTournamentResults } from "./tournamentParse";
 import type { MatchEvent, MatchResult } from "./types";
 import { validateImportDraft } from "./validateDraft";
+
+test("event result clipboard export includes every saved singles and doubles match", () => {
+  const event = {
+    id: "skidmore",
+    eventType: "tournament",
+    title: "Skidmore Open",
+    opposingTeamName: null,
+    seasonYear: 2027,
+    seasonSegment: "fall",
+    startDate: "2026-10-10",
+    endDate: "2026-10-11",
+    site: "away",
+    locationText: "Saratoga Springs, NY",
+    venueName: null,
+    status: "completed",
+    scoringFormat: null,
+    reportedTeamScoreDenison: null,
+    reportedTeamScoreOpponent: null,
+    calculatedTeamScoreDenison: null,
+    calculatedTeamScoreOpponent: null,
+    teamOutcome: null,
+    teamScoreDiscrepancy: false,
+    scheduleEventId: null,
+    scheduleSnapshot: null,
+    scheduleUnlinkedReason: null,
+    resultsMarkedCompleteAt: null,
+    resultsMarkedCompleteBy: null,
+    notes: null,
+    createdAt: "",
+    updatedAt: "",
+  } satisfies MatchEvent;
+  const makeResult = (overrides: Partial<MatchResult>): MatchResult => ({
+    id: "result",
+    eventId: event.id,
+    discipline: "singles",
+    resultKind: "tournament_match",
+    lineupPosition: null,
+    drawName: "A Draw",
+    flightName: null,
+    divisionName: null,
+    roundLabel: "Quarterfinal",
+    matchDate: "2026-10-10",
+    status: "completed",
+    winnerSide: "denison",
+    scoreText: "6-4, 6-2",
+    scoreSets: [],
+    originalScoreText: null,
+    sourceExcerpt: null,
+    notes: null,
+    denisonPlayerAId: "nick",
+    denisonPlayerBId: null,
+    doublesPairId: null,
+    opponentPlayerAName: "Alex Opponent",
+    opponentPlayerBName: null,
+    opponentSchool: "Skidmore",
+    countsTowardTeamPoint: false,
+    teamPointAwardedTo: "none",
+    importFingerprint: null,
+    createdAt: "",
+    updatedAt: "",
+    ...overrides,
+  });
+  const text = formatEventResultsForClipboard({
+    event,
+    roster: [
+      { id: "nick", firstName: "Nick", lastName: "Meyers" },
+      { id: "chika", firstName: "Chika", lastName: "Nwaozuzu" },
+    ],
+    results: [
+      makeResult({}),
+      makeResult({
+        id: "doubles",
+        discipline: "doubles",
+        denisonPlayerBId: "chika",
+        opponentPlayerBName: "Sam Opponent",
+        winnerSide: "opponent",
+        scoreText: "7-5, 6-4",
+        roundLabel: "Semifinal",
+      }),
+    ],
+  });
+
+  assert.match(text, /Skidmore Open\n2 recorded matches/);
+  assert.match(text, /W — Nick Meyers vs Alex Opponent \(Skidmore\)/);
+  assert.match(text, /L — Nick Meyers \/ Chika Nwaozuzu vs Alex Opponent \/ Sam Opponent/);
+  assert.match(text, /A Draw · Semifinal/);
+  assert.match(text, /7-5, 6-4/);
+});
 
 test("match result schools resolve to canonical names and stored logos", () => {
   assert.equal(resolveMatchSchoolName("KEN").name, "Kenyon College");

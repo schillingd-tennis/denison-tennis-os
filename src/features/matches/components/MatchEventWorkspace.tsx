@@ -43,6 +43,7 @@ import {
 } from "../display";
 import { resolveMatchEventDisplay } from "../scheduleLink";
 import { hasResultsEntryWork } from "../teamCompetitions";
+import { formatEventResultsForClipboard } from "../resultsClipboard";
 import type { MatchEvent, MatchImportBatch, MatchResult, RosterPlayer } from "../types";
 import {
   parseMatchEventWorkspaceId,
@@ -53,6 +54,7 @@ import LinkSchedulePanel from "./LinkSchedulePanel";
 import ManualResultsEntry from "./ManualResultsEntry";
 import DeleteMatchResultButton from "./DeleteMatchResultButton";
 import EditMatchResultButton from "./EditMatchResultButton";
+import CopyEventResultsButton from "./CopyEventResultsButton";
 
 export default function MatchEventWorkspace({
   event: initialEvent,
@@ -517,9 +519,21 @@ function ResultsSection({
 
   const singles = results.filter((r) => r.discipline === "singles");
   const doubles = results.filter((r) => r.discipline === "doubles");
+  const clipboardText = formatEventResultsForClipboard({ event, results, roster });
 
   return (
     <div className="grid gap-4 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-border bg-app-background/40 p-3">
+        <div>
+          <p className="text-sm font-semibold">
+            {results.length} recorded match{results.length === 1 ? "" : "es"}
+          </p>
+          <p className="text-xs text-text-secondary">
+            Review every saved result below, or copy the complete set as paste-ready text.
+          </p>
+        </div>
+        <CopyEventResultsButton text={clipboardText} />
+      </div>
       {event.eventType === "dual" ? (
         <>
           <ResultGroup title="Doubles" rows={doubles} roster={roster} />

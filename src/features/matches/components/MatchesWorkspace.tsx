@@ -645,9 +645,20 @@ function CompetitionsTable({
                     </span>
                   </td>
                   <td className="px-3 py-2 align-top text-xs font-semibold tabular-nums">
-                    {row.matchFormat === "dual" && row.matchEvent?.teamOutcome
-                      ? `${formatTeamOutcome(row.matchEvent.teamOutcome)} ${scoreLabel}`
-                      : scoreLabel}
+                    {row.matchEvent && row.resultCount > 0 ? (
+                      <Link
+                        href={`${matchesEventPath(row.matchEvent.id)}?workspace=results`}
+                        className="text-[var(--module-accent)] hover:underline"
+                      >
+                        {row.matchFormat === "dual" && row.matchEvent.teamOutcome
+                          ? `${formatTeamOutcome(row.matchEvent.teamOutcome)} ${scoreLabel}`
+                          : scoreLabel}
+                      </Link>
+                    ) : row.matchFormat === "dual" && row.matchEvent?.teamOutcome ? (
+                      `${formatTeamOutcome(row.matchEvent.teamOutcome)} ${scoreLabel}`
+                    ) : (
+                      scoreLabel
+                    )}
                   </td>
                   <td className="px-3 py-2 text-right align-top">
                     <ResultsActionButton row={row} onEnter={onEnter} />
@@ -685,29 +696,33 @@ function ResultsActionButton({
       </Link>
     );
   }
+  const viewResults = row.matchEvent && row.resultCount > 0 ? (
+    <Link
+      href={`${matchesEventPath(row.matchEvent.id)}?workspace=results`}
+      className="inline-flex h-8 items-center rounded-control border border-border px-2.5 text-xs font-semibold hover:bg-app-background"
+      onClick={(e) => e.stopPropagation()}
+    >
+      View matches
+    </Link>
+  ) : null;
   if (row.action === "view" && row.matchEvent) {
-    return (
-      <Link
-        href={matchesEventPath(row.matchEvent.id)}
-        className="inline-flex h-8 items-center rounded-control border border-border px-2.5 text-xs font-semibold hover:bg-app-background"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {row.actionLabel}
-      </Link>
-    );
+    return viewResults;
   }
   return (
-    <button
-      type="button"
-      onClick={(e: MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        onEnter(row.scheduleEventId, "paste");
-      }}
-      className="inline-flex h-8 items-center rounded-control border border-border px-2.5 text-xs font-semibold hover:bg-app-background"
-    >
-      {row.actionLabel}
-    </button>
+    <div className="flex justify-end gap-2">
+      {viewResults}
+      <button
+        type="button"
+        onClick={(e: MouseEvent) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onEnter(row.scheduleEventId, "paste");
+        }}
+        className="inline-flex h-8 items-center rounded-control border border-border px-2.5 text-xs font-semibold hover:bg-app-background"
+      >
+        {row.actionLabel}
+      </button>
+    </div>
   );
 }
 
