@@ -1,5 +1,6 @@
 import {
   extractOfficialMatchWithOpenAi,
+  officialMatchAiIsConfigured,
   type AiDualExtraction,
   type AiTournamentExtraction,
 } from "./aiExtract";
@@ -90,7 +91,7 @@ export async function hybridImportBoxScore(input: {
   // parser remains a fallback, rather than preventing the AI request.
   const canUseAi =
     input.allowAi !== false &&
-    (input.extractFn !== undefined || Boolean(process.env.OPENAI_API_KEY?.trim()));
+    (input.extractFn !== undefined || officialMatchAiIsConfigured());
   if (!canUseAi) {
     return deterministicUseful
       ? {

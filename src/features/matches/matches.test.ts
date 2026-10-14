@@ -262,6 +262,58 @@ test("comma-separated W/L results parse all singles without AI", async () => {
   assert.ok(result.draft.flags.some((flag) => flag.includes("AI is not configured")));
 });
 
+test("spreadsheet-style tournament rows parse without an AI key", async () => {
+  const text = [
+    "Type  Denison player(s)  Opponent(s)  Result",
+    "Singles Wesley Huang Kai Chen, Swarthmore W 6-4, 7-5",
+    "Singles Wesley Huang Aden Dorros, Bowdoin L 1-6, 3-6",
+    "Doubles Nwaozuzu / Meyers Lewis / Wijemanne, Middlebury L 5-7",
+    "Doubles Huang / Borosko Williams / Reiland, Middlebury L 1-6",
+    "Doubles MacTaggart / Kallambella Verma / Thoresen, Swarthmore L 6-7 (2-7)",
+    "Doubles Idnani / Koido Bitkuri / Dolgushev, Skidmore L 4-6",
+    "Doubles Berns / Suedmeyer Demetriades / Gilbert, Bowdoin L 3-6",
+    "Doubles Huang / Borosko King / Topbas, Skidmore W 6-4",
+    "Doubles Idnani / Koido Groves / Hernandez, Middlebury L 5-7",
+  ].join("\n");
+  const roster = [
+    "Wesley Huang", "Chika Nwaozuzu", "Nick Meyers", "Aidan Borosko",
+    "Jackson MacTaggart", "Arya Kallambella", "Balraj Idnani", "Minato Koido",
+    "Peter Berns", "Sam Suedmeyer",
+  ].map((name, index) => ({
+    id: `sheet-${index}`,
+    firstName: name.split(" ")[0]!,
+    lastName: name.split(" ")[1]!,
+  }));
+
+  const result = await hybridImportBoxScore({
+    text,
+    roster,
+    forcedType: "tournament",
+    referenceDate: "2026-10-10",
+    allowAi: false,
+  });
+
+  assert.equal(result.ok, true);
+  if (!result.ok || result.draft.kind !== "tournament") return;
+  assert.equal(result.source, "deterministic");
+  assert.equal(result.draft.title, null);
+  assert.equal(result.draft.results.length, 9);
+  assert.deepEqual(result.draft.results.map((row) => row.discipline), [
+    "singles", "singles", "doubles", "doubles", "doubles", "doubles", "doubles", "doubles", "doubles",
+  ]);
+  assert.deepEqual(result.draft.results.map((row) => row.winnerSide), [
+    "denison", "opponent", "opponent", "opponent", "opponent", "opponent", "opponent", "denison", "opponent",
+  ]);
+  assert.equal(result.draft.results[0]?.denisonA.rawName, "Wesley Huang");
+  assert.equal(result.draft.results[0]?.opponentAName, "Kai Chen");
+  assert.equal(result.draft.results[2]?.denisonA.rawName, "Nwaozuzu");
+  assert.equal(result.draft.results[2]?.denisonB?.rawName, "Meyers");
+  assert.equal(result.draft.results[2]?.opponentAName, "Lewis");
+  assert.equal(result.draft.results[2]?.opponentBName, "Wijemanne");
+  assert.equal(result.draft.results[4]?.scoreText, "6-7 (2-7)");
+  assert.equal(result.draft.results[5]?.opponentSchool, "Skidmore");
+});
+
 test("flattened Friday–Sunday doubles paste yields 15 dated, reviewable matches", () => {
   const text = "FRIDAY, SEPTEMBER 18  Meyers / Nwaozuzu, W, Castellanos / González (KEN), 7-5 B. Idnani / Koido, W, Kondaveeti / Papamichael (KEN), 6-1 Borosko / Berns, W, Dixit / Ng (KEN), 6-3 Kallambella / MacTaggart, W, Bocanegra / Shah (KEN), 6-3  SATURDAY, SEPTEMBER 19  Nwaozuzu / Meyers, W, Feies / Fernando (CMU), 6-4 Kallambella / MacTaggart, W, Zouaoui / Varley (DPU), 6-2 Suedmeyer / Koido, W, Hummel / Schweitzer (DPU), 6-4 Borosko / B. Idnani, W, Kwiatkowski / Shiffer (CWRU), 6-3  SUNDAY, SEPTEMBER 20  Meyers / Nwaozuzu, W, Jacob / Lambright (CWRU), 6-4 Kallambella / MacTaggart, W, Anderson / Zouaoui (DPU), 7-6(5) Berns / Borosko, L, Zhang / Dai (CWRU), 7-5 B. Idnani / Koido, W, Gershon / Fernando (CMU), 6-4 Suedmeyer / I. Idnani, W, Jhaveri / Ngo (CWRU), 6-3 Berns / Borosko, W, Kwiatkowski / Shiffer (CWRU), 6-4 Suedmeyer / I. Idnani, W, Jhaveri / Kothapalli (CWRU), 6-4";
   const roster = [
@@ -567,6 +619,64 @@ test("AI extractor never exposes a credentials prompt when no key is configured"
   if ("error" in result) {
     assert.equal(result.error.includes("OPENAI_API_KEY"), false);
   }
+});
+
+test("AI extractor uses Vercel AI Gateway when a gateway token is configured", async () => {
+  let requestedUrl = "";
+  let requestedInit: RequestInit | undefined;
+  const result = await extractOfficialMatchWithOpenAi({
+    eventType: "tournament",
+    text: "Nick Meyers beat Alex Player 6-3, 6-2",
+    rosterNames: ["Nick Meyers"],
+    gatewayToken: "gateway-test-key",
+    model: "gpt-4o-mini",
+    fetchImpl: async (url, init) => {
+      requestedUrl = String(url);
+      requestedInit = init;
+      return new Response(
+        JSON.stringify({
+          choices: [{
+            message: {
+              content: JSON.stringify({
+                title: "Test Invite",
+                startDate: null,
+                endDate: null,
+                locationText: null,
+                results: [{
+                  discipline: "singles",
+                  drawName: null,
+                  flightName: null,
+                  roundLabel: null,
+                  matchDate: null,
+                  denisonPlayerName: "Nick Meyers",
+                  denisonPartnerName: null,
+                  opponentPlayerName: "Alex Player",
+                  opponentPartnerName: null,
+                  opponentSchool: null,
+                  status: "completed",
+                  winnerSide: "denison",
+                  scorePerspective: "denison",
+                  score: "6-3, 6-2",
+                  sourceExcerpt: "Nick Meyers beat Alex Player 6-3, 6-2",
+                  confidence: 0.99,
+                  reviewReasons: [],
+                }],
+                confidence: 0.99,
+                interpretation: "One singles result",
+              }),
+            },
+          }],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    },
+  });
+
+  assert.equal(requestedUrl, "https://ai-gateway.vercel.sh/v1/chat/completions");
+  assert.equal((requestedInit?.headers as Record<string, string>).Authorization, "Bearer gateway-test-key");
+  const requestBody = JSON.parse(String(requestedInit?.body)) as { model?: string };
+  assert.equal(requestBody.model, "openai/gpt-4o-mini");
+  assert.equal("error" in result, false);
 });
 
 test("invalid AI JSON rejected", () => {

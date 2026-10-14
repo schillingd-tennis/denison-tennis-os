@@ -21,6 +21,7 @@ function inferSeasonYear(date: string | null): number {
 function parseTournamentTitle(text: string): string | null {
   const firstLine = text.split(/\r?\n/).map((l) => l.trim()).find(Boolean);
   if (!firstLine) return null;
+  if (/^Type\s+Denison player\(s\)\s+Opponent\(s\)\s+Result$/i.test(firstLine)) return null;
   if (/^(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b/i.test(firstLine)) return null;
   if (/^(?:main\s*draw|consolation|singles|doubles|round)/i.test(firstLine)) return null;
   // Numbered individual results indicate listing order, not an event title or court.
@@ -191,6 +192,79 @@ function parseCompactResultLine(
   };
 }
 
+function splitTabularSides(
+  discipline: "singles" | "doubles",
+  value: string,
+  roster: readonly RosterPlayer[],
+): { denison: string; opponent: string } | null {
+  const boundaries = [...value.matchAll(/\s+/g)]
+    .map((match) => match.index)
+    .filter((index): index is number => index != null)
+    .reverse();
+
+  for (const boundary of boundaries) {
+    const denison = value.slice(0, boundary).trim();
+    const opponent = value.slice(boundary).trim();
+    if (!denison || !opponent) continue;
+
+    if (discipline === "singles") {
+      if (toDraftParticipant(denison, roster).resolution === "resolved") {
+        return { denison, opponent };
+      }
+      continue;
+    }
+
+    const denisonPair = splitPairNames(denison);
+    const opponentPair = splitPairNames(opponent);
+    if (
+      denisonPair &&
+      opponentPair &&
+      toDraftParticipant(denisonPair[0], roster).resolution === "resolved" &&
+      toDraftParticipant(denisonPair[1], roster).resolution === "resolved"
+    ) {
+      return { denison, opponent };
+    }
+  }
+
+  return null;
+}
+
+/** Parse spreadsheet-style rows: Type | Denison player(s) | Opponent(s), School | W/L score. */
+function parseTabularResultLine(
+  line: string,
+  roster: readonly RosterPlayer[],
+  matchDate: string | null,
+  drawName: string | null,
+  flightName: string | null,
+  divisionName: string | null,
+): TournamentDraftResult | null {
+  if (/^Type\s+Denison player\(s\)\s+Opponent\(s\)\s+Result$/i.test(line)) return null;
+
+  const match = /^(Singles|Doubles)\s+(.+?)\s+([WL])\s+(\d{1,2}\s*[-–—].*)$/i.exec(line);
+  if (!match) return null;
+
+  const discipline = match[1]!.toLowerCase() as "singles" | "doubles";
+  const participantsAndSchool = match[2]!.trim();
+  const schoolSeparator = participantsAndSchool.lastIndexOf(",");
+  if (schoolSeparator < 0) return null;
+
+  const participants = participantsAndSchool.slice(0, schoolSeparator).trim();
+  const school = participantsAndSchool.slice(schoolSeparator + 1).trim();
+  const sides = splitTabularSides(discipline, participants, roster);
+  if (!sides) return null;
+
+  const compact = `${sides.denison}, ${match[3]!.toUpperCase()}, ${sides.opponent} (${school}), ${match[4]!.trim()}`;
+  const parsed = parseCompactResultLine(
+    compact,
+    roster,
+    matchDate,
+    drawName,
+    flightName,
+    divisionName,
+  );
+  return parsed ? { ...parsed, discipline, sourceExcerpt: line } : null;
+}
+
 /**
  * Deterministic tournament result line parser.
  * Supports singles and doubles; multiple results per player; no lineup positions;
@@ -219,6 +293,19 @@ export function parseTournamentResults(input: {
 
   for (const line of lines) {
     currentDate = resultDate(line, input) ?? currentDate;
+    const tabularResult = parseTabularResultLine(
+      line,
+      input.roster,
+      currentDate,
+      currentDraw,
+      currentFlight,
+      currentDivision,
+    );
+    if (tabularResult) {
+      results.push(tabularResult);
+      flags.push(...tabularResult.flags);
+      continue;
+    }
     const compactResult = parseCompactResultLine(
       line,
       input.roster,

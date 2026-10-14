@@ -35,6 +35,7 @@ import {
   markMatchResultsComplete,
   reopenMatchResultsEntry,
 } from "./repository";
+import { officialMatchAiIsConfigured } from "./aiExtract";
 import {
   flagImportScheduleConflicts,
   matchEventTypeFromSchedule,
@@ -202,7 +203,7 @@ export async function parseMatchesBoxScoreAction(input: {
           teams: scheduleEvent.teamsInEvent,
         }
       : undefined,
-    allowAi: Boolean(process.env.OPENAI_API_KEY?.trim()),
+    allowAi: officialMatchAiIsConfigured(),
   });
 
   if (!result.ok) {

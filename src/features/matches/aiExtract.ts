@@ -230,6 +230,14 @@ export type AiTournamentExtraction = {
   interpretation: string;
 };
 
+export function officialMatchAiIsConfigured(): boolean {
+  return Boolean(
+    process.env.OPENAI_API_KEY?.trim() ||
+      process.env.AI_GATEWAY_API_KEY?.trim() ||
+      process.env.VERCEL_OIDC_TOKEN?.trim(),
+  );
+}
+
 function buildSystemPrompt(eventType: MatchEventType): string {
   const shared = [
     "You extract Denison men’s tennis OFFICIAL match results from pasted box-score text.",
@@ -278,17 +286,36 @@ export async function extractOfficialMatchWithOpenAi(input: {
     teams?: string | null;
   };
   apiKey?: string;
+  gatewayToken?: string;
   model?: string;
   fetchImpl?: typeof fetch;
 }): Promise<AiDualExtraction | AiTournamentExtraction | { error: string }> {
-  const apiKey = input.apiKey ?? process.env.OPENAI_API_KEY?.trim();
+  const directOpenAiKey =
+    input.apiKey !== undefined ? input.apiKey.trim() : process.env.OPENAI_API_KEY?.trim();
+  const gatewayKey =
+    input.apiKey === undefined
+      ? input.gatewayToken?.trim() ||
+        process.env.AI_GATEWAY_API_KEY?.trim() ||
+        process.env.VERCEL_OIDC_TOKEN?.trim()
+      : undefined;
+  const apiKey = directOpenAiKey || gatewayKey;
   if (!apiKey) return { error: MATCHES_PARSE_UNAVAILABLE };
 
-  const model =
+  const usesGateway = !directOpenAiKey && Boolean(gatewayKey);
+  const configuredModel =
     input.model ??
     process.env.OPENAI_MATCHES_MODEL?.trim() ??
-    process.env.OPENAI_INTRA_SQUAD_MODEL?.trim() ??
-    "gpt-4o-mini";
+    process.env.OPENAI_INTRA_SQUAD_MODEL?.trim();
+  const model = configuredModel
+    ? usesGateway && !configuredModel.includes("/")
+      ? `openai/${configuredModel}`
+      : configuredModel
+    : usesGateway
+      ? "openai/gpt-4o-mini"
+      : "gpt-4o-mini";
+  const endpoint = usesGateway
+    ? "https://ai-gateway.vercel.sh/v1/chat/completions"
+    : "https://api.openai.com/v1/chat/completions";
   const fetchImpl = input.fetchImpl ?? fetch;
   const schema =
     input.eventType === "dual" ? DUAL_EXTRACTION_JSON_SCHEMA : TOURNAMENT_EXTRACTION_JSON_SCHEMA;
@@ -296,7 +323,7 @@ export async function extractOfficialMatchWithOpenAi(input: {
     input.eventType === "dual" ? "official_dual_extraction" : "official_tournament_extraction";
 
   try {
-    const response = await fetchImpl("https://api.openai.com/v1/chat/completions", {
+    const response = await fetchImpl(endpoint, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,

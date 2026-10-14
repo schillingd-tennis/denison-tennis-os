@@ -6,9 +6,11 @@ import { useMemo, useState, type MouseEvent } from "react";
 import {
   Activity,
   BadgePercent,
+  Eye,
   Home,
   MapPin,
   Plane,
+  PencilLine,
   Plus,
   RefreshCcw,
   Trophy,
@@ -540,7 +542,7 @@ function CompetitionsTable({
       </div>
       <div className={`${cardClass} overflow-hidden`}>
         <div className="overflow-x-auto">
-          <table className="min-w-[1080px] w-full border-collapse text-left text-sm">
+          <table className="min-w-[1180px] w-full border-collapse text-left text-sm">
             <thead className="border-b border-border/70 bg-app-background/40 text-[11px] font-semibold tracking-wide text-text-secondary">
               <tr>
                 <th className="px-3 py-2 text-center">Date</th>
@@ -550,7 +552,7 @@ function CompetitionsTable({
                 <th className="px-3 py-2">Schedule</th>
                 <th className="px-3 py-2">Results</th>
                 <th className="px-3 py-2">Score / Count</th>
-                <th className="px-3 py-2 text-right">Action</th>
+                <th className="w-[17rem] px-3 py-2 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/70">
@@ -660,7 +662,7 @@ function CompetitionsTable({
                       scoreLabel
                     )}
                   </td>
-                  <td className="px-3 py-2 text-right align-top">
+                  <td className="w-[17rem] px-3 py-2 text-right align-top">
                     <ResultsActionButton row={row} onEnter={onEnter} />
                   </td>
                 </tr>
@@ -689,9 +691,10 @@ function ResultsActionButton({
     return (
       <Link
         href={teamOperationsScheduleEventPath(row.scheduleEventId)}
-        className="inline-flex h-8 items-center rounded-control border border-border px-2.5 text-xs font-semibold hover:bg-app-background"
+        className="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-control border border-amber-300 bg-amber-50 px-3 text-[11px] font-semibold text-amber-800 shadow-sm transition hover:border-amber-400 hover:bg-amber-100"
         onClick={(e) => e.stopPropagation()}
       >
+        <PencilLine className="h-3.5 w-3.5" aria-hidden />
         {row.actionLabel}
       </Link>
     );
@@ -699,9 +702,10 @@ function ResultsActionButton({
   const viewResults = row.matchEvent && row.resultCount > 0 ? (
     <Link
       href={`${matchesEventPath(row.matchEvent.id)}?workspace=results`}
-      className="inline-flex h-8 items-center rounded-control border border-border px-2.5 text-xs font-semibold hover:bg-app-background"
+      className="inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-control border border-border bg-surface px-3 text-[11px] font-semibold text-text-secondary shadow-sm transition hover:border-[var(--module-accent)] hover:bg-[var(--module-tint)] hover:text-[var(--module-accent)]"
       onClick={(e) => e.stopPropagation()}
     >
+      <Eye className="h-3.5 w-3.5" aria-hidden />
       View matches
     </Link>
   ) : null;
@@ -709,7 +713,7 @@ function ResultsActionButton({
     return viewResults;
   }
   return (
-    <div className="flex justify-end gap-2">
+    <div className="flex flex-nowrap justify-end gap-2">
       {viewResults}
       <button
         type="button"
@@ -718,8 +722,13 @@ function ResultsActionButton({
           e.stopPropagation();
           onEnter(row.scheduleEventId, "paste");
         }}
-        className="inline-flex h-8 items-center rounded-control border border-border px-2.5 text-xs font-semibold hover:bg-app-background"
+        className="inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-control bg-[var(--module-accent)] px-3 text-[11px] font-semibold text-white shadow-sm transition hover:opacity-90"
       >
+        {row.action === "enter" ? (
+          <Plus className="h-3.5 w-3.5" aria-hidden />
+        ) : (
+          <PencilLine className="h-3.5 w-3.5" aria-hidden />
+        )}
         {row.actionLabel}
       </button>
     </div>

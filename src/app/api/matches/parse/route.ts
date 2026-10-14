@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { hybridImportBoxScore } from "@/features/matches/hybridImport";
+import { officialMatchAiIsConfigured } from "@/features/matches/aiExtract";
 import { peopleToMatchesRoster } from "@/features/matches/loadWorkspace";
 import type { MatchEventType } from "@/features/matches/types";
 import { listPeople } from "@/features/people/repository";
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
       roster,
       forcedType,
       seasonYear,
-      allowAi: Boolean(process.env.OPENAI_API_KEY?.trim()),
+      allowAi: officialMatchAiIsConfigured(),
     });
     return NextResponse.json(result);
   } catch (error) {
