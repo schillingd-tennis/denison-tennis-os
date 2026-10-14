@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, type MouseEvent } from "react";
 import {
   Activity,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   BadgePercent,
   Eye,
   Home,
@@ -621,7 +624,14 @@ function TeamRecordMatchList({
           })}
         </div>
       ) : (
-        <ResultsTable results={results ?? []} events={events} roster={roster} scheduleById={scheduleById} />
+        <ResultsTable
+          key={title}
+          results={results ?? []}
+          events={events}
+          roster={roster}
+          scheduleById={scheduleById}
+          showLocalFilters
+        />
       )}
     </section>
   );
@@ -1164,13 +1174,140 @@ function ResultsTable({
   events,
   roster,
   scheduleById,
+  showLocalFilters = false,
 }: {
   results: MatchResult[];
   events: MatchEvent[];
   roster: RosterPlayer[];
   scheduleById: Record<string, TeamScheduleEvent>;
+  showLocalFilters?: boolean;
 }) {
   const eventsById = useMemo(() => new Map(events.map((e) => [e.id, e])), [events]);
+  type SortKey = "event" | "date" | "denison" | "opponent" | "score" | "status" | "outcome";
+  const [sortKey, setSortKey] = useState<SortKey>("event");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [participantFilter, setParticipantFilter] = useState("all");
+  const [eventFilter, setEventFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all");
+  const [outcomeFilter, setOutcomeFilter] = useState("all");
+  const [disciplineFilter, setDisciplineFilter] = useState("all");
+
+  const resultRows = useMemo(
+    () =>
+      results.map((result) => {
+        const event = eventsById.get(result.eventId);
+        const schedule =
+          event?.scheduleEventId != null ? scheduleById[event.scheduleEventId] : undefined;
+        const denison =
+          result.discipline === "doubles"
+            ? pairDisplayName(
+                result.denisonPlayerAId ?? "",
+                result.denisonPlayerBId ?? "",
+                roster,
+              )
+            : playerNameFor(result.denisonPlayerAId, roster);
+        const opponent = [result.opponentPlayerAName, result.opponentPlayerBName]
+          .filter(Boolean)
+          .join(" / ");
+        const school = resolveMatchSchoolName(result.opponentSchool).name;
+        const outcome =
+          result.winnerSide === "denison"
+            ? "W"
+            : result.winnerSide === "opponent"
+              ? "L"
+              : "—";
+        return {
+          result,
+          event,
+          schedule,
+          eventName: event ? eventDisplayTitle(event, schedule) : "—",
+          matchDate: result.matchDate ?? event?.startDate ?? "",
+          denison,
+          opponent,
+          school,
+          outcome,
+        };
+      }),
+    [results, eventsById, roster, scheduleById],
+  );
+
+  const participantOptions = useMemo(
+    () => [...new Set(resultRows.map((row) => row.denison))].sort((a, b) => a.localeCompare(b)),
+    [resultRows],
+  );
+  const eventOptions = useMemo(
+    () => [...new Set(resultRows.map((row) => row.eventName))].sort((a, b) => a.localeCompare(b)),
+    [resultRows],
+  );
+  const dateOptions = useMemo(
+    () => [...new Set(resultRows.map((row) => row.matchDate).filter(Boolean))].sort(),
+    [resultRows],
+  );
+  const hasSingles = resultRows.some((row) => row.result.discipline === "singles");
+  const hasDoubles = resultRows.some((row) => row.result.discipline === "doubles");
+
+  const visibleRows = useMemo(() => {
+    const filtered = resultRows.filter((row) => {
+      if (participantFilter !== "all" && row.denison !== participantFilter) return false;
+      if (eventFilter !== "all" && row.eventName !== eventFilter) return false;
+      if (dateFilter !== "all" && row.matchDate !== dateFilter) return false;
+      if (outcomeFilter !== "all" && row.outcome !== outcomeFilter) return false;
+      if (disciplineFilter !== "all" && row.result.discipline !== disciplineFilter) return false;
+      return true;
+    });
+    const value = (row: (typeof resultRows)[number]): string => {
+      switch (sortKey) {
+        case "event":
+          return `${row.event?.startDate ?? ""} ${row.eventName}`;
+        case "date":
+          return row.matchDate;
+        case "denison":
+          return row.denison;
+        case "opponent":
+          return `${row.opponent} ${row.school}`;
+        case "score":
+          return row.result.scoreText ?? "";
+        case "status":
+          return row.result.status;
+        case "outcome":
+          return row.outcome;
+      }
+    };
+    return [...filtered].sort((a, b) => {
+      const comparison = value(a).localeCompare(value(b), undefined, {
+        numeric: true,
+        sensitivity: "base",
+      });
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+  }, [
+    resultRows,
+    participantFilter,
+    eventFilter,
+    dateFilter,
+    outcomeFilter,
+    disciplineFilter,
+    sortKey,
+    sortDirection,
+  ]);
+
+  function toggleSort(nextKey: SortKey) {
+    if (sortKey === nextKey) {
+      setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(nextKey);
+      setSortDirection("asc");
+    }
+  }
+
+  function clearLocalFilters() {
+    setParticipantFilter("all");
+    setEventFilter("all");
+    setDateFilter("all");
+    setOutcomeFilter("all");
+    setDisciplineFilter("all");
+  }
+
   if (results.length === 0) {
     return (
       <div className={cardClass}>
@@ -1180,43 +1317,91 @@ function ResultsTable({
   }
   return (
     <section className={`${cardClass} overflow-hidden`}>
+      {showLocalFilters ? (
+        <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-4 py-3">
+          <select
+            value={participantFilter}
+            onChange={(event) => setParticipantFilter(event.target.value)}
+            className="h-9 min-w-48 rounded-control border border-border bg-surface px-3 text-xs font-semibold text-text-primary"
+            aria-label="Filter by player or doubles team"
+          >
+            <option value="all">All players & doubles teams</option>
+            {participantOptions.map((participant) => (
+              <option key={participant} value={participant}>{participant}</option>
+            ))}
+          </select>
+          <select
+            value={eventFilter}
+            onChange={(event) => setEventFilter(event.target.value)}
+            className="h-9 min-w-40 rounded-control border border-border bg-surface px-3 text-xs font-semibold text-text-primary"
+            aria-label="Filter by event"
+          >
+            <option value="all">All events</option>
+            {eventOptions.map((eventName) => (
+              <option key={eventName} value={eventName}>{eventName}</option>
+            ))}
+          </select>
+          <select
+            value={dateFilter}
+            onChange={(event) => setDateFilter(event.target.value)}
+            className="h-9 min-w-36 rounded-control border border-border bg-surface px-3 text-xs font-semibold text-text-primary"
+            aria-label="Filter by match date"
+          >
+            <option value="all">All match dates</option>
+            {dateOptions.map((date) => (
+              <option key={date} value={date}>{formatDate(date)}</option>
+            ))}
+          </select>
+          {hasSingles && hasDoubles ? (
+            <select
+              value={disciplineFilter}
+              onChange={(event) => setDisciplineFilter(event.target.value)}
+              className="h-9 rounded-control border border-border bg-surface px-3 text-xs font-semibold text-text-primary"
+              aria-label="Filter by match type"
+            >
+              <option value="all">Singles & doubles</option>
+              <option value="singles">Singles only</option>
+              <option value="doubles">Doubles only</option>
+            </select>
+          ) : null}
+          <select
+            value={outcomeFilter}
+            onChange={(event) => setOutcomeFilter(event.target.value)}
+            className="h-9 rounded-control border border-border bg-surface px-3 text-xs font-semibold text-text-primary"
+            aria-label="Filter by outcome"
+          >
+            <option value="all">Wins & losses</option>
+            <option value="W">Wins only</option>
+            <option value="L">Losses only</option>
+          </select>
+          <button
+            type="button"
+            onClick={clearLocalFilters}
+            className="h-9 rounded-control px-2 text-xs font-semibold text-text-secondary hover:text-text-primary"
+          >
+            Clear
+          </button>
+          <span className="ml-auto text-xs tabular-nums text-text-secondary">
+            {visibleRows.length} of {results.length} matches
+          </span>
+        </div>
+      ) : null}
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
           <thead className="border-b border-border bg-app-background/60 text-[11px] font-semibold tracking-wide text-text-secondary uppercase">
             <tr>
-              <th className="px-4 py-2.5">Event</th>
-              <th className="px-4 py-2.5">Denison</th>
-              <th className="px-4 py-2.5">Opponent</th>
-              <th className="px-4 py-2.5">Score</th>
-              <th className="px-4 py-2.5">Status</th>
-              <th className="px-4 py-2.5">W/L</th>
+              <SortableResultHeader label="Event" sortKey="event" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
+              <SortableResultHeader label="Match Date" sortKey="date" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
+              <SortableResultHeader label="Denison" sortKey="denison" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
+              <SortableResultHeader label="Opponent" sortKey="opponent" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
+              <SortableResultHeader label="Score" sortKey="score" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
+              <SortableResultHeader label="Status" sortKey="status" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
+              <SortableResultHeader label="W/L" sortKey="outcome" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
               <th className="px-4 py-2.5 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {results.map((result) => {
-              const event = eventsById.get(result.eventId);
-              const schedule =
-                event?.scheduleEventId != null
-                  ? scheduleById[event.scheduleEventId]
-                  : undefined;
-              const denison =
-                result.discipline === "doubles"
-                  ? pairDisplayName(
-                      result.denisonPlayerAId ?? "",
-                      result.denisonPlayerBId ?? "",
-                      roster,
-                    )
-                  : playerNameFor(result.denisonPlayerAId, roster);
-              const opponent = [result.opponentPlayerAName, result.opponentPlayerBName]
-                .filter(Boolean)
-                .join(" / ");
-              const wl =
-                result.winnerSide === "denison"
-                  ? "W"
-                  : result.winnerSide === "opponent"
-                    ? "L"
-                    : "—";
+            {visibleRows.map(({ result, event, schedule, matchDate, denison, opponent, school, outcome }) => {
               return (
                 <tr key={result.id} className="hover:bg-app-background/50">
                   <td className="px-4 py-3">
@@ -1236,16 +1421,19 @@ function ResultsTable({
                       {result.lineupPosition != null ? ` · #${result.lineupPosition}` : ""}
                     </p>
                   </td>
+                  <td className="px-4 py-3 whitespace-nowrap tabular-nums">
+                    {matchDate ? formatDate(matchDate) : "—"}
+                  </td>
                   <td className="px-4 py-3">{denison}</td>
                   <td className="px-4 py-3 text-text-secondary">
                     {opponent || "—"}
-                    {resolveMatchSchoolName(result.opponentSchool).name ? (
-                      <span className="block text-[11px]">{resolveMatchSchoolName(result.opponentSchool).name}</span>
+                    {school ? (
+                      <span className="block text-[11px]">{school}</span>
                     ) : null}
                   </td>
                   <td className="px-4 py-3 tabular-nums">{result.scoreText ?? "—"}</td>
                   <td className="px-4 py-3 capitalize text-text-secondary">{result.status}</td>
-                  <td className="px-4 py-3 font-semibold">{wl}</td>
+                  <td className="px-4 py-3 font-semibold">{outcome}</td>
                   <td className="px-4 py-3 text-right">
                     <DeleteMatchResultButton resultId={result.id} eventId={result.eventId} />
                   </td>
@@ -1260,5 +1448,34 @@ function ResultsTable({
         Directory: <Link href={MATCHES_ROUTE} className="underline">Matches</Link>
       </p>
     </section>
+  );
+}
+
+function SortableResultHeader({
+  label,
+  sortKey,
+  activeKey,
+  direction,
+  onSort,
+}: {
+  label: string;
+  sortKey: "event" | "date" | "denison" | "opponent" | "score" | "status" | "outcome";
+  activeKey: "event" | "date" | "denison" | "opponent" | "score" | "status" | "outcome";
+  direction: "asc" | "desc";
+  onSort: (key: "event" | "date" | "denison" | "opponent" | "score" | "status" | "outcome") => void;
+}) {
+  const active = activeKey === sortKey;
+  const Icon = active ? (direction === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
+  return (
+    <th className="px-4 py-2.5" aria-sort={active ? (direction === "asc" ? "ascending" : "descending") : "none"}>
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className="inline-flex items-center gap-1.5 whitespace-nowrap hover:text-text-primary"
+      >
+        {label}
+        <Icon className="h-3.5 w-3.5" aria-hidden />
+      </button>
+    </th>
   );
 }
