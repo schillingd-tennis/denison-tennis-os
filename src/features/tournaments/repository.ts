@@ -16,12 +16,64 @@ import type {
   Tournament,
   TournamentInput,
   TournamentLinkedRecruit,
+  TournamentParticipant,
+  TournamentParticipantEvaluation,
+  TournamentParticipantInput,
 } from "./types";
 
 const TABLE = "recruiting_tournaments";
 const LINKS_TABLE = "recruiting_tournament_recruits";
+const PARTICIPANTS_TABLE = "recruiting_tournament_participants";
 
 export class TournamentRepositoryError extends Error {}
+
+type TournamentParticipantRow = {
+  id: string;
+  tournament_id: string;
+  recruit_person_id: string | null;
+  participant_name: string;
+  events: string[] | null;
+  city: string | null;
+  state: string | null;
+  gender: string | null;
+  evaluation_status: TournamentParticipant["evaluationStatus"];
+  overall_rating: number | null;
+  quick_tags: string[] | null;
+  evaluation_notes: string | null;
+  evaluated_at: string | null;
+};
+
+function participantFromRow(row: TournamentParticipantRow): TournamentParticipant {
+  return {
+    id: row.id,
+    tournamentId: row.tournament_id,
+    recruitPersonId: row.recruit_person_id,
+    participantName: row.participant_name,
+    events: row.events ?? [],
+    city: row.city,
+    state: row.state,
+    gender: row.gender,
+    evaluationStatus: row.evaluation_status,
+    overallRating: row.overall_rating,
+    quickTags: row.quick_tags ?? [],
+    evaluationNotes: row.evaluation_notes,
+    evaluatedAt: row.evaluated_at,
+  };
+}
+
+async function listTournamentParticipants(tournamentId: string): Promise<TournamentParticipant[]> {
+  const client = await createSupabaseServerClient();
+  const { data, error } = await client
+    .from(PARTICIPANTS_TABLE)
+    .select("*")
+    .eq("tournament_id", tournamentId)
+    .order("participant_name", { ascending: true });
+  if (error) {
+    if (missingTable(error.message)) return [];
+    throw new TournamentRepositoryError(`Failed to load tournament participants: ${error.message}`);
+  }
+  return ((data as TournamentParticipantRow[] | null) ?? []).map(participantFromRow);
+}
 
 function missingTable(message: string): boolean {
   return /schema cache|does not exist|could not find the table/i.test(message);
@@ -76,7 +128,18 @@ async function attachLinkedRecruits(
   const links = (data as RecruitingTournamentRecruitRow[] | null) ?? [];
   if (links.length === 0) return tournaments;
 
-  const [people, profiles] = await Promise.all([listPeople(), listRecruitProfiles()]);
+  let people: Awaited<ReturnType<typeof listPeople>>;
+  let profiles: Awaited<ReturnType<typeof listRecruitProfiles>>;
+  try {
+    [people, profiles] = await Promise.all([listPeople(), listRecruitProfiles()]);
+  } catch (error) {
+    // Recruit enrichment is helpful but must not make the tournament directory
+    // unavailable when a local Supabase session is stale or its clock has drifted.
+    if (error instanceof Error && /jwt issued at future|jwt expired|invalid jwt/i.test(error.message)) {
+      return tournaments;
+    }
+    throw error;
+  }
   const peopleById = new Map(people.map((person) => [person.id, person]));
   const profilesByPersonId = new Map(profiles.map((profile) => [profile.personId, profile]));
 
@@ -125,7 +188,50 @@ export async function getTournament(id: string): Promise<Tournament | null> {
   if (error) throw new TournamentRepositoryError(`Failed to load tournament: ${error.message}`);
   if (!data) return null;
   const [withLinks] = await attachLinkedRecruits([rowToTournament(data as RecruitingTournamentRow)]);
-  return withLinks ?? null;
+  if (!withLinks) return null;
+  return { ...withLinks, participants: await listTournamentParticipants(id) };
+}
+
+export async function importTournamentParticipants(
+  tournamentId: string,
+  participants: readonly TournamentParticipantInput[],
+): Promise<TournamentParticipant[]> {
+  if (participants.length === 0) return listTournamentParticipants(tournamentId);
+  const client = await createSupabaseServerClient();
+  const rows = participants.map((participant) => ({
+    tournament_id: tournamentId,
+    participant_name: participant.participantName.trim(),
+    events: participant.events,
+    city: participant.city,
+    state: participant.state,
+    gender: participant.gender,
+  }));
+  const { error } = await client
+    .from(PARTICIPANTS_TABLE)
+    .upsert(rows, { onConflict: "tournament_id,participant_name", ignoreDuplicates: false });
+  if (error) throw new TournamentRepositoryError(`Could not import participants: ${error.message}`);
+  return listTournamentParticipants(tournamentId);
+}
+
+export async function saveTournamentParticipantEvaluation(
+  participantId: string,
+  evaluation: TournamentParticipantEvaluation,
+): Promise<TournamentParticipant> {
+  const client = await createSupabaseServerClient();
+  const { data, error } = await client
+    .from(PARTICIPANTS_TABLE)
+    .update({
+      evaluation_status: evaluation.evaluationStatus,
+      overall_rating: evaluation.overallRating,
+      quick_tags: evaluation.quickTags,
+      evaluation_notes: evaluation.evaluationNotes?.trim() || null,
+      evaluated_at: evaluation.evaluationStatus === "not_evaluated" ? null : new Date().toISOString(),
+    })
+    .eq("id", participantId)
+    .select("*")
+    .single();
+  if (error) throw new TournamentRepositoryError(`Could not save evaluation: ${error.message}`);
+  return participantFromRow(data as TournamentParticipantRow);
 }
 
 export async function saveTournament(id: string | null, input: TournamentInput): Promise<Tournament> {

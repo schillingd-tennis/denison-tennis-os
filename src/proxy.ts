@@ -29,6 +29,7 @@ import {
 import { getSupabaseEnv } from "@/lib/supabase/env";
 
 const PUBLIC_AUTH_ROUTES = ["/login"];
+const SESSION_RESET_ROUTE = "/auth/reset-session";
 
 function readJwtIssuedAt(accessToken: string | undefined): number | null {
   if (!accessToken) return null;
@@ -69,6 +70,7 @@ function isLoginRoute(pathname: string): boolean {
 function allowsUnauthenticated(pathname: string): boolean {
   return (
     isLoginRoute(pathname) ||
+    pathname === SESSION_RESET_ROUTE ||
     isScoutingPublicFormPath(pathname) ||
     isScoutingPublicFormApiPath(pathname)
   );

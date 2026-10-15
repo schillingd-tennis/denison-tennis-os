@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, List } from "lucide-react";
+import { CalendarDays, Link2, List } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
@@ -35,6 +35,7 @@ import TournamentFilterControl from "./TournamentFilterControl";
 import TournamentForm from "./TournamentForm";
 import TournamentKpiRow from "./TournamentKpiRow";
 import TournamentList from "./TournamentList";
+import TournamentUrlImportForm from "./TournamentUrlImportForm";
 
 export const TOURNAMENT_DIRECTORY_VIEW_OPTIONS = [
   { value: "list" as const, label: "List", icon: List },
@@ -123,18 +124,46 @@ export default function TournamentsDashboard({
     });
   }
 
+  function openUrlImporter() {
+    openDrawer({
+      id: "tournament-url-import",
+      title: "Import tournament from URL",
+      subtitle: "Recruiting · Tournaments",
+      hideFooter: true,
+      content: (
+        <TournamentUrlImportForm
+          recruits={recruits}
+          onCancel={closeDrawer}
+          onSaved={(saved) => {
+            upsert(saved);
+            closeDrawer();
+          }}
+        />
+      ),
+    });
+  }
+
   return (
     <ModulePageShell
       title="Tournaments"
       subtitle="Track recruiting events, travel plans, and the prospects expected to compete."
       actions={
-        <button
-          type="button"
-          onClick={() => openForm()}
-          className="inline-flex h-11 items-center justify-center rounded-control bg-denison-red px-5 text-sm font-semibold tracking-wide text-white shadow-[0_8px_18px_rgba(200,16,46,0.28)] hover:opacity-90"
-        >
-          + Add Tournament
-        </button>
+        <div className="flex flex-wrap justify-end gap-2">
+          <button
+            type="button"
+            onClick={openUrlImporter}
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-control border border-border bg-surface px-4 text-sm font-semibold text-text-primary shadow-sm hover:bg-app-background"
+          >
+            <Link2 size={17} /> Import URL
+          </button>
+          <button
+            type="button"
+            onClick={() => openForm()}
+            className="inline-flex h-11 items-center justify-center rounded-control bg-denison-red px-5 text-sm font-semibold tracking-wide text-white shadow-[0_8px_18px_rgba(200,16,46,0.28)] hover:opacity-90"
+          >
+            + Add Tournament
+          </button>
+        </div>
       }
     >
       <DesktopOnlySummary>

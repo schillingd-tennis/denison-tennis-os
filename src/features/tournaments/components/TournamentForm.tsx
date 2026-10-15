@@ -13,17 +13,19 @@ import TournamentRecordFields from "./TournamentRecordFields";
 
 export default function TournamentForm({
   tournament,
+  initialInput,
   recruits = [],
   onCancel,
   onSaved,
 }: {
   tournament?: Tournament;
+  initialInput?: TournamentInput;
   recruits?: RecruitDirectoryRow[];
   onCancel: () => void;
   onSaved: (tournament: Tournament) => void;
 }) {
   const [form, setForm] = useState<TournamentInput>(
-    tournament ? tournamentToInput(tournament) : emptyTournamentInput(),
+    tournament ? tournamentToInput(tournament) : initialInput ?? emptyTournamentInput(),
   );
   const linkedIds = useMemo(
     () => new Set(tournament?.linkedRecruits.map((recruit) => recruit.personId) ?? []),

@@ -63,7 +63,7 @@ export function TournamentWorkspaceProfile({ tournament }: { tournament: Tournam
   const { city, state } = splitCityState(tournament.location);
   const dateRange = formatTournamentDates(tournament.startDate, tournament.endDate);
   const place = tournamentLocationLine(tournament) ?? [city, state].filter(Boolean).join(", ");
-  const playerCount = tournament.linkedRecruits.length;
+  const playerCount = tournament.participants.length || tournament.linkedRecruits.length;
   const tournamentPageUrl = tournament.websiteUrl?.trim() || null;
   const statusLabel = planLabel(tournament.recruitingPlan);
   const statusTone = tournament.recruitingPlan === "traveling" ? "active" : "alumni";
@@ -192,9 +192,11 @@ export function tournamentWorkspaceItems(tournament: Tournament): TournamentWork
       title: "The Players",
       icon: Users,
       descriptor:
-        tournament.linkedRecruits.length > 0
-          ? `${tournament.linkedRecruits.length} linked`
-          : "Link recruits from Recruiting",
+        tournament.participants.length > 0
+          ? `${tournament.participants.length} tournament players · ${tournament.participants.filter((participant) => participant.evaluationStatus === "evaluated").length} evaluated`
+          : tournament.linkedRecruits.length > 0
+            ? `${tournament.linkedRecruits.length} linked recruiting profiles`
+            : "Import the field or link recruits",
     },
     {
       id: "travel",

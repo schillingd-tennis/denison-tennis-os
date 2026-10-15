@@ -170,6 +170,7 @@ export function statusFromRecruitingPlan(
 export function rowToTournament(
   row: RecruitingTournamentRow,
   linkedRecruits: TournamentLinkedRecruit[] = [],
+  participants: Tournament["participants"] = [],
 ): Tournament {
   const status = isTournamentStatus(row.status) ? row.status : "planned";
   const rawPlan = row.recruiting_plan ?? "";
@@ -218,6 +219,7 @@ export function rowToTournament(
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     linkedRecruits,
+    participants,
   };
 }
 

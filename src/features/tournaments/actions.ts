@@ -10,13 +10,62 @@ import {
   saveTournament,
   unlinkRecruitFromTournament,
   updateTournamentRecruitLink,
+  importTournamentParticipants,
+  saveTournamentParticipantEvaluation,
 } from "./repository";
 import { isAttendanceStatus, normalizeTournamentInput } from "./mapping";
-import type { AttendanceStatus, Tournament, TournamentInput } from "./types";
+import type { AttendanceStatus, Tournament, TournamentInput, TournamentParticipant, TournamentParticipantEvaluation } from "./types";
+import { importTournamentUrl, type TournamentUrlImport } from "./urlImport";
+import { parseTournamentParticipants } from "./participantImport";
 
 function revalidateTournaments(tournamentId?: string) {
   revalidatePath(RECRUITING_TOURNAMENTS_ROUTE);
   if (tournamentId) revalidatePath(recruitingTournamentPath(tournamentId));
+}
+
+export async function importTournamentParticipantsAction(
+  tournamentId: string,
+  rawText: string,
+): Promise<{ success: true; participants: TournamentParticipant[] } | { success: false; error: string }> {
+  const parsed = parseTournamentParticipants(rawText);
+  if (parsed.length === 0) return { success: false, error: "No participant rows were recognized. Include name, events, city/state, and gender columns." };
+  try {
+    const participants = await importTournamentParticipants(tournamentId, parsed);
+    revalidateTournaments(tournamentId);
+    return { success: true, participants };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "Could not import participants." };
+  }
+}
+
+export async function saveTournamentParticipantEvaluationAction(
+  tournamentId: string,
+  participantId: string,
+  evaluation: TournamentParticipantEvaluation,
+): Promise<{ success: true; participant: TournamentParticipant } | { success: false; error: string }> {
+  if (evaluation.overallRating !== null && (evaluation.overallRating < 1 || evaluation.overallRating > 5)) {
+    return { success: false, error: "Overall rating must be between 1 and 5." };
+  }
+  try {
+    const participant = await saveTournamentParticipantEvaluation(participantId, evaluation);
+    revalidateTournaments(tournamentId);
+    return { success: true, participant };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "Could not save evaluation." };
+  }
+}
+
+export async function importTournamentUrlAction(
+  url: string,
+): Promise<{ success: true; imported: TournamentUrlImport } | { success: false; error: string }> {
+  try {
+    return { success: true, imported: await importTournamentUrl(url) };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Could not read that tournament page.",
+    };
+  }
 }
 
 export async function saveTournamentAction(

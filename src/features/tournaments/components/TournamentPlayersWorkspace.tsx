@@ -15,6 +15,7 @@ import { recruitingPersonPath } from "@/lib/module-routes";
 import { unlinkRecruitAction } from "../actions";
 import type { Tournament, TournamentLinkedRecruit } from "../types";
 import { TournamentImportedRecruitsWorkspaceField } from "./TournamentWorkspaceFields";
+import TournamentRoadRoster from "./TournamentRoadRoster";
 
 export default function TournamentPlayersWorkspace({
   tournament,
@@ -45,11 +46,13 @@ export default function TournamentPlayersWorkspace({
 
   return (
     <div className="min-w-0 space-y-[10px]">
+      <TournamentRoadRoster tournamentId={tournament.id} initialParticipants={tournament.participants} />
+      <div className="border-t border-border/50 pt-[14px]" />
       <section aria-label="The Players">
         <div className="mb-2 flex flex-nowrap items-center gap-3">
           <div className="min-w-0 flex-1">
             <WorkspaceAccentHeading icon={Users} tone="warning">
-              The Players
+              Linked Recruiting Profiles
             </WorkspaceAccentHeading>
           </div>
           <button

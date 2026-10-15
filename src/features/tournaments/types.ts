@@ -102,6 +102,35 @@ export type TournamentLinkedRecruit = {
   notes?: string;
 };
 
+export const TOURNAMENT_EVALUATION_STATUSES = ["not_evaluated", "watch_list", "evaluated"] as const;
+export type TournamentEvaluationStatus = (typeof TOURNAMENT_EVALUATION_STATUSES)[number];
+
+export type TournamentParticipantInput = {
+  participantName: string;
+  events: string[];
+  city: string | null;
+  state: string | null;
+  gender: string | null;
+};
+
+export type TournamentParticipant = TournamentParticipantInput & {
+  id: string;
+  tournamentId: string;
+  recruitPersonId: string | null;
+  evaluationStatus: TournamentEvaluationStatus;
+  overallRating: number | null;
+  quickTags: string[];
+  evaluationNotes: string | null;
+  evaluatedAt: string | null;
+};
+
+export type TournamentParticipantEvaluation = {
+  evaluationStatus: TournamentEvaluationStatus;
+  overallRating: number | null;
+  quickTags: string[];
+  evaluationNotes: string | null;
+};
+
 export type Tournament = {
   id: string;
   name: string;
@@ -141,6 +170,7 @@ export type Tournament = {
   createdAt: string;
   updatedAt: string;
   linkedRecruits: TournamentLinkedRecruit[];
+  participants: TournamentParticipant[];
 };
 
 export type TournamentInput = {
