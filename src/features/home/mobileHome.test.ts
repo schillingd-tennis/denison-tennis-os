@@ -18,6 +18,7 @@ test("root dashboard renders mobile command center by default below md", () => {
 
 test("mobile home exposes core road and courtside workflows", () => {
   for (const label of ["Today’s practice", "Recruits", "Intrasquad entry", "Scouting", "Match results", "Upcoming recruiting trips"]) assert.match(component, new RegExp(label));
+  assert.match(component, /\/scouting-form\/d9mAj2D57bkgn65Spbo8xryza1hFVNLwbTMVcrW9ASs/);
 });
 
 test("mobile home loads today's plan and only upcoming Plan to Attend tournaments", () => {

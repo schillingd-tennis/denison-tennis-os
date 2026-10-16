@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ArrowRight, CalendarDays, ClipboardPenLine, MapPin, Swords, Target, Trophy, UserRoundSearch } from "lucide-react";
-import { MATCHES_ROUTE, RECRUITING_LIST_ROUTE, RECRUITING_TOURNAMENTS_ROUTE, TEAM_OPERATIONS_INTRA_SQUAD_ROUTE, TEAM_OPERATIONS_PRACTICE_ROUTE, TEAM_OPERATIONS_SCHEDULE_ROUTE, TEAM_OPERATIONS_SCOUTING_ROUTE, recruitingTournamentPath } from "@/lib/module-routes";
+import { MATCHES_ROUTE, RECRUITING_LIST_ROUTE, RECRUITING_TOURNAMENTS_ROUTE, TEAM_OPERATIONS_INTRA_SQUAD_ROUTE, TEAM_OPERATIONS_PRACTICE_ROUTE, TEAM_OPERATIONS_SCHEDULE_ROUTE, recruitingTournamentPath } from "@/lib/module-routes";
 
 export type MobilePracticeSummary = { title: string; startTime: string; endTime: string; location: string; status: "draft" | "published" | "completed" } | null;
 export type MobileTournamentSummary = { id: string; name: string; startDate: string | null; endDate: string | null; location: string | null; level: string | null; linkedRecruitCount: number };
@@ -10,7 +10,7 @@ export type MobileTournamentSummary = { id: string; name: string; startDate: str
 const shortcuts = [
   { label: "Recruits", detail: "Profiles, notes, and follow-ups", href: RECRUITING_LIST_ROUTE, icon: UserRoundSearch },
   { label: "Intrasquad entry", detail: "Record today’s scores", href: TEAM_OPERATIONS_INTRA_SQUAD_ROUTE, icon: Swords },
-  { label: "Scouting", detail: "Add or review reports", href: TEAM_OPERATIONS_SCOUTING_ROUTE, icon: Target },
+  { label: "Scouting", detail: "Enter a player report", href: "/scouting-form/d9mAj2D57bkgn65Spbo8xryza1hFVNLwbTMVcrW9ASs", icon: Target },
   { label: "Match results", detail: "Enter official results", href: MATCHES_ROUTE, icon: Trophy },
 ] as const;
 
