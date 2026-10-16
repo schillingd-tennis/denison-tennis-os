@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Pencil, Trash2 } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 
 import SortableColumnHeader from "@/components/data-table/SortableColumnHeader";
@@ -10,10 +11,10 @@ import PlayerAvatar from "@/components/PlayerAvatar";
 import { EMPTY_VALUE, formatDate } from "@/lib/formatting";
 import { recruitingTournamentPath } from "@/lib/module-routes";
 
-import { defaultSortedTournaments, parseDistanceMiles, splitCityState } from "../location";
+import { defaultSortedTournaments, isPastTournament, parseDistanceMiles, splitCityState } from "../location";
 import { TOURNAMENT_TABLE_COLUMNS, type TournamentTableColumnId } from "../tableColumns";
 import type { Tournament } from "../types";
-import { setTournamentPlanToAttendAction } from "../actions";
+import { deleteTournamentAction, setTournamentPlanToAttendAction } from "../actions";
 
 const SORT_STORAGE_KEY = "denison-tennis-os:tournaments-list-sort";
 const COLUMN_IDS = TOURNAMENT_TABLE_COLUMNS.map((column) => column.id);
@@ -55,9 +56,13 @@ function display(value: string | null | undefined): string {
 export default function TournamentList({
   tournaments,
   onTournamentUpdated,
+  onTournamentDeleted,
+  onEditTournament,
 }: {
   tournaments: Tournament[];
   onTournamentUpdated: (tournament: Tournament) => void;
+  onTournamentDeleted: (id: string) => void;
+  onEditTournament: (tournament: Tournament) => void;
 }) {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -83,6 +88,18 @@ export default function TournamentList({
         return;
       }
       onTournamentUpdated(result.tournament);
+    });
+  }
+
+  function deleteRow(row: Tournament) {
+    if (!window.confirm(`Delete ${row.name}? This cannot be undone.`)) return;
+    setPendingId(row.id);
+    setMessage(null);
+    startTransition(async () => {
+      const result = await deleteTournamentAction(row.id);
+      setPendingId(null);
+      if (!result.success) return setMessage(result.error);
+      onTournamentDeleted(row.id);
     });
   }
 
@@ -129,11 +146,9 @@ export default function TournamentList({
                 <td className="px-4 py-2.5 text-text-primary">{display(state)}</td>
                 <td className="px-4 py-2.5 text-text-primary">{display(row.level)}</td>
                 <td className="px-4 py-2.5 text-text-primary">
-                  {row.lifecycleStatus === "past"
+                  {isPastTournament(row)
                     ? "Past"
-                    : row.lifecycleStatus === "upcoming"
-                      ? "Upcoming"
-                      : EMPTY_VALUE}
+                    : "Upcoming"}
                 </td>
                 <td className="px-4 py-2.5 text-center">
                   <input
@@ -160,6 +175,12 @@ export default function TournamentList({
                     ) : row.linkedRecruits.length === 0 ? (
                       <span className="text-text-secondary tabular-nums">0</span>
                     ) : null}
+                  </div>
+                </td>
+                <td className="px-4 py-2.5">
+                  <div className="flex justify-end gap-1.5">
+                    <button type="button" onClick={() => onEditTournament(row)} className="inline-flex h-8 items-center gap-1 rounded-control border border-border bg-surface px-2 text-xs font-semibold text-text-primary hover:bg-app-background" aria-label={`Edit all fields for ${row.name}`}><Pencil className="h-3.5 w-3.5" /> Edit</button>
+                    <button type="button" disabled={pending && pendingId === row.id} onClick={() => deleteRow(row)} className="inline-flex h-8 items-center gap-1 rounded-control border border-danger/25 bg-surface px-2 text-xs font-semibold text-danger hover:bg-danger/5 disabled:opacity-40" aria-label={`Delete ${row.name}`}><Trash2 className="h-3.5 w-3.5" /> Delete</button>
                   </div>
                 </td>
               </tr>

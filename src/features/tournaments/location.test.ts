@@ -9,6 +9,7 @@ import {
   partitionTournamentsBySchedule,
   splitCityState,
   splitDistance,
+  lifecycleStatusForDates,
 } from "./location";
 import { EMPTY_TOURNAMENT_TRAVEL_FIELDS, type Tournament } from "./types";
 
@@ -63,6 +64,11 @@ test("default order puts upcoming before past", () => {
   const past = tournament({ id: "p", name: "Past", startDate: "2025-06-24", lifecycleStatus: "past" });
   const upcoming = tournament({ id: "u", name: "Soon", startDate: "2026-09-01", lifecycleStatus: "upcoming" });
   assert.ok(compareDefaultTournamentOrder(upcoming, past) < 0);
+});
+
+test("automatically marks a tournament past more than two days after its end date", () => {
+  assert.equal(lifecycleStatusForDates("2026-10-10", "2026-10-12", "2026-10-15"), "past");
+  assert.equal(lifecycleStatusForDates("2026-10-10", "2026-10-13", "2026-10-15"), "upcoming");
 });
 
 test("partitionTournamentsBySchedule splits by lifecycle then dates", () => {

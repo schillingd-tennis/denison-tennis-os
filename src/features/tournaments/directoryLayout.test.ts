@@ -63,6 +63,14 @@ test("attendance plans can be toggled in the list and highlighted on the calenda
   assert.match(calendar, /bg-denison-red text-white/);
 });
 
+test("list rows expose full editing and deletion without leaving the directory", () => {
+  const dashboard = readComponent("TournamentsDashboard.tsx");
+  const list = readComponent("TournamentList.tsx");
+  assert.match(dashboard, /onEditTournament=\{openForm\}/);
+  assert.match(list, /Edit all fields/);
+  assert.match(list, /deleteTournamentAction/);
+});
+
 test("directory columns do not include Surface or Plan", () => {
   const titles = TOURNAMENT_TABLE_COLUMNS.map((column) => column.title);
   const ids = TOURNAMENT_TABLE_COLUMNS.map((column) => column.id as string);
@@ -99,4 +107,11 @@ test("workspace selector includes Overview, The Players, Travel Info, and Links 
   assert.match(chrome, /title: "The Players"/);
   assert.match(chrome, /title: "Travel Info"/);
   assert.match(chrome, /title: "Links \/ Notes"/);
+});
+
+test("linked tournament participants can open their recruiting card", () => {
+  const roster = readComponent("TournamentRoadRoster.tsx");
+  assert.match(roster, /recruitingPersonPath\(participant\.recruitPersonId\)/);
+  assert.match(roster, /Open \$\{participant\.participantName\} recruiting card/);
+  assert.match(roster, /participant\.recruitPersonId \?/);
 });

@@ -46,19 +46,27 @@ export function parseDistanceMiles(raw: string | null | undefined): number | nul
 }
 
 export function isPastTournament(tournament: Tournament, today = new Date().toISOString().slice(0, 10)): boolean {
+  const cutoff = new Date(`${today}T12:00:00Z`);
+  cutoff.setUTCDate(cutoff.getUTCDate() - 2);
+  const automaticPastBefore = cutoff.toISOString().slice(0, 10);
+  const datedEnd = tournament.endDate ?? tournament.startDate;
+  if (datedEnd && datedEnd < automaticPastBefore) return true;
   if (tournament.lifecycleStatus === "past") return true;
   if (tournament.lifecycleStatus === "upcoming") return false;
-  const end = tournament.endDate ?? tournament.startDate;
-  return Boolean(end && end < today);
+  return false;
+}
+
+export function lifecycleStatusForDates(startDate: string | null, endDate: string | null, today = new Date().toISOString().slice(0, 10)): Tournament["lifecycleStatus"] {
+  return isPastTournament({ startDate, endDate, lifecycleStatus: null } as Tournament, today) ? "past" : "upcoming";
 }
 
 /**
  * Default list order: upcoming (and undated) by start date ascending,
  * then past events with the most recent first.
  */
-export function compareDefaultTournamentOrder(a: Tournament, b: Tournament): number {
-  const aPast = isPastTournament(a);
-  const bPast = isPastTournament(b);
+export function compareDefaultTournamentOrder(a: Tournament, b: Tournament, today?: string): number {
+  const aPast = isPastTournament(a, today);
+  const bPast = isPastTournament(b, today);
   if (aPast !== bPast) return aPast ? 1 : -1;
 
   const aStart = a.startDate ?? "";
@@ -77,8 +85,8 @@ export function compareDefaultTournamentOrder(a: Tournament, b: Tournament): num
   return aStart.localeCompare(bStart) || a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
 }
 
-export function defaultSortedTournaments(tournaments: readonly Tournament[]): Tournament[] {
-  return [...tournaments].sort(compareDefaultTournamentOrder);
+export function defaultSortedTournaments(tournaments: readonly Tournament[], today?: string): Tournament[] {
+  return [...tournaments].sort((a, b) => compareDefaultTournamentOrder(a, b, today));
 }
 
 /** Display-only split of an already-filtered list. Does not write status. */
@@ -93,7 +101,7 @@ export function partitionTournamentsBySchedule(
     else upcoming.push(tournament);
   }
   return {
-    upcoming: defaultSortedTournaments(upcoming),
-    past: defaultSortedTournaments(past),
+    upcoming: defaultSortedTournaments(upcoming, today),
+    past: defaultSortedTournaments(past, today),
   };
 }

@@ -21,5 +21,6 @@ test("directory columns include the focused Plan to Attend control", () => {
     "Plan to Attend",
     "Distance",
     "Recruits",
+    "Actions",
   ]);
 });

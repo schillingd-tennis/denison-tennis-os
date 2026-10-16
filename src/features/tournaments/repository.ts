@@ -23,6 +23,8 @@ import type {
   TournamentParticipantInput,
 } from "./types";
 import { indexRecruitNames, normalizeRecruitName, splitParticipantName } from "./participantRecruitMatching";
+import { calculateTournamentDistance } from "./distance";
+import { lifecycleStatusForDates } from "./location";
 
 const TABLE = "recruiting_tournaments";
 const LINKS_TABLE = "recruiting_tournament_recruits";
@@ -180,7 +182,10 @@ export async function listTournaments(): Promise<ListTournamentsResult> {
           : error.message,
       };
     }
-    const tournaments = ((data as RecruitingTournamentRow[] | null) ?? []).map((row) => rowToTournament(row));
+    const tournaments = ((data as RecruitingTournamentRow[] | null) ?? []).map((row) => {
+      const tournament = rowToTournament(row);
+      return { ...tournament, lifecycleStatus: lifecycleStatusForDates(tournament.startDate, tournament.endDate) };
+    });
     return { ok: true, tournaments: await attachLinkedRecruits(tournaments) };
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : "Failed to load tournaments." };
@@ -192,7 +197,8 @@ export async function getTournament(id: string): Promise<Tournament | null> {
   const { data, error } = await client.from(TABLE).select("*").eq("id", id).maybeSingle();
   if (error) throw new TournamentRepositoryError(`Failed to load tournament: ${error.message}`);
   if (!data) return null;
-  const [withLinks] = await attachLinkedRecruits([rowToTournament(data as RecruitingTournamentRow)]);
+  const mapped = rowToTournament(data as RecruitingTournamentRow);
+  const [withLinks] = await attachLinkedRecruits([{ ...mapped, lifecycleStatus: lifecycleStatusForDates(mapped.startDate, mapped.endDate) }]);
   if (!withLinks) return null;
   return { ...withLinks, participants: await listTournamentParticipants(id) };
 }
@@ -269,7 +275,13 @@ export async function saveTournamentParticipantEvaluation(
 
 export async function saveTournament(id: string | null, input: TournamentInput): Promise<Tournament> {
   const client = await createSupabaseServerClient();
-  const payload = inputToRow(input);
+  const calculatedDistance = await calculateTournamentDistance(input);
+  const normalizedInput: TournamentInput = {
+    ...input,
+    lifecycleStatus: lifecycleStatusForDates(input.startDate, input.endDate),
+    distanceFromColumbus: calculatedDistance === null ? input.distanceFromColumbus : String(calculatedDistance),
+  };
+  const payload = inputToRow(normalizedInput);
   const query = id
     ? client.from(TABLE).update(payload).eq("id", id).select("*").single()
     : client.from(TABLE).insert(payload).select("*").single();

@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
-import { Check, ClipboardPaste, MapPin, Search, Star, Users } from "lucide-react";
+import { Check, ClipboardPaste, Link2, MapPin, Search, Star, Users } from "lucide-react";
 
+import { recruitingPersonPath } from "@/lib/module-routes";
 import { importTournamentParticipantsAction, saveTournamentParticipantEvaluationAction } from "../actions";
 import type { TournamentParticipant, TournamentParticipantEvaluation } from "../types";
 
@@ -108,11 +110,14 @@ export default function TournamentRoadRoster({
               {([['all', 'All'], ['watch_list', 'Watch list'], ['not_evaluated', 'Not evaluated'], ['evaluated', 'Evaluated']] as const).map(([value, label]) => <button key={value} type="button" onClick={() => setFilter(value)} className={`h-9 shrink-0 rounded-control px-3 text-xs font-semibold ${filter === value ? "bg-denison-red text-white" : "border border-border bg-surface text-text-secondary"}`}>{label}</button>)}
             </div>
             <div className="mt-3 max-h-[560px] space-y-2 overflow-y-auto pr-1">
-              {visible.map((participant) => <button key={participant.id} type="button" onClick={() => setSelectedId(participant.id)} className={`flex w-full items-center gap-3 rounded-control border p-3 text-left ${selected?.id === participant.id ? "border-denison-red bg-denison-red/[0.05]" : "border-border bg-surface hover:bg-app-background"}`}>
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-warning/15 text-xs font-bold text-warning">{participant.participantName.split(/\s+/).map((part) => part[0]).slice(0, 2).join("")}</span>
-                <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-text-primary">{participant.participantName}</span><span className="mt-0.5 block truncate text-xs text-text-secondary">{locationLine(participant)}</span><span className={`mt-1 block text-[10px] font-bold uppercase ${participant.recruitLinkStatus === "matched" ? "text-success" : participant.recruitLinkStatus === "created" ? "text-warning" : "text-denison-red"}`}>{participant.recruitLinkStatus === "matched" ? "Recruit linked" : participant.recruitLinkStatus === "created" ? "Potential recruit added" : "Recruit match needs review"}</span></span>
-                <span className={`text-[10px] font-bold uppercase ${participant.evaluationStatus === "evaluated" ? "text-success" : participant.evaluationStatus === "watch_list" ? "text-warning" : "text-text-secondary"}`}>{participant.evaluationStatus === "not_evaluated" ? "New" : participant.evaluationStatus === "watch_list" ? "Watch" : "Done"}</span>
-              </button>)}
+              {visible.map((participant) => <div key={participant.id} className={`flex w-full items-center rounded-control border text-left ${selected?.id === participant.id ? "border-denison-red bg-denison-red/[0.05]" : "border-border bg-surface hover:bg-app-background"}`}>
+                <button type="button" onClick={() => setSelectedId(participant.id)} className="flex min-w-0 flex-1 items-center gap-3 p-3 text-left">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-warning/15 text-xs font-bold text-warning">{participant.participantName.split(/\s+/).map((part) => part[0]).slice(0, 2).join("")}</span>
+                  <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-text-primary">{participant.participantName}</span><span className="mt-0.5 block truncate text-xs text-text-secondary">{locationLine(participant)}</span><span className={`mt-1 block text-[10px] font-bold uppercase ${participant.recruitLinkStatus === "matched" ? "text-success" : participant.recruitLinkStatus === "created" ? "text-warning" : "text-denison-red"}`}>{participant.recruitLinkStatus === "matched" ? "Recruit linked" : participant.recruitLinkStatus === "created" ? "Potential recruit added" : "Recruit match needs review"}</span></span>
+                  <span className={`text-[10px] font-bold uppercase ${participant.evaluationStatus === "evaluated" ? "text-success" : participant.evaluationStatus === "watch_list" ? "text-warning" : "text-text-secondary"}`}>{participant.evaluationStatus === "not_evaluated" ? "New" : participant.evaluationStatus === "watch_list" ? "Watch" : "Done"}</span>
+                </button>
+                {participant.recruitPersonId ? <Link href={recruitingPersonPath(participant.recruitPersonId)} aria-label={`Open ${participant.participantName} recruiting card`} title="Open recruiting card" className="mr-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-control border border-border bg-surface text-text-secondary transition-colors hover:border-denison-red hover:bg-denison-red/[0.06] hover:text-denison-red"><Link2 className="h-4 w-4" /></Link> : null}
+              </div>)}
               {visible.length === 0 ? <p className="py-8 text-center text-sm text-text-secondary">No players match these filters.</p> : null}
             </div>
           </div>

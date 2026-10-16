@@ -104,6 +104,10 @@ export default function TournamentsDashboard({
     });
   }
 
+  function remove(id: string) {
+    setRows((current) => current.filter((row) => row.id !== id));
+  }
+
   function openForm(tournament?: Tournament) {
     openDrawer({
       id: `tournament-form-${tournament?.id ?? "new"}`,
@@ -231,7 +235,7 @@ export default function TournamentsDashboard({
               {upcoming.length === 0 ? (
                 <p className="text-sm text-text-secondary">No upcoming tournaments found.</p>
               ) : (
-                <TournamentList tournaments={upcoming} onTournamentUpdated={upsert} />
+                <TournamentList tournaments={upcoming} onTournamentUpdated={upsert} onTournamentDeleted={remove} onEditTournament={openForm} />
               )}
             </section>
             <section className="space-y-3" style={{ marginTop: 24 }}>
@@ -239,7 +243,7 @@ export default function TournamentsDashboard({
               {past.length === 0 ? (
                 <p className="text-sm text-text-secondary">No past tournaments found.</p>
               ) : (
-                <TournamentList tournaments={past} onTournamentUpdated={upsert} />
+                <TournamentList tournaments={past} onTournamentUpdated={upsert} onTournamentDeleted={remove} onEditTournament={openForm} />
               )}
             </section>
           </div>
