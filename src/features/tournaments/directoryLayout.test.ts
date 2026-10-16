@@ -51,6 +51,9 @@ test("List and Calendar tabs are present", () => {
 test("tournament names link to the workspace route helper", () => {
   const list = readComponent("TournamentList.tsx");
   assert.match(list, /recruitingTournamentPath/);
+  assert.match(list, /font-semibold hover:underline/);
+  assert.equal(list.includes('inlineCell(row, "name"'), false);
+  assert.equal(list.includes("ExternalLink"), false);
 });
 
 test("attendance plans can be toggled in the list and highlighted on the calendar", () => {
@@ -63,16 +66,25 @@ test("attendance plans can be toggled in the list and highlighted on the calenda
   assert.match(calendar, /bg-denison-red text-white/);
 });
 
-test("list rows expose full editing and deletion without leaving the directory", () => {
+test("list rows expose field editing and far-right edit/delete actions", () => {
   const dashboard = readComponent("TournamentsDashboard.tsx");
   const list = readComponent("TournamentList.tsx");
   assert.match(dashboard, /onEditTournament=\{openForm\}/);
-  assert.match(list, /Edit all fields/);
+  assert.match(list, />Actions<\/th>/);
+  assert.match(list, /title="Edit tournament"/);
   assert.match(list, /deleteTournamentAction/);
-  assert.match(list, /sticky left-0/);
   assert.match(list, /InlineEditCell/);
   assert.match(list, /editOn="click"/);
   assert.match(list, /saveTournamentAction/);
+});
+
+test("directory omits status and fits without a horizontal minimum width", () => {
+  const list = readComponent("TournamentList.tsx");
+  const titles = TOURNAMENT_TABLE_COLUMNS.map((column) => column.title);
+  assert.equal(titles.includes("Status"), false);
+  assert.match(list, /table-fixed/);
+  assert.equal(list.includes("overflow-x-auto"), false);
+  assert.equal(list.includes("min-w-[60rem]"), false);
 });
 
 test("directory columns do not include Surface or Plan", () => {

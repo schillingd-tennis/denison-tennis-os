@@ -10,7 +10,6 @@ export type TournamentTableColumnId =
   | "city"
   | "state"
   | "level"
-  | "status"
   | "planToAttend"
   | "distance"
   | "recruitCount";
@@ -58,14 +57,6 @@ export const TOURNAMENT_TABLE_COLUMNS: ColumnDef<Tournament, TournamentTableColu
     sortable: true,
     sortType: "text",
     accessor: (row) => row.level,
-  },
-  {
-    id: "status",
-    title: "Status",
-    sortable: true,
-    sortType: "enum",
-    enumOrder: ["planned", "confirmed", "completed", "cancelled"],
-    accessor: (row) => row.status,
   },
   {
     id: "planToAttend",

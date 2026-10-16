@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ExternalLink, Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 
 import SortableColumnHeader from "@/components/data-table/SortableColumnHeader";
@@ -15,7 +15,7 @@ import { recruitingTournamentPath } from "@/lib/module-routes";
 import { locationFromCityState, tournamentToInput } from "../editor";
 import { defaultSortedTournaments, parseDistanceMiles, splitCityState } from "../location";
 import { TOURNAMENT_TABLE_COLUMNS, type TournamentTableColumnId } from "../tableColumns";
-import { TOURNAMENT_STATUS_LABELS, type Tournament, type TournamentStatus } from "../types";
+import type { Tournament } from "../types";
 import { deleteTournamentAction, saveTournamentAction, setTournamentPlanToAttendAction } from "../actions";
 
 const SORT_STORAGE_KEY = "denison-tennis-os:tournaments-list-sort";
@@ -50,9 +50,7 @@ function writeStoredSort(sort: SortState<TournamentTableColumnId>) {
   }
 }
 
-type InlineField = "name" | "startDate" | "endDate" | "city" | "state" | "level" | "status";
-
-const STATUS_OPTIONS = Object.entries(TOURNAMENT_STATUS_LABELS).map(([value, label]) => ({ value, label }));
+type InlineField = "startDate" | "endDate" | "city" | "state" | "level";
 
 export default function TournamentList({
   tournaments,
@@ -111,16 +109,8 @@ export default function TournamentList({
     if (field === "city" || field === "state") {
       const current = splitCityState(row.location);
       input.location = locationFromCityState(field === "city" ? trimmed : current.city ?? "", field === "state" ? trimmed : current.state ?? "");
-    } else if (field === "status") {
-      input.status = trimmed as TournamentStatus;
-    } else if (field === "name") {
-      input.name = trimmed;
     } else {
       input[field] = trimmed || null;
-    }
-    if (field === "name" && !trimmed) {
-      setMessage("Tournament name is required.");
-      return;
     }
     setPendingId(row.id);
     setMessage(null);
@@ -141,8 +131,20 @@ export default function TournamentList({
   return (
     <div className="overflow-hidden rounded-card border border-[var(--module-border)] bg-surface">
       {message ? <p role="alert" className="border-b border-danger/20 bg-danger/5 px-4 py-2 text-sm text-danger">{message}</p> : null}
-      <div className="overflow-x-auto">
-      <table className="w-full min-w-[60rem] border-collapse text-left text-sm">
+      <div className="overflow-hidden">
+      <table className="w-full table-fixed border-collapse text-left text-sm">
+        <colgroup>
+          <col className="w-[27%]" />
+          <col className="w-[9%]" />
+          <col className="w-[9%]" />
+          <col className="w-[10%]" />
+          <col className="w-[6%]" />
+          <col className="w-[9%]" />
+          <col className="w-[9%]" />
+          <col className="w-[7%]" />
+          <col className="w-[8%]" />
+          <col className="w-[6%]" />
+        </colgroup>
         <thead className="border-b border-border bg-app-background/80">
           <tr>
             {TOURNAMENT_TABLE_COLUMNS.map((column) => (
@@ -154,6 +156,7 @@ export default function TournamentList({
                 onSort={() => toggleSort(column.id)}
               />
             ))}
+            <th scope="col" className="px-2 py-3 text-right text-xs font-semibold tracking-wide text-text-secondary uppercase">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -163,13 +166,8 @@ export default function TournamentList({
             const miles = parseDistanceMiles(row.distanceFromColumbus);
             return (
               <tr key={row.id} className={`border-b border-border last:border-0 ${row.recruitingPlan === "traveling" ? "bg-denison-red/[0.055] hover:bg-denison-red/[0.09]" : "hover:bg-app-background/70"}`}>
-                <td className="sticky left-0 z-[1] min-w-[15rem] bg-inherit px-4 py-2.5">
-                  <div className="flex min-w-0 items-center gap-1.5">
-                    <div className={`min-w-0 flex-1 ${row.recruitingPlan === "traveling" ? "font-semibold text-denison-red" : "text-text-primary"}`}>{inlineCell(row, "name", row.name)}</div>
-                    <Link href={recruitingTournamentPath(row.id)} aria-label={`Open ${row.name}`} title="Open tournament" className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-control text-text-secondary hover:bg-app-background hover:text-[var(--module-accent)]"><ExternalLink className="h-3.5 w-3.5" /></Link>
-                    <button type="button" onClick={() => onEditTournament(row)} title="Edit all tournament fields" className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-control text-text-secondary hover:bg-app-background hover:text-text-primary" aria-label={`Edit all fields for ${row.name}`}><Pencil className="h-3.5 w-3.5" /></button>
-                    <button type="button" disabled={pending && pendingId === row.id} onClick={() => deleteRow(row)} title="Delete tournament" className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-control text-danger hover:bg-danger/5 disabled:opacity-40" aria-label={`Delete ${row.name}`}><Trash2 className="h-3.5 w-3.5" /></button>
-                  </div>
+                <td className="px-3 py-2.5">
+                  <Link href={recruitingTournamentPath(row.id)} className={`block truncate font-semibold hover:underline ${row.recruitingPlan === "traveling" ? "text-denison-red" : "text-text-primary"}`}>{row.name}</Link>
                 </td>
                 <td className="px-4 py-2.5 whitespace-nowrap text-text-primary">
                   {inlineCell(row, "startDate", row.startDate ?? "", { type: "date", displayValue: row.startDate ? formatDate(row.startDate) : EMPTY_VALUE })}
@@ -180,9 +178,6 @@ export default function TournamentList({
                 <td className="px-4 py-2.5 text-text-primary">{inlineCell(row, "city", city ?? "")}</td>
                 <td className="px-4 py-2.5 text-text-primary">{inlineCell(row, "state", state ?? "")}</td>
                 <td className="px-4 py-2.5 text-text-primary">{inlineCell(row, "level", row.level ?? "")}</td>
-                <td className="px-4 py-2.5 text-text-primary">
-                  {inlineCell(row, "status", row.status, { type: "select", displayValue: TOURNAMENT_STATUS_LABELS[row.status], selectOptions: STATUS_OPTIONS })}
-                </td>
                 <td className="px-4 py-2.5 text-center">
                   <input
                     type="checkbox"
@@ -208,6 +203,12 @@ export default function TournamentList({
                     ) : row.linkedRecruits.length === 0 ? (
                       <span className="text-text-secondary tabular-nums">0</span>
                     ) : null}
+                  </div>
+                </td>
+                <td className="px-2 py-2.5">
+                  <div className="flex items-center justify-end gap-1">
+                    <button type="button" onClick={() => onEditTournament(row)} title="Edit tournament" className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-control text-text-secondary hover:bg-app-background hover:text-text-primary" aria-label={`Edit ${row.name}`}><Pencil className="h-3.5 w-3.5" /></button>
+                    <button type="button" disabled={pending && pendingId === row.id} onClick={() => deleteRow(row)} title="Delete tournament" className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-control text-danger hover:bg-danger/5 disabled:opacity-40" aria-label={`Delete ${row.name}`}><Trash2 className="h-3.5 w-3.5" /></button>
                   </div>
                 </td>
               </tr>
