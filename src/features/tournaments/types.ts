@@ -136,6 +136,13 @@ export type TournamentParticipantEvaluation = {
   evaluationNotes: string | null;
 };
 
+export type TournamentRecruitEnrichmentSummary = {
+  created: number;
+  enriched: number;
+  unresolved: string[];
+  participants: TournamentParticipant[];
+};
+
 export type Tournament = {
   id: string;
   name: string;

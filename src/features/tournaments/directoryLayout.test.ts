@@ -143,3 +143,14 @@ test("tournament roster shows canonical TennisRecruiting.net ratings", () => {
   assert.match(repository, /person\.trnStarRating/);
   assert.match(repository, /person\.trnUrl/);
 });
+
+test("tournament roster can create and publicly enrich Potential recruits", () => {
+  const roster = readComponent("TournamentRoadRoster.tsx");
+  const actions = readFileSync(join(root, "actions.ts"), "utf8");
+  const repository = readFileSync(join(root, "repository.ts"), "utf8");
+  assert.match(roster, /Add & enrich Potential recruits/);
+  assert.match(roster, /addPotentialRecruitsAndEnrichAction/);
+  assert.match(actions, /addPotentialRecruitsAndEnrich/);
+  assert.match(repository, /lookupPublicTrnPlayer/);
+  assert.match(repository, /pipeline_stage_id: potentialStage/);
+});

@@ -13,9 +13,10 @@ import {
   importTournamentParticipants,
   saveTournamentParticipantEvaluation,
   setTournamentPlanToAttend,
+  addPotentialRecruitsAndEnrich,
 } from "./repository";
 import { isAttendanceStatus, normalizeTournamentInput } from "./mapping";
-import type { AttendanceStatus, Tournament, TournamentInput, TournamentParticipant, TournamentParticipantEvaluation } from "./types";
+import type { AttendanceStatus, Tournament, TournamentInput, TournamentParticipant, TournamentParticipantEvaluation, TournamentRecruitEnrichmentSummary } from "./types";
 import { importTournamentUrl, type TournamentUrlImport } from "./urlImport";
 import { parseTournamentParticipants } from "./participantImport";
 
@@ -36,6 +37,16 @@ export async function importTournamentParticipantsAction(
     return { success: true, participants };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : "Could not import participants." };
+  }
+}
+
+export async function addPotentialRecruitsAndEnrichAction(tournamentId: string): Promise<{ success: true; summary: TournamentRecruitEnrichmentSummary } | { success: false; error: string }> {
+  try {
+    const summary = await addPotentialRecruitsAndEnrich(tournamentId);
+    revalidateTournaments(tournamentId);
+    return { success: true, summary };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "Could not add and enrich Potential recruits." };
   }
 }
 

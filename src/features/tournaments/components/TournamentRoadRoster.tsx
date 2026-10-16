@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
-import { Check, ClipboardPaste, ExternalLink, Link2, MapPin, Search, Star, Users } from "lucide-react";
+import { Check, ClipboardPaste, ExternalLink, Link2, MapPin, Search, Sparkles, Star, Users } from "lucide-react";
 
 import { recruitingPersonPath } from "@/lib/module-routes";
-import { importTournamentParticipantsAction, saveTournamentParticipantEvaluationAction } from "../actions";
+import { addPotentialRecruitsAndEnrichAction, importTournamentParticipantsAction, saveTournamentParticipantEvaluationAction } from "../actions";
 import type { TournamentParticipant, TournamentParticipantEvaluation } from "../types";
 
 const QUICK_TAGS = ["Athletic", "Competitor", "Big serve", "High upside", "Follow up"];
@@ -70,6 +70,17 @@ export default function TournamentRoadRoster({
     });
   }
 
+  function addAndEnrichPotentials() {
+    setMessage(null);
+    startTransition(async () => {
+      const result = await addPotentialRecruitsAndEnrichAction(tournamentId);
+      if (!result.success) return setMessage(result.error);
+      setParticipants(result.summary.participants);
+      const unresolved = result.summary.unresolved.length;
+      setMessage(`${result.summary.created} Potential recruits added · ${result.summary.enriched} enriched from public TennisRecruiting.net data${unresolved ? ` · ${unresolved} could not be resolved and need review` : ""}.`);
+    });
+  }
+
   function saveEvaluation(participant: TournamentParticipant, evaluation: TournamentParticipantEvaluation, moveNext: boolean) {
     setMessage(null);
     startTransition(async () => {
@@ -93,9 +104,10 @@ export default function TournamentRoadRoster({
           <div className="flex items-center gap-2 text-sm font-semibold text-text-primary"><Users className="h-4 w-4 text-warning" />Tournament Field</div>
           <p className="mt-1 text-xs text-text-secondary">{participants.length} players · {evaluatedCount} evaluated · {participants.filter((item) => item.evaluationStatus === "watch_list").length} watch list</p>
         </div>
-        <button type="button" onClick={() => setShowImport((value) => !value)} className="inline-flex h-10 items-center gap-2 rounded-control border border-border bg-surface px-3 text-sm font-semibold text-text-primary hover:bg-app-background">
-          <ClipboardPaste className="h-4 w-4" /> Import Players
-        </button>
+        <div className="flex flex-wrap justify-end gap-2">
+          <button type="button" disabled={pending || participants.length === 0} onClick={addAndEnrichPotentials} className="inline-flex h-10 items-center gap-2 rounded-control border border-denison-red bg-surface px-3 text-sm font-semibold text-denison-red hover:bg-denison-red/[0.05] disabled:opacity-40"><Sparkles className="h-4 w-4" /> Add & enrich Potential recruits</button>
+          <button type="button" onClick={() => setShowImport((value) => !value)} className="inline-flex h-10 items-center gap-2 rounded-control border border-border bg-surface px-3 text-sm font-semibold text-text-primary hover:bg-app-background"><ClipboardPaste className="h-4 w-4" /> Import Players</button>
+        </div>
       </div>
 
       {showImport ? (
