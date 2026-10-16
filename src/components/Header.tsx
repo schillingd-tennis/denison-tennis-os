@@ -33,7 +33,7 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
   });
 
   return (
-    <header className="relative flex min-h-16 items-center justify-between gap-4 border-b border-[var(--module-border)] bg-surface px-4 md:min-h-[var(--header-height)] md:px-10">
+    <header className={`relative flex min-h-16 items-center justify-between gap-4 border-b border-[var(--module-border)] px-4 md:min-h-[var(--header-height)] md:bg-surface md:px-10 ${isHome ? "bg-[#15161b]" : "bg-surface"}`}>
       <span
         aria-hidden="true"
         className="absolute inset-x-0 top-0 h-0.5 bg-[var(--module-accent)]"
@@ -43,7 +43,11 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
           type="button"
           onClick={onMenuClick}
           aria-label="Open menu"
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-control text-text-primary hover:bg-app-background md:hidden"
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-control md:hidden ${
+            isHome
+              ? "text-white hover:bg-white/10"
+              : "text-text-primary hover:bg-app-background"
+          }`}
         >
           <svg
             viewBox="0 0 24 24"
@@ -62,11 +66,11 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
         <div className="min-w-0">
           {isHome ? (
             <>
-              <h1 className="truncate text-lg font-semibold text-text-primary md:text-xl">
+              <h1 className="truncate text-lg font-semibold text-white md:text-xl md:text-text-primary">
                 {greeting}, David
               </h1>
               <p
-                className="truncate text-xs text-text-secondary"
+                className="truncate text-xs text-white/65 md:text-text-secondary"
                 suppressHydrationWarning
               >
                 {today}
@@ -86,7 +90,7 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
           onClick={() => setOpen(true)}
           aria-label="Open command palette"
           title="Command palette (⌘K)"
-          className="inline-flex h-11 w-11 items-center justify-center gap-2 rounded-control border border-border bg-app-background px-0 text-text-secondary transition-colors hover:border-text-secondary/40 hover:text-text-primary md:h-9 md:w-auto md:px-2.5"
+          className={`h-11 w-11 items-center justify-center gap-2 rounded-control border border-border px-0 text-text-secondary transition-colors hover:border-text-secondary/40 hover:text-text-primary md:inline-flex md:h-9 md:w-auto md:bg-app-background md:px-2.5 ${isHome ? "hidden" : "inline-flex bg-app-background"}`}
         >
           <Search className="h-3.5 w-3.5" strokeWidth={2} />
           <span className="hidden text-xs md:inline">Search</span>
@@ -103,7 +107,7 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-denison-red text-sm font-semibold text-surface">
           DS
         </div>
-        <form action={logout}>
+        <form action={logout} className={isHome ? "hidden md:block" : undefined}>
           <button
             type="submit"
             aria-label="Sign out"

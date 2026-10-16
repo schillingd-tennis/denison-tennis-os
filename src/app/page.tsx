@@ -5,6 +5,7 @@ import { computePlayerRecords } from "@/features/intraSquad/records";
 import { listVisibleRecruitingInteractions } from "@/features/interactions/repository";
 import {
   getDayRuleSummary,
+  listDailyPracticePlans,
 } from "@/features/practice/repository";
 import { recentInteractions, upcomingVisits } from "@/features/recruiting/dashboard";
 import { loadRecruitingDirectory } from "@/features/recruiting/directory";
@@ -19,6 +20,8 @@ import {
   listTeamPower6History,
   listTeamRatingDashboard,
 } from "@/features/teamRatings/repository";
+import { listTournaments } from "@/features/tournaments/repository";
+import { defaultSortedTournaments, isPastTournament } from "@/features/tournaments/location";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
@@ -26,7 +29,7 @@ export default async function Home() {
     CURRENT_ITA_NATIONAL_TEAM_MEN_DIV3_SNAPSHOT,
     "Denison",
   );
-  const [intra, dayRule, interactions, directory, utrResults, schedule, teamRatings, power6, power6History] = await Promise.all([
+  const [intra, dayRule, interactions, directory, utrResults, schedule, teamRatings, power6, power6History, practicePlans, tournamentResult] = await Promise.all([
     loadIntraSquadWorkspaceData(),
     getDayRuleSummary(),
     listVisibleRecruitingInteractions(),
@@ -36,6 +39,8 @@ export default async function Home() {
     listTeamRatingDashboard().catch(() => []),
     getLatestTeamPower6().catch(() => null),
     listTeamPower6History(10).catch(() => []),
+    listDailyPracticePlans().catch(() => []),
+    listTournaments(),
   ]);
   const names = new Map(
     intra.roster.map((player) => [
@@ -65,6 +70,21 @@ export default async function Home() {
       unfinished: match.status === "unfinished",
     }));
   const today = new Date().toISOString().slice(0, 10);
+  const todayPractice = practicePlans.find((plan) => plan.planDate === today) ?? null;
+  const mobileTournaments = tournamentResult.ok
+    ? defaultSortedTournaments(tournamentResult.tournaments)
+        .filter((tournament) => tournament.recruitingPlan === "traveling" && !isPastTournament(tournament))
+        .slice(0, 4)
+        .map((tournament) => ({
+          id: tournament.id,
+          name: tournament.name,
+          startDate: tournament.startDate,
+          endDate: tournament.endDate,
+          location: tournament.location,
+          level: tournament.level,
+          linkedRecruitCount: tournament.linkedRecruits.length,
+        }))
+    : [];
   const currentMonth = dayRule.rows.find((row) => row.month === new Date().getMonth() + 1);
   const events = schedule
     .filter((event) => event.status !== "cancelled" && event.startDate >= today)
@@ -94,6 +114,14 @@ export default async function Home() {
       power6History={power6History}
       currentItaRanking={currentItaRanking}
       currentNpiRanking={null}
+      mobilePractice={todayPractice ? {
+        title: todayPractice.title,
+        startTime: todayPractice.startTime,
+        endTime: todayPractice.endTime,
+        location: todayPractice.location,
+        status: todayPractice.status,
+      } : null}
+      mobileTournaments={mobileTournaments}
     />
   );
 }
