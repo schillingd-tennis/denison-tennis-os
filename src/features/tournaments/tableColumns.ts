@@ -11,6 +11,7 @@ export type TournamentTableColumnId =
   | "state"
   | "level"
   | "lifecycleStatus"
+  | "planToAttend"
   | "distance"
   | "recruitCount";
 
@@ -65,6 +66,14 @@ export const TOURNAMENT_TABLE_COLUMNS: ColumnDef<Tournament, TournamentTableColu
     sortType: "enum",
     enumOrder: ["upcoming", "past"],
     accessor: (row) => row.lifecycleStatus,
+  },
+  {
+    id: "planToAttend",
+    title: "Plan to Attend",
+    sortable: true,
+    sortType: "enum",
+    enumOrder: ["yes", "no"],
+    accessor: (row) => row.recruitingPlan === "traveling" ? "yes" : "no",
   },
   {
     id: "distance",

@@ -1,6 +1,8 @@
 import { listPeople } from "@/features/people/repository";
 import { getDisplayName, getHometown, getInitials } from "@/features/people/utils";
 import { listRecruitProfiles } from "@/features/recruiting/repository";
+import { RECRUIT_PIPELINE_SEED } from "@/features/recruiting/lookupSeed";
+import { ROLE_KEYS, STATUS_KEYS, roleIdForKey, statusIdForKey } from "@/features/lookups/seed";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 import {
@@ -20,6 +22,7 @@ import type {
   TournamentParticipantEvaluation,
   TournamentParticipantInput,
 } from "./types";
+import { indexRecruitNames, normalizeRecruitName, splitParticipantName } from "./participantRecruitMatching";
 
 const TABLE = "recruiting_tournaments";
 const LINKS_TABLE = "recruiting_tournament_recruits";
@@ -31,6 +34,7 @@ type TournamentParticipantRow = {
   id: string;
   tournament_id: string;
   recruit_person_id: string | null;
+  recruit_link_status?: TournamentParticipant["recruitLinkStatus"] | null;
   participant_name: string;
   events: string[] | null;
   city: string | null;
@@ -48,6 +52,7 @@ function participantFromRow(row: TournamentParticipantRow): TournamentParticipan
     id: row.id,
     tournamentId: row.tournament_id,
     recruitPersonId: row.recruit_person_id,
+    recruitLinkStatus: row.recruit_link_status ?? (row.recruit_person_id ? "matched" : "unmatched"),
     participantName: row.participant_name,
     events: row.events ?? [],
     city: row.city,
@@ -198,18 +203,46 @@ export async function importTournamentParticipants(
 ): Promise<TournamentParticipant[]> {
   if (participants.length === 0) return listTournamentParticipants(tournamentId);
   const client = await createSupabaseServerClient();
-  const rows = participants.map((participant) => ({
-    tournament_id: tournamentId,
-    participant_name: participant.participantName.trim(),
-    events: participant.events,
-    city: participant.city,
-    state: participant.state,
-    gender: participant.gender,
-  }));
+  const [people, profiles] = await Promise.all([listPeople(), listRecruitProfiles()]);
+  const recruitIds = new Set(profiles.map((profile) => profile.personId));
+  const nameIndex = indexRecruitNames(people.filter((person) => recruitIds.has(person.id)).map((person) => ({ personId: person.id, displayName: getDisplayName(person) })));
+  const rows: Array<Record<string, unknown>> = [];
+  const links: Array<{ tournament_id: string; recruit_person_id: string; attendance_status: "expected" }> = [];
+
+  for (const participant of participants) {
+    const matches = nameIndex.get(normalizeRecruitName(participant.participantName)) ?? [];
+    let recruitPersonId: string | null = null;
+    let recruitLinkStatus: TournamentParticipant["recruitLinkStatus"] = "unmatched";
+    if (matches.length === 1) {
+      recruitPersonId = matches[0]?.personId ?? null;
+      recruitLinkStatus = "matched";
+    } else if (matches.length > 1) {
+      recruitLinkStatus = "ambiguous";
+    } else {
+      const { firstName, lastName } = splitParticipantName(participant.participantName);
+      recruitPersonId = crypto.randomUUID();
+      const { error: personError } = await client.from("production_people").insert({
+        id: recruitPersonId, role_id: roleIdForKey(ROLE_KEYS.recruit), status_id: statusIdForKey(STATUS_KEYS.current),
+        first_name: firstName, last_name: lastName, city: participant.city, state: participant.state, relationships: [],
+      });
+      if (personError) throw new TournamentRepositoryError(`Could not add potential recruit ${participant.participantName}: ${personError.message}`);
+      const potentialStage = RECRUIT_PIPELINE_SEED.find((stage) => stage.key === "potential");
+      const { error: profileError } = await client.from("recruit_profiles").insert({ person_id: recruitPersonId, pipeline_stage_id: potentialStage?.id ?? null, notes: "Discovered from a tournament participant import." });
+      if (profileError) throw new TournamentRepositoryError(`Could not create potential recruit profile for ${participant.participantName}: ${profileError.message}`);
+      recruitLinkStatus = "created";
+      nameIndex.set(normalizeRecruitName(participant.participantName), [{ personId: recruitPersonId, displayName: participant.participantName }]);
+    }
+    if (recruitPersonId) links.push({ tournament_id: tournamentId, recruit_person_id: recruitPersonId, attendance_status: "expected" });
+    rows.push({ tournament_id: tournamentId, participant_name: participant.participantName.trim(), events: participant.events, city: participant.city, state: participant.state, gender: participant.gender, recruit_person_id: recruitPersonId, recruit_link_status: recruitLinkStatus });
+  }
   const { error } = await client
     .from(PARTICIPANTS_TABLE)
     .upsert(rows, { onConflict: "tournament_id,participant_name", ignoreDuplicates: false });
   if (error) throw new TournamentRepositoryError(`Could not import participants: ${error.message}`);
+  if (links.length > 0) {
+    const { error: linkError } = await client.from(LINKS_TABLE).upsert(links, { onConflict: "tournament_id,recruit_person_id", ignoreDuplicates: true });
+    if (linkError) throw new TournamentRepositoryError(`Could not link tournament recruits: ${linkError.message}`);
+  }
   return listTournamentParticipants(tournamentId);
 }
 
@@ -244,6 +277,21 @@ export async function saveTournament(id: string | null, input: TournamentInput):
   if (error) throw new TournamentRepositoryError(error.message);
   const [withLinks] = await attachLinkedRecruits([rowToTournament(data as RecruitingTournamentRow)]);
   return withLinks;
+}
+
+export async function setTournamentPlanToAttend(
+  tournamentId: string,
+  planToAttend: boolean,
+): Promise<Tournament> {
+  const client = await createSupabaseServerClient();
+  const { error } = await client
+    .from(TABLE)
+    .update({ recruiting_plan: planToAttend ? "traveling" : "watching" })
+    .eq("id", tournamentId);
+  if (error) throw new TournamentRepositoryError(error.message);
+  const tournament = await getTournament(tournamentId);
+  if (!tournament) throw new TournamentRepositoryError("Tournament not found.");
+  return tournament;
 }
 
 export async function deleteTournament(id: string): Promise<void> {

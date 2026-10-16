@@ -97,7 +97,7 @@ export default function TournamentCalendar({ tournaments }: { tournaments: Tourn
                   <li key={`${tournament.id}-${key}`}>
                     <Link
                       href={recruitingTournamentPath(tournament.id)}
-                      className="block truncate rounded-control bg-[var(--module-tint)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--module-accent)] hover:underline"
+                      className={`block truncate rounded-control px-1.5 py-0.5 text-[11px] font-medium hover:underline ${tournament.recruitingPlan === "traveling" ? "bg-denison-red text-white ring-1 ring-denison-red/20" : "bg-[var(--module-tint)] text-[var(--module-accent)]"}`}
                       title={tournament.name}
                     >
                       {tournament.name}
@@ -119,7 +119,7 @@ export default function TournamentCalendar({ tournaments }: { tournaments: Tourn
               <li key={tournament.id}>
                 <Link
                   href={recruitingTournamentPath(tournament.id)}
-                  className="text-sm font-medium text-text-primary hover:text-[var(--module-accent)] hover:underline"
+                  className={`text-sm font-medium hover:underline ${tournament.recruitingPlan === "traveling" ? "font-semibold text-denison-red" : "text-text-primary hover:text-[var(--module-accent)]"}`}
                 >
                   {tournament.name}
                 </Link>

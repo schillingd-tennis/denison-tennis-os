@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState, useTransition } from "react";
 
 import SortableColumnHeader from "@/components/data-table/SortableColumnHeader";
 import type { SortState } from "@/components/data-table/types";
@@ -13,6 +13,7 @@ import { recruitingTournamentPath } from "@/lib/module-routes";
 import { defaultSortedTournaments, parseDistanceMiles, splitCityState } from "../location";
 import { TOURNAMENT_TABLE_COLUMNS, type TournamentTableColumnId } from "../tableColumns";
 import type { Tournament } from "../types";
+import { setTournamentPlanToAttendAction } from "../actions";
 
 const SORT_STORAGE_KEY = "denison-tennis-os:tournaments-list-sort";
 const COLUMN_IDS = TOURNAMENT_TABLE_COLUMNS.map((column) => column.id);
@@ -53,9 +54,14 @@ function display(value: string | null | undefined): string {
 
 export default function TournamentList({
   tournaments,
+  onTournamentUpdated,
 }: {
   tournaments: Tournament[];
+  onTournamentUpdated: (tournament: Tournament) => void;
 }) {
+  const [pendingId, setPendingId] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
   const defaultOrdered = useMemo(() => defaultSortedTournaments(tournaments), [tournaments]);
   const { sortedItems, sort, toggleSort } = useSortableData(defaultOrdered, TOURNAMENT_TABLE_COLUMNS, {
     getInitialSort: readStoredSort,
@@ -66,8 +72,23 @@ export default function TournamentList({
     return sort?.key === columnId ? sort.direction : null;
   }
 
+  function setPlanToAttend(row: Tournament, checked: boolean) {
+    setPendingId(row.id);
+    setMessage(null);
+    startTransition(async () => {
+      const result = await setTournamentPlanToAttendAction(row.id, checked);
+      setPendingId(null);
+      if (!result.success) {
+        setMessage(result.error);
+        return;
+      }
+      onTournamentUpdated(result.tournament);
+    });
+  }
+
   return (
     <div className="overflow-hidden rounded-card border border-[var(--module-border)] bg-surface">
+      {message ? <p role="alert" className="border-b border-danger/20 bg-danger/5 px-4 py-2 text-sm text-danger">{message}</p> : null}
       <div className="overflow-x-auto">
       <table className="w-full min-w-[60rem] border-collapse text-left text-sm">
         <thead className="border-b border-border bg-app-background/80">
@@ -89,11 +110,11 @@ export default function TournamentList({
             const { city, state } = splitCityState(row.location);
             const miles = parseDistanceMiles(row.distanceFromColumbus);
             return (
-              <tr key={row.id} className="border-b border-border last:border-0 hover:bg-app-background/70">
+              <tr key={row.id} className={`border-b border-border last:border-0 ${row.recruitingPlan === "traveling" ? "bg-denison-red/[0.055] hover:bg-denison-red/[0.09]" : "hover:bg-app-background/70"}`}>
                 <td className="px-4 py-2.5">
                   <Link
                     href={recruitingTournamentPath(row.id)}
-                    className="min-w-0 font-medium text-text-primary hover:text-[var(--module-accent)] hover:underline"
+                    className={`min-w-0 font-medium hover:underline ${row.recruitingPlan === "traveling" ? "font-semibold text-denison-red" : "text-text-primary hover:text-[var(--module-accent)]"}`}
                   >
                     {row.name}
                   </Link>
@@ -113,6 +134,16 @@ export default function TournamentList({
                     : row.lifecycleStatus === "upcoming"
                       ? "Upcoming"
                       : EMPTY_VALUE}
+                </td>
+                <td className="px-4 py-2.5 text-center">
+                  <input
+                    type="checkbox"
+                    aria-label={`Plan to attend ${row.name}`}
+                    checked={row.recruitingPlan === "traveling"}
+                    disabled={pending && pendingId === row.id}
+                    onChange={(event) => setPlanToAttend(row, event.target.checked)}
+                    className="h-4 w-4 rounded border-border accent-denison-red disabled:opacity-50"
+                  />
                 </td>
                 <td className="px-4 py-2.5 text-right tabular-nums text-text-primary">
                   {miles == null ? EMPTY_VALUE : miles}

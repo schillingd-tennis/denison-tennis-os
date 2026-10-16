@@ -53,6 +53,16 @@ test("tournament names link to the workspace route helper", () => {
   assert.match(list, /recruitingTournamentPath/);
 });
 
+test("attendance plans can be toggled in the list and highlighted on the calendar", () => {
+  const list = readComponent("TournamentList.tsx");
+  const calendar = readComponent("TournamentCalendar.tsx");
+  assert.match(list, /Plan to attend/);
+  assert.match(list, /setTournamentPlanToAttendAction/);
+  assert.match(list, /bg-denison-red/);
+  assert.match(calendar, /tournament\.recruitingPlan === "traveling"/);
+  assert.match(calendar, /bg-denison-red text-white/);
+});
+
 test("directory columns do not include Surface or Plan", () => {
   const titles = TOURNAMENT_TABLE_COLUMNS.map((column) => column.title);
   const ids = TOURNAMENT_TABLE_COLUMNS.map((column) => column.id as string);

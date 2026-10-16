@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { TOURNAMENT_TABLE_COLUMNS } from "./tableColumns";
 
-test("directory columns do not include Surface or Plan", () => {
+test("directory columns include the focused Plan to Attend control", () => {
   const titles = TOURNAMENT_TABLE_COLUMNS.map((column) => column.title);
   const ids = TOURNAMENT_TABLE_COLUMNS.map((column) => column.id as string);
   assert.equal(titles.includes("Surface"), false);
@@ -18,6 +18,7 @@ test("directory columns do not include Surface or Plan", () => {
     "State",
     "Level",
     "Status",
+    "Plan to Attend",
     "Distance",
     "Recruits",
   ]);

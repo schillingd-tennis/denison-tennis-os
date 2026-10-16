@@ -231,7 +231,7 @@ export default function TournamentsDashboard({
               {upcoming.length === 0 ? (
                 <p className="text-sm text-text-secondary">No upcoming tournaments found.</p>
               ) : (
-                <TournamentList tournaments={upcoming} />
+                <TournamentList tournaments={upcoming} onTournamentUpdated={upsert} />
               )}
             </section>
             <section className="space-y-3" style={{ marginTop: 24 }}>
@@ -239,7 +239,7 @@ export default function TournamentsDashboard({
               {past.length === 0 ? (
                 <p className="text-sm text-text-secondary">No past tournaments found.</p>
               ) : (
-                <TournamentList tournaments={past} />
+                <TournamentList tournaments={past} onTournamentUpdated={upsert} />
               )}
             </section>
           </div>

@@ -117,6 +117,7 @@ export type TournamentParticipant = TournamentParticipantInput & {
   id: string;
   tournamentId: string;
   recruitPersonId: string | null;
+  recruitLinkStatus: "matched" | "created" | "ambiguous" | "unmatched";
   evaluationStatus: TournamentEvaluationStatus;
   overallRating: number | null;
   quickTags: string[];

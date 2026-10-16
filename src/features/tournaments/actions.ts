@@ -12,6 +12,7 @@ import {
   updateTournamentRecruitLink,
   importTournamentParticipants,
   saveTournamentParticipantEvaluation,
+  setTournamentPlanToAttend,
 } from "./repository";
 import { isAttendanceStatus, normalizeTournamentInput } from "./mapping";
 import type { AttendanceStatus, Tournament, TournamentInput, TournamentParticipant, TournamentParticipantEvaluation } from "./types";
@@ -84,6 +85,22 @@ export async function saveTournamentAction(
     return { success: true, tournament };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : "Save failed." };
+  }
+}
+
+export async function setTournamentPlanToAttendAction(
+  tournamentId: string,
+  planToAttend: boolean,
+): Promise<{ success: true; tournament: Tournament } | { success: false; error: string }> {
+  try {
+    const tournament = await setTournamentPlanToAttend(tournamentId, planToAttend);
+    revalidateTournaments(tournamentId);
+    return { success: true, tournament };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Could not update attendance plan.",
+    };
   }
 }
 
