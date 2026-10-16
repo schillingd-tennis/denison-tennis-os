@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   BarChart3,
+  CalendarDays,
   GraduationCap,
   Mail,
   Medal,
@@ -51,11 +52,12 @@ import {
 import { STATUS_KEYS } from "@/features/lookups/seed";
 import {
   EMPTY_VALUE,
+  formatDate,
   formatDisplay,
   formatUtr,
   formatWtn,
 } from "@/lib/formatting";
-import { RECRUITING_LIST_ROUTE } from "@/lib/module-routes";
+import { RECRUITING_LIST_ROUTE, recruitingTournamentPath } from "@/lib/module-routes";
 
 import type { RecruitAnalyticsResult } from "../analytics/types";
 import {
@@ -100,6 +102,27 @@ function notesWorkspaceDescriptor(profile: RecruitProfile): string {
   return parts.length > 0 ? parts.join(" · ") : "Coach notes · Game notes · Pitch angle";
 }
 
+type RecruitTournamentSummary = {
+  id: string;
+  name: string;
+  startDate: string | null;
+  endDate: string | null;
+  location: string | null;
+  level: string | null;
+  lifecycleStatus: "past" | "upcoming" | null;
+};
+
+function RecruitingTournamentsWorkspace({ tournaments }: { tournaments: RecruitTournamentSummary[] }) {
+  if (tournaments.length === 0) {
+    return <div className="rounded-card border border-dashed border-border bg-surface px-5 py-10 text-center"><CalendarDays className="mx-auto h-7 w-7 text-text-secondary" /><p className="mt-3 text-sm font-semibold text-text-primary">No tournaments linked yet</p><p className="mt-1 text-sm text-text-secondary">Add this recruit to a tournament field and it will appear here automatically.</p></div>;
+  }
+
+  return <div className="space-y-2">{tournaments.map((tournament) => <Link key={tournament.id} href={recruitingTournamentPath(tournament.id)} className="flex items-center justify-between gap-4 rounded-card border border-border bg-surface px-4 py-3 transition-colors hover:border-denison-red/35 hover:bg-denison-red/[0.03]">
+    <span className="min-w-0"><span className="block truncate text-sm font-semibold text-text-primary">{tournament.name}</span><span className="mt-1 block text-xs text-text-secondary">{[tournament.startDate ? formatDate(tournament.startDate) : null, tournament.endDate && tournament.endDate !== tournament.startDate ? `through ${formatDate(tournament.endDate)}` : null, tournament.location, tournament.level].filter(Boolean).join(" · ") || "Tournament details unavailable"}</span></span>
+    <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold uppercase ${tournament.lifecycleStatus === "past" ? "bg-app-background text-text-secondary" : "bg-denison-red/10 text-denison-red"}`}>{tournament.lifecycleStatus === "past" ? "Past" : "Upcoming"}</span>
+  </Link>)}</div>;
+}
+
 export default function RecruitingPersonWorkspace({
   person,
   profile,
@@ -107,6 +130,7 @@ export default function RecruitingPersonWorkspace({
   inCurrentCohort,
   interactions,
   tournamentOptions,
+  recruitTournaments,
   initialWorkspaceId,
   changeLogEvents = [],
 }: {
@@ -116,6 +140,7 @@ export default function RecruitingPersonWorkspace({
   inCurrentCohort: boolean;
   interactions: RecruitInteraction[];
   tournamentOptions: InteractionOption[];
+  recruitTournaments: RecruitTournamentSummary[];
   initialWorkspaceId?: string;
   changeLogEvents?: ChangeLogEvent[];
 }) {
@@ -296,6 +321,12 @@ export default function RecruitingPersonWorkspace({
             : "No visit scheduled",
       },
       {
+        id: "tournaments",
+        title: "Tournaments",
+        icon: CalendarDays,
+        descriptor: recruitTournaments.length === 0 ? "No tournaments linked" : `${recruitTournaments.length} tournament${recruitTournaments.length === 1 ? "" : "s"}`,
+      },
+      {
         id: "notes",
         title: "Notes",
         icon: NotebookPen,
@@ -317,7 +348,7 @@ export default function RecruitingPersonWorkspace({
             : `${changeLogEvents.length} update${changeLogEvents.length === 1 ? "" : "s"}`,
       },
     ],
-    [analytics?.tier, changeLogEvents.length, inCurrentCohort, interactions.length, profileRecord, record.utr],
+    [analytics?.tier, changeLogEvents.length, inCurrentCohort, interactions.length, profileRecord, record.utr, recruitTournaments.length],
   );
 
   const adaptiveWorkspaces: AdaptiveWorkspaceDefinition[] = useMemo(
@@ -357,6 +388,12 @@ export default function RecruitingPersonWorkspace({
         content: <RecruitingVisitWorkspace />,
       },
       {
+        id: "tournaments",
+        title: "Tournaments",
+        subtitle: "Tournament fields linked to this recruit",
+        content: <RecruitingTournamentsWorkspace tournaments={recruitTournaments} />,
+      },
+      {
         id: "notes",
         title: "Notes",
         subtitle: "Coach notes, game notes, and pitch",
@@ -390,7 +427,7 @@ export default function RecruitingPersonWorkspace({
         content: <RecruitingChangeLogWorkspace events={changeLogEvents} />,
       },
     ],
-    [analytics, changeLogEvents, clearNoteQuickEntry, inCurrentCohort, interactions, noteQuickEntry, openExistingInteraction, openInteractionDrawer, profileRecord.coachRank, requestDeleteInteraction],
+    [analytics, changeLogEvents, clearNoteQuickEntry, inCurrentCohort, interactions, noteQuickEntry, openExistingInteraction, openInteractionDrawer, profileRecord.coachRank, recruitTournaments, requestDeleteInteraction],
   );
 
   return (

@@ -68,7 +68,10 @@ test("list rows expose full editing and deletion without leaving the directory",
   const list = readComponent("TournamentList.tsx");
   assert.match(dashboard, /onEditTournament=\{openForm\}/);
   assert.match(list, /Edit all fields/);
+  assert.match(list, /> Edit fields</);
   assert.match(list, /deleteTournamentAction/);
+  assert.match(list, /> Delete</);
+  assert.match(list, /sticky left-0/);
 });
 
 test("directory columns do not include Surface or Plan", () => {

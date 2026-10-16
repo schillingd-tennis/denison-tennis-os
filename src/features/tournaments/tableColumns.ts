@@ -13,8 +13,7 @@ export type TournamentTableColumnId =
   | "lifecycleStatus"
   | "planToAttend"
   | "distance"
-  | "recruitCount"
-  | "actions";
+  | "recruitCount";
 
 export const TOURNAMENT_TABLE_COLUMNS: ColumnDef<Tournament, TournamentTableColumnId>[] = [
   {
@@ -92,5 +91,4 @@ export const TOURNAMENT_TABLE_COLUMNS: ColumnDef<Tournament, TournamentTableColu
     align: "right",
     accessor: (row) => row.linkedRecruits.length,
   },
-  { id: "actions", title: "Actions", sortable: false, align: "right", accessor: () => null },
 ];

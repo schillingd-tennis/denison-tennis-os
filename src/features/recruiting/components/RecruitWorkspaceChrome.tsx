@@ -48,6 +48,7 @@ export type RecruitWorkspaceTone =
   | "rankings"
   | "analytics"
   | "visit"
+  | "tournaments"
   | "notes"
   | "communications"
   | "log";
@@ -92,6 +93,12 @@ const toneSurface: Record<
     active: "border-warning bg-warning/[0.10]",
     activeIcon: "bg-warning/20 text-warning",
     chevron: "text-warning/80",
+  },
+  tournaments: {
+    icon: "bg-denison-red/10 text-denison-red",
+    active: "border-denison-red bg-denison-red/[0.06]",
+    activeIcon: "bg-denison-red/15 text-denison-red",
+    chevron: "text-denison-red/70",
   },
   notes: {
     icon: "bg-knowledge/10 text-knowledge",

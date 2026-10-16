@@ -57,6 +57,14 @@ test("canonical recruit header is RecruitWorkspaceProfile only", () => {
   );
 });
 
+test("recruit adaptive workspace includes linked tournaments", () => {
+  assert.match(workspace, /id: "tournaments"/);
+  assert.match(workspace, /title: "Tournaments"/);
+  assert.match(workspace, /RecruitingTournamentsWorkspace/);
+  assert.match(workspace, /recruitingTournamentPath\(tournament\.id\)/);
+  assert.match(chrome, /tournaments:/);
+});
+
 test("desktop header puts academic fields in the right column, not under identity", () => {
   const identity = sliceAttr(
     profile,

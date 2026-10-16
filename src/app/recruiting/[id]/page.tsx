@@ -28,6 +28,8 @@ export default async function RecruitingPersonPage({
     notFound();
   }
 
+  const tournaments = tournamentsResult.ok ? tournamentsResult.tournaments : [];
+
   return (
     <RecruitingPersonWorkspace
       person={record.person}
@@ -35,7 +37,18 @@ export default async function RecruitingPersonPage({
       analytics={record.analytics}
       inCurrentCohort={record.inCurrentCohort}
       interactions={interactions}
-      tournamentOptions={(tournamentsResult.ok ? tournamentsResult.tournaments : []).map((item) => ({ id: item.id, label: item.name }))}
+      tournamentOptions={tournaments.map((item) => ({ id: item.id, label: item.name }))}
+      recruitTournaments={tournaments
+        .filter((tournament) => tournament.linkedRecruits.some((recruit) => recruit.personId === id))
+        .map((tournament) => ({
+          id: tournament.id,
+          name: tournament.name,
+          startDate: tournament.startDate,
+          endDate: tournament.endDate,
+          location: tournament.location,
+          level: tournament.level,
+          lifecycleStatus: tournament.lifecycleStatus,
+        }))}
       initialWorkspaceId={workspace}
       changeLogEvents={changeLogEvents}
     />

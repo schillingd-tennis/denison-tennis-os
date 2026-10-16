@@ -128,13 +128,19 @@ export default function TournamentList({
             const miles = parseDistanceMiles(row.distanceFromColumbus);
             return (
               <tr key={row.id} className={`border-b border-border last:border-0 ${row.recruitingPlan === "traveling" ? "bg-denison-red/[0.055] hover:bg-denison-red/[0.09]" : "hover:bg-app-background/70"}`}>
-                <td className="px-4 py-2.5">
-                  <Link
-                    href={recruitingTournamentPath(row.id)}
-                    className={`min-w-0 font-medium hover:underline ${row.recruitingPlan === "traveling" ? "font-semibold text-denison-red" : "text-text-primary hover:text-[var(--module-accent)]"}`}
-                  >
-                    {row.name}
-                  </Link>
+                <td className="sticky left-0 z-[1] min-w-[15rem] bg-inherit px-4 py-2.5">
+                  <div className="min-w-0">
+                    <Link
+                      href={recruitingTournamentPath(row.id)}
+                      className={`block min-w-0 truncate font-medium hover:underline ${row.recruitingPlan === "traveling" ? "font-semibold text-denison-red" : "text-text-primary hover:text-[var(--module-accent)]"}`}
+                    >
+                      {row.name}
+                    </Link>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      <button type="button" onClick={() => onEditTournament(row)} className="inline-flex h-7 items-center gap-1 rounded-control border border-border bg-surface px-2 text-[11px] font-semibold text-text-primary shadow-sm hover:border-[var(--module-accent)] hover:bg-app-background" aria-label={`Edit all fields for ${row.name}`}><Pencil className="h-3 w-3" /> Edit fields</button>
+                      <button type="button" disabled={pending && pendingId === row.id} onClick={() => deleteRow(row)} className="inline-flex h-7 items-center gap-1 rounded-control border border-danger/25 bg-surface px-2 text-[11px] font-semibold text-danger shadow-sm hover:bg-danger/5 disabled:opacity-40" aria-label={`Delete ${row.name}`}><Trash2 className="h-3 w-3" /> Delete</button>
+                    </div>
+                  </div>
                 </td>
                 <td className="px-4 py-2.5 whitespace-nowrap text-text-primary">
                   {row.startDate ? formatDate(row.startDate) : EMPTY_VALUE}
@@ -175,12 +181,6 @@ export default function TournamentList({
                     ) : row.linkedRecruits.length === 0 ? (
                       <span className="text-text-secondary tabular-nums">0</span>
                     ) : null}
-                  </div>
-                </td>
-                <td className="px-4 py-2.5">
-                  <div className="flex justify-end gap-1.5">
-                    <button type="button" onClick={() => onEditTournament(row)} className="inline-flex h-8 items-center gap-1 rounded-control border border-border bg-surface px-2 text-xs font-semibold text-text-primary hover:bg-app-background" aria-label={`Edit all fields for ${row.name}`}><Pencil className="h-3.5 w-3.5" /> Edit</button>
-                    <button type="button" disabled={pending && pendingId === row.id} onClick={() => deleteRow(row)} className="inline-flex h-8 items-center gap-1 rounded-control border border-danger/25 bg-surface px-2 text-xs font-semibold text-danger hover:bg-danger/5 disabled:opacity-40" aria-label={`Delete ${row.name}`}><Trash2 className="h-3.5 w-3.5" /> Delete</button>
                   </div>
                 </td>
               </tr>
