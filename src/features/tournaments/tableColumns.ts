@@ -1,6 +1,6 @@
 import type { ColumnDef } from "@/components/data-table/types";
 
-import { isPastTournament, parseDistanceMiles, splitCityState } from "./location";
+import { parseDistanceMiles, splitCityState } from "./location";
 import type { Tournament } from "./types";
 
 export type TournamentTableColumnId =
@@ -10,7 +10,7 @@ export type TournamentTableColumnId =
   | "city"
   | "state"
   | "level"
-  | "lifecycleStatus"
+  | "status"
   | "planToAttend"
   | "distance"
   | "recruitCount";
@@ -60,12 +60,12 @@ export const TOURNAMENT_TABLE_COLUMNS: ColumnDef<Tournament, TournamentTableColu
     accessor: (row) => row.level,
   },
   {
-    id: "lifecycleStatus",
+    id: "status",
     title: "Status",
     sortable: true,
     sortType: "enum",
-    enumOrder: ["upcoming", "past"],
-    accessor: (row) => isPastTournament(row) ? "past" : "upcoming",
+    enumOrder: ["planned", "confirmed", "completed", "cancelled"],
+    accessor: (row) => row.status,
   },
   {
     id: "planToAttend",

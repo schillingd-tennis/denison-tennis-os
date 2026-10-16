@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
-import { Check, ClipboardPaste, Link2, MapPin, Search, Star, Users } from "lucide-react";
+import { Check, ClipboardPaste, ExternalLink, Link2, MapPin, Search, Star, Users } from "lucide-react";
 
 import { recruitingPersonPath } from "@/lib/module-routes";
 import { importTournamentParticipantsAction, saveTournamentParticipantEvaluationAction } from "../actions";
@@ -16,6 +16,15 @@ function locationLine(participant: TournamentParticipant) {
 
 function eventSummary(participant: TournamentParticipant) {
   return participant.events.join(" · ") || "Events unavailable";
+}
+
+function trnRatingLabel(participant: TournamentParticipant) {
+  const starLabel = participant.trnStarRating === 6
+    ? "Blue Chip"
+    : participant.trnStarRating
+      ? `${participant.trnStarRating}-star`
+      : null;
+  return [participant.trnRank ? `TRN #${participant.trnRank}` : null, starLabel].filter(Boolean).join(" · ");
 }
 
 export default function TournamentRoadRoster({
@@ -113,7 +122,7 @@ export default function TournamentRoadRoster({
               {visible.map((participant) => <div key={participant.id} className={`flex w-full items-center rounded-control border text-left ${selected?.id === participant.id ? "border-denison-red bg-denison-red/[0.05]" : "border-border bg-surface hover:bg-app-background"}`}>
                 <button type="button" onClick={() => setSelectedId(participant.id)} className="flex min-w-0 flex-1 items-center gap-3 p-3 text-left">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-warning/15 text-xs font-bold text-warning">{participant.participantName.split(/\s+/).map((part) => part[0]).slice(0, 2).join("")}</span>
-                  <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-text-primary">{participant.participantName}</span><span className="mt-0.5 block truncate text-xs text-text-secondary">{locationLine(participant)}</span><span className={`mt-1 block text-[10px] font-bold uppercase ${participant.recruitLinkStatus === "matched" ? "text-success" : participant.recruitLinkStatus === "created" ? "text-warning" : "text-denison-red"}`}>{participant.recruitLinkStatus === "matched" ? "Recruit linked" : participant.recruitLinkStatus === "created" ? "Potential recruit added" : "Recruit match needs review"}</span></span>
+                  <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-text-primary">{participant.participantName}</span><span className="mt-0.5 block truncate text-xs text-text-secondary">{locationLine(participant)}</span><span className={`mt-1 block text-[10px] font-bold uppercase ${trnRatingLabel(participant) ? "text-denison-red" : "text-text-secondary"}`}>{trnRatingLabel(participant) || "TRN lookup needed"}</span><span className={`mt-0.5 block text-[10px] font-bold uppercase ${participant.recruitLinkStatus === "matched" ? "text-success" : participant.recruitLinkStatus === "created" ? "text-warning" : "text-denison-red"}`}>{participant.recruitLinkStatus === "matched" ? "Recruit linked" : participant.recruitLinkStatus === "created" ? "Potential recruit added" : "Recruit match needs review"}</span></span>
                   <span className={`text-[10px] font-bold uppercase ${participant.evaluationStatus === "evaluated" ? "text-success" : participant.evaluationStatus === "watch_list" ? "text-warning" : "text-text-secondary"}`}>{participant.evaluationStatus === "not_evaluated" ? "New" : participant.evaluationStatus === "watch_list" ? "Watch" : "Done"}</span>
                 </button>
                 {participant.recruitPersonId ? <Link href={recruitingPersonPath(participant.recruitPersonId)} aria-label={`Open ${participant.participantName} recruiting card`} title="Open recruiting card" className="mr-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-control border border-border bg-surface text-text-secondary transition-colors hover:border-denison-red hover:bg-denison-red/[0.06] hover:text-denison-red"><Link2 className="h-4 w-4" /></Link> : null}
@@ -136,6 +145,10 @@ function TournamentParticipantEvaluationCard({ participant, pending, onSave }: {
   const evaluation = (): TournamentParticipantEvaluation => ({ evaluationStatus: status, overallRating: rating, quickTags: tags, evaluationNotes: notes || null });
   return <article className="min-w-0 rounded-card border border-border bg-surface p-4">
     <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="truncate text-lg font-semibold text-text-primary">{participant.participantName}</h3><p className="mt-1 flex items-center gap-1 text-xs text-text-secondary"><MapPin className="h-3.5 w-3.5" />{locationLine(participant)}</p><p className={`mt-1 text-xs font-semibold ${participant.recruitLinkStatus === "matched" ? "text-success" : participant.recruitLinkStatus === "created" ? "text-warning" : "text-denison-red"}`}>{participant.recruitLinkStatus === "matched" ? "Linked to existing Recruiting OS profile" : participant.recruitLinkStatus === "created" ? "Added to Recruiting OS as a Potential recruit" : "Recruit identity needs review"}</p></div><select aria-label="Evaluation status" value={status} onChange={(event) => setStatus(event.target.value as TournamentParticipant["evaluationStatus"])} className="h-10 rounded-control border border-border bg-surface px-2 text-sm"><option value="not_evaluated">Not evaluated</option><option value="watch_list">Watch list</option><option value="evaluated">Evaluated</option></select></div>
+    <div className={`mt-4 flex items-center justify-between gap-3 rounded-control border px-3 py-2.5 ${trnRatingLabel(participant) ? "border-denison-red/25 bg-denison-red/[0.05]" : "border-warning/25 bg-warning/[0.07]"}`}>
+      <div><p className="text-[10px] font-bold uppercase tracking-wide text-text-secondary">TennisRecruiting.net</p><p className={`mt-0.5 text-sm font-bold ${trnRatingLabel(participant) ? "text-denison-red" : "text-warning"}`}>{trnRatingLabel(participant) || "Rating lookup needed"}</p></div>
+      {participant.trnUrl ? <a href={participant.trnUrl} target="_blank" rel="noreferrer" className="inline-flex h-9 items-center gap-1.5 rounded-control border border-border bg-surface px-3 text-xs font-semibold text-text-primary hover:border-denison-red hover:text-denison-red">Open TRN <ExternalLink className="h-3.5 w-3.5" /></a> : <a href="https://www.tennisrecruiting.net/player.asp" target="_blank" rel="noreferrer" className="inline-flex h-9 items-center gap-1.5 rounded-control border border-border bg-surface px-3 text-xs font-semibold text-text-primary hover:border-denison-red hover:text-denison-red">Find player <ExternalLink className="h-3.5 w-3.5" /></a>}
+    </div>
     <p className="mt-3 text-xs leading-relaxed text-text-secondary">{eventSummary(participant)}</p>
     <div className="mt-5"><p className="text-sm font-semibold text-text-primary">Overall impression</p><div className="mt-2 grid grid-cols-5 gap-2">{[1,2,3,4,5].map((value) => <button type="button" key={value} onClick={() => setRating(value)} className={`flex h-11 items-center justify-center gap-1 rounded-control border text-sm font-semibold ${rating === value ? "border-denison-red bg-denison-red text-white" : "border-border bg-surface"}`}><Star className="h-3.5 w-3.5" />{value}</button>)}</div></div>
     <div className="mt-5"><p className="text-sm font-semibold text-text-primary">Quick tags</p><div className="mt-2 flex flex-wrap gap-2">{QUICK_TAGS.map((tag) => <button type="button" key={tag} onClick={() => setTags((current) => current.includes(tag) ? current.filter((item) => item !== tag) : [...current, tag])} className={`h-9 rounded-control border px-3 text-xs font-semibold ${tags.includes(tag) ? "border-denison-red bg-denison-red/[0.07] text-denison-red" : "border-border text-text-secondary"}`}>{tags.includes(tag) ? <Check className="mr-1 inline h-3.5 w-3.5" /> : null}{tag}</button>)}</div></div>

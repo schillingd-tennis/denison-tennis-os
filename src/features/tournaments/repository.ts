@@ -49,7 +49,18 @@ type TournamentParticipantRow = {
   evaluated_at: string | null;
 };
 
-function participantFromRow(row: TournamentParticipantRow): TournamentParticipant {
+type ParticipantTrnDetails = Pick<TournamentParticipant, "trnRank" | "trnStarRating" | "trnUrl">;
+
+const EMPTY_TRN_DETAILS: ParticipantTrnDetails = {
+  trnRank: null,
+  trnStarRating: null,
+  trnUrl: null,
+};
+
+function participantFromRow(
+  row: TournamentParticipantRow,
+  trnDetails: ParticipantTrnDetails = EMPTY_TRN_DETAILS,
+): TournamentParticipant {
   return {
     id: row.id,
     tournamentId: row.tournament_id,
@@ -65,6 +76,7 @@ function participantFromRow(row: TournamentParticipantRow): TournamentParticipan
     quickTags: row.quick_tags ?? [],
     evaluationNotes: row.evaluation_notes,
     evaluatedAt: row.evaluated_at,
+    ...trnDetails,
   };
 }
 
@@ -79,7 +91,24 @@ async function listTournamentParticipants(tournamentId: string): Promise<Tournam
     if (missingTable(error.message)) return [];
     throw new TournamentRepositoryError(`Failed to load tournament participants: ${error.message}`);
   }
-  return ((data as TournamentParticipantRow[] | null) ?? []).map(participantFromRow);
+  const rows = (data as TournamentParticipantRow[] | null) ?? [];
+  const linkedPersonIds = new Set(rows.flatMap((row) => row.recruit_person_id ? [row.recruit_person_id] : []));
+  if (linkedPersonIds.size === 0) return rows.map((row) => participantFromRow(row));
+
+  const people = await listPeople();
+  const trnByPersonId = new Map<string, ParticipantTrnDetails>();
+  for (const person of people) {
+    if (!linkedPersonIds.has(person.id)) continue;
+    trnByPersonId.set(person.id, {
+      trnRank: person.trnRank ?? null,
+      trnStarRating: person.trnStarRating ?? null,
+      trnUrl: person.trnUrl ?? null,
+    });
+  }
+  return rows.map((row) => participantFromRow(
+    row,
+    row.recruit_person_id ? trnByPersonId.get(row.recruit_person_id) : undefined,
+  ));
 }
 
 function missingTable(message: string): boolean {

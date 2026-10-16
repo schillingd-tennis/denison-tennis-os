@@ -123,6 +123,10 @@ export type TournamentParticipant = TournamentParticipantInput & {
   quickTags: string[];
   evaluationNotes: string | null;
   evaluatedAt: string | null;
+  /** Canonical TennisRecruiting.net data from the linked Recruiting OS person. */
+  trnRank: number | null;
+  trnStarRating: number | null;
+  trnUrl: string | null;
 };
 
 export type TournamentParticipantEvaluation = {

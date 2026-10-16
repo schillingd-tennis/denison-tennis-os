@@ -1,20 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { Pencil, Trash2 } from "lucide-react";
+import { ExternalLink, Pencil, Trash2 } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 
 import SortableColumnHeader from "@/components/data-table/SortableColumnHeader";
 import type { SortState } from "@/components/data-table/types";
 import { useSortableData } from "@/components/data-table/useSortableData";
+import InlineEditCell from "@/components/inline-edit/InlineEditCell";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { EMPTY_VALUE, formatDate } from "@/lib/formatting";
 import { recruitingTournamentPath } from "@/lib/module-routes";
 
-import { defaultSortedTournaments, isPastTournament, parseDistanceMiles, splitCityState } from "../location";
+import { locationFromCityState, tournamentToInput } from "../editor";
+import { defaultSortedTournaments, parseDistanceMiles, splitCityState } from "../location";
 import { TOURNAMENT_TABLE_COLUMNS, type TournamentTableColumnId } from "../tableColumns";
-import type { Tournament } from "../types";
-import { deleteTournamentAction, setTournamentPlanToAttendAction } from "../actions";
+import { TOURNAMENT_STATUS_LABELS, type Tournament, type TournamentStatus } from "../types";
+import { deleteTournamentAction, saveTournamentAction, setTournamentPlanToAttendAction } from "../actions";
 
 const SORT_STORAGE_KEY = "denison-tennis-os:tournaments-list-sort";
 const COLUMN_IDS = TOURNAMENT_TABLE_COLUMNS.map((column) => column.id);
@@ -48,10 +50,9 @@ function writeStoredSort(sort: SortState<TournamentTableColumnId>) {
   }
 }
 
-function display(value: string | null | undefined): string {
-  const trimmed = value?.trim();
-  return trimmed ? trimmed : EMPTY_VALUE;
-}
+type InlineField = "name" | "startDate" | "endDate" | "city" | "state" | "level" | "status";
+
+const STATUS_OPTIONS = Object.entries(TOURNAMENT_STATUS_LABELS).map(([value, label]) => ({ value, label }));
 
 export default function TournamentList({
   tournaments,
@@ -65,6 +66,7 @@ export default function TournamentList({
   onEditTournament: (tournament: Tournament) => void;
 }) {
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<{ id: string; field: InlineField } | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const defaultOrdered = useMemo(() => defaultSortedTournaments(tournaments), [tournaments]);
@@ -103,6 +105,39 @@ export default function TournamentList({
     });
   }
 
+  async function commitField(row: Tournament, field: InlineField, raw: string) {
+    const input = tournamentToInput(row);
+    const trimmed = raw.trim();
+    if (field === "city" || field === "state") {
+      const current = splitCityState(row.location);
+      input.location = locationFromCityState(field === "city" ? trimmed : current.city ?? "", field === "state" ? trimmed : current.state ?? "");
+    } else if (field === "status") {
+      input.status = trimmed as TournamentStatus;
+    } else if (field === "name") {
+      input.name = trimmed;
+    } else {
+      input[field] = trimmed || null;
+    }
+    if (field === "name" && !trimmed) {
+      setMessage("Tournament name is required.");
+      return;
+    }
+    setPendingId(row.id);
+    setMessage(null);
+    const result = await saveTournamentAction(row.id, input);
+    setPendingId(null);
+    if (!result.success) {
+      setMessage(result.error);
+      return;
+    }
+    onTournamentUpdated(result.tournament);
+    setEditing(null);
+  }
+
+  function inlineCell(row: Tournament, field: InlineField, value: string, options?: { type?: "text" | "date" | "select"; displayValue?: string; selectOptions?: { value: string; label: string }[] }) {
+    return <InlineEditCell label={field === "startDate" ? "Start date" : field === "endDate" ? "End date" : field[0].toUpperCase() + field.slice(1)} value={value} displayValue={options?.displayValue} type={options?.type ?? "text"} options={options?.selectOptions} editOn="click" density="compact" emphasis="directory" editing={editing?.id === row.id && editing.field === field} disabled={pending && pendingId === row.id} onRequestEdit={() => setEditing({ id: row.id, field })} onCancel={() => setEditing(null)} onCommit={(next) => commitField(row, field, next)} />;
+  }
+
   return (
     <div className="overflow-hidden rounded-card border border-[var(--module-border)] bg-surface">
       {message ? <p role="alert" className="border-b border-danger/20 bg-danger/5 px-4 py-2 text-sm text-danger">{message}</p> : null}
@@ -129,32 +164,24 @@ export default function TournamentList({
             return (
               <tr key={row.id} className={`border-b border-border last:border-0 ${row.recruitingPlan === "traveling" ? "bg-denison-red/[0.055] hover:bg-denison-red/[0.09]" : "hover:bg-app-background/70"}`}>
                 <td className="sticky left-0 z-[1] min-w-[15rem] bg-inherit px-4 py-2.5">
-                  <div className="min-w-0">
-                    <Link
-                      href={recruitingTournamentPath(row.id)}
-                      className={`block min-w-0 truncate font-medium hover:underline ${row.recruitingPlan === "traveling" ? "font-semibold text-denison-red" : "text-text-primary hover:text-[var(--module-accent)]"}`}
-                    >
-                      {row.name}
-                    </Link>
-                    <div className="mt-1.5 flex flex-wrap gap-1.5">
-                      <button type="button" onClick={() => onEditTournament(row)} className="inline-flex h-7 items-center gap-1 rounded-control border border-border bg-surface px-2 text-[11px] font-semibold text-text-primary shadow-sm hover:border-[var(--module-accent)] hover:bg-app-background" aria-label={`Edit all fields for ${row.name}`}><Pencil className="h-3 w-3" /> Edit fields</button>
-                      <button type="button" disabled={pending && pendingId === row.id} onClick={() => deleteRow(row)} className="inline-flex h-7 items-center gap-1 rounded-control border border-danger/25 bg-surface px-2 text-[11px] font-semibold text-danger shadow-sm hover:bg-danger/5 disabled:opacity-40" aria-label={`Delete ${row.name}`}><Trash2 className="h-3 w-3" /> Delete</button>
-                    </div>
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <div className={`min-w-0 flex-1 ${row.recruitingPlan === "traveling" ? "font-semibold text-denison-red" : "text-text-primary"}`}>{inlineCell(row, "name", row.name)}</div>
+                    <Link href={recruitingTournamentPath(row.id)} aria-label={`Open ${row.name}`} title="Open tournament" className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-control text-text-secondary hover:bg-app-background hover:text-[var(--module-accent)]"><ExternalLink className="h-3.5 w-3.5" /></Link>
+                    <button type="button" onClick={() => onEditTournament(row)} title="Edit all tournament fields" className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-control text-text-secondary hover:bg-app-background hover:text-text-primary" aria-label={`Edit all fields for ${row.name}`}><Pencil className="h-3.5 w-3.5" /></button>
+                    <button type="button" disabled={pending && pendingId === row.id} onClick={() => deleteRow(row)} title="Delete tournament" className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-control text-danger hover:bg-danger/5 disabled:opacity-40" aria-label={`Delete ${row.name}`}><Trash2 className="h-3.5 w-3.5" /></button>
                   </div>
                 </td>
                 <td className="px-4 py-2.5 whitespace-nowrap text-text-primary">
-                  {row.startDate ? formatDate(row.startDate) : EMPTY_VALUE}
+                  {inlineCell(row, "startDate", row.startDate ?? "", { type: "date", displayValue: row.startDate ? formatDate(row.startDate) : EMPTY_VALUE })}
                 </td>
                 <td className="px-4 py-2.5 whitespace-nowrap text-text-primary">
-                  {row.endDate ? formatDate(row.endDate) : EMPTY_VALUE}
+                  {inlineCell(row, "endDate", row.endDate ?? "", { type: "date", displayValue: row.endDate ? formatDate(row.endDate) : EMPTY_VALUE })}
                 </td>
-                <td className="px-4 py-2.5 text-text-primary">{display(city)}</td>
-                <td className="px-4 py-2.5 text-text-primary">{display(state)}</td>
-                <td className="px-4 py-2.5 text-text-primary">{display(row.level)}</td>
+                <td className="px-4 py-2.5 text-text-primary">{inlineCell(row, "city", city ?? "")}</td>
+                <td className="px-4 py-2.5 text-text-primary">{inlineCell(row, "state", state ?? "")}</td>
+                <td className="px-4 py-2.5 text-text-primary">{inlineCell(row, "level", row.level ?? "")}</td>
                 <td className="px-4 py-2.5 text-text-primary">
-                  {isPastTournament(row)
-                    ? "Past"
-                    : "Upcoming"}
+                  {inlineCell(row, "status", row.status, { type: "select", displayValue: TOURNAMENT_STATUS_LABELS[row.status], selectOptions: STATUS_OPTIONS })}
                 </td>
                 <td className="px-4 py-2.5 text-center">
                   <input

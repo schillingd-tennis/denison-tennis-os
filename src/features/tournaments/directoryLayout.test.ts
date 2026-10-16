@@ -68,10 +68,11 @@ test("list rows expose full editing and deletion without leaving the directory",
   const list = readComponent("TournamentList.tsx");
   assert.match(dashboard, /onEditTournament=\{openForm\}/);
   assert.match(list, /Edit all fields/);
-  assert.match(list, /> Edit fields</);
   assert.match(list, /deleteTournamentAction/);
-  assert.match(list, /> Delete</);
   assert.match(list, /sticky left-0/);
+  assert.match(list, /InlineEditCell/);
+  assert.match(list, /editOn="click"/);
+  assert.match(list, /saveTournamentAction/);
 });
 
 test("directory columns do not include Surface or Plan", () => {
@@ -117,4 +118,16 @@ test("linked tournament participants can open their recruiting card", () => {
   assert.match(roster, /recruitingPersonPath\(participant\.recruitPersonId\)/);
   assert.match(roster, /Open \$\{participant\.participantName\} recruiting card/);
   assert.match(roster, /participant\.recruitPersonId \?/);
+});
+
+test("tournament roster shows canonical TennisRecruiting.net ratings", () => {
+  const roster = readComponent("TournamentRoadRoster.tsx");
+  const repository = readFileSync(join(root, "repository.ts"), "utf8");
+  assert.match(roster, /TennisRecruiting\.net/);
+  assert.match(roster, /TRN #\$\{participant\.trnRank\}/);
+  assert.match(roster, /TRN lookup needed/);
+  assert.match(roster, /participant\.trnUrl/);
+  assert.match(repository, /person\.trnRank/);
+  assert.match(repository, /person\.trnStarRating/);
+  assert.match(repository, /person\.trnUrl/);
 });
