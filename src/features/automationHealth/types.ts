@@ -17,7 +17,7 @@ export type AutomationJob = {
   id: string;
   provider: AutomationProvider;
   kind: "results" | "profile" | "rating";
-  scope: "recruits" | "team";
+  scope: "recruits" | "team" | "tournament";
   status: AutomationJobStatus;
   source: "manual" | "schedule" | "retry";
   requestedAt: string;

@@ -139,6 +139,7 @@ export type TournamentParticipantEvaluation = {
 export type TournamentRecruitEnrichmentSummary = {
   created: number;
   enriched: number;
+  queued: number;
   unresolved: string[];
   participants: TournamentParticipant[];
 };

@@ -10,6 +10,8 @@ import { workerSupabaseScope } from "../../../src/lib/supabase/workerScope";
 import { UTR_WORKER_HEARTBEAT_INTERVAL_MS, UTR_WORKER_POLL_INTERVAL_MS, utrWorkerLeaseUntil } from "./backgroundSchedule.js";
 import { runTrnRatingChecks } from "./runTrnRatings.js";
 import { recoverExpiredProviderJobs } from "./jobRecovery.js";
+import { getTrnContext } from "./trnBrowser.js";
+import { findPublicTrnProfile } from "./trnPublicProfile.js";
 
 const HELPER_HOME = join(homedir(), "Library/Application Support/DenisonTennisOS");
 const PROVIDER = "trn";
@@ -63,8 +65,51 @@ export function startTrnBackgroundWorker(options?: { client?: SupabaseClient }):
       jobId = String(data);
       leaseToken = token;
       await workerSupabaseScope.run(client, async () => {
-        const { data: job, error: jobError } = await client.from("tennis_data_jobs").select("kind, scope").eq("id", jobId).single();
-        if (jobError || !job || job.kind !== "rating" || job.scope !== "recruits") throw new Error("Unsupported TRN acquisition job.");
+        const { data: job, error: jobError } = await client.from("tennis_data_jobs").select("kind, scope, target_id").eq("id", jobId).single();
+        if (jobError || !job) throw new Error("TRN acquisition job could not be loaded.");
+        if (job.kind === "profile" && job.scope === "tournament" && job.target_id) {
+          const { data: participants, error: participantError } = await client.from("recruiting_tournament_participants")
+            .select("participant_name,recruit_person_id").eq("tournament_id", job.target_id).not("recruit_person_id", "is", null);
+          if (participantError) throw new Error(participantError.message);
+          const rows = (participants ?? []) as Array<{ participant_name: string; recruit_person_id: string }>;
+          const personIds = [...new Set(rows.map((row) => row.recruit_person_id))];
+          const { data: people, error: peopleError } = personIds.length
+            ? await client.from("production_people").select("id,trn_url,trn_rank").in("id", personIds)
+            : { data: [], error: null };
+          if (peopleError) throw new Error(peopleError.message);
+          const existing = new Map((people ?? []).map((person) => [String(person.id), person]));
+          const pending = rows.filter((row) => { const person = existing.get(row.recruit_person_id); return person && !person.trn_url && !person.trn_rank; });
+          await updateJob({ total_count: pending.length });
+          const context = await getTrnContext();
+          let saved = 0; let failed = 0; let verificationRequired = false;
+          for (const row of pending) {
+            try {
+              const profile = await findPublicTrnProfile(context, row.participant_name);
+              if (!profile) { failed += 1; }
+              else {
+                const patch: Record<string, unknown> = { trn_url: profile.profileUrl };
+                if (profile.city) patch.city = profile.city; if (profile.state) patch.state = profile.state;
+                if (profile.rank) patch.trn_rank = profile.rank; if (profile.starRating) patch.trn_star_rating = profile.starRating;
+                const { error: updateError } = await client.from("production_people").update(patch).eq("id", row.recruit_person_id);
+                if (updateError) throw new Error(updateError.message);
+                if (profile.classYear) await client.from("recruit_profiles").update({ recruit_class_year: profile.classYear }).eq("person_id", row.recruit_person_id);
+                saved += 1;
+              }
+            } catch (error) {
+              failed += 1;
+              if (error instanceof Error && error.message === "TRN_BROWSER_VERIFICATION_REQUIRED") { verificationRequired = true; break; }
+              console.error(`${row.participant_name}: ${error instanceof Error ? error.message : "TRN profile lookup failed"}`);
+            }
+            await updateJob({ checked_count: saved + failed }); await updateWorker({ checked_count: saved + failed });
+          }
+          const finishedAt = new Date().toISOString();
+          const message = verificationRequired ? "TennisRecruiting.net browser verification required. Run npm run trn:login on the Mac, complete the browser check, then retry." : failed ? `${failed} public TRN profile(s) need manual review.` : null;
+          await updateJob({ status: verificationRequired ? "auth_required" : failed ? "partial" : "complete", finished_at: finishedAt, checked_count: saved + failed, error: message, lease_until: null, lease_token: null });
+          await updateWorker({ auth_status: verificationRequired ? "reauth_required" : "valid", last_error: message, last_finished_at: finishedAt, checked_count: saved + failed });
+          console.log(`Tournament TRN enrichment finished: ${saved} saved, ${failed} unresolved.`);
+          return;
+        }
+        if (job.kind !== "rating" || job.scope !== "recruits") throw new Error("Unsupported TRN acquisition job.");
         const recruits = await listEliteRecruitRatingPlayers("trn");
         await updateJob({ total_count: recruits.length });
         const run = await runTrnRatingChecks(recruits);

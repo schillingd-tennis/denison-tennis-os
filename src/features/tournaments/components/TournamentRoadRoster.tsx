@@ -77,7 +77,7 @@ export default function TournamentRoadRoster({
       if (!result.success) return setMessage(result.error);
       setParticipants(result.summary.participants);
       const unresolved = result.summary.unresolved.length;
-      setMessage(`${result.summary.created} Potential recruits added · ${result.summary.enriched} enriched from public TennisRecruiting.net data${unresolved ? ` · ${unresolved} could not be resolved and need review` : ""}.`);
+      setMessage(`${result.summary.created} Potential recruits added · ${result.summary.queued} public TRN lookups queued on the Mac${unresolved ? ` · ${unresolved} recruit matches need review` : ""}. Ratings and profile details will appear here when the worker finishes.`);
     });
   }
 

@@ -26,7 +26,6 @@ import type {
 import { indexRecruitNames, normalizeRecruitName, splitParticipantName } from "./participantRecruitMatching";
 import { calculateTournamentDistance } from "./distance";
 import { lifecycleStatusForDates } from "./location";
-import { lookupPublicTrnPlayer } from "./publicTrnLookup";
 
 const TABLE = "recruiting_tournaments";
 const LINKS_TABLE = "recruiting_tournament_recruits";
@@ -293,7 +292,7 @@ export async function addPotentialRecruitsAndEnrich(tournamentId: string): Promi
   const nameIndex = indexRecruitNames(people.filter((person) => recruitIds.has(person.id)).map((person) => ({ personId: person.id, displayName: getDisplayName(person) })));
   const potentialStage = RECRUIT_PIPELINE_SEED.find((stage) => stage.key === "potential");
   let created = 0;
-  let enriched = 0;
+  let queued = 0;
   const unresolved: string[] = [];
 
   for (const row of rows) {
@@ -324,20 +323,13 @@ export async function addPotentialRecruitsAndEnrich(tournamentId: string): Promi
       continue;
     }
     const person = people.find((item) => item.id === personId);
-    if (linkStatus !== "created" && (person?.trnUrl || person?.trnRank)) continue;
-    const found = await lookupPublicTrnPlayer(row.participant_name);
-    if (!found) { unresolved.push(row.participant_name); continue; }
-    const personPatch: Record<string, unknown> = { trn_url: found.profileUrl };
-    if (found.city) personPatch.city = found.city;
-    if (found.state) personPatch.state = found.state;
-    if (found.rank) personPatch.trn_rank = found.rank;
-    if (found.starRating) personPatch.trn_star_rating = found.starRating;
-    const { error: updateError } = await client.from("production_people").update(personPatch).eq("id", personId);
-    if (updateError) throw new TournamentRepositoryError(`Could not enrich ${row.participant_name}: ${updateError.message}`);
-    if (found.classYear) await client.from("recruit_profiles").update({ recruit_class_year: found.classYear }).eq("person_id", personId);
-    enriched += 1;
+    if (!person?.trnUrl && !person?.trnRank) queued += 1;
   }
-  return { created, enriched, unresolved: [...new Set(unresolved)], participants: await listTournamentParticipants(tournamentId) };
+  if (queued > 0) {
+    const { error: queueError } = await client.rpc("request_tournament_trn_profile_job", { p_tournament_id: tournamentId });
+    if (queueError) throw new TournamentRepositoryError(`Potential recruits were added, but TRN enrichment could not be queued: ${queueError.message}`);
+  }
+  return { created, enriched: 0, queued, unresolved: [...new Set(unresolved)], participants: await listTournamentParticipants(tournamentId) };
 }
 
 export async function saveTournamentParticipantEvaluation(
