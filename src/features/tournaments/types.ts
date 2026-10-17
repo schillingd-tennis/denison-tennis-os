@@ -130,7 +130,17 @@ export type TournamentParticipant = TournamentParticipantInput & {
   trnRank: number | null;
   trnStarRating: number | null;
   trnUrl: string | null;
+  utr: number | null;
   classYear: number | null;
+};
+
+export type TournamentParticipantDetails = {
+  city: string | null;
+  state: string | null;
+  classYear: number | null;
+  utr: number | null;
+  trnRank: number | null;
+  trnStarRating: number | null;
 };
 
 export type TournamentParticipantEvaluation = {

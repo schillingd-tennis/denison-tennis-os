@@ -186,3 +186,27 @@ test("tournament player directory exposes recruiting status, ratings, and a sepa
   assert.match(types, /watchList: boolean/);
   assert.match(migration, /add column if not exists watch_list boolean/);
 });
+
+test("tournament player cards keep identity and controls in separate responsive rows", () => {
+  const roster = readComponent("TournamentRoadRoster.tsx");
+  assert.match(roster, /flex flex-wrap gap-2/);
+  assert.match(roster, /border-t border-border\/70/);
+  assert.match(roster, />Profile<\/Link>/);
+  assert.match(roster, />Add recruit<\/span>/);
+  assert.doesNotMatch(roster, /className=\{`flex w-full items-center rounded-control/);
+});
+
+test("tournament player cards allow missing ratings and biographical details to be entered manually", () => {
+  const roster = readComponent("TournamentRoadRoster.tsx");
+  const actions = readFileSync(join(root, "actions.ts"), "utf8");
+  const repository = readFileSync(join(root, "repository.ts"), "utf8");
+  const migration = readFileSync(join(root, "../../../supabase/migrations/0095_tournament_participant_manual_details.sql"), "utf8");
+  assert.match(roster, /Player information/);
+  assert.match(roster, /Class year/);
+  assert.match(roster, />UTR<input/);
+  assert.match(roster, /TRN rank/);
+  assert.match(roster, /saveTournamentParticipantDetailsAction/);
+  assert.match(actions, /UTR must be between 0 and 16\.5/);
+  assert.match(repository, /trn_star_rating: details\.trnStarRating/);
+  assert.match(migration, /add column if not exists utr numeric/);
+});

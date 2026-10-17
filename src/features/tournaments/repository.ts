@@ -19,6 +19,7 @@ import type {
   TournamentInput,
   TournamentLinkedRecruit,
   TournamentParticipant,
+  TournamentParticipantDetails,
   TournamentParticipantEvaluation,
   TournamentParticipantInput,
   TournamentRecruitEnrichmentSummary,
@@ -52,15 +53,17 @@ type TournamentParticipantRow = {
   trn_url?: string | null;
   trn_rank?: number | null;
   trn_star_rating?: number | null;
+  utr?: number | null;
   class_year?: number | null;
 };
 
-type ParticipantRecruitDetails = Pick<TournamentParticipant, "trnRank" | "trnStarRating" | "trnUrl" | "classYear" | "recruitPriorityLabel" | "recruitPipelineLabel">;
+type ParticipantRecruitDetails = Pick<TournamentParticipant, "trnRank" | "trnStarRating" | "trnUrl" | "utr" | "classYear" | "recruitPriorityLabel" | "recruitPipelineLabel">;
 
 const EMPTY_RECRUIT_DETAILS: ParticipantRecruitDetails = {
   trnRank: null,
   trnStarRating: null,
   trnUrl: null,
+  utr: null,
   classYear: null,
   recruitPriorityLabel: null,
   recruitPipelineLabel: null,
@@ -91,6 +94,7 @@ function participantFromRow(
     trnRank: recruitDetails.trnRank ?? row.trn_rank ?? null,
     trnStarRating: recruitDetails.trnStarRating ?? row.trn_star_rating ?? null,
     trnUrl: recruitDetails.trnUrl ?? row.trn_url ?? null,
+    utr: recruitDetails.utr ?? row.utr ?? null,
     classYear: recruitDetails.classYear ?? row.class_year ?? null,
   };
 }
@@ -121,6 +125,7 @@ async function listTournamentParticipants(tournamentId: string): Promise<Tournam
       trnRank: person.trnRank ?? null,
       trnStarRating: person.trnStarRating ?? null,
       trnUrl: person.trnUrl ?? null,
+      utr: person.utr ?? null,
       classYear: classYearByPersonId.get(person.id) ?? null,
       recruitPriorityLabel: profile?.priority?.label ?? null,
       recruitPipelineLabel: profile?.pipelineStage?.label ?? null,
@@ -385,6 +390,30 @@ export async function saveTournamentParticipantEvaluation(
     .select("*")
     .single();
   if (error) throw new TournamentRepositoryError(`Could not save evaluation: ${error.message}`);
+  const savedRow = data as TournamentParticipantRow;
+  const enriched = await listTournamentParticipants(savedRow.tournament_id);
+  return enriched.find((participant) => participant.id === savedRow.id) ?? participantFromRow(savedRow);
+}
+
+export async function saveTournamentParticipantDetails(
+  participantId: string,
+  details: TournamentParticipantDetails,
+): Promise<TournamentParticipant> {
+  const client = await createSupabaseServerClient();
+  const { data, error } = await client
+    .from(PARTICIPANTS_TABLE)
+    .update({
+      city: details.city?.trim() || null,
+      state: details.state?.trim().toUpperCase() || null,
+      class_year: details.classYear,
+      utr: details.utr,
+      trn_rank: details.trnRank,
+      trn_star_rating: details.trnStarRating,
+    })
+    .eq("id", participantId)
+    .select("*")
+    .single();
+  if (error) throw new TournamentRepositoryError(`Could not save player information: ${error.message}`);
   const savedRow = data as TournamentParticipantRow;
   const enriched = await listTournamentParticipants(savedRow.tournament_id);
   return enriched.find((participant) => participant.id === savedRow.id) ?? participantFromRow(savedRow);

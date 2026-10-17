@@ -12,12 +12,13 @@ import {
   updateTournamentRecruitLink,
   importTournamentParticipants,
   saveTournamentParticipantEvaluation,
+  saveTournamentParticipantDetails,
   setTournamentPlanToAttend,
   addPotentialRecruitsAndEnrich,
   promoteTournamentParticipants,
 } from "./repository";
 import { isAttendanceStatus, normalizeTournamentInput } from "./mapping";
-import type { AttendanceStatus, Tournament, TournamentInput, TournamentParticipant, TournamentParticipantEvaluation, TournamentRecruitEnrichmentSummary } from "./types";
+import type { AttendanceStatus, Tournament, TournamentInput, TournamentParticipant, TournamentParticipantDetails, TournamentParticipantEvaluation, TournamentRecruitEnrichmentSummary } from "./types";
 import { importTournamentUrl, type TournamentUrlImport } from "./urlImport";
 import { parseTournamentParticipants } from "./participantImport";
 
@@ -78,6 +79,25 @@ export async function saveTournamentParticipantEvaluationAction(
     return { success: true, participant };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : "Could not save evaluation." };
+  }
+}
+
+export async function saveTournamentParticipantDetailsAction(
+  tournamentId: string,
+  participantId: string,
+  details: TournamentParticipantDetails,
+): Promise<{ success: true; participant: TournamentParticipant } | { success: false; error: string }> {
+  if ([details.utr, details.trnRank, details.trnStarRating, details.classYear].some((value) => value !== null && !Number.isFinite(value))) return { success: false, error: "Ratings and class year must be numbers." };
+  if (details.utr !== null && (details.utr <= 0 || details.utr > 16.5)) return { success: false, error: "UTR must be between 0 and 16.5." };
+  if (details.trnRank !== null && details.trnRank < 1) return { success: false, error: "TRN rank must be a positive number." };
+  if (details.trnStarRating !== null && (details.trnStarRating < 1 || details.trnStarRating > 6)) return { success: false, error: "TRN rating must be between 1 and 6." };
+  if (details.classYear !== null && (details.classYear < 2020 || details.classYear > 2100)) return { success: false, error: "Enter a valid four-digit class year." };
+  try {
+    const participant = await saveTournamentParticipantDetails(participantId, details);
+    revalidateTournaments(tournamentId);
+    return { success: true, participant };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "Could not save player information." };
   }
 }
 
