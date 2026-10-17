@@ -38,6 +38,7 @@ type TournamentParticipantRow = {
   tournament_id: string;
   recruit_person_id: string | null;
   recruit_link_status?: TournamentParticipant["recruitLinkStatus"] | null;
+  watch_list?: boolean | null;
   participant_name: string;
   events: string[] | null;
   city: string | null;
@@ -54,24 +55,29 @@ type TournamentParticipantRow = {
   class_year?: number | null;
 };
 
-type ParticipantTrnDetails = Pick<TournamentParticipant, "trnRank" | "trnStarRating" | "trnUrl" | "classYear">;
+type ParticipantRecruitDetails = Pick<TournamentParticipant, "trnRank" | "trnStarRating" | "trnUrl" | "classYear" | "recruitPriorityLabel" | "recruitPipelineLabel">;
 
-const EMPTY_TRN_DETAILS: ParticipantTrnDetails = {
+const EMPTY_RECRUIT_DETAILS: ParticipantRecruitDetails = {
   trnRank: null,
   trnStarRating: null,
   trnUrl: null,
   classYear: null,
+  recruitPriorityLabel: null,
+  recruitPipelineLabel: null,
 };
 
 function participantFromRow(
   row: TournamentParticipantRow,
-  trnDetails: ParticipantTrnDetails = EMPTY_TRN_DETAILS,
+  recruitDetails: ParticipantRecruitDetails = EMPTY_RECRUIT_DETAILS,
 ): TournamentParticipant {
   return {
     id: row.id,
     tournamentId: row.tournament_id,
     recruitPersonId: row.recruit_person_id,
     recruitLinkStatus: row.recruit_link_status ?? (row.recruit_person_id ? "matched" : "unmatched"),
+    recruitPriorityLabel: recruitDetails.recruitPriorityLabel,
+    recruitPipelineLabel: recruitDetails.recruitPipelineLabel,
+    watchList: row.watch_list ?? row.evaluation_status === "watch_list",
     participantName: row.participant_name,
     events: row.events ?? [],
     city: row.city,
@@ -82,10 +88,10 @@ function participantFromRow(
     quickTags: row.quick_tags ?? [],
     evaluationNotes: row.evaluation_notes,
     evaluatedAt: row.evaluated_at,
-    trnRank: trnDetails.trnRank ?? row.trn_rank ?? null,
-    trnStarRating: trnDetails.trnStarRating ?? row.trn_star_rating ?? null,
-    trnUrl: trnDetails.trnUrl ?? row.trn_url ?? null,
-    classYear: trnDetails.classYear ?? row.class_year ?? null,
+    trnRank: recruitDetails.trnRank ?? row.trn_rank ?? null,
+    trnStarRating: recruitDetails.trnStarRating ?? row.trn_star_rating ?? null,
+    trnUrl: recruitDetails.trnUrl ?? row.trn_url ?? null,
+    classYear: recruitDetails.classYear ?? row.class_year ?? null,
   };
 }
 
@@ -106,19 +112,23 @@ async function listTournamentParticipants(tournamentId: string): Promise<Tournam
 
   const [people, profiles] = await Promise.all([listPeople(), listRecruitProfiles()]);
   const classYearByPersonId = new Map(profiles.map((profile) => [profile.personId, profile.recruitClassYear ?? null]));
-  const trnByPersonId = new Map<string, ParticipantTrnDetails>();
+  const profileByPersonId = new Map(profiles.map((profile) => [profile.personId, profile]));
+  const recruitDetailsByPersonId = new Map<string, ParticipantRecruitDetails>();
   for (const person of people) {
     if (!linkedPersonIds.has(person.id)) continue;
-    trnByPersonId.set(person.id, {
+    const profile = profileByPersonId.get(person.id);
+    recruitDetailsByPersonId.set(person.id, {
       trnRank: person.trnRank ?? null,
       trnStarRating: person.trnStarRating ?? null,
       trnUrl: person.trnUrl ?? null,
       classYear: classYearByPersonId.get(person.id) ?? null,
+      recruitPriorityLabel: profile?.priority?.label ?? null,
+      recruitPipelineLabel: profile?.pipelineStage?.label ?? null,
     });
   }
   return rows.map((row) => participantFromRow(
     row,
-    row.recruit_person_id ? trnByPersonId.get(row.recruit_person_id) : undefined,
+    row.recruit_person_id ? recruitDetailsByPersonId.get(row.recruit_person_id) : undefined,
   ));
 }
 
@@ -365,16 +375,19 @@ export async function saveTournamentParticipantEvaluation(
     .from(PARTICIPANTS_TABLE)
     .update({
       evaluation_status: evaluation.evaluationStatus,
+      watch_list: evaluation.watchList,
       overall_rating: evaluation.overallRating,
       quick_tags: evaluation.quickTags,
       evaluation_notes: evaluation.evaluationNotes?.trim() || null,
-      evaluated_at: evaluation.evaluationStatus === "not_evaluated" ? null : new Date().toISOString(),
+      evaluated_at: evaluation.evaluationStatus === "evaluated" ? new Date().toISOString() : null,
     })
     .eq("id", participantId)
     .select("*")
     .single();
   if (error) throw new TournamentRepositoryError(`Could not save evaluation: ${error.message}`);
-  return participantFromRow(data as TournamentParticipantRow);
+  const savedRow = data as TournamentParticipantRow;
+  const enriched = await listTournamentParticipants(savedRow.tournament_id);
+  return enriched.find((participant) => participant.id === savedRow.id) ?? participantFromRow(savedRow);
 }
 
 export async function saveTournament(id: string | null, input: TournamentInput): Promise<Tournament> {

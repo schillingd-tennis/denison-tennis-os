@@ -151,7 +151,7 @@ test("tournament roster reviews a field before selectively creating Potential re
   assert.match(roster, /Match & enrich field/);
   assert.match(roster, /Add selected/);
   assert.match(roster, /Not in database/);
-  assert.match(roster, /Current recruits/);
+  assert.match(roster, /In Recruiting OS/);
   assert.match(roster, /addPotentialRecruitsAndEnrichAction/);
   assert.match(actions, /promoteTournamentParticipants/);
   assert.match(actions, /addPotentialRecruitsAndEnrich/);
@@ -169,4 +169,20 @@ test("players workspace uses one primary tournament-player workflow", () => {
   assert.match(workspace, /Link existing recruit/);
   assert.doesNotMatch(workspace, /Linked Recruiting Profiles/);
   assert.doesNotMatch(workspace, /TournamentImportedRecruitsWorkspaceField/);
+});
+
+test("tournament player directory exposes recruiting status, ratings, and a separate watch list", () => {
+  const roster = readComponent("TournamentRoadRoster.tsx");
+  const repository = readFileSync(join(root, "repository.ts"), "utf8");
+  const types = readFileSync(join(root, "types.ts"), "utf8");
+  const migration = readFileSync(join(root, "../../../supabase/migrations/0094_tournament_player_watch_list.sql"), "utf8");
+  assert.match(roster, /To watch/);
+  assert.match(roster, /In Recruiting OS/);
+  assert.match(roster, /Not in database/);
+  assert.match(roster, /recruitPriorityLabel/);
+  assert.match(roster, /Mark as a player to watch/);
+  assert.match(repository, /profile\?\.priority\?\.label/);
+  assert.match(repository, /watch_list: evaluation\.watchList/);
+  assert.match(types, /watchList: boolean/);
+  assert.match(migration, /add column if not exists watch_list boolean/);
 });

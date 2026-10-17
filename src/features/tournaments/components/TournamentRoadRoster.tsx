@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
-import { Check, ClipboardPaste, ExternalLink, Link2, MapPin, RefreshCw, Search, Star, UserPlus, Users } from "lucide-react";
+import { Check, ClipboardPaste, Eye, ExternalLink, Link2, MapPin, RefreshCw, Search, Star, UserPlus, Users } from "lucide-react";
 
 import { recruitingPersonPath } from "@/lib/module-routes";
 import { addPotentialRecruitsAndEnrichAction, importTournamentParticipantsAction, promoteTournamentParticipantsAction, saveTournamentParticipantEvaluationAction } from "../actions";
@@ -37,7 +37,7 @@ export default function TournamentRoadRoster({
   const [participants, setParticipants] = useState(initialParticipants);
   const [selectedId, setSelectedId] = useState(initialParticipants[0]?.id ?? null);
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<"all" | "linked" | "not_linked" | "ambiguous" | "missing_trn">("all");
+  const [filter, setFilter] = useState<"all" | "watch" | "linked" | "not_linked" | "ambiguous" | "missing_trn">("all");
   const [selectedForRecruiting, setSelectedForRecruiting] = useState<string[]>([]);
   const [showImport, setShowImport] = useState(initialParticipants.length === 0);
   const [importText, setImportText] = useState("");
@@ -48,11 +48,12 @@ export default function TournamentRoadRoster({
     const normalized = query.trim().toLowerCase();
     return participants.filter((participant) => {
       const matchesFilter = filter === "all"
+        || (filter === "watch" && participant.watchList)
         || (filter === "linked" && Boolean(participant.recruitPersonId))
         || (filter === "not_linked" && !participant.recruitPersonId && participant.recruitLinkStatus !== "ambiguous")
         || (filter === "ambiguous" && participant.recruitLinkStatus === "ambiguous")
         || (filter === "missing_trn" && !participant.trnRank && !participant.trnUrl);
-      const haystack = `${participant.participantName} ${participant.city ?? ""} ${participant.state ?? ""} ${participant.events.join(" ")}`.toLowerCase();
+      const haystack = `${participant.participantName} ${participant.city ?? ""} ${participant.state ?? ""} ${participant.recruitPriorityLabel ?? ""} ${participant.recruitPipelineLabel ?? ""} ${participant.events.join(" ")}`.toLowerCase();
       return matchesFilter && (!normalized || haystack.includes(normalized));
     });
   }, [filter, participants, query]);
@@ -112,12 +113,27 @@ export default function TournamentRoadRoster({
     });
   }
 
+  function toggleWatch(participant: TournamentParticipant) {
+    setMessage(null);
+    startTransition(async () => {
+      const result = await saveTournamentParticipantEvaluationAction(tournamentId, participant.id, {
+        evaluationStatus: participant.evaluationStatus === "watch_list" ? "not_evaluated" : participant.evaluationStatus,
+        watchList: !participant.watchList,
+        overallRating: participant.overallRating,
+        quickTags: participant.quickTags,
+        evaluationNotes: participant.evaluationNotes,
+      });
+      if (!result.success) return setMessage(result.error);
+      setParticipants((current) => current.map((item) => item.id === result.participant.id ? result.participant : item));
+    });
+  }
+
   return (
     <section aria-label="Tournament road recruiting dashboard" className="space-y-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-sm font-semibold text-text-primary"><Users className="h-4 w-4 text-warning" />Tournament Players</div>
-          <p className="mt-1 text-xs text-text-secondary">{participants.length} players · {evaluatedCount} evaluated · {participants.filter((item) => item.evaluationStatus === "watch_list").length} watch list</p>
+          <p className="mt-1 text-xs text-text-secondary">{participants.length} players · {participants.filter((item) => item.recruitPersonId).length} in Recruiting OS · {participants.filter((item) => item.watchList).length} to watch · {evaluatedCount} evaluated</p>
         </div>
         <div className="flex flex-wrap justify-end gap-2">
           {selectedForRecruiting.length ? <button type="button" disabled={pending} onClick={addSelectedRecruits} className="inline-flex h-10 items-center gap-2 rounded-control bg-denison-red px-3 text-sm font-semibold text-white disabled:opacity-40"><UserPlus className="h-4 w-4" /> Add selected ({selectedForRecruiting.length})</button> : null}
@@ -144,15 +160,16 @@ export default function TournamentRoadRoster({
           <div className="min-w-0 rounded-card border border-border bg-surface p-3">
             <label className="relative block"><Search className="absolute left-3 top-3.5 h-4 w-4 text-text-secondary" /><span className="sr-only">Search tournament players</span><input value={query} onChange={(event) => setQuery(event.target.value)} className="h-11 w-full rounded-control border border-border bg-app-background pl-9 pr-3 text-base" placeholder="Search player, city, state…" /></label>
             <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
-              {([['all', 'All'], ['linked', 'Current recruits'], ['not_linked', 'Not in database'], ['ambiguous', 'Possible matches'], ['missing_trn', 'Missing TRN']] as const).map(([value, label]) => <button key={value} type="button" onClick={() => setFilter(value)} className={`h-9 shrink-0 rounded-control px-3 text-xs font-semibold ${filter === value ? "bg-denison-red text-white" : "border border-border bg-surface text-text-secondary"}`}>{label}</button>)}
+              {([['all', `All (${participants.length})`], ['watch', `To watch (${participants.filter((item) => item.watchList).length})`], ['linked', `In Recruiting OS (${participants.filter((item) => item.recruitPersonId).length})`], ['not_linked', `Not in database (${participants.filter((item) => !item.recruitPersonId && item.recruitLinkStatus !== 'ambiguous').length})`], ['ambiguous', 'Possible matches'], ['missing_trn', 'Missing TRN']] as const).map(([value, label]) => <button key={value} type="button" onClick={() => setFilter(value)} className={`h-9 shrink-0 rounded-control px-3 text-xs font-semibold ${filter === value ? "bg-denison-red text-white" : "border border-border bg-surface text-text-secondary"}`}>{label}</button>)}
             </div>
             <div className="mt-3 max-h-[560px] space-y-2 overflow-y-auto pr-1">
               {visible.map((participant) => <div key={participant.id} className={`flex w-full items-center rounded-control border text-left ${selected?.id === participant.id ? "border-denison-red bg-denison-red/[0.05]" : "border-border bg-surface hover:bg-app-background"}`}>
                 <button type="button" onClick={() => setSelectedId(participant.id)} className="flex min-w-0 flex-1 items-center gap-3 p-3 text-left">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-warning/15 text-xs font-bold text-warning">{participant.participantName.split(/\s+/).map((part) => part[0]).slice(0, 2).join("")}</span>
-                  <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-text-primary">{participant.participantName}</span><span className="mt-0.5 block truncate text-xs text-text-secondary">{locationLine(participant)}{participant.classYear ? ` · Class of ${participant.classYear}` : ""}</span><span className={`mt-1 block text-[10px] font-bold uppercase ${trnRatingLabel(participant) ? "text-denison-red" : "text-text-secondary"}`}>{trnRatingLabel(participant) || "TRN lookup needed"}</span><span className={`mt-0.5 block text-[10px] font-bold uppercase ${participant.recruitPersonId ? "text-success" : participant.recruitLinkStatus === "ambiguous" ? "text-warning" : "text-text-secondary"}`}>{participant.recruitPersonId ? "Recruit linked" : participant.recruitLinkStatus === "ambiguous" ? "Possible match — review" : "Tournament only"}</span></span>
-                  <span className={`text-[10px] font-bold uppercase ${participant.evaluationStatus === "evaluated" ? "text-success" : participant.evaluationStatus === "watch_list" ? "text-warning" : "text-text-secondary"}`}>{participant.evaluationStatus === "not_evaluated" ? "New" : participant.evaluationStatus === "watch_list" ? "Watch" : "Done"}</span>
+                  <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-text-primary">{participant.participantName}</span><span className="mt-0.5 block truncate text-xs text-text-secondary">{locationLine(participant)}{participant.classYear ? ` · Class of ${participant.classYear}` : ""}</span><span className={`mt-1 block text-[10px] font-bold uppercase ${trnRatingLabel(participant) ? "text-denison-red" : "text-text-secondary"}`}>{trnRatingLabel(participant) || "TRN lookup needed"}</span><span className={`mt-0.5 block truncate text-[10px] font-bold uppercase ${participant.recruitPersonId ? "text-success" : participant.recruitLinkStatus === "ambiguous" ? "text-warning" : "text-text-secondary"}`}>{participant.recruitPersonId ? `Recruiting OS · ${participant.recruitPriorityLabel || participant.recruitPipelineLabel || "No status assigned"}` : participant.recruitLinkStatus === "ambiguous" ? "Possible Recruiting OS match — review" : "Not in Recruiting OS"}</span></span>
+                  <span className={`text-[10px] font-bold uppercase ${participant.evaluationStatus === "evaluated" ? "text-success" : "text-text-secondary"}`}>{participant.evaluationStatus === "evaluated" ? "Evaluated" : "Not evaluated"}</span>
                 </button>
+                <label className={`mr-2 flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-control border px-2 text-[10px] font-bold uppercase ${participant.watchList ? "border-warning bg-warning/10 text-warning" : "border-border bg-surface text-text-secondary"}`} title="Mark as a player to watch"><input type="checkbox" className="h-4 w-4 accent-denison-red" checked={participant.watchList} onChange={() => toggleWatch(participant)} disabled={pending} /><Eye className="h-3.5 w-3.5" /><span className="hidden xl:inline">Watch</span></label>
                 {participant.recruitPersonId ? <Link href={recruitingPersonPath(participant.recruitPersonId)} aria-label={`Open ${participant.participantName} recruiting card`} title="Open recruiting card" className="mr-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-control border border-border bg-surface text-text-secondary transition-colors hover:border-denison-red hover:bg-denison-red/[0.06] hover:text-denison-red"><Link2 className="h-4 w-4" /></Link> : participant.recruitLinkStatus !== "ambiguous" ? <label className="mr-3 flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-control border border-border bg-surface" title="Select to add as a Potential recruit"><input type="checkbox" className="h-4 w-4 accent-denison-red" checked={selectedForRecruiting.includes(participant.id)} onChange={() => setSelectedForRecruiting((current) => current.includes(participant.id) ? current.filter((id) => id !== participant.id) : [...current, participant.id])} /><span className="sr-only">Select {participant.participantName} to add to Recruiting OS</span></label> : <span className="mr-3 text-[10px] font-bold uppercase text-warning">Review</span>}
               </div>)}
               {visible.length === 0 ? <p className="py-8 text-center text-sm text-text-secondary">No players match these filters.</p> : null}
@@ -169,10 +186,10 @@ function TournamentParticipantEvaluationCard({ participant, pending, onSave }: {
   const [rating, setRating] = useState<number | null>(participant.overallRating);
   const [tags, setTags] = useState<string[]>(participant.quickTags);
   const [notes, setNotes] = useState(participant.evaluationNotes ?? "");
-  const [status, setStatus] = useState(participant.evaluationStatus);
-  const evaluation = (): TournamentParticipantEvaluation => ({ evaluationStatus: status, overallRating: rating, quickTags: tags, evaluationNotes: notes || null });
+  const [status, setStatus] = useState(participant.evaluationStatus === "watch_list" ? "not_evaluated" : participant.evaluationStatus);
+  const evaluation = (): TournamentParticipantEvaluation => ({ evaluationStatus: status, watchList: participant.watchList, overallRating: rating, quickTags: tags, evaluationNotes: notes || null });
   return <article className="min-w-0 rounded-card border border-border bg-surface p-4">
-    <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="truncate text-lg font-semibold text-text-primary">{participant.participantName}</h3><p className="mt-1 flex items-center gap-1 text-xs text-text-secondary"><MapPin className="h-3.5 w-3.5" />{locationLine(participant)}{participant.classYear ? ` · Class of ${participant.classYear}` : ""}</p><p className={`mt-1 text-xs font-semibold ${participant.recruitPersonId ? "text-success" : participant.recruitLinkStatus === "ambiguous" ? "text-warning" : "text-text-secondary"}`}>{participant.recruitPersonId ? "Linked to a Recruiting OS profile" : participant.recruitLinkStatus === "ambiguous" ? "Possible Recruiting OS match needs review" : "Tournament-only player — not in Recruiting OS"}</p></div><select aria-label="Evaluation status" value={status} onChange={(event) => setStatus(event.target.value as TournamentParticipant["evaluationStatus"])} className="h-10 rounded-control border border-border bg-surface px-2 text-sm"><option value="not_evaluated">Not evaluated</option><option value="watch_list">Watch list</option><option value="evaluated">Evaluated</option></select></div>
+    <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="truncate text-lg font-semibold text-text-primary">{participant.participantName}</h3><p className="mt-1 flex items-center gap-1 text-xs text-text-secondary"><MapPin className="h-3.5 w-3.5" />{locationLine(participant)}{participant.classYear ? ` · Class of ${participant.classYear}` : ""}</p><p className={`mt-1 text-xs font-semibold ${participant.recruitPersonId ? "text-success" : participant.recruitLinkStatus === "ambiguous" ? "text-warning" : "text-text-secondary"}`}>{participant.recruitPersonId ? `Recruiting OS · ${participant.recruitPriorityLabel || "No recruiting status assigned"}${participant.recruitPipelineLabel ? ` · ${participant.recruitPipelineLabel}` : ""}` : participant.recruitLinkStatus === "ambiguous" ? "Possible Recruiting OS match needs review" : "Not in Recruiting OS"}</p></div><select aria-label="Evaluation status" value={status} onChange={(event) => setStatus(event.target.value as "not_evaluated" | "evaluated")} className="h-10 rounded-control border border-border bg-surface px-2 text-sm"><option value="not_evaluated">Not evaluated</option><option value="evaluated">Evaluated</option></select></div>
     <div className={`mt-4 flex items-center justify-between gap-3 rounded-control border px-3 py-2.5 ${trnRatingLabel(participant) ? "border-denison-red/25 bg-denison-red/[0.05]" : "border-warning/25 bg-warning/[0.07]"}`}>
       <div><p className="text-[10px] font-bold uppercase tracking-wide text-text-secondary">TennisRecruiting.net</p><p className={`mt-0.5 text-sm font-bold ${trnRatingLabel(participant) ? "text-denison-red" : "text-warning"}`}>{trnRatingLabel(participant) || "Rating lookup needed"}</p></div>
       {participant.trnUrl ? <a href={participant.trnUrl} target="_blank" rel="noreferrer" className="inline-flex h-9 items-center gap-1.5 rounded-control border border-border bg-surface px-3 text-xs font-semibold text-text-primary hover:border-denison-red hover:text-denison-red">Open TRN <ExternalLink className="h-3.5 w-3.5" /></a> : <a href="https://www.tennisrecruiting.net/player.asp" target="_blank" rel="noreferrer" className="inline-flex h-9 items-center gap-1.5 rounded-control border border-border bg-surface px-3 text-xs font-semibold text-text-primary hover:border-denison-red hover:text-denison-red">Find player <ExternalLink className="h-3.5 w-3.5" /></a>}
@@ -181,6 +198,6 @@ function TournamentParticipantEvaluationCard({ participant, pending, onSave }: {
     <div className="mt-5"><p className="text-sm font-semibold text-text-primary">Overall impression</p><div className="mt-2 grid grid-cols-5 gap-2">{[1,2,3,4,5].map((value) => <button type="button" key={value} onClick={() => setRating(value)} className={`flex h-11 items-center justify-center gap-1 rounded-control border text-sm font-semibold ${rating === value ? "border-denison-red bg-denison-red text-white" : "border-border bg-surface"}`}><Star className="h-3.5 w-3.5" />{value}</button>)}</div></div>
     <div className="mt-5"><p className="text-sm font-semibold text-text-primary">Quick tags</p><div className="mt-2 flex flex-wrap gap-2">{QUICK_TAGS.map((tag) => <button type="button" key={tag} onClick={() => setTags((current) => current.includes(tag) ? current.filter((item) => item !== tag) : [...current, tag])} className={`h-9 rounded-control border px-3 text-xs font-semibold ${tags.includes(tag) ? "border-denison-red bg-denison-red/[0.07] text-denison-red" : "border-border text-text-secondary"}`}>{tags.includes(tag) ? <Check className="mr-1 inline h-3.5 w-3.5" /> : null}{tag}</button>)}</div></div>
     <label className="mt-5 block text-sm font-semibold text-text-primary">Coach notes<textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={6} className="mt-2 w-full rounded-control border border-border bg-app-background p-3 text-base font-normal" placeholder="Fast notes while watching…" /></label>
-    <div className="mt-4 grid grid-cols-2 gap-2"><button type="button" disabled={pending} onClick={() => onSave(participant, evaluation(), false)} className="h-11 rounded-control border border-border bg-surface text-sm font-semibold disabled:opacity-40">Save</button><button type="button" disabled={pending} onClick={() => onSave(participant, { ...evaluation(), evaluationStatus: status === "not_evaluated" ? "evaluated" : status }, true)} className="h-11 rounded-control bg-denison-red text-sm font-semibold text-white disabled:opacity-40">Save & next</button></div>
+    <div className="mt-4 grid grid-cols-2 gap-2"><button type="button" disabled={pending} onClick={() => onSave(participant, evaluation(), false)} className="h-11 rounded-control border border-border bg-surface text-sm font-semibold disabled:opacity-40">Save</button><button type="button" disabled={pending} onClick={() => onSave(participant, { ...evaluation(), evaluationStatus: "evaluated" }, true)} className="h-11 rounded-control bg-denison-red text-sm font-semibold text-white disabled:opacity-40">Save & next</button></div>
   </article>;
 }

@@ -118,6 +118,9 @@ export type TournamentParticipant = TournamentParticipantInput & {
   tournamentId: string;
   recruitPersonId: string | null;
   recruitLinkStatus: "matched" | "created" | "ambiguous" | "unmatched";
+  recruitPriorityLabel: string | null;
+  recruitPipelineLabel: string | null;
+  watchList: boolean;
   evaluationStatus: TournamentEvaluationStatus;
   overallRating: number | null;
   quickTags: string[];
@@ -132,6 +135,7 @@ export type TournamentParticipant = TournamentParticipantInput & {
 
 export type TournamentParticipantEvaluation = {
   evaluationStatus: TournamentEvaluationStatus;
+  watchList: boolean;
   overallRating: number | null;
   quickTags: string[];
   evaluationNotes: string | null;

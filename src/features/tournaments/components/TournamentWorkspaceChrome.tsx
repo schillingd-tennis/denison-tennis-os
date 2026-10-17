@@ -193,7 +193,7 @@ export function tournamentWorkspaceItems(tournament: Tournament): TournamentWork
       icon: Users,
       descriptor:
         tournament.participants.length > 0
-          ? `${tournament.participants.length} tournament players · ${tournament.participants.filter((participant) => participant.evaluationStatus === "evaluated").length} evaluated`
+          ? `${tournament.participants.length} players · ${tournament.participants.filter((participant) => participant.watchList).length} to watch · ${tournament.participants.filter((participant) => participant.evaluationStatus === "evaluated").length} evaluated`
           : tournament.linkedRecruits.length > 0
             ? `${tournament.linkedRecruits.length} linked recruiting profiles`
             : "Import the field or link recruits",
