@@ -2,19 +2,14 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { UserPlus, Users } from "lucide-react";
+import { ChevronDown, UserPlus } from "lucide-react";
 
-import {
-  WorkspaceAccentHeading,
-  WorkspaceFieldGrid,
-} from "@/components/adaptive-workspace";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { EMPTY_VALUE, formatUtr } from "@/lib/formatting";
 import { recruitingPersonPath } from "@/lib/module-routes";
 
 import { unlinkRecruitAction } from "../actions";
 import type { Tournament, TournamentLinkedRecruit } from "../types";
-import { TournamentImportedRecruitsWorkspaceField } from "./TournamentWorkspaceFields";
 import TournamentRoadRoster from "./TournamentRoadRoster";
 
 export default function TournamentPlayersWorkspace({
@@ -47,23 +42,30 @@ export default function TournamentPlayersWorkspace({
   return (
     <div className="min-w-0 space-y-[10px]">
       <TournamentRoadRoster tournamentId={tournament.id} initialParticipants={tournament.participants} />
-      <div className="border-t border-border/50 pt-[14px]" />
-      <section aria-label="The Players">
-        <div className="mb-2 flex flex-nowrap items-center gap-3">
+      <details className="group rounded-card border border-border bg-surface">
+        <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3">
           <div className="min-w-0 flex-1">
-            <WorkspaceAccentHeading icon={Users} tone="warning">
-              Linked Recruiting Profiles
-            </WorkspaceAccentHeading>
+            <p className="text-sm font-semibold text-text-primary">
+              Linked to Recruiting OS: {tournament.linkedRecruits.length}
+            </p>
+            <p className="mt-0.5 text-xs text-text-secondary">
+              Existing recruit connections are already identified in Tournament Players above.
+            </p>
           </div>
+          <ChevronDown className="h-4 w-4 shrink-0 text-text-secondary transition-transform group-open:rotate-180" aria-hidden />
+        </summary>
+        <section aria-label="Linked recruiting profiles" className="border-t border-border px-4 py-3">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs text-text-secondary">Use this only to review connections or manually link an existing recruit who was not matched from the imported field.</p>
           <button
             type="button"
             onClick={onAddPlayers}
-            className="inline-flex h-11 min-w-max shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control bg-denison-red px-5 text-sm font-semibold tracking-wide text-white shadow-[0_8px_18px_rgba(200,16,46,0.28)] transition-opacity hover:opacity-90"
+            className="inline-flex h-9 min-w-max shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border border-border bg-surface px-3 text-xs font-semibold text-text-primary hover:border-denison-red hover:text-denison-red"
           >
-            <UserPlus className="h-4 w-4 shrink-0 text-white" strokeWidth={1.75} aria-hidden />
-            Add Players
+            <UserPlus className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden />
+            Link existing recruit
           </button>
-        </div>
+          </div>
         {tournament.linkedRecruits.length === 0 ? (
           <p className="text-sm text-text-secondary">No recruits linked yet.</p>
         ) : (
@@ -107,12 +109,8 @@ export default function TournamentPlayersWorkspace({
             ))}
           </ul>
         )}
-      </section>
-      <div className="border-t border-border/50 pt-[10px]">
-        <WorkspaceFieldGrid columns={2} className="tournament-field-grid-2">
-          <TournamentImportedRecruitsWorkspaceField />
-        </WorkspaceFieldGrid>
-      </div>
+        </section>
+      </details>
     </div>
   );
 }

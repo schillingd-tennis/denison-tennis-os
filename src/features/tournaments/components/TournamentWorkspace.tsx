@@ -93,7 +93,7 @@ export default function TournamentWorkspace({
     {
       id: "players",
       title: "The Players",
-      subtitle: "Recruits linked to this tournament",
+      subtitle: "Review, evaluate, and connect tournament players",
       content: (
         <TournamentPlayersWorkspace
           tournament={tournament}

@@ -159,3 +159,14 @@ test("tournament roster reviews a field before selectively creating Potential re
   assert.match(repository, /pipeline_stage_id: potentialStage/);
   assert.match(repository, /Promoted from a tournament player review pool/);
 });
+
+test("players workspace uses one primary tournament-player workflow", () => {
+  const roster = readComponent("TournamentRoadRoster.tsx");
+  const workspace = readComponent("TournamentPlayersWorkspace.tsx");
+  assert.match(roster, /Tournament Players/);
+  assert.doesNotMatch(roster, /Tournament Field/);
+  assert.match(workspace, /Linked to Recruiting OS:/);
+  assert.match(workspace, /Link existing recruit/);
+  assert.doesNotMatch(workspace, /Linked Recruiting Profiles/);
+  assert.doesNotMatch(workspace, /TournamentImportedRecruitsWorkspaceField/);
+});
