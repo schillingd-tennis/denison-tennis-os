@@ -144,13 +144,18 @@ test("tournament roster shows canonical TennisRecruiting.net ratings", () => {
   assert.match(repository, /person\.trnUrl/);
 });
 
-test("tournament roster creates Potential recruits and queues public browser enrichment", () => {
+test("tournament roster reviews a field before selectively creating Potential recruits", () => {
   const roster = readComponent("TournamentRoadRoster.tsx");
   const actions = readFileSync(join(root, "actions.ts"), "utf8");
   const repository = readFileSync(join(root, "repository.ts"), "utf8");
-  assert.match(roster, /Add & enrich Potential recruits/);
+  assert.match(roster, /Match & enrich field/);
+  assert.match(roster, /Add selected/);
+  assert.match(roster, /Not in database/);
+  assert.match(roster, /Current recruits/);
   assert.match(roster, /addPotentialRecruitsAndEnrichAction/);
+  assert.match(actions, /promoteTournamentParticipants/);
   assert.match(actions, /addPotentialRecruitsAndEnrich/);
   assert.match(repository, /request_tournament_trn_profile_job/);
   assert.match(repository, /pipeline_stage_id: potentialStage/);
+  assert.match(repository, /Promoted from a tournament player review pool/);
 });

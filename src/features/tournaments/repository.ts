@@ -48,14 +48,19 @@ type TournamentParticipantRow = {
   quick_tags: string[] | null;
   evaluation_notes: string | null;
   evaluated_at: string | null;
+  trn_url?: string | null;
+  trn_rank?: number | null;
+  trn_star_rating?: number | null;
+  class_year?: number | null;
 };
 
-type ParticipantTrnDetails = Pick<TournamentParticipant, "trnRank" | "trnStarRating" | "trnUrl">;
+type ParticipantTrnDetails = Pick<TournamentParticipant, "trnRank" | "trnStarRating" | "trnUrl" | "classYear">;
 
 const EMPTY_TRN_DETAILS: ParticipantTrnDetails = {
   trnRank: null,
   trnStarRating: null,
   trnUrl: null,
+  classYear: null,
 };
 
 function participantFromRow(
@@ -77,7 +82,10 @@ function participantFromRow(
     quickTags: row.quick_tags ?? [],
     evaluationNotes: row.evaluation_notes,
     evaluatedAt: row.evaluated_at,
-    ...trnDetails,
+    trnRank: trnDetails.trnRank ?? row.trn_rank ?? null,
+    trnStarRating: trnDetails.trnStarRating ?? row.trn_star_rating ?? null,
+    trnUrl: trnDetails.trnUrl ?? row.trn_url ?? null,
+    classYear: trnDetails.classYear ?? row.class_year ?? null,
   };
 }
 
@@ -96,7 +104,8 @@ async function listTournamentParticipants(tournamentId: string): Promise<Tournam
   const linkedPersonIds = new Set(rows.flatMap((row) => row.recruit_person_id ? [row.recruit_person_id] : []));
   if (linkedPersonIds.size === 0) return rows.map((row) => participantFromRow(row));
 
-  const people = await listPeople();
+  const [people, profiles] = await Promise.all([listPeople(), listRecruitProfiles()]);
+  const classYearByPersonId = new Map(profiles.map((profile) => [profile.personId, profile.recruitClassYear ?? null]));
   const trnByPersonId = new Map<string, ParticipantTrnDetails>();
   for (const person of people) {
     if (!linkedPersonIds.has(person.id)) continue;
@@ -104,6 +113,7 @@ async function listTournamentParticipants(tournamentId: string): Promise<Tournam
       trnRank: person.trnRank ?? null,
       trnStarRating: person.trnStarRating ?? null,
       trnUrl: person.trnUrl ?? null,
+      classYear: classYearByPersonId.get(person.id) ?? null,
     });
   }
   return rows.map((row) => participantFromRow(
@@ -254,19 +264,6 @@ export async function importTournamentParticipants(
       recruitLinkStatus = "matched";
     } else if (matches.length > 1) {
       recruitLinkStatus = "ambiguous";
-    } else {
-      const { firstName, lastName } = splitParticipantName(participant.participantName);
-      recruitPersonId = crypto.randomUUID();
-      const { error: personError } = await client.from("production_people").insert({
-        id: recruitPersonId, role_id: roleIdForKey(ROLE_KEYS.recruit), status_id: statusIdForKey(STATUS_KEYS.current),
-        first_name: firstName, last_name: lastName, city: participant.city, state: participant.state, relationships: [],
-      });
-      if (personError) throw new TournamentRepositoryError(`Could not add potential recruit ${participant.participantName}: ${personError.message}`);
-      const potentialStage = RECRUIT_PIPELINE_SEED.find((stage) => stage.key === "potential");
-      const { error: profileError } = await client.from("recruit_profiles").insert({ person_id: recruitPersonId, pipeline_stage_id: potentialStage?.id ?? null, notes: "Discovered from a tournament participant import." });
-      if (profileError) throw new TournamentRepositoryError(`Could not create potential recruit profile for ${participant.participantName}: ${profileError.message}`);
-      recruitLinkStatus = "created";
-      nameIndex.set(normalizeRecruitName(participant.participantName), [{ personId: recruitPersonId, displayName: participant.participantName }]);
     }
     if (recruitPersonId) links.push({ tournament_id: tournamentId, recruit_person_id: recruitPersonId, attendance_status: "expected" });
     rows.push({ tournament_id: tournamentId, participant_name: participant.participantName.trim(), events: participant.events, city: participant.city, state: participant.state, gender: participant.gender, recruit_person_id: recruitPersonId, recruit_link_status: recruitLinkStatus });
@@ -279,7 +276,53 @@ export async function importTournamentParticipants(
     const { error: linkError } = await client.from(LINKS_TABLE).upsert(links, { onConflict: "tournament_id,recruit_person_id", ignoreDuplicates: true });
     if (linkError) throw new TournamentRepositoryError(`Could not link tournament recruits: ${linkError.message}`);
   }
+  const { error: queueError } = await client.rpc("request_tournament_trn_profile_job", { p_tournament_id: tournamentId });
+  if (queueError) throw new TournamentRepositoryError(`Players were imported, but public TRN enrichment could not be queued: ${queueError.message}`);
   return listTournamentParticipants(tournamentId);
+}
+
+export async function promoteTournamentParticipants(
+  tournamentId: string,
+  participantIds: readonly string[],
+): Promise<{ created: number; participants: TournamentParticipant[] }> {
+  if (participantIds.length === 0) return { created: 0, participants: await listTournamentParticipants(tournamentId) };
+  const client = await createSupabaseServerClient();
+  const { data, error } = await client.from(PARTICIPANTS_TABLE).select("*").eq("tournament_id", tournamentId).in("id", [...participantIds]);
+  if (error) throw new TournamentRepositoryError(`Could not load selected tournament players: ${error.message}`);
+  const potentialStage = RECRUIT_PIPELINE_SEED.find((stage) => stage.key === "potential");
+  let created = 0;
+  for (const row of ((data as TournamentParticipantRow[] | null) ?? [])) {
+    if (row.recruit_person_id) continue;
+    const { firstName, lastName } = splitParticipantName(row.participant_name);
+    const personId = crypto.randomUUID();
+    const { error: personError } = await client.from("production_people").insert({
+      id: personId,
+      role_id: roleIdForKey(ROLE_KEYS.recruit),
+      status_id: statusIdForKey(STATUS_KEYS.current),
+      first_name: firstName,
+      last_name: lastName,
+      city: row.city,
+      state: row.state,
+      trn_url: row.trn_url ?? null,
+      trn_rank: row.trn_rank ?? null,
+      trn_star_rating: row.trn_star_rating ?? null,
+      relationships: [],
+    });
+    if (personError) throw new TournamentRepositoryError(`Could not add ${row.participant_name}: ${personError.message}`);
+    const { error: profileError } = await client.from("recruit_profiles").insert({
+      person_id: personId,
+      pipeline_stage_id: potentialStage?.id ?? null,
+      recruit_class_year: row.class_year ?? null,
+      notes: "Promoted from a tournament player review pool.",
+    });
+    if (profileError) throw new TournamentRepositoryError(`Could not create Potential recruit ${row.participant_name}: ${profileError.message}`);
+    const { error: participantError } = await client.from(PARTICIPANTS_TABLE).update({ recruit_person_id: personId, recruit_link_status: "created" }).eq("id", row.id);
+    if (participantError) throw new TournamentRepositoryError(`Could not link ${row.participant_name}: ${participantError.message}`);
+    const { error: linkError } = await client.from(LINKS_TABLE).upsert({ tournament_id: tournamentId, recruit_person_id: personId, attendance_status: "expected" }, { onConflict: "tournament_id,recruit_person_id" });
+    if (linkError) throw new TournamentRepositoryError(`Could not connect ${row.participant_name} to the tournament: ${linkError.message}`);
+    created += 1;
+  }
+  return { created, participants: await listTournamentParticipants(tournamentId) };
 }
 
 export async function addPotentialRecruitsAndEnrich(tournamentId: string): Promise<TournamentRecruitEnrichmentSummary> {
@@ -290,46 +333,24 @@ export async function addPotentialRecruitsAndEnrich(tournamentId: string): Promi
   const [people, profiles] = await Promise.all([listPeople(), listRecruitProfiles()]);
   const recruitIds = new Set(profiles.map((profile) => profile.personId));
   const nameIndex = indexRecruitNames(people.filter((person) => recruitIds.has(person.id)).map((person) => ({ personId: person.id, displayName: getDisplayName(person) })));
-  const potentialStage = RECRUIT_PIPELINE_SEED.find((stage) => stage.key === "potential");
-  let created = 0;
-  let queued = 0;
-  const unresolved: string[] = [];
-
   for (const row of rows) {
-    let personId = row.recruit_person_id;
-    let linkStatus = row.recruit_link_status ?? (personId ? "matched" : "unmatched");
-    if (!personId && linkStatus !== "ambiguous") {
-      const matches = nameIndex.get(normalizeRecruitName(row.participant_name)) ?? [];
-      if (matches.length === 1) {
-        personId = matches[0]?.personId ?? null;
-        linkStatus = "matched";
-      } else if (matches.length > 1) {
-        linkStatus = "ambiguous";
-      } else {
-        const split = splitParticipantName(row.participant_name);
-        personId = crypto.randomUUID();
-        const { error: personError } = await client.from("production_people").insert({ id: personId, role_id: roleIdForKey(ROLE_KEYS.recruit), status_id: statusIdForKey(STATUS_KEYS.current), first_name: split.firstName, last_name: split.lastName, city: row.city, state: row.state, relationships: [] });
-        if (personError) throw new TournamentRepositoryError(`Could not add ${row.participant_name}: ${personError.message}`);
-        const { error: profileError } = await client.from("recruit_profiles").insert({ person_id: personId, pipeline_stage_id: potentialStage?.id ?? null, notes: "Discovered from a tournament participant list." });
-        if (profileError) throw new TournamentRepositoryError(`Could not create Potential recruit ${row.participant_name}: ${profileError.message}`);
-        linkStatus = "created";
-        created += 1;
-      }
-      await client.from(PARTICIPANTS_TABLE).update({ recruit_person_id: personId, recruit_link_status: linkStatus }).eq("id", row.id);
-      if (personId) await client.from(LINKS_TABLE).upsert({ tournament_id: tournamentId, recruit_person_id: personId, attendance_status: "expected" }, { onConflict: "tournament_id,recruit_person_id", ignoreDuplicates: true });
+    if (row.recruit_person_id) continue;
+    const matches = nameIndex.get(normalizeRecruitName(row.participant_name)) ?? [];
+    if (matches.length === 1 && matches[0]) {
+      const personId = matches[0].personId;
+      const { error: matchError } = await client.from(PARTICIPANTS_TABLE).update({ recruit_person_id: personId, recruit_link_status: "matched" }).eq("id", row.id);
+      if (matchError) throw new TournamentRepositoryError(`Could not link ${row.participant_name}: ${matchError.message}`);
+      await client.from(LINKS_TABLE).upsert({ tournament_id: tournamentId, recruit_person_id: personId, attendance_status: "expected" }, { onConflict: "tournament_id,recruit_person_id", ignoreDuplicates: true });
+    } else if (matches.length > 1 && row.recruit_link_status !== "ambiguous") {
+      await client.from(PARTICIPANTS_TABLE).update({ recruit_link_status: "ambiguous" }).eq("id", row.id);
     }
-    if (!personId || linkStatus === "ambiguous" || linkStatus === "unmatched") {
-      unresolved.push(row.participant_name);
-      continue;
-    }
-    const person = people.find((item) => item.id === personId);
-    if (!person?.trnUrl && !person?.trnRank) queued += 1;
   }
+  const queued = rows.filter((row) => !row.trn_url && !row.trn_rank).length;
   if (queued > 0) {
     const { error: queueError } = await client.rpc("request_tournament_trn_profile_job", { p_tournament_id: tournamentId });
-    if (queueError) throw new TournamentRepositoryError(`Potential recruits were added, but TRN enrichment could not be queued: ${queueError.message}`);
+    if (queueError) throw new TournamentRepositoryError(`The tournament field was matched, but public TRN enrichment could not be queued: ${queueError.message}`);
   }
-  return { created, enriched: 0, queued, unresolved: [...new Set(unresolved)], participants: await listTournamentParticipants(tournamentId) };
+  return { created: 0, enriched: 0, queued, unresolved: [], participants: await listTournamentParticipants(tournamentId) };
 }
 
 export async function saveTournamentParticipantEvaluation(

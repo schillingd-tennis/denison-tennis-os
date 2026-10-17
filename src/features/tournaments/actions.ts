@@ -14,6 +14,7 @@ import {
   saveTournamentParticipantEvaluation,
   setTournamentPlanToAttend,
   addPotentialRecruitsAndEnrich,
+  promoteTournamentParticipants,
 } from "./repository";
 import { isAttendanceStatus, normalizeTournamentInput } from "./mapping";
 import type { AttendanceStatus, Tournament, TournamentInput, TournamentParticipant, TournamentParticipantEvaluation, TournamentRecruitEnrichmentSummary } from "./types";
@@ -47,6 +48,19 @@ export async function addPotentialRecruitsAndEnrichAction(tournamentId: string):
     return { success: true, summary };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : "Could not add and enrich Potential recruits." };
+  }
+}
+
+export async function promoteTournamentParticipantsAction(
+  tournamentId: string,
+  participantIds: string[],
+): Promise<{ success: true; created: number; participants: TournamentParticipant[] } | { success: false; error: string }> {
+  try {
+    const result = await promoteTournamentParticipants(tournamentId, participantIds);
+    revalidateTournaments(tournamentId);
+    return { success: true, ...result };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "Could not add selected players to Recruiting OS." };
   }
 }
 

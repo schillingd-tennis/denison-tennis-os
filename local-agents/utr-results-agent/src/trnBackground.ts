@@ -69,16 +69,21 @@ export function startTrnBackgroundWorker(options?: { client?: SupabaseClient }):
         if (jobError || !job) throw new Error("TRN acquisition job could not be loaded.");
         if (job.kind === "profile" && job.scope === "tournament" && job.target_id) {
           const { data: participants, error: participantError } = await client.from("recruiting_tournament_participants")
-            .select("participant_name,recruit_person_id").eq("tournament_id", job.target_id).not("recruit_person_id", "is", null);
+            .select("id,participant_name,recruit_person_id,trn_url,trn_rank").eq("tournament_id", job.target_id);
           if (participantError) throw new Error(participantError.message);
-          const rows = (participants ?? []) as Array<{ participant_name: string; recruit_person_id: string }>;
-          const personIds = [...new Set(rows.map((row) => row.recruit_person_id))];
+          const rows = (participants ?? []) as Array<{ id: string; participant_name: string; recruit_person_id: string | null; trn_url: string | null; trn_rank: number | null }>;
+          const personIds = [...new Set(rows.flatMap((row) => row.recruit_person_id ? [row.recruit_person_id] : []))];
           const { data: people, error: peopleError } = personIds.length
             ? await client.from("production_people").select("id,trn_url,trn_rank").in("id", personIds)
             : { data: [], error: null };
           if (peopleError) throw new Error(peopleError.message);
           const existing = new Map((people ?? []).map((person) => [String(person.id), person]));
-          const pending = rows.filter((row) => { const person = existing.get(row.recruit_person_id); return person && !person.trn_url && !person.trn_rank; });
+          const pending = rows.filter((row) => {
+            if (row.trn_url || row.trn_rank) return false;
+            if (!row.recruit_person_id) return true;
+            const person = existing.get(row.recruit_person_id);
+            return !person?.trn_url && !person?.trn_rank;
+          });
           await updateJob({ total_count: pending.length });
           const context = await getTrnContext();
           let saved = 0; let failed = 0; let verificationRequired = false;
@@ -90,9 +95,16 @@ export function startTrnBackgroundWorker(options?: { client?: SupabaseClient }):
                 const patch: Record<string, unknown> = { trn_url: profile.profileUrl };
                 if (profile.city) patch.city = profile.city; if (profile.state) patch.state = profile.state;
                 if (profile.rank) patch.trn_rank = profile.rank; if (profile.starRating) patch.trn_star_rating = profile.starRating;
-                const { error: updateError } = await client.from("production_people").update(patch).eq("id", row.recruit_person_id);
-                if (updateError) throw new Error(updateError.message);
-                if (profile.classYear) await client.from("recruit_profiles").update({ recruit_class_year: profile.classYear }).eq("person_id", row.recruit_person_id);
+                const { error: participantUpdateError } = await client.from("recruiting_tournament_participants").update({
+                  trn_url: profile.profileUrl, trn_rank: profile.rank, trn_star_rating: profile.starRating,
+                  class_year: profile.classYear, city: profile.city ?? undefined, state: profile.state ?? undefined,
+                }).eq("id", row.id);
+                if (participantUpdateError) throw new Error(participantUpdateError.message);
+                if (row.recruit_person_id) {
+                  const { error: updateError } = await client.from("production_people").update(patch).eq("id", row.recruit_person_id);
+                  if (updateError) throw new Error(updateError.message);
+                  if (profile.classYear) await client.from("recruit_profiles").update({ recruit_class_year: profile.classYear }).eq("person_id", row.recruit_person_id);
+                }
                 saved += 1;
               }
             } catch (error) {
