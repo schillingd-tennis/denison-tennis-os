@@ -277,7 +277,10 @@ export async function importTournamentParticipants(
     if (linkError) throw new TournamentRepositoryError(`Could not link tournament recruits: ${linkError.message}`);
   }
   const { error: queueError } = await client.rpc("request_tournament_trn_profile_job", { p_tournament_id: tournamentId });
-  if (queueError) throw new TournamentRepositoryError(`Players were imported, but public TRN enrichment could not be queued: ${queueError.message}`);
+  // Importing the field is the primary operation. A transient worker/queue
+  // problem must not turn a successful import into an apparent failure or
+  // prevent the client from refreshing the newly inserted players.
+  if (queueError) console.error(`Tournament players imported without queued TRN enrichment: ${queueError.message}`);
   return listTournamentParticipants(tournamentId);
 }
 
